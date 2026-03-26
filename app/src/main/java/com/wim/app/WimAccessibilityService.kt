@@ -1,0 +1,78 @@
+package com.wim.app
+
+import android.accessibilityservice.AccessibilityService
+import android.content.Intent
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+
+/**
+ * Detects when a text field is focused and shows/hides the floating bubble.
+ * Injects reconstructed text into the active text field.
+ */
+class WimAccessibilityService : AccessibilityService() {
+
+    companion object {
+        var instance: WimAccessibilityService? = null
+            private set
+        var activeTextField: AccessibilityNodeInfo? = null
+            private set
+    }
+
+    override fun onServiceConnected() {
+        instance = this
+    }
+
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        event ?: return
+
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                val source = event.source ?: return
+                if (source.isEditable) {
+                    activeTextField = source
+                    showBubble()
+                } else if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                    activeTextField = null
+                    hideBubble()
+                }
+            }
+        }
+    }
+
+    override fun onInterrupt() {
+        activeTextField = null
+    }
+
+    override fun onDestroy() {
+        instance = null
+        activeTextField = null
+        super.onDestroy()
+    }
+
+    /**
+     * Paste text into the currently focused text field.
+     */
+    fun injectText(text: String) {
+        val node = activeTextField ?: return
+        val clip = android.content.ClipData.newPlainText("wim", text)
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(clip)
+
+        node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    }
+
+    private fun showBubble() {
+        val intent = Intent(this, BubbleService::class.java).apply {
+            action = "SHOW"
+        }
+        startService(intent)
+    }
+
+    private fun hideBubble() {
+        val intent = Intent(this, BubbleService::class.java).apply {
+            action = "HIDE"
+        }
+        startService(intent)
+    }
+}

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Mic access for recording -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Overlay for floating bubble -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Network for Whisper + reconstruction API -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Foreground service for persistent bubble -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application
+        android:name=".WimApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="What I Meant"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WhatIMeant">
+
+        <!-- Main activity: settings, onboarding, API key -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Floating bubble service -->
+        <service
+            android:name=".BubbleService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false" />
+
+        <!-- Accessibility service for text field detection + injection -->
+        <service
+            android:name=".WimAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+        </service>
+
+    </application>
+</manifest>

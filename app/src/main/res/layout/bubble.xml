@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="56dp"
+    android:layout_height="56dp">
+
+    <ImageView
+        android:id="@+id/bubbleIcon"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        android:background="@drawable/bubble_bg"
+        android:padding="14dp"
+        android:contentDescription="Voice dictation"
+        android:elevation="8dp" />
+</FrameLayout>

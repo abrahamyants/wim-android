@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1A1A1A">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="What I Meant"
+            android:textColor="#E8E8EC"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Speak messy. Get clean text."
+            android:textColor="#888890"
+            android:textSize="14sp"
+            android:layout_marginBottom="32dp" />
+
+        <!-- API Key -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OpenAI API Key"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/apiKeyInput"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#2A2A30"
+            android:textColor="#E8E8EC"
+            android:textColorHint="#55555E"
+            android:hint="sk-proj-..."
+            android:inputType="textPassword"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textSize="14sp"
+            android:fontFamily="monospace" />
+
+        <Button
+            android:id="@+id/saveKeyBtn"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Save Key"
+            android:backgroundTint="#B91C1C"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enter your API key to get started"
+            android:textColor="#888890"
+            android:textSize="13sp"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Tone Selection -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tone"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <RadioGroup
+            android:id="@+id/toneGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp">
+
+            <RadioButton
+                android:id="@+id/toneCasual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Casual"
+                android:textColor="#E8E8EC"
+                android:buttonTint="#B91C1C" />
+
+            <RadioButton
+                android:id="@+id/toneProfessional"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Professional"
+                android:textColor="#E8E8EC"
+                android:buttonTint="#B91C1C" />
+
+            <RadioButton
+                android:id="@+id/toneFormal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Formal"
+                android:textColor="#E8E8EC"
+                android:buttonTint="#B91C1C" />
+
+            <RadioButton
+                android:id="@+id/toneFriend"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Friend"
+                android:textColor="#E8E8EC"
+                android:buttonTint="#B91C1C" />
+        </RadioGroup>
+
+        <!-- Permissions -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Permissions"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/overlayPermBtn"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Grant Overlay Permission"
+            android:backgroundTint="#2A2A30"
+            android:textColor="#E8E8EC"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/accessibilityPermBtn"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Enable Accessibility Service"
+            android:backgroundTint="#2A2A30"
+            android:textColor="#E8E8EC"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/micPermBtn"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Grant Microphone Permission"
+            android:backgroundTint="#2A2A30"
+            android:textColor="#E8E8EC"
+            android:layout_marginBottom="24dp" />
+
+    </LinearLayout>
+</ScrollView>
