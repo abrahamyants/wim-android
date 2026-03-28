@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brushed aluminum background: tiled grain + vertical depth gradient -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base: tiled brushed grain -->
+    <item android:drawable="@drawable/bg_brushed_tile" />
+    <!-- Overlay: vertical shading for depth (lighter top → darker bottom) -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#00000000"
+                android:centerColor="#08000000"
+                android:endColor="#14000000"
+                android:angle="270" />
+        </shape>
+    </item>
+</layer-list>

@@ -135,6 +135,40 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // ── Bubble opacity slider ─────────────────────────
+        val seekOpacity = findViewById<SeekBar>(R.id.bubbleOpacitySeek)
+        val opacityValue = findViewById<TextView>(R.id.bubbleOpacityValue)
+        val savedOpacity = WimApp.bubbleOpacity().coerceIn(20, 100)
+        seekOpacity.progress = savedOpacity
+        opacityValue.text = "$savedOpacity%"
+        seekOpacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val pct = progress.coerceIn(20, 100)
+                opacityValue.text = "$pct%"
+                WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
+                BubbleService.instance?.updateBubbleAppearance()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // ── Bubble size slider ─────────────────────────────
+        val seekSize = findViewById<SeekBar>(R.id.bubbleSizeSeek)
+        val sizeValue = findViewById<TextView>(R.id.bubbleSizeValue)
+        val savedSize = WimApp.bubbleSize().coerceIn(50, 150)
+        seekSize.progress = savedSize
+        sizeValue.text = "$savedSize%"
+        seekSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val pct = progress.coerceIn(50, 150)
+                sizeValue.text = "$pct%"
+                WimApp.prefs.edit().putInt("bubble_size", pct).apply()
+                BubbleService.instance?.updateBubbleAppearance()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)
         val accessibilityBtn = findViewById<Button>(R.id.accessibilityPermBtn)

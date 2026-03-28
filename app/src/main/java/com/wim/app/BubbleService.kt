@@ -17,6 +17,9 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
 import android.widget.FrameLayout
@@ -40,6 +43,7 @@ class BubbleService : Service() {
     private var lastRawText = ""
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
+    private var pulseAnimators = mutableListOf<AnimatorSet>()
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
@@ -57,6 +61,8 @@ class BubbleService : Service() {
         private const val TAG = "WiM"
         private const val CHANNEL_ID = "wim_bubble"
         private const val NOTIFICATION_ID = 1
+        var instance: BubbleService? = null
+            private set
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -64,6 +70,7 @@ class BubbleService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
+        instance = this
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
         onDeviceRecognizer = OnDeviceRecognizer(this)
@@ -107,6 +114,15 @@ class BubbleService : Service() {
         var isDragging = false
         var downTime = 0L
         var startedOnThisPress = false
+        val DRAG_THRESHOLD = 40
+        val startRecordingRunnable = Runnable {
+            if (!isDragging && !isRecording) {
+                try { vibrator?.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                startPulseRings()
+                startListening()
+                startedOnThisPress = true
+            }
+        }
 
         bubbleView?.setOnTouchListener { v, event ->
             when (event.action) {
@@ -117,21 +133,33 @@ class BubbleService : Service() {
                     initialTouchY = event.rawY
                     isDragging = false
                     downTime = System.currentTimeMillis()
+                    startedOnThisPress = false
 
                     if (!isRecording) {
-                        try { vibrator?.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-                        startListening()
-                        startedOnThisPress = true
-                    } else {
-                        startedOnThisPress = false
+                        // Delay recording start by 150ms — if finger moves, it's a drag
+                        timerHandler.postDelayed(startRecordingRunnable, 150)
                     }
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
-                    if (kotlin.math.abs(dx) > 15 || kotlin.math.abs(dy) > 15) {
-                        isDragging = true
+                    if (kotlin.math.abs(dx) > DRAG_THRESHOLD || kotlin.math.abs(dy) > DRAG_THRESHOLD) {
+                        if (!isDragging) {
+                            isDragging = true
+                            // Cancel pending recording start
+                            timerHandler.removeCallbacks(startRecordingRunnable)
+                            // If recording somehow started, cancel it
+                            if (startedOnThisPress && isRecording) {
+                                isRecording = false
+                                onDeviceRecognizer?.stop()
+                                dafPlayer?.stop()
+                                dafPlayer = null
+                                stopPulseRings()
+                                setBubbleIdle()
+                                startedOnThisPress = false
+                            }
+                        }
                         params.x = initialX + dx
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(bubbleView, params)
@@ -139,23 +167,42 @@ class BubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    timerHandler.removeCallbacks(startRecordingRunnable)
                     if (isDragging) return@setOnTouchListener true
-                    val holdDuration = System.currentTimeMillis() - downTime
 
-                    if (startedOnThisPress && holdDuration > 500) {
-                        // Hold mode: started on this press, held 500ms+, release = done
-                        try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                    try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+
+                    if (startedOnThisPress && isRecording) {
+                        // Hold mode: was recording from this press, release = done
                         stopAndProcess()
                     } else if (!startedOnThisPress && isRecording) {
-                        // Second tap: recording was already running, stop it
-                        try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        // Second tap: recording was running from before, stop it
                         stopAndProcess()
+                    } else if (!isRecording) {
+                        // Quick tap (under 150ms, runnable didn't fire yet) — start now
+                        startPulseRings()
+                        startListening()
+                        startedOnThisPress = true
                     }
-                    // else: quick tap that started recording — do nothing, keep recording
                     true
                 }
                 else -> false
             }
+        }
+
+        // Apply saved bubble opacity and size
+        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
+
+        val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
+        val density = resources.displayMetrics.density
+        val baseWindowDp = 120
+        val newWindowPx = (baseWindowDp * density * scale).toInt()
+        params.width = newWindowPx
+        params.height = newWindowPx
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+            it.scaleX = scale
+            it.scaleY = scale
         }
 
         windowManager?.addView(bubbleView, params)
@@ -176,9 +223,11 @@ class BubbleService : Service() {
         Log.i(TAG, "Starting on-device recognition")
         Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
 
-        // Visual: recording state
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleRoot)
-            ?.getChildAt(0)?.setBackgroundResource(R.drawable.bubble_bg_recording)
+        // Visual: recording state — bezel glows red, inner well lights up
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+            ?.setBackgroundResource(R.drawable.bubble_bg_recording)
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+            ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "REC"
             setTextColor(0xFFEF4444.toInt())
@@ -245,11 +294,66 @@ class BubbleService : Service() {
         }
     }
 
+    private fun startPulseRings() {
+        stopPulseRings()
+        val rings = listOf(
+            bubbleView?.findViewById<View>(R.id.pulseRing1),
+            bubbleView?.findViewById<View>(R.id.pulseRing2),
+            bubbleView?.findViewById<View>(R.id.pulseRing3)
+        )
+
+        rings.forEachIndexed { i, ring ->
+            ring ?: return@forEachIndexed
+            val delay = (i * 350).toLong()
+            val maxScale = 2.0f + (i * 0.7f) // 2.0, 2.7, 3.4
+
+            val scaleX = ObjectAnimator.ofFloat(ring, "scaleX", 1.0f, maxScale).apply {
+                duration = 1200
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART
+                startDelay = delay
+            }
+            val scaleY = ObjectAnimator.ofFloat(ring, "scaleY", 1.0f, maxScale).apply {
+                duration = 1200
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART
+                startDelay = delay
+            }
+            val alpha = ObjectAnimator.ofFloat(ring, "alpha", 0.9f, 0.0f).apply {
+                duration = 1200
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART
+                startDelay = delay
+            }
+
+            val set = AnimatorSet()
+            set.playTogether(scaleX, scaleY, alpha)
+            set.start()
+            pulseAnimators.add(set)
+        }
+    }
+
+    private fun stopPulseRings() {
+        pulseAnimators.forEach { it.cancel() }
+        pulseAnimators.clear()
+        listOf(R.id.pulseRing1, R.id.pulseRing2, R.id.pulseRing3).forEach { id ->
+            bubbleView?.findViewById<View>(id)?.apply {
+                alpha = 0f
+                scaleX = 1f
+                scaleY = 1f
+            }
+        }
+    }
+
     private fun setBubbleIdle() {
         timerHandler.removeCallbacks(timerRunnable)
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleRoot)
-            ?.getChildAt(0)?.setBackgroundResource(R.drawable.bubble_bg_idle)
+        stopPulseRings()
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
+            clearAnimation()
+            setBackgroundResource(R.drawable.bubble_inner)
+        }
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+            ?.setBackgroundResource(R.drawable.bubble_bg_idle)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
             setTextColor(0xFF55555E.toInt())
@@ -257,6 +361,30 @@ class BubbleService : Service() {
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             text = "0:00"
             setTextColor(0xFFEE5A24.toInt())
+        }
+    }
+
+    fun updateBubbleAppearance() {
+        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
+
+        val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
+        val density = resources.displayMetrics.density
+        val baseWindowDp = 120
+        val newWindowPx = (baseWindowDp * density * scale).toInt()
+
+        bubbleParams?.let { params ->
+            params.width = newWindowPx
+            params.height = newWindowPx
+            try {
+                windowManager?.updateViewLayout(bubbleView, params)
+            } catch (_: Exception) {}
+        }
+
+        // Scale the inner views to match
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+            it.scaleX = scale
+            it.scaleY = scale
         }
     }
 
@@ -270,32 +398,55 @@ class BubbleService : Service() {
 
         val layer = WimApp.layer()
         val tone = WimApp.tone()
+        val situation = WimApp.situation()
+        val profile = WimApp.profile()
+
+        // Pre-clean: strip disfluencies from raw ASR text before any further processing
+        val fillerWords = profile.getFillerWords()
+        val preCleaned = DisfluencyFilter.filter(rawText, fillerWords)
+        Log.i(TAG, "Pre-cleaned: $preCleaned")
 
         if (layer < 2) {
-            // L1: transcribe only — inject raw text immediately
-            Log.i(TAG, "L1 mode, injecting raw text")
-            WimAccessibilityService.instance?.injectText(rawText)
+            // L1: disfluency-filtered text IS the cleanup — inject directly
+            Log.i(TAG, "L1 mode, injecting pre-cleaned text")
+            WimAccessibilityService.instance?.injectText(preCleaned)
             bubbleView?.alpha = 0.7f
             return
         }
 
-        // L2+: reconstruct via GPT
+        // L2+: reconstruct via GPT (with pre-cleaned input)
         Toast.makeText(this, "Reconstructing...", Toast.LENGTH_SHORT).show()
+
+        // L3+ gets profile vocabulary and corrections injected into the prompt
+        val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
+        val corrections = if (layer >= 3) profile.getCorrections() else emptyMap()
 
         scope.launch {
             try {
-                Log.i(TAG, "Calling reconstruction (L$layer, $tone)...")
-                val reconResult = ReconstructClient.reconstruct(rawText, tone, layer)
+                Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
+                val reconResult = ReconstructClient.reconstruct(
+                    rawText = preCleaned,
+                    tone = tone,
+                    layer = layer,
+                    situation = situation,
+                    vocabulary = vocabulary,
+                    corrections = corrections
+                )
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 
                 WimAccessibilityService.instance?.injectText(reconResult.cleanText)
                     ?: Log.e(TAG, "No accessibility service instance!")
 
+                // L3+: learn from reconstruction results
+                if (layer >= 3) {
+                    profile.learnFromReconstruction(rawText, reconResult.cleanText)
+                }
+
                 setBubbleIdle()
             } catch (e: Exception) {
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
-                // Fallback: inject raw text
-                WimAccessibilityService.instance?.injectText(rawText)
+                // Fallback: inject pre-cleaned text
+                WimAccessibilityService.instance?.injectText(preCleaned)
                 setBubbleIdle()
             }
         }
@@ -321,6 +472,7 @@ class BubbleService : Service() {
             .build()
 
     override fun onDestroy() {
+        instance = null
         dafPlayer?.stop()
         dafPlayer = null
         hideBubble()

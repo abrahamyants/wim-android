@@ -1,13 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="64dp"
-    android:layout_height="64dp"
-    android:id="@+id/bubbleRoot">
+    android:layout_width="120dp"
+    android:layout_height="120dp"
+    android:id="@+id/bubbleRoot"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Pulse ring 1 — innermost, fastest -->
+    <View
+        android:id="@+id/pulseRing1"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:background="@drawable/pulse_ring"
+        android:alpha="0" />
+
+    <!-- Pulse ring 2 — middle -->
+    <View
+        android:id="@+id/pulseRing2"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:background="@drawable/pulse_ring"
+        android:alpha="0" />
+
+    <!-- Pulse ring 3 — outermost, slowest -->
+    <View
+        android:id="@+id/pulseRing3"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:background="@drawable/pulse_ring_outer"
+        android:alpha="0" />
 
     <!-- Outer raised bezel ring -->
     <FrameLayout
+        android:id="@+id/bubbleBezel"
         android:layout_width="64dp"
         android:layout_height="64dp"
+        android:layout_gravity="center"
         android:background="@drawable/bubble_bg_idle"
         android:elevation="8dp">
 
@@ -19,7 +50,6 @@
             android:layout_gravity="center"
             android:background="@drawable/bubble_inner">
 
-            <!-- Center text: state + counter -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

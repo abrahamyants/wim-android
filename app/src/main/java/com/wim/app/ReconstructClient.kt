@@ -24,17 +24,48 @@ object ReconstructClient {
         "friend" to "Conversational, relaxed. Contractions expected. Sentence fragments OK if natural. Strip fillers but preserve personality."
     )
 
+    /** Per-tone temperature: formal is tighter, friend is looser */
+    private val TONE_TEMPERATURE = mapOf(
+        "formal" to 0.1,
+        "professional" to 0.25,
+        "casual" to 0.35,
+        "friend" to 0.4
+    )
+
+    /** Situation severity mapping (mirrored from lavrentiy.py) */
+    private val SITUATION_SEVERITY = mapOf(
+        "default" to 1.0,
+        "high_stress" to 1.5,
+        "reading" to 0.6
+    )
+
     /**
      * Send raw transcription to GPT for reconstruction.
      * Returns clean text.
+     *
+     * @param rawText the pre-cleaned ASR output
+     * @param tone voice tone setting (formal/professional/casual/friend)
+     * @param layer reconstruction layer (2-4)
+     * @param situation current situation context (default/high_stress/reading)
+     * @param vocabulary user's custom vocabulary list (L3+)
+     * @param corrections user's learned corrections map (L3+)
      */
-    suspend fun reconstruct(rawText: String, tone: String = "casual", layer: Int = 2): ReconstructResult =
+    suspend fun reconstruct(
+        rawText: String,
+        tone: String = "casual",
+        layer: Int = 2,
+        situation: String = "default",
+        vocabulary: List<String> = emptyList(),
+        corrections: Map<String, String> = emptyMap()
+    ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
             if (apiKey.isBlank()) throw IllegalStateException("No API key configured")
 
             val t0 = System.currentTimeMillis()
             val toneRule = TONE_RULES[tone] ?: TONE_RULES["casual"]!!
+            val temperature = TONE_TEMPERATURE[tone] ?: 0.35
+            val severity = SITUATION_SEVERITY[situation] ?: 1.0
 
             val systemPrompt = buildString {
                 append("You are a voice transcription post-processor. You receive raw, messy speech-to-text output and return ONLY the cleaned-up version. ")
@@ -42,16 +73,41 @@ object ReconstructClient {
                 append("If the input is a fragment or incomplete sentence, return it cleaned up as-is — do NOT say 'your message got cut off'. ")
                 append("Tone: $tone. ")
                 append(toneRule)
-                append(" Strip filler words (including non-English fillers like э, ну, ээ).")
+                append(" Strip filler words (including non-English fillers like \u044d, \u043d\u0443, \u044d\u044d).")
                 append(" Preserve FULL meaning. Do not summarize or add information.")
                 append(" Output ONLY the reconstructed text, nothing else.")
+
+                // Situation severity context (ported from lavrentiy.py aggression_note logic)
+                if (severity >= 1.4) {
+                    append("\n\nSpeaker is in a HIGH-STRESS context (phone/presentation/interview). ")
+                    append("Expect more disfluencies, heavier avoidance, more filler stacking. ")
+                    append("Be MORE aggressive in reconstructing — strip more, trust less of the literal words.")
+                } else if (severity <= 0.6) {
+                    append("\n\nSpeaker is in a low-stress context. Expect near-fluent speech. ")
+                    append("Be conservative — minor cleanup only.")
+                }
+
+                // L3+ profile context: vocabulary and corrections
+                if (layer >= 3) {
+                    if (vocabulary.isNotEmpty()) {
+                        append("\n\nSpeaker's known vocabulary (prefer these spellings): ")
+                        append(vocabulary.joinToString(", "))
+                    }
+                    if (corrections.isNotEmpty()) {
+                        append("\n\nKnown transcription errors to correct: ")
+                        corrections.forEach { (wrong, right) ->
+                            append("\"$wrong\" -> \"$right\", ")
+                        }
+                    }
+                }
+
                 if (layer >= 4) {
                     append("\n\nThe speaker stutters. Raw transcription is evidence, not truth. ")
                     append("Reconstruct intended meaning, not literal word sequence.")
                     append("\nOvert disfluencies — strip and reconstruct:")
-                    append("\n- Part-word repetitions: 'b-b-b-buy' → 'buy'")
-                    append("\n- Whole-word repetitions: 'I I I want' → 'I want'")
-                    append("\n- Prolongations: 'mmmmaybe' → 'maybe'")
+                    append("\n- Part-word repetitions: 'b-b-b-buy' -> 'buy'")
+                    append("\n- Whole-word repetitions: 'I I I want' -> 'I want'")
+                    append("\n- Prolongations: 'mmmmaybe' -> 'maybe'")
                     append("\n- Blocks: silence or frozen onset before a word")
                     append("\n- False starts and restarts")
                 }
@@ -67,7 +123,7 @@ object ReconstructClient {
             val body = JSONObject().apply {
                 put("model", model)
                 put("messages", messages)
-                put("temperature", 0.3)
+                put("temperature", temperature)
                 put("max_tokens", 1024)
             }
 

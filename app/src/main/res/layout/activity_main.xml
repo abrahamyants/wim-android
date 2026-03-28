@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_base"
+    android:background="@drawable/bg_app"
     android:scrollbarThumbVertical="@android:color/transparent">
 
     <LinearLayout
@@ -644,6 +644,122 @@
                 android:id="@+id/switchProsodic"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- BUBBLE -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BUBBLE"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Opacity slider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Opacity"
+                android:textColor="@color/text_dim"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="12dp" />
+
+            <SeekBar
+                android:id="@+id/bubbleOpacitySeek"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:min="20"
+                android:max="100"
+                android:progress="70"
+                android:thumb="@drawable/daf_seekbar_thumb"
+                android:progressDrawable="@drawable/daf_seekbar_track" />
+
+            <TextView
+                android:id="@+id/bubbleOpacityValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="70%"
+                android:textColor="@color/text_bright"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginStart="10dp"
+                android:minWidth="36dp"
+                android:gravity="end" />
+        </LinearLayout>
+
+        <!-- Size slider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Size"
+                android:textColor="@color/text_dim"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="12dp" />
+
+            <SeekBar
+                android:id="@+id/bubbleSizeSeek"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:min="50"
+                android:max="150"
+                android:progress="100"
+                android:thumb="@drawable/daf_seekbar_thumb"
+                android:progressDrawable="@drawable/daf_seekbar_track" />
+
+            <TextView
+                android:id="@+id/bubbleSizeValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="100%"
+                android:textColor="@color/text_bright"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginStart="10dp"
+                android:minWidth="40dp"
+                android:gravity="end" />
         </LinearLayout>
 
         <!-- ── Section divider ── -->

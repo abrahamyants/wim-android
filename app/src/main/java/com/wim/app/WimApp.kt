@@ -9,6 +9,8 @@ class WimApp : Application() {
         lateinit var prefs: SharedPreferences
             private set
 
+        private lateinit var profileManager: ProfileManager
+
         fun apiKey(): String = prefs.getString("api_key", "") ?: ""
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
         fun layer(): Int = prefs.getInt("layer", 2)
@@ -18,10 +20,15 @@ class WimApp : Application() {
         fun prosodic(): Boolean = prefs.getBoolean("prosodic", false)
         fun dafEnabled(): Boolean = prefs.getBoolean("daf_enabled", false)
         fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
+        fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 70)
+        fun bubbleSize(): Int = prefs.getInt("bubble_size", 100)
+
+        fun profile(): ProfileManager = profileManager
     }
 
     override fun onCreate() {
         super.onCreate()
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
+        profileManager = ProfileManager(prefs)
     }
 }

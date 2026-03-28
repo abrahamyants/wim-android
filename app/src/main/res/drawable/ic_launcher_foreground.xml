@@ -4,13 +4,37 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- WiM text centered in adaptive icon safe zone -->
-    <group
-        android:translateX="18"
-        android:translateY="18">
-        <!-- Background circle -->
-        <path
-            android:fillColor="#B91C1C"
-            android:pathData="M36,36m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
-    </group>
+
+    <!-- Outer bezel ring -->
+    <path
+        android:fillColor="#FFC0C0C5"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+
+    <!-- Bezel edge stroke -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FF999999"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+
+    <!-- Inner well -->
+    <path
+        android:fillColor="#FFB5B5BA"
+        android:pathData="M54,54m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
+
+    <!-- Inner shadow ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33000000"
+        android:pathData="M54,54m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
+
+    <!-- W in orange — thick stroke letterform -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFEE5A24"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38,44 L44,63 L51,48 L54,48 L61,63 L67,44" />
 </vector>
