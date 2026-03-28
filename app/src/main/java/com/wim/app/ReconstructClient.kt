@@ -85,7 +85,7 @@ object ReconstructClient {
             put("layer", layer)
             put("situation", situation)
             put("mode", "SAFE")
-            if (vocabulary.isNotEmpty()) {
+            if (vocabulary.isNotEmpty() || corrections.isNotEmpty()) {
                 val profile = JSONObject()
                 profile.put("vocabulary", org.json.JSONArray(vocabulary))
                 val corr = JSONObject()
@@ -157,7 +157,7 @@ object ReconstructClient {
 
                 // L3+ profile context: vocabulary and corrections
                 if (layer >= 3) {
-                    if (vocabulary.isNotEmpty()) {
+                    if (vocabulary.isNotEmpty() || corrections.isNotEmpty()) {
                         append("\n\nSpeaker's known vocabulary (prefer these spellings): ")
                         append(vocabulary.joinToString(", "))
                     }

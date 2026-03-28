@@ -41,6 +41,7 @@ class BubbleService : Service() {
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
     private var dafPlayer: DafPlayer? = null
     private var lastRawText = ""
+    private var processed = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
@@ -229,6 +230,7 @@ class BubbleService : Service() {
         if (isRecording) return
         isRecording = true
         lastRawText = ""
+        processed = false
 
         Log.i(TAG, "Starting on-device recognition")
         Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
@@ -268,13 +270,8 @@ class BubbleService : Service() {
 
             override fun onFinalResult(text: String) {
                 Log.i(TAG, "Final ASR: $text")
-                lastRawText = text
-                // If still recording (user hasn't tapped stop yet), auto-process
-                if (isRecording) {
-                    isRecording = false
-                    dafPlayer?.stop()
-                    dafPlayer = null
-                    processText(text)
+                if (text.isNotBlank()) {
+                    lastRawText = if (lastRawText.isBlank()) text else "$lastRawText $text"
                 }
             }
 
@@ -291,7 +288,9 @@ class BubbleService : Service() {
     }
 
     private fun stopAndProcess() {
+        if (processed) return
         Log.i(TAG, "Stop requested, waiting 750ms for final words...")
+        processed = true
         isRecording = false
         dafPlayer?.stop()
         dafPlayer = null

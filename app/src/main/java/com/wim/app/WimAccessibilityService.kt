@@ -58,11 +58,18 @@ class WimAccessibilityService : AccessibilityService() {
      * Paste text into the currently focused text field.
      */
     fun injectText(text: String) {
-        val node = activeTextField ?: return
+        val node = activeTextField ?: run {
+            android.widget.Toast.makeText(this, "Tap a text field first", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!node.refresh()) {
+            activeTextField = null
+            android.widget.Toast.makeText(this, "Text field lost — tap a field and try again", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         val clip = android.content.ClipData.newPlainText("wim", text)
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
         clipboard.setPrimaryClip(clip)
-
         node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
     }
 

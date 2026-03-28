@@ -380,7 +380,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.micPermBtn).text =
             if (micOk) "Microphone: Granted" else "Grant Microphone Permission"
 
-        if (overlayOk && accessibilityOk && micOk && WimApp.apiKey().isNotBlank()) {
+        if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
             findViewById<TextView>(R.id.statusText).text = "Ready \u2014 open any app and start talking"
         }
     }
