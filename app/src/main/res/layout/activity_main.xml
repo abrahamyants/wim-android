@@ -83,9 +83,10 @@
         <!-- TONE -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerTone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TONE"
+            android:text="TONE  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -93,6 +94,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentTone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/toneContainer"
@@ -158,6 +165,8 @@
                 android:letterSpacing="0.04" />
         </LinearLayout>
 
+        </LinearLayout>
+
         <!-- ── Section divider ── -->
         <View
             android:layout_width="match_parent"
@@ -169,9 +178,10 @@
         <!-- LAYER -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerLayer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="LAYER"
+            android:text="LAYER  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -179,6 +189,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentLayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/layerContainer"
@@ -308,125 +324,9 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- MODE -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="MODE"
-            android:textColor="@color/orange_label"
-            android:textSize="11sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.15"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
-
-        <LinearLayout
-            android:id="@+id/modeContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp">
-
-            <!-- RAW -->
-            <LinearLayout
-                android:id="@+id/modeRaw"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/modeRawLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="RAW"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="paste as-is"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- FAST -->
-            <LinearLayout
-                android:id="@+id/modeFast"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/modeFastLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="FAST"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="skip validation"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- SAFE -->
-            <LinearLayout
-                android:id="@+id/modeSafe"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/modeSafeLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="SAFE"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ Falcon check"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
         </LinearLayout>
+
+        <!-- MODE removed — consumer doesn't need it, SAFE is default -->
 
         <!-- ── Section divider ── -->
         <View
@@ -439,9 +339,10 @@
         <!-- SITUATION -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerSituation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SITUATION"
+            android:text="SITUATION  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -449,6 +350,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentSituation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/situationContainer"
@@ -548,118 +455,18 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- ENHANCEMENTS -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ENHANCEMENTS"
-            android:textColor="@color/orange_label"
-            android:textSize="11sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.15"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
-
-        <!-- Paralinguistic toggle -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/card_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:layout_marginBottom="2dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Paralinguistic"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Tone, emphasis, emotion cues"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switchParalinguistic"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <!-- Prosodic toggle -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/card_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:layout_marginBottom="20dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Prosodic"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Rhythm, pacing, stress patterns"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switchProsodic"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- ENHANCEMENTS removed — paralinguistic/prosodic not wired on Android -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- BUBBLE -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerBubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="BUBBLE"
+            android:text="BUBBLE  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -667,6 +474,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentBubble"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Opacity slider -->
         <LinearLayout
@@ -762,6 +575,8 @@
                 android:gravity="end" />
         </LinearLayout>
 
+        </LinearLayout>
+
         <!-- ── Section divider ── -->
         <View
             android:layout_width="match_parent"
@@ -773,9 +588,10 @@
         <!-- DAF -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerDaf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DAF"
+            android:text="DAF  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -783,6 +599,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentDaf"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- DAF toggle -->
         <LinearLayout
@@ -867,6 +689,8 @@
                 android:gravity="end" />
         </LinearLayout>
 
+        </LinearLayout>
+
         <!-- ═══════════════════════════════════════════ -->
         <!-- API KEY (collapsed section) -->
         <!-- ═══════════════════════════════════════════ -->
@@ -928,9 +752,10 @@
         <!-- PERMISSIONS -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
+            android:id="@+id/headerPermissions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="PERMISSIONS"
+            android:text="PERMISSIONS  ▾"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -938,6 +763,12 @@
             android:fontFamily="monospace"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentPermissions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <Button
             android:id="@+id/overlayPermBtn"
@@ -968,6 +799,8 @@
             android:textColor="@color/text_primary"
             android:textSize="13sp"
             android:layout_marginBottom="8dp" />
+
+        </LinearLayout>
 
         <!-- ── Section divider ── -->
         <View

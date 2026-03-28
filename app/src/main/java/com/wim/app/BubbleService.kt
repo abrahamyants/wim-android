@@ -36,6 +36,8 @@ class BubbleService : Service() {
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
+    private var ringView: View? = null
+    private var ringParams: WindowManager.LayoutParams? = null
     private var isRecording = false
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
@@ -98,7 +100,7 @@ class BubbleService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -163,6 +165,7 @@ class BubbleService : Service() {
                         params.x = initialX + dx
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(bubbleView, params)
+                        syncRingPosition()
                     }
                     true
                 }
@@ -196,7 +199,7 @@ class BubbleService : Service() {
 
         val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
         val density = resources.displayMetrics.density
-        val baseWindowDp = 120
+        val baseWindowDp = 80
         val newWindowPx = (baseWindowDp * density * scale).toInt()
         params.width = newWindowPx
         params.height = newWindowPx
@@ -281,25 +284,85 @@ class BubbleService : Service() {
     }
 
     private fun stopAndProcess() {
-        Log.i(TAG, "Stop requested, lastRawText=$lastRawText")
+        Log.i(TAG, "Stop requested, waiting 750ms for final words...")
         isRecording = false
         dafPlayer?.stop()
         dafPlayer = null
-        onDeviceRecognizer?.stop()
 
-        if (lastRawText.isNotBlank()) {
-            processText(lastRawText)
-        } else {
-            setBubbleIdle()
+        // Delay stopping the recognizer — let it finish processing the last audio buffer
+        timerHandler.postDelayed({
+            val textBeforeStop = lastRawText
+            onDeviceRecognizer?.stop()
+
+            // Wait another 250ms for the final result callback
+            timerHandler.postDelayed({
+                val finalText = if (lastRawText.length > textBeforeStop.length) lastRawText else textBeforeStop
+                Log.i(TAG, "Final text after delay: $finalText")
+                if (finalText.isNotBlank()) {
+                    processText(finalText)
+                } else {
+                    setBubbleIdle()
+                }
+            }, 250)
+        }, 750)
+    }
+
+    private fun getRingOffset(): Int {
+        val density = resources.displayMetrics.density
+        val ringSize = (280 * density).toInt()
+        val bubbleSize = bubbleParams?.width ?: (80 * density).toInt()
+        return (ringSize - bubbleSize) / 2
+    }
+
+    private fun showRingWindow() {
+        hideRingWindow()
+        val bp = bubbleParams ?: return
+
+        val density = resources.displayMetrics.density
+        val ringSize = (280 * density).toInt()
+        val offset = getRingOffset()
+
+        ringParams = WindowManager.LayoutParams(
+            ringSize, ringSize,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = bp.x - offset
+            y = bp.y - offset
+        }
+
+        ringView = LayoutInflater.from(this).inflate(R.layout.pulse_rings, null)
+        try { windowManager?.addView(ringView, ringParams) } catch (_: Exception) {}
+    }
+
+    private fun syncRingPosition() {
+        val bp = bubbleParams ?: return
+        val rp = ringParams ?: return
+        val offset = getRingOffset()
+        rp.x = bp.x - offset
+        rp.y = bp.y - offset
+        try { windowManager?.updateViewLayout(ringView, rp) } catch (_: Exception) {}
+    }
+
+    private fun hideRingWindow() {
+        ringView?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            ringView = null
+            ringParams = null
         }
     }
 
     private fun startPulseRings() {
         stopPulseRings()
+        showRingWindow()
         val rings = listOf(
-            bubbleView?.findViewById<View>(R.id.pulseRing1),
-            bubbleView?.findViewById<View>(R.id.pulseRing2),
-            bubbleView?.findViewById<View>(R.id.pulseRing3)
+            ringView?.findViewById<View>(R.id.pulseRing1),
+            ringView?.findViewById<View>(R.id.pulseRing2),
+            ringView?.findViewById<View>(R.id.pulseRing3)
         )
 
         rings.forEachIndexed { i, ring ->
@@ -336,13 +399,7 @@ class BubbleService : Service() {
     private fun stopPulseRings() {
         pulseAnimators.forEach { it.cancel() }
         pulseAnimators.clear()
-        listOf(R.id.pulseRing1, R.id.pulseRing2, R.id.pulseRing3).forEach { id ->
-            bubbleView?.findViewById<View>(id)?.apply {
-                alpha = 0f
-                scaleX = 1f
-                scaleY = 1f
-            }
-        }
+        hideRingWindow()
     }
 
     private fun setBubbleIdle() {
@@ -370,7 +427,7 @@ class BubbleService : Service() {
 
         val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
         val density = resources.displayMetrics.density
-        val baseWindowDp = 120
+        val baseWindowDp = 80
         val newWindowPx = (baseWindowDp * density * scale).toInt()
 
         bubbleParams?.let { params ->

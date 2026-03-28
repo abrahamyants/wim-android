@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit
 
 object ReconstructClient {
 
+    private const val BACKEND_URL = "https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct"
+
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -57,6 +59,72 @@ object ReconstructClient {
         situation: String = "default",
         vocabulary: List<String> = emptyList(),
         corrections: Map<String, String> = emptyMap()
+    ): ReconstructResult {
+        // If signed in, use backend proxy (server holds API key)
+        val idToken = AuthManager.getIdToken()
+        if (idToken != null) {
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, idToken)
+        }
+        // Fallback: direct OpenAI call (dev mode, requires local API key)
+        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections)
+    }
+
+    /**
+     * Call the backend proxy (production path).
+     * Server handles API key, tier enforcement, rate limiting.
+     */
+    private suspend fun reconstructViaBackend(
+        rawText: String, tone: String, layer: Int, situation: String,
+        vocabulary: List<String>, corrections: Map<String, String>, idToken: String
+    ): ReconstructResult = withContext(Dispatchers.IO) {
+        val t0 = System.currentTimeMillis()
+
+        val body = JSONObject().apply {
+            put("raw", rawText)
+            put("tone", tone)
+            put("layer", layer)
+            put("situation", situation)
+            put("mode", "SAFE")
+            if (vocabulary.isNotEmpty()) {
+                val profile = JSONObject()
+                profile.put("vocabulary", org.json.JSONArray(vocabulary))
+                val corr = JSONObject()
+                corrections.forEach { (k, v) -> corr.put(k, v) }
+                profile.put("corrections", corr)
+                put("profile", profile)
+            }
+        }
+
+        val request = Request.Builder()
+            .url(BACKEND_URL)
+            .addHeader("Authorization", "Bearer $idToken")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        val response = http.newCall(request).execute()
+        val responseBody = response.body?.string()
+            ?: throw RuntimeException("Empty response from backend")
+
+        if (!response.isSuccessful) {
+            throw RuntimeException("Backend error ${response.code}: $responseBody")
+        }
+
+        val json = JSONObject(responseBody)
+        val reconMs = System.currentTimeMillis() - t0
+
+        ReconstructResult(
+            cleanText = json.optString("clean", rawText),
+            reconMs = reconMs
+        )
+    }
+
+    /**
+     * Call OpenAI directly (dev/fallback path).
+     */
+    private suspend fun reconstructDirect(
+        rawText: String, tone: String, layer: Int, situation: String,
+        vocabulary: List<String>, corrections: Map<String, String>
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "787543109204",
+    "project_id": "bakers-agent",
+    "storage_bucket": "bakers-agent.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:787543109204:android:2f1e08fd7d0039022f07c1",
+        "android_client_info": {
+          "package_name": "com.wim.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2fSjQZT76sJ5yYL6CRgXxE7ejlCP-Acg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -30,10 +30,6 @@ class MainActivity : AppCompatActivity() {
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
 
-    private val modeIds = listOf(R.id.modeRaw, R.id.modeFast, R.id.modeSafe)
-    private val modeLabelIds = listOf(R.id.modeRawLabel, R.id.modeFastLabel, R.id.modeSafeLabel)
-    private val modeValues = listOf("raw", "fast", "safe")
-
     private val situationIds = listOf(R.id.sitDefault, R.id.sitHighStress, R.id.sitReading)
     private val situationLabelIds = listOf(R.id.sitDefaultLabel, R.id.sitHighStressLabel, R.id.sitReadingLabel)
     private val situationValues = listOf("default", "high_stress", "reading")
@@ -87,25 +83,10 @@ class MainActivity : AppCompatActivity() {
         val layerIdx = layerValues.indexOf(currentLayer).coerceAtLeast(0)
         setupLayoutGroupInt(layerIds, layerLabelIds, layerValues, "layer", layerIdx)
 
-        // ── Mode selection (LinearLayouts with label child) ──
-        setupLayoutGroup(modeIds, modeLabelIds, modeValues, "mode", WimApp.mode())
+
 
         // ── Situation selection (LinearLayouts with label child)
         setupLayoutGroup(situationIds, situationLabelIds, situationValues, "situation", WimApp.situation())
-
-        // ── Enhancement toggles ────────────────────────────
-        val switchPara = findViewById<MaterialSwitch>(R.id.switchParalinguistic)
-        val switchPros = findViewById<MaterialSwitch>(R.id.switchProsodic)
-
-        switchPara.isChecked = WimApp.paralinguistic()
-        switchPros.isChecked = WimApp.prosodic()
-
-        switchPara.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("paralinguistic", checked).apply()
-        }
-        switchPros.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("prosodic", checked).apply()
-        }
 
         // ── DAF toggle + delay SeekBar ───────────────────
         val switchDaf = findViewById<MaterialSwitch>(R.id.switchDaf)
@@ -168,6 +149,16 @@ class MainActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        // ── Collapsible sections ─────────────────────────────
+        setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
+
+        setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = true)
+
+        setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
+        setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = false)
 
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)
@@ -275,6 +266,28 @@ class MainActivity : AppCompatActivity() {
             container.setBackgroundResource(R.drawable.card_bg)
             label.setTextColor(getColor(R.color.text_dim))
         }
+    }
+
+    private fun setupCollapsible(headerId: Int, contentId: Int, prefKey: String, defaultExpanded: Boolean = true) {
+        val header = findViewById<TextView>(headerId)
+        val content = findViewById<LinearLayout>(contentId)
+
+        // Restore saved state
+        val expanded = WimApp.prefs.getBoolean("section_$prefKey", defaultExpanded)
+        content.visibility = if (expanded) View.VISIBLE else View.GONE
+        updateCollapseArrow(header, expanded)
+
+        header.setOnClickListener {
+            val isVisible = content.visibility == View.VISIBLE
+            content.visibility = if (isVisible) View.GONE else View.VISIBLE
+            updateCollapseArrow(header, !isVisible)
+            WimApp.prefs.edit().putBoolean("section_$prefKey", !isVisible).apply()
+        }
+    }
+
+    private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
+        val text = header.text.toString().replace("  \u25BE", "").replace("  \u25B8", "")
+        header.text = if (expanded) "$text  \u25BE" else "$text  \u25B8"
     }
 
     private fun updatePermissionStatus() {
