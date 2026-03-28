@@ -204,7 +204,7 @@ class BubbleService : Service() {
         val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
 
-        val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
+        val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
         val density = resources.displayMetrics.density
         val baseWindowDp = 120
         val newWindowPx = (baseWindowDp * density * scale).toInt()
@@ -380,7 +380,7 @@ class BubbleService : Service() {
         val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
 
-        val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
+        val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
         val density = resources.displayMetrics.density
         val baseWindowDp = 120
         val newWindowPx = (baseWindowDp * density * scale).toInt()
@@ -422,7 +422,7 @@ class BubbleService : Service() {
             // L1: disfluency-filtered text IS the cleanup — inject directly
             Log.i(TAG, "L1 mode, injecting pre-cleaned text")
             WimAccessibilityService.instance?.injectText(preCleaned)
-            bubbleView?.alpha = 0.7f
+            setBubbleIdle()
             return
         }
 

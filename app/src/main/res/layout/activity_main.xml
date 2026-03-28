@@ -680,9 +680,9 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:min="50"
+                android:min="70"
                 android:max="150"
-                android:progress="100"
+                android:progress="110"
                 android:thumb="@drawable/daf_seekbar_thumb"
                 android:progressDrawable="@drawable/daf_seekbar_track" />
 
