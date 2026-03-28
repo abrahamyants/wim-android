@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brass mounting screw — matches dashboard .brand-plate::before -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow -->
+    <item android:left="1dp" android:top="1dp">
+        <shape android:shape="oval">
+            <solid android:color="#80000000" />
+            <size android:width="7dp" android:height="7dp" />
+        </shape>
+    </item>
+    <!-- Screw body -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="4dp"
+                android:startColor="#FFFFE0A0"
+                android:centerColor="#FFC4956A"
+                android:endColor="#FF8A7060" />
+            <size android:width="7dp" android:height="7dp" />
+        </shape>
+    </item>
+</layer-list>

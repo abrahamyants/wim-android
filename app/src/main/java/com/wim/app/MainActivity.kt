@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -14,7 +15,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.material.materialswitch.MaterialSwitch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Main settings screen — instrument-panel aesthetic matching Лаврентий dashboard.
@@ -37,6 +46,75 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // ── Google Sign-In ───────────────────────────────
+        val signedOutSection = findViewById<LinearLayout>(R.id.signedOutSection)
+        val signedInSection = findViewById<LinearLayout>(R.id.signedInSection)
+        val googleSignInBtn = findViewById<Button>(R.id.googleSignInBtn)
+        val signOutBtn = findViewById<Button>(R.id.signOutBtn)
+        val userEmail = findViewById<TextView>(R.id.userEmail)
+        val userTier = findViewById<TextView>(R.id.userTier)
+
+        val apiKeyHeaderView = findViewById<TextView>(R.id.apiKeyHeader)
+        val apiKeySectionView = findViewById<LinearLayout>(R.id.apiKeySection)
+
+        fun updateAuthUI() {
+            val user = AuthManager.currentUser
+            if (user != null) {
+                signedOutSection.visibility = View.GONE
+                signedInSection.visibility = View.VISIBLE
+                userEmail.text = user.email ?: user.uid.take(12)
+                userTier.text = "Free tier"
+                // Hide API key section — consumer doesn't need it
+                apiKeyHeaderView.visibility = View.GONE
+                apiKeySectionView.visibility = View.GONE
+            } else {
+                signedOutSection.visibility = View.VISIBLE
+                signedInSection.visibility = View.GONE
+                apiKeyHeaderView.visibility = View.VISIBLE
+            }
+        }
+
+        updateAuthUI()
+
+        // Web client ID from google-services.json oauth_client type 3
+        val webClientId = "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojon.apps.googleusercontent.com"
+
+        googleSignInBtn.setOnClickListener {
+            val credentialManager = CredentialManager.create(this)
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(webClientId)
+                .build()
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    val result = credentialManager.getCredential(this@MainActivity, request)
+                    val googleIdToken = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                    val user = AuthManager.signInWithGoogle(googleIdToken)
+                    if (user != null) {
+                        Toast.makeText(this@MainActivity, "Signed in as ${user.email}", Toast.LENGTH_SHORT).show()
+                        updateAuthUI()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Sign-in failed", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: GetCredentialCancellationException) {
+                    // User cancelled — do nothing
+                } catch (e: Exception) {
+                    Log.e("WiM", "Sign-in error: ${e.message}", e)
+                    Toast.makeText(this@MainActivity, "Sign-in error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        signOutBtn.setOnClickListener {
+            AuthManager.signOut()
+            updateAuthUI()
+            Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show()
+        }
 
         // ── API Key section (collapsible) ──────────────────
         val apiKeyHeader = findViewById<TextView>(R.id.apiKeyHeader)

@@ -149,18 +149,8 @@ class BubbleService : Service() {
                     if (kotlin.math.abs(dx) > DRAG_THRESHOLD || kotlin.math.abs(dy) > DRAG_THRESHOLD) {
                         if (!isDragging) {
                             isDragging = true
-                            // Cancel pending recording start
+                            // Cancel pending recording start (finger moved before 150ms)
                             timerHandler.removeCallbacks(startRecordingRunnable)
-                            // If recording somehow started, cancel it
-                            if (startedOnThisPress && isRecording) {
-                                isRecording = false
-                                onDeviceRecognizer?.stop()
-                                dafPlayer?.stop()
-                                dafPlayer = null
-                                stopPulseRings()
-                                setBubbleIdle()
-                                startedOnThisPress = false
-                            }
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
