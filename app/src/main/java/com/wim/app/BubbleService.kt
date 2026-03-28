@@ -36,8 +36,6 @@ class BubbleService : Service() {
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
-    private var ringView: View? = null
-    private var ringParams: WindowManager.LayoutParams? = null
     private var isRecording = false
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
@@ -127,6 +125,16 @@ class BubbleService : Service() {
         }
 
         bubbleView?.setOnTouchListener { v, event ->
+            // Only handle touches on the visible bubble, not the transparent ring area
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                val cx = v.width / 2f
+                val cy = v.height / 2f
+                val tx = event.x - cx
+                val ty = event.y - cy
+                val r = v.width * 0.3f
+                if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
+            }
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
@@ -149,13 +157,22 @@ class BubbleService : Service() {
                     if (kotlin.math.abs(dx) > DRAG_THRESHOLD || kotlin.math.abs(dy) > DRAG_THRESHOLD) {
                         if (!isDragging) {
                             isDragging = true
-                            // Cancel pending recording start (finger moved before 150ms)
+                            // Cancel pending recording start
                             timerHandler.removeCallbacks(startRecordingRunnable)
+                            // If recording somehow started, cancel it
+                            if (startedOnThisPress && isRecording) {
+                                isRecording = false
+                                onDeviceRecognizer?.stop()
+                                dafPlayer?.stop()
+                                dafPlayer = null
+                                stopPulseRings()
+                                setBubbleIdle()
+                                startedOnThisPress = false
+                            }
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(bubbleView, params)
-                        syncRingPosition()
                     }
                     true
                 }
@@ -189,7 +206,7 @@ class BubbleService : Service() {
 
         val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
         val density = resources.displayMetrics.density
-        val baseWindowDp = 80
+        val baseWindowDp = 120
         val newWindowPx = (baseWindowDp * density * scale).toInt()
         params.width = newWindowPx
         params.height = newWindowPx
@@ -297,90 +314,34 @@ class BubbleService : Service() {
         }, 750)
     }
 
-    private fun getRingOffset(): Int {
-        val density = resources.displayMetrics.density
-        val ringSize = (280 * density).toInt()
-        val bubbleSize = bubbleParams?.width ?: (80 * density).toInt()
-        return (ringSize - bubbleSize) / 2
-    }
-
-    private fun showRingWindow() {
-        hideRingWindow()
-        val bp = bubbleParams ?: return
-
-        val density = resources.displayMetrics.density
-        val ringSize = (280 * density).toInt()
-        val offset = getRingOffset()
-
-        ringParams = WindowManager.LayoutParams(
-            ringSize, ringSize,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = bp.x - offset
-            y = bp.y - offset
-        }
-
-        ringView = LayoutInflater.from(this).inflate(R.layout.pulse_rings, null)
-        try { windowManager?.addView(ringView, ringParams) } catch (_: Exception) {}
-    }
-
-    private fun syncRingPosition() {
-        val bp = bubbleParams ?: return
-        val rp = ringParams ?: return
-        val offset = getRingOffset()
-        rp.x = bp.x - offset
-        rp.y = bp.y - offset
-        try { windowManager?.updateViewLayout(ringView, rp) } catch (_: Exception) {}
-    }
-
-    private fun hideRingWindow() {
-        ringView?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
-            ringView = null
-            ringParams = null
-        }
-    }
-
     private fun startPulseRings() {
         stopPulseRings()
-        showRingWindow()
         val rings = listOf(
-            ringView?.findViewById<View>(R.id.pulseRing1),
-            ringView?.findViewById<View>(R.id.pulseRing2),
-            ringView?.findViewById<View>(R.id.pulseRing3)
+            bubbleView?.findViewById<View>(R.id.ring1),
+            bubbleView?.findViewById<View>(R.id.ring2),
+            bubbleView?.findViewById<View>(R.id.ring3)
         )
 
         rings.forEachIndexed { i, ring ->
             ring ?: return@forEachIndexed
-            val delay = (i * 350).toLong()
-            val maxScale = 2.0f + (i * 0.7f) // 2.0, 2.7, 3.4
+            val delay = (i * 300).toLong()
+            val maxScale = 1.4f + (i * 0.3f) // 1.4, 1.7, 2.0 — fits in 120dp window
 
-            val scaleX = ObjectAnimator.ofFloat(ring, "scaleX", 1.0f, maxScale).apply {
-                duration = 1200
-                repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART
-                startDelay = delay
+            val sx = ObjectAnimator.ofFloat(ring, "scaleX", 1.0f, maxScale).apply {
+                duration = 1200; repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART; startDelay = delay
             }
-            val scaleY = ObjectAnimator.ofFloat(ring, "scaleY", 1.0f, maxScale).apply {
-                duration = 1200
-                repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART
-                startDelay = delay
+            val sy = ObjectAnimator.ofFloat(ring, "scaleY", 1.0f, maxScale).apply {
+                duration = 1200; repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART; startDelay = delay
             }
-            val alpha = ObjectAnimator.ofFloat(ring, "alpha", 0.9f, 0.0f).apply {
-                duration = 1200
-                repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART
-                startDelay = delay
+            val a = ObjectAnimator.ofFloat(ring, "alpha", 0.9f, 0.0f).apply {
+                duration = 1200; repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.RESTART; startDelay = delay
             }
 
             val set = AnimatorSet()
-            set.playTogether(scaleX, scaleY, alpha)
+            set.playTogether(sx, sy, a)
             set.start()
             pulseAnimators.add(set)
         }
@@ -389,7 +350,11 @@ class BubbleService : Service() {
     private fun stopPulseRings() {
         pulseAnimators.forEach { it.cancel() }
         pulseAnimators.clear()
-        hideRingWindow()
+        listOf(R.id.ring1, R.id.ring2, R.id.ring3).forEach { id ->
+            bubbleView?.findViewById<View>(id)?.apply {
+                scaleX = 1f; scaleY = 1f; alpha = 0f
+            }
+        }
     }
 
     private fun setBubbleIdle() {
@@ -417,7 +382,7 @@ class BubbleService : Service() {
 
         val scale = WimApp.bubbleSize().coerceIn(50, 150) / 100f
         val density = resources.displayMetrics.density
-        val baseWindowDp = 80
+        val baseWindowDp = 120
         val newWindowPx = (baseWindowDp * density * scale).toInt()
 
         bubbleParams?.let { params ->
