@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer ring — aluminum with red glow stroke -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FFC8C8CC" />
+            <stroke android:width="3dp" android:color="#FFEF4444" />
+            <size android:width="60dp" android:height="60dp" />
+        </shape>
+    </item>
+    <!-- Inner circle — warm tint -->
+    <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFCAB8B8" />
+            <size android:width="48dp" android:height="48dp" />
+        </shape>
+    </item>
+</layer-list>

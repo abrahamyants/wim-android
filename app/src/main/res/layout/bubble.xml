@@ -1,15 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="56dp"
-    android:layout_height="56dp">
+    android:layout_width="64dp"
+    android:layout_height="64dp"
+    android:id="@+id/bubbleRoot">
 
-    <ImageView
-        android:id="@+id/bubbleIcon"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:src="@android:drawable/ic_btn_speak_now"
-        android:background="@drawable/bubble_bg"
-        android:padding="14dp"
-        android:contentDescription="Voice dictation"
-        android:elevation="8dp" />
+    <!-- Outer raised bezel ring -->
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bubble_bg_idle"
+        android:elevation="8dp">
+
+        <!-- Inner sunken well -->
+        <FrameLayout
+            android:id="@+id/bubbleInner"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bubble_inner">
+
+            <!-- Center text: state + counter -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/bubbleLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="IDLE"
+                    android:textColor="#FF55555E"
+                    android:textSize="7sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/bubbleTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textColor="#FFEE5A24"
+                    android:textSize="8sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </FrameLayout>
+    </FrameLayout>
 </FrameLayout>

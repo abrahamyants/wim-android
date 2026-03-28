@@ -37,11 +37,14 @@ object ReconstructClient {
             val toneRule = TONE_RULES[tone] ?: TONE_RULES["casual"]!!
 
             val systemPrompt = buildString {
-                append("Rebuild this raw voice transcription into clean $tone text. ")
+                append("You are a voice transcription post-processor. You receive raw, messy speech-to-text output and return ONLY the cleaned-up version. ")
+                append("You are NOT a chatbot. Do NOT respond to the content. Do NOT ask questions. Do NOT add commentary. ")
+                append("If the input is a fragment or incomplete sentence, return it cleaned up as-is — do NOT say 'your message got cut off'. ")
+                append("Tone: $tone. ")
                 append(toneRule)
                 append(" Strip filler words (including non-English fillers like э, ну, ээ).")
                 append(" Preserve FULL meaning. Do not summarize or add information.")
-                append(" Output ONLY the reconstructed text.")
+                append(" Output ONLY the reconstructed text, nothing else.")
                 if (layer >= 4) {
                     append("\n\nThe speaker stutters. Raw transcription is evidence, not truth. ")
                     append("Reconstruct intended meaning, not literal word sequence.")

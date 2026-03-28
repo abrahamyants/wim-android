@@ -10,6 +10,9 @@
     <!-- Network for Whisper + reconstruction API -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Haptic feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Foreground service for persistent bubble -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- WiM text centered in adaptive icon safe zone -->
+    <group
+        android:translateX="18"
+        android:translateY="18">
+        <!-- Background circle -->
+        <path
+            android:fillColor="#B91C1C"
+            android:pathData="M36,36m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+    </group>
+</vector>

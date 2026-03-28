@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gradient horizontal line divider between sections -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#00000000"
+        android:centerColor="#0FFFFFFF"
+        android:endColor="#00000000"
+        android:angle="0" />
+    <size android:height="1dp" />
+</shape>

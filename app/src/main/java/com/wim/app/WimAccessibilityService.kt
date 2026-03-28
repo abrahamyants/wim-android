@@ -19,22 +19,26 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     override fun onServiceConnected() {
+        super.onServiceConnected()
         instance = this
+        showBubble()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+        if (event.packageName == packageName) return
 
         when (event.eventType) {
-            AccessibilityEvent.TYPE_VIEW_FOCUSED,
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
                 val source = event.source ?: return
                 if (source.isEditable) {
                     activeTextField = source
-                    showBubble()
-                } else if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                    activeTextField = null
-                    hideBubble()
+                }
+            }
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                val source = event.source
+                if (source != null && source.isEditable) {
+                    activeTextField = source
                 }
             }
         }

@@ -2,163 +2,898 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A1A">
+    android:background="@color/bg_base"
+    android:scrollbarThumbVertical="@android:color/transparent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="48dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="What I Meant"
-            android:textColor="#E8E8EC"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Speak messy. Get clean text."
-            android:textColor="#888890"
-            android:textSize="14sp"
-            android:layout_marginBottom="32dp" />
-
-        <!-- API Key -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="OpenAI API Key"
-            android:textColor="#CCCCCC"
-            android:textSize="12sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="8dp" />
-
-        <EditText
-            android:id="@+id/apiKeyInput"
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- BRAND PLATE — dark badge matching Лаврентий -->
+        <!-- ═══════════════════════════════════════════ -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="#2A2A30"
-            android:textColor="#E8E8EC"
-            android:textColorHint="#55555E"
-            android:hint="sk-proj-..."
-            android:inputType="textPassword"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:textSize="14sp"
-            android:fontFamily="monospace" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/brand_plate_bg"
+            android:gravity="center_horizontal"
+            android:paddingTop="14dp"
+            android:paddingBottom="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginBottom="16dp">
 
-        <Button
-            android:id="@+id/saveKeyBtn"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:text="Save Key"
-            android:backgroundTint="#B91C1C"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="What I Meant"
+                android:textColor="@color/copper_gold"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="W I M"
+                android:textColor="@color/brand_subtitle"
+                android:textSize="9sp"
+                android:letterSpacing="0.4"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Speak messy. Get clean text."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- Status indicator -->
         <TextView
             android:id="@+id/statusText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Enter your API key to get started"
-            android:textColor="#888890"
-            android:textSize="13sp"
-            android:layout_marginBottom="32dp" />
-
-        <!-- Tone Selection -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tone"
-            android:textColor="#CCCCCC"
-            android:textSize="12sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="8dp" />
-
-        <RadioGroup
-            android:id="@+id/toneGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp">
+            android:text="Enter your API key to get started"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:background="@drawable/card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="20dp" />
 
-            <RadioButton
-                android:id="@+id/toneCasual"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Casual"
-                android:textColor="#E8E8EC"
-                android:buttonTint="#B91C1C" />
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
 
-            <RadioButton
-                android:id="@+id/toneProfessional"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Professional"
-                android:textColor="#E8E8EC"
-                android:buttonTint="#B91C1C" />
-
-            <RadioButton
-                android:id="@+id/toneFormal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Formal"
-                android:textColor="#E8E8EC"
-                android:buttonTint="#B91C1C" />
-
-            <RadioButton
-                android:id="@+id/toneFriend"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Friend"
-                android:textColor="#E8E8EC"
-                android:buttonTint="#B91C1C" />
-        </RadioGroup>
-
-        <!-- Permissions -->
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- TONE -->
+        <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Permissions"
-            android:textColor="#CCCCCC"
-            android:textSize="12sp"
+            android:text="TONE"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="8dp" />
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/toneContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/toneCasual"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="Casual"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:id="@+id/toneProfessional"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="Professional"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:id="@+id/toneFriend"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="Friend"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:id="@+id/toneFormal"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="Formal"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp"
+                android:letterSpacing="0.04" />
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- LAYER -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LAYER"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/layerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <!-- Layer I: Transcribe -->
+            <LinearLayout
+                android:id="@+id/layer1"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer1Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="I.  Transcribe"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Whisper only"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer II: Reconstruct -->
+            <LinearLayout
+                android:id="@+id/layer2"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer2Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="II.  Reconstruct"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LLM + tone"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer III: Profile -->
+            <LinearLayout
+                android:id="@+id/layer3"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer3Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="III.  Profile"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ vocabulary"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer IV: Stutter -->
+            <LinearLayout
+                android:id="@+id/layer4"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer4Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="IV.  Stutter"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ disfluency"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- MODE -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODE"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/modeContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <!-- RAW -->
+            <LinearLayout
+                android:id="@+id/modeRaw"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/modeRawLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="RAW"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="paste as-is"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- FAST -->
+            <LinearLayout
+                android:id="@+id/modeFast"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/modeFastLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="FAST"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="skip validation"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- SAFE -->
+            <LinearLayout
+                android:id="@+id/modeSafe"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/modeSafeLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="SAFE"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ Falcon check"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- SITUATION -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SITUATION"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/situationContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <!-- Default -->
+            <LinearLayout
+                android:id="@+id/sitDefault"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/sitDefaultLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Default"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="everyday use"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- High Stress -->
+            <LinearLayout
+                android:id="@+id/sitHighStress"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/sitHighStressLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="High Stress"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ full assist"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Reading -->
+            <LinearLayout
+                android:id="@+id/sitReading"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/sitReadingLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Reading"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ near-fluent"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- ENHANCEMENTS -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ENHANCEMENTS"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Paralinguistic toggle -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="2dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Paralinguistic"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tone, emphasis, emotion cues"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchParalinguistic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- Prosodic toggle -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Prosodic"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Rhythm, pacing, stress patterns"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchProsodic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- DAF -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DAF"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <!-- DAF toggle -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="2dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DAF"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="delayed auditory feedback"
+                    android:textColor="@color/red_bright"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchDaf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- DAF delay SeekBar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delay"
+                android:textColor="@color/text_dim"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/seekDafDelay"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:max="270"
+                android:progress="70"
+                android:thumb="@drawable/daf_seekbar_thumb"
+                android:progressDrawable="@drawable/daf_seekbar_track" />
+
+            <TextView
+                android:id="@+id/dafDelayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="100 ms"
+                android:textColor="@color/text_bright"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp"
+                android:minWidth="48dp"
+                android:gravity="end" />
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- API KEY (collapsed section) -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/apiKeyHeader"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:text="API KEY  ▸"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:id="@+id/apiKeySection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginBottom="20dp">
+
+            <EditText
+                android:id="@+id/apiKeyInput"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/card_bg"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_dim"
+                android:hint="sk-proj-..."
+                android:inputType="textPassword"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="6dp" />
+
+            <Button
+                android:id="@+id/saveKeyBtn"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="Save Key"
+                android:backgroundTint="@color/red_primary"
+                android:textColor="@color/text_white"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- PERMISSIONS -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PERMISSIONS"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
 
         <Button
             android:id="@+id/overlayPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:text="Grant Overlay Permission"
-            android:backgroundTint="#2A2A30"
-            android:textColor="#E8E8EC"
-            android:layout_marginBottom="8dp" />
+            android:backgroundTint="@color/bg_surface"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:layout_marginBottom="4dp" />
 
         <Button
             android:id="@+id/accessibilityPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:text="Enable Accessibility Service"
-            android:backgroundTint="#2A2A30"
-            android:textColor="#E8E8EC"
-            android:layout_marginBottom="8dp" />
+            android:backgroundTint="@color/bg_surface"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:layout_marginBottom="4dp" />
 
         <Button
             android:id="@+id/micPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:text="Grant Microphone Permission"
-            android:backgroundTint="#2A2A30"
-            android:textColor="#E8E8EC"
-            android:layout_marginBottom="24dp" />
+            android:backgroundTint="@color/bg_surface"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- ── Section divider ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/section_divider"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- FOOTER — brand badge -->
+        <!-- ═══════════════════════════════════════════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/brand_plate_bg"
+            android:gravity="center_horizontal"
+            android:paddingTop="12dp"
+            android:paddingBottom="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="What I Meant"
+                android:textColor="@color/copper_gold"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="speak messy. get clean text."
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
