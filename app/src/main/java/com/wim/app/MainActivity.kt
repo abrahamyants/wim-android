@@ -21,6 +21,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -268,6 +269,17 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = false)
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
+
+        // ── Dark mode toggle ──────────────────────────────
+        val darkBtn = findViewById<Button>(R.id.darkModeBtn)
+        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        darkBtn.text = if (isNight) "LIGHT" else "DARK"
+        darkBtn.setOnClickListener {
+            val currentNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            val newMode = if (currentNight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
+            WimApp.prefs.edit().putInt("night_mode", newMode).apply()
+            AppCompatDelegate.setDefaultNightMode(newMode)
+        }
 
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)
