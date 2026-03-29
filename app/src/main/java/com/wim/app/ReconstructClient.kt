@@ -118,23 +118,18 @@ object ReconstructClient {
         val reconMs = System.currentTimeMillis() - t0
 
         val cleanText = json.optString("clean", rawText)
-        val riskFlags = computeRiskFlags(rawText, cleanText)
-        // Trust backend's Falcon result — client has no API key to run its own
-        val backendFalcon = json.optBoolean("falcon_ok", true)
-        val falconOk = backendFalcon && !riskFlags.contains("critical_token_lost")
+        // Trust backend's safety decisions — it runs Falcon and risk flags server-side
+        val falconOk = json.optBoolean("falcon_ok", true)
         val finalText = if (falconOk) cleanText else rawText
 
-        if (riskFlags.isNotEmpty()) {
-            Log.w("WiM", "Backend risk flags: $riskFlags")
-        }
         if (!falconOk) {
-            Log.w("WiM", "Falcon rejected backend reconstruction (backend=$backendFalcon), using raw text. Flags: $riskFlags")
+            Log.w("WiM", "Backend Falcon rejected reconstruction, using raw text")
         }
 
         ReconstructResult(
             cleanText = finalText,
             reconMs = reconMs,
-            riskFlags = riskFlags,
+            riskFlags = emptyList(),
             falconApproved = falconOk
         )
     }

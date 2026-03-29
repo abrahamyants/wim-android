@@ -123,20 +123,28 @@ class ProfileManager(private val prefs: SharedPreferences) {
         val rawWords = rawText.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }
         val cleanWords = cleanText.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }
 
-        // Simple diff: find words in raw that got consistently replaced
-        for (raw in rawWords) {
+        // Position-aware diff: align by shared anchor words, then find substitutions
+        // Build position map of clean words for proximity matching
+        val cleanPositions = cleanWords.mapIndexed { i, w -> w to i }
+
+        for ((rawIdx, raw) in rawWords.withIndex()) {
             if (raw !in cleanWords && raw.length >= 3 && raw !in corrections) {
                 val count = (correctionCounts[raw] ?: 0) + 1
                 correctionCounts[raw] = count
 
                 if (count >= 3) {
-                    // Find what it likely became — look for a clean word not in raw
-                    val candidates = cleanWords.filter { it !in rawWords && it.length >= 3 }
-                    if (candidates.isNotEmpty()) {
-                        val replacement = candidates.first()
-                        corrections[raw] = replacement
+                    // Find the closest positional replacement:
+                    // Look for clean words not in raw, near the same position
+                    val candidates = cleanPositions
+                        .filter { (w, _) -> w !in rawWords && w.length >= 3 }
+                        .sortedBy { (_, pos) -> kotlin.math.abs(pos - rawIdx) }
+
+                    val best = candidates.firstOrNull()
+                    if (best != null && kotlin.math.abs(best.second - rawIdx) <= 2) {
+                        // Only learn if the replacement is within 2 positions of the original
+                        corrections[raw] = best.first
                         correctionCounts.remove(raw)
-                        Log.i(TAG, "Auto-learned correction: \"$raw\" -> \"$replacement\"")
+                        Log.i(TAG, "Auto-learned correction: \"$raw\" -> \"${best.first}\"")
                         saveProfile()
                     }
                 }

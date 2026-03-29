@@ -42,9 +42,9 @@ object DisfluencyFilter {
     )
 
     // Step 6: Prolongations — "mmmmaybe" -> "maybe", "sssso" -> "so"
-    // Collapse ALL repeated leading chars (1{3,} -> 1), not just strip some
+    // Match repeated leading char (3+) followed by rest of word, replace with single char + rest
     private val PROLONGATION = Regex(
-        """\b(\w)\1{2,}""",
+        """\b(\w)\1{2,}(\w*)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -94,7 +94,7 @@ object DisfluencyFilter {
         cleaned = FALSE_START.replace(cleaned, "")
 
         // Step 6: Strip prolongations — "mmmmaybe" -> "maybe"
-        cleaned = PROLONGATION.replace(cleaned) { it.groupValues[1] }
+        cleaned = PROLONGATION.replace(cleaned) { "${it.groupValues[1]}${it.groupValues[2]}" }
 
         // Collapse multiple spaces
         cleaned = MULTI_SPACE.replace(cleaned, " ").trim()

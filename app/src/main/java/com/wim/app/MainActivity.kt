@@ -57,6 +57,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Reset section prefs once after layout changes (v2)
+        val layoutVersion = WimApp.prefs.getInt("layout_version", 0)
+        if (layoutVersion < 2) {
+            val editor = WimApp.prefs.edit()
+            listOf("manual_section", "sessions_section", "tone_section", "layer_section",
+                "situation_section", "bubble_section", "daf_section", "permissions_section"
+            ).forEach { editor.remove("section_$it") }
+            editor.putInt("layout_version", 2).apply()
+        }
+
         // ── Google Sign-In ───────────────────────────────
         val signedOutSection = findViewById<LinearLayout>(R.id.signedOutSection)
         val signedInSection = findViewById<LinearLayout>(R.id.signedInSection)

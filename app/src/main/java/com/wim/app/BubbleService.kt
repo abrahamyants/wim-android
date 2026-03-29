@@ -718,8 +718,12 @@ class BubbleService : Service() {
                 )
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 
-                WimAccessibilityService.instance?.injectText(reconResult.cleanText)
-                    ?: Log.e(TAG, "No accessibility service instance!")
+                if (WimAccessibilityService.instance != null) {
+                    WimAccessibilityService.instance!!.injectText(reconResult.cleanText)
+                } else {
+                    Log.e(TAG, "No accessibility service instance!")
+                    Toast.makeText(this@BubbleService, "Enable accessibility service to paste text", Toast.LENGTH_SHORT).show()
+                }
 
                 // L3+: learn from reconstruction results
                 if (layer >= 2) {
