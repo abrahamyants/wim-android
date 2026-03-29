@@ -33,22 +33,38 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Centered branding -->
+                <!-- Centered: WiM text + bulb next to M, then What I Meant below -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center_horizontal">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WiM"
-                        android:textColor="@color/copper_gold"
-                        android:textSize="26sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.06"
-                        android:fontFamily="serif" />
+                        android:orientation="horizontal"
+                        android:gravity="bottom">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WiM"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="26sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06"
+                            android:fontFamily="serif" />
+
+                        <ImageView
+                            android:id="@+id/statusBulb"
+                            android:layout_width="22dp"
+                            android:layout_height="34dp"
+                            android:src="@drawable/edison_bulb_green"
+                            android:importantForAccessibility="no"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginBottom="2dp" />
+                    </LinearLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -67,16 +83,6 @@
                     android:visibility="gone" />
 
             </LinearLayout>
-
-            <!-- Edison bulb — top right, independent of centering -->
-            <ImageView
-                android:id="@+id/statusBulb"
-                android:layout_width="22dp"
-                android:layout_height="34dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="20dp"
-                android:src="@drawable/edison_bulb_green"
-                android:importantForAccessibility="no" />
 
             <!-- Screw: top-left -->
             <View
@@ -198,17 +204,6 @@
         <!-- Status LED removed — now in brand plate -->
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- GLASS PANEL wrapping all sections -->
-        <!-- ═══════════════════════════════════════════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/glass_panel_bg"
-            android:padding="12dp"
-            android:layout_marginBottom="10dp">
-
-        <!-- ═══════════════════════════════════════════ -->
         <!-- MANUAL -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
@@ -222,7 +217,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentManual"
@@ -284,7 +284,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentSessions"
@@ -411,7 +416,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentTone"
@@ -501,7 +511,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentLayer"
@@ -657,7 +672,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentSituation"
@@ -781,7 +801,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentBubble"
@@ -901,7 +926,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentDaf"
@@ -1060,7 +1090,12 @@
             android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/contentPermissions"
@@ -1099,9 +1134,6 @@
             android:layout_marginBottom="8dp" />
 
         </LinearLayout>
-
-        </LinearLayout>
-        <!-- END GLASS PANEL -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- FOOTER — powered by Лаврентий -->
