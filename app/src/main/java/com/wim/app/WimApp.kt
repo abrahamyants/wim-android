@@ -26,8 +26,8 @@ class WimApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Follow system dark mode setting
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        // Force dark mode — always
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
         profileManager = ProfileManager(prefs)
     }
