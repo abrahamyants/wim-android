@@ -33,45 +33,52 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Center: bulb + branding -->
+                <!-- Left spacer -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Center: branding -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_gravity="center_horizontal">
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WiM"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:fontFamily="serif" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="What I Meant"
+                        android:textColor="#BBFFFFFF"
+                        android:textSize="11sp"
+                        android:letterSpacing="0.12" />
+                </LinearLayout>
+
+                <!-- Right: Edison bulb -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:gravity="end|center_vertical"
+                    android:layout_gravity="center_vertical">
 
                     <ImageView
                         android:id="@+id/statusBulb"
                         android:layout_width="22dp"
                         android:layout_height="34dp"
                         android:src="@drawable/edison_bulb_green"
-                        android:importantForAccessibility="no"
-                        android:layout_marginEnd="10dp" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="WiM"
-                            android:textColor="@color/copper_gold"
-                            android:textSize="26sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.06"
-                            android:fontFamily="serif" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="What I Meant"
-                            android:textColor="#BBFFFFFF"
-                            android:textSize="11sp"
-                            android:letterSpacing="0.12" />
-                    </LinearLayout>
+                        android:importantForAccessibility="no" />
                 </LinearLayout>
 
                 <!-- Hidden status text for code reference -->
