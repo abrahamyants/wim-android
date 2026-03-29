@@ -6,7 +6,8 @@
     android:orientation="vertical"
     android:background="@drawable/menu_bg"
     android:elevation="12dp"
-    android:padding="12dp"
+    android:padding="10dp"
+    android:alpha="0.88"
     android:clipToOutline="true"
     android:outlineProvider="background">
 
@@ -16,17 +17,18 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Opacity"
             android:textColor="@color/text_dim"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:fontFamily="monospace"
-            android:layout_marginEnd="8dp"
-            android:minWidth="48dp" />
+            android:textStyle="bold"
+            android:layout_marginEnd="6dp"
+            android:minWidth="56dp" />
 
         <SeekBar
             android:id="@+id/menuOpacitySeek"
@@ -45,11 +47,11 @@
             android:layout_height="wrap_content"
             android:text="70%"
             android:textColor="@color/text_bright"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginStart="6dp"
-            android:minWidth="30dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="34dp"
             android:gravity="end" />
     </LinearLayout>
 
@@ -59,17 +61,18 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Size"
             android:textColor="@color/text_dim"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:fontFamily="monospace"
-            android:layout_marginEnd="8dp"
-            android:minWidth="48dp" />
+            android:textStyle="bold"
+            android:layout_marginEnd="6dp"
+            android:minWidth="56dp" />
 
         <SeekBar
             android:id="@+id/menuSizeSeek"
@@ -88,30 +91,31 @@
             android:layout_height="wrap_content"
             android:text="110%"
             android:textColor="@color/text_bright"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
             android:minWidth="34dp"
             android:gravity="end" />
     </LinearLayout>
 
-    <!-- Live transcript toggle -->
+    <!-- Live transcript toggle — compact, label next to toggle -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="36dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
+        android:layout_marginBottom="4dp">
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Live transcript"
+            android:text="Live"
             android:textColor="@color/text_dim"
-            android:textSize="10sp"
-            android:fontFamily="monospace" />
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginEnd="6dp" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/menuLiveToggle"
@@ -124,16 +128,16 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@drawable/section_divider"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
     <!-- Open Settings -->
     <TextView
         android:id="@+id/menuOpenSettings"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:text="Open Settings"
+        android:layout_height="28dp"
+        android:text="Settings"
         android:textColor="@color/orange_label"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:fontFamily="monospace"
         android:textStyle="bold"
         android:letterSpacing="0.08"
