@@ -518,8 +518,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
-        val text = header.text.toString().replace("  \u25BE", "").replace("  \u25B8", "")
-        header.text = if (expanded) "$text  \u25BE" else "$text  \u25B8"
+        val text = header.text.toString().replace("  \u25BC", "").replace("  \u25B6", "").replace("  \u25BE", "").replace("  \u25B8", "")
+        header.text = if (expanded) "$text  \u25BC" else "$text  \u25B6"
     }
 
     private fun setupManualAccordion() {

@@ -214,14 +214,14 @@
             android:id="@+id/headerManual"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MANUAL  ▸"
+            android:text="MANUAL  ▶"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentManual"
@@ -276,14 +276,14 @@
             android:id="@+id/headerSessions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SESSIONS  ▾"
+            android:text="SESSIONS  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentSessions"
@@ -401,14 +401,14 @@
             android:id="@+id/headerTone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TONE  ▾"
+            android:text="TONE  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentTone"
@@ -496,14 +496,14 @@
             android:id="@+id/headerLayer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="LAYER  ▾"
+            android:text="LAYER  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentLayer"
@@ -657,14 +657,14 @@
             android:id="@+id/headerSituation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SITUATION  ▾"
+            android:text="SITUATION  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentSituation"
@@ -781,14 +781,14 @@
             android:id="@+id/headerBubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="BUBBLE  ▾"
+            android:text="BUBBLE  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentBubble"
@@ -906,14 +906,14 @@
             android:id="@+id/headerDaf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DAF  ▾"
+            android:text="DAF  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentDaf"
@@ -1013,7 +1013,7 @@
             android:id="@+id/apiKeyHeader"
             android:layout_width="match_parent"
             android:layout_height="36dp"
-            android:text="API KEY  ▸"
+            android:text="API KEY  ▶"
             android:textColor="@color/orange_label"
             android:textSize="11sp"
             android:textAllCaps="true"
@@ -1070,14 +1070,14 @@
             android:id="@+id/headerPermissions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="PERMISSIONS  ▾"
+            android:text="PERMISSIONS  ▼"
             android:textColor="@color/orange_label"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textAllCaps="true"
-            android:letterSpacing="0.15"
+            android:letterSpacing="0.12"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentPermissions"
