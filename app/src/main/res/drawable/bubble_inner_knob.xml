@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Inner knob with 3D depth — concave centre with highlight arc -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Outer shadow ring (inset effect) -->
+    <!-- Outer shadow ring (inset effect, deeper than before) -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="#FF909096" />
+            <solid android:color="#FFA5A5AA" />
             <stroke android:width="1dp" android:color="#44000000" />
             <size android:width="44dp" android:height="44dp" />
         </shape>
@@ -15,12 +15,12 @@
             <gradient
                 android:type="radial"
                 android:gradientRadius="22dp"
-                android:startColor="#FF9A9AA0"
-                android:endColor="#FF909096" />
+                android:startColor="#FFB0B0B5"
+                android:endColor="#FFA8A8AD" />
             <size android:width="42dp" android:height="42dp" />
         </shape>
     </item>
-    <!-- Inner surface — lighter knob face for contrast against dark bezel -->
+    <!-- Inner surface — radial gradient for concave depth -->
     <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
         <shape android:shape="oval">
             <gradient
@@ -28,15 +28,15 @@
                 android:gradientRadius="20dp"
                 android:centerX="0.42"
                 android:centerY="0.38"
-                android:startColor="#FFB0B0B6"
-                android:endColor="#FF989AA0" />
+                android:startColor="#FFC4C4C8"
+                android:endColor="#FFADADB2" />
             <size android:width="38dp" android:height="38dp" />
         </shape>
     </item>
     <!-- Top highlight arc — light catching the upper edge -->
     <item android:left="6dp" android:top="3dp" android:right="6dp" android:bottom="20dp">
         <shape android:shape="oval">
-            <solid android:color="#12FFFFFF" />
+            <solid android:color="#0DFFFFFF" />
             <size android:width="32dp" android:height="18dp" />
         </shape>
     </item>

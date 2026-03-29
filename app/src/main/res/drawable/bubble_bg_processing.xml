@@ -3,15 +3,15 @@
     <!-- Outer ring — aluminum with amber stroke -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="#FF6A6A70" />
+            <solid android:color="#FFC8C8CC" />
             <stroke android:width="3dp" android:color="#FFFFA500" />
             <size android:width="60dp" android:height="60dp" />
         </shape>
     </item>
-    <!-- Inner circle — warm amber tint on darker base -->
+    <!-- Inner circle — warm amber tint -->
     <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
         <shape android:shape="oval">
-            <solid android:color="#FF9A9080" />
+            <solid android:color="#FFC8C0B0" />
             <size android:width="48dp" android:height="48dp" />
         </shape>
     </item>
