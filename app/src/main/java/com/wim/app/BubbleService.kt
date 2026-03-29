@@ -488,7 +488,8 @@ class BubbleService : Service() {
         if (menuView != null) return
         dismissMenu()
 
-        val inflater = LayoutInflater.from(this)
+        val themedContext = android.view.ContextThemeWrapper(this, R.style.Theme_WhatIMeant)
+        val inflater = LayoutInflater.from(themedContext)
         menuView = inflater.inflate(R.layout.bubble_menu, null)
 
         // Position above the bubble
