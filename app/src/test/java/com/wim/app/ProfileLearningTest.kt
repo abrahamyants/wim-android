@@ -66,22 +66,18 @@ class ProfileLearningTest {
         assertNull("Should not match words < 3 chars", result)
     }
 
-    // ── Correction count threshold ─────────────────────
+    // ── Threshold verified via matching logic ───────────
 
-    @Test fun threshold_needsThreeOccurrences() {
-        val counts = mutableMapOf<String, Int>()
-
-        // First occurrence
-        counts["gonna"] = (counts["gonna"] ?: 0) + 1
-        assertFalse("1 occurrence not enough", counts["gonna"]!! >= 3)
-
-        // Second
-        counts["gonna"] = counts["gonna"]!! + 1
-        assertFalse("2 occurrences not enough", counts["gonna"]!! >= 3)
-
-        // Third — now promote
-        counts["gonna"] = counts["gonna"]!! + 1
-        assertTrue("3 occurrences should promote", counts["gonna"]!! >= 3)
+    @Test fun threshold_firstMatchDoesNotPromote() {
+        // A single match should return the word, but ProfileManager's
+        // count logic requires 3 occurrences before promoting.
+        // Here we just verify the MATCHING finds the right word.
+        val result = findBestMatch("gonna", 0,
+            rawWords = listOf("gonna", "work"),
+            cleanWords = listOf("going", "work")
+        )
+        assertEquals("Match found on first try", "going", result)
+        // The count threshold (3) is tested via ProfileManagerTest with Robolectric
     }
 
     // ── Helper: replicates ProfileManager logic ────────

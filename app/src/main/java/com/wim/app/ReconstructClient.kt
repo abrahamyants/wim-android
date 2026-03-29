@@ -20,7 +20,7 @@ object ReconstructClient {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val TONE_RULES = mapOf(
+    val TONE_RULES = mapOf(
         "formal" to "Use complete sentences. No contractions. No colloquialisms. Proper grammar and punctuation. Preserve the speaker's exact word choices where possible.",
         "professional" to "Clean, clear business language. Contractions acceptable but not preferred. Fix grammar and strip fillers. Minor rephrasing for clarity is OK.",
         "casual" to "Natural spoken rhythm. Contractions OK. Strip fillers and fix obvious errors, but keep the speaker's natural voice.",
@@ -28,7 +28,7 @@ object ReconstructClient {
     )
 
     /** Per-tone temperature: formal is tighter, friend is looser */
-    private val TONE_TEMPERATURE = mapOf(
+    val TONE_TEMPERATURE = mapOf(
         "formal" to 0.1,
         "professional" to 0.15,
         "casual" to 0.35,
@@ -36,7 +36,7 @@ object ReconstructClient {
     )
 
     /** Situation severity mapping (mirrored from lavrentiy.py) */
-    private val SITUATION_SEVERITY = mapOf(
+    val SITUATION_SEVERITY = mapOf(
         "default" to 1.0,
         "high_stress" to 1.5,
         "reading" to 0.3

@@ -178,6 +178,47 @@ class SessionHistoryTest {
         assertEquals("я хочу пойти в магазин", s.cleanText)
     }
 
+    // ── Schema migration v1 → v2 ─────────────────────
+
+    @Test fun migration_v1ToV2_addsColumns() {
+        // Create a v1 schema manually
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.deleteDatabase("wim_migration_test.db")
+        val db = context.openOrCreateDatabase("wim_migration_test.db", Context.MODE_PRIVATE, null)
+        db.execSQL("""
+            CREATE TABLE sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp INTEGER NOT NULL,
+                raw_text TEXT NOT NULL,
+                clean_text TEXT NOT NULL,
+                tone TEXT NOT NULL,
+                layer INTEGER NOT NULL,
+                situation TEXT NOT NULL,
+                recon_ms INTEGER NOT NULL,
+                falcon_approved INTEGER NOT NULL DEFAULT 1,
+                risk_flags TEXT NOT NULL DEFAULT ''
+            )
+        """)
+        // Insert a v1 row (no asr_ms or total_ms columns)
+        db.execSQL("INSERT INTO sessions (timestamp, raw_text, clean_text, tone, layer, situation, recon_ms) VALUES (1000, 'old raw', 'old clean', 'casual', 2, 'default', 500)")
+        db.close()
+
+        // Now run the v2 migration
+        val db2 = context.openOrCreateDatabase("wim_migration_test.db", Context.MODE_PRIVATE, null)
+        db2.execSQL("ALTER TABLE sessions ADD COLUMN asr_ms INTEGER NOT NULL DEFAULT 0")
+        db2.execSQL("ALTER TABLE sessions ADD COLUMN total_ms INTEGER NOT NULL DEFAULT 0")
+
+        // Verify old data survived and new columns have defaults
+        val cursor = db2.rawQuery("SELECT raw_text, asr_ms, total_ms FROM sessions", null)
+        assertTrue("Should have 1 row", cursor.moveToFirst())
+        assertEquals("old raw", cursor.getString(0))
+        assertEquals(0L, cursor.getLong(1)) // asr_ms default
+        assertEquals(0L, cursor.getLong(2)) // total_ms default
+        cursor.close()
+        db2.close()
+        context.deleteDatabase("wim_migration_test.db")
+    }
+
     @Test fun emojiContent() {
         history.record("hello 😀", "hello", "casual", 1, "default",
             asrMs = 100, reconMs = 0, totalMs = 100,

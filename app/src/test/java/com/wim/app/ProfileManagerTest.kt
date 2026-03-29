@@ -110,21 +110,18 @@ class ProfileManagerTest {
     // ── Learning ───────────────────────────────────────
 
     @Test fun learning_needsThreeOccurrences() {
-        // First two: no correction added
-        profile.learnFromReconstruction("gonna make it", "going to make it")
-        assertTrue(profile.getCorrections().isEmpty())
+        // Use aligned sentences where "gonna" at pos 0 maps to "going" at pos 0
+        profile.learnFromReconstruction("gonna work", "going work")
+        assertTrue("1st occurrence: no correction yet", profile.getCorrections().isEmpty())
 
-        profile.learnFromReconstruction("gonna do it", "going to do it")
-        assertTrue(profile.getCorrections().isEmpty())
+        profile.learnFromReconstruction("gonna work", "going work")
+        assertTrue("2nd occurrence: no correction yet", profile.getCorrections().isEmpty())
 
-        // Third: correction promoted
-        profile.learnFromReconstruction("gonna try", "going to try")
-        // May or may not match depending on position alignment
-        // The important thing: no crash, and if matched, it's "going"
+        profile.learnFromReconstruction("gonna work", "going work")
+        // 3rd occurrence: "gonna" at pos 0 → "going" at pos 0 (within 2 positions)
         val corrections = profile.getCorrections()
-        if (corrections.containsKey("gonna")) {
-            assertEquals("going", corrections["gonna"])
-        }
+        assertTrue("3rd occurrence: correction must be learned", corrections.containsKey("gonna"))
+        assertEquals("going", corrections["gonna"])
     }
 
     @Test fun learning_doesNotCorruptProfile() {
