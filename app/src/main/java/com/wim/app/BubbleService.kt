@@ -23,8 +23,10 @@ import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
 import android.widget.FrameLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +47,10 @@ class BubbleService : Service() {
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
+    private var menuView: View? = null
+    private var menuParams: WindowManager.LayoutParams? = null
+    private var lastTapTime = 0L
+    private val DOUBLE_TAP_TIMEOUT = 300L
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -193,15 +199,25 @@ class BubbleService : Service() {
 
                     if (startedOnThisPress && isRecording) {
                         // Hold mode: was recording from this press, release = done
+                        lastTapTime = 0L
                         stopAndProcess()
                     } else if (!startedOnThisPress && isRecording) {
                         // Second tap: recording was running from before, stop it
+                        lastTapTime = 0L
                         stopAndProcess()
                     } else if (!isRecording) {
-                        // Quick tap (under 150ms, runnable didn't fire yet) — start now
-                        startPulseRings()
-                        startListening()
-                        startedOnThisPress = true
+                        val now = System.currentTimeMillis()
+                        if (now - lastTapTime < DOUBLE_TAP_TIMEOUT) {
+                            // Double-tap: show/hide menu
+                            lastTapTime = 0L
+                            if (menuView != null) dismissMenu() else showMenu()
+                        } else {
+                            // Single tap: start recording
+                            lastTapTime = now
+                            startPulseRings()
+                            startListening()
+                            startedOnThisPress = true
+                        }
                     }
                     true
                 }
@@ -455,6 +471,98 @@ class BubbleService : Service() {
         }
     }
 
+    private fun showMenu() {
+        if (menuView != null) return
+        dismissMenu()
+
+        val inflater = LayoutInflater.from(this)
+        menuView = inflater.inflate(R.layout.bubble_menu, null)
+
+        // Position above the bubble
+        val bp = bubbleParams ?: return
+        val mParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = bp.x - 40
+            y = bp.y - 260
+        }
+        menuParams = mParams
+
+        // Load current values
+        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100)
+        val size = WimApp.bubbleSize().coerceIn(70, 150)
+        val liveEnabled = WimApp.prefs.getBoolean("live_transcript", false)
+
+        val opacitySeek = menuView!!.findViewById<SeekBar>(R.id.menuOpacitySeek)
+        val opacityValue = menuView!!.findViewById<TextView>(R.id.menuOpacityValue)
+        opacitySeek.progress = opacity
+        opacityValue.text = "$opacity%"
+
+        opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val pct = progress.coerceIn(20, 100)
+                opacityValue.text = "$pct%"
+                WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
+                updateBubbleAppearance()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        val sizeSeek = menuView!!.findViewById<SeekBar>(R.id.menuSizeSeek)
+        val sizeValue = menuView!!.findViewById<TextView>(R.id.menuSizeValue)
+        sizeSeek.progress = size
+        sizeValue.text = "$size%"
+
+        sizeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val pct = progress.coerceIn(70, 150)
+                sizeValue.text = "$pct%"
+                WimApp.prefs.edit().putInt("bubble_size", pct).apply()
+                updateBubbleAppearance()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
+        liveToggle.isChecked = liveEnabled
+        liveToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
+        }
+
+        menuView!!.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {
+            dismissMenu()
+            val intent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        }
+
+        // Dismiss on tap outside menu
+        menuView!!.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                dismissMenu()
+                true
+            } else false
+        }
+
+        windowManager?.addView(menuView, mParams)
+    }
+
+    private fun dismissMenu() {
+        menuView?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            menuView = null
+            menuParams = null
+        }
+    }
+
     private fun setBubbleProcessing() {
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
             ?.setBackgroundResource(R.drawable.bubble_bg_processing)
@@ -600,6 +708,7 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         instance = null
+        dismissMenu()
         dafPlayer?.stop()
         dafPlayer = null
         audioRecorder?.stop()

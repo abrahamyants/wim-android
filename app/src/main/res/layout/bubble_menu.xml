@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/menuRoot"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/card_bg"
+    android:elevation="12dp"
+    android:padding="12dp">
+
+    <!-- Opacity slider -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Opacity"
+            android:textColor="@color/text_dim"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="8dp"
+            android:minWidth="48dp" />
+
+        <SeekBar
+            android:id="@+id/menuOpacitySeek"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:min="20"
+            android:max="100"
+            android:progress="70"
+            android:thumb="@drawable/daf_seekbar_thumb"
+            android:progressDrawable="@drawable/daf_seekbar_track" />
+
+        <TextView
+            android:id="@+id/menuOpacityValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="70%"
+            android:textColor="@color/text_bright"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginStart="6dp"
+            android:minWidth="30dp"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Size slider -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Size"
+            android:textColor="@color/text_dim"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="8dp"
+            android:minWidth="48dp" />
+
+        <SeekBar
+            android:id="@+id/menuSizeSeek"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:min="70"
+            android:max="150"
+            android:progress="110"
+            android:thumb="@drawable/daf_seekbar_thumb"
+            android:progressDrawable="@drawable/daf_seekbar_track" />
+
+        <TextView
+            android:id="@+id/menuSizeValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="110%"
+            android:textColor="@color/text_bright"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginStart="6dp"
+            android:minWidth="34dp"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Live transcript toggle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Live transcript"
+            android:textColor="@color/text_dim"
+            android:textSize="10sp"
+            android:fontFamily="monospace" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/menuLiveToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@drawable/section_divider"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Open Settings -->
+    <TextView
+        android:id="@+id/menuOpenSettings"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:text="Open Settings"
+        android:textColor="@color/orange_label"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:gravity="center" />
+
+</LinearLayout>
