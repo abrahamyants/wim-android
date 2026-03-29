@@ -215,6 +215,22 @@ c9fdd33 Fix 5 remaining Play Store blockers
 14. **Status LED** — green/red LED replaces old "Ready" text
 15. **Google Sign-In fully configured** — registered debug SHA-1 in Firebase, created Android OAuth client in GCP, enabled Google provider in Firebase Auth, updated google-services.json and web client ID
 
+16. **Edison bulb status indicator** — replaced flat LED with vector Edison bulb (glass envelope, coiled filament, screw cap) in brand plate. Green = idle, red = setup needed.
+17. **Launcher icon redesign** — stereo knob with orange bezel, tick mark at 3 o'clock, copper gold W
+18. **Section headers enlarged** — 14sp bold with prominent ▼/▶ arrows, individual glass pill backgrounds
+19. **Scrollable sessions panel** — fixed 280dp height, nested scroll, semi-transparent maroon cards show speaker behind
+20. **Nixie tube stats row** — Words, Sessions, WPM in dark glass cells with orange/green glow text matching Лаврентий dashboard
+21. **Footer redesign** — compact "powered by Лаврентий" plate with brass screws, privacy policy link
+22. **Compact signed-in section** — single 40dp strip with email, FREE badge, sign out
+23. **Bubble menu polish** — semi-transparent (88% opacity), brushed aluminum, larger labels
+24. **6 Лаврентий parity fixes** — Falcon bypass for signed-in users, reading severity (0.3), professional temperature (0.15), prolongation regex, learning gate, backend payload
+25. **Full component audit** — 13-component code-level audit, all WORKS except profile learning (fixed) and prolongation regex (fixed)
+26. **Backend payload expansion** — now sends trigger_words, onset_weights, covert_profile (empty stubs until features ported)
+27. **5 audit follow-up fixes** — position-aware profile learning, prolongation regex capture group, trust backend falcon_ok, injection failure toast, section prefs reset
+
+### Лаврентий Desktop Test Suite (Session 2)
+19 test files. 1,312 assertions. Zero failures. All clean.
+
 ### Commits — Session 2
 ```
 560f02e Fix Google Sign-In client ID, add Falcon to backend path, remove dead code
@@ -230,9 +246,27 @@ dcab3dd Add in-app manual, status LED, and rounded menu corners
 e28f4ef Rebuild manual as accordion with expandable topic rows
 11dface Change manual subtitle and body text to red accent color
 977f0b4 Update google-services.json and web client ID for Google Sign-In
+95cb629 Update README with Session 2 log and current TODO
+a180310 Move status to brand plate with Edison bulb, compact signed-in section
+869a137 Place Edison bulb adjacent to WiM text
+2b8509b Enlarge section headers 30% with prominent collapse arrows
+616d7df Redesign launcher icon as stereo knob
+f35c18c Scrollable sessions panel with transparent maroon cards
+226e37a Change speaker cone to light gray
+6084d5e Fix sessions panel scroll with nestedScrollingEnabled
+5225aef Replace footer with 'powered by Лаврентий' plate
+ecfcddd Add privacy policy link to footer
+77fcbf1 Uniform section spacing, remove dividers, fix default expanded states
+0dc168e Fix bulb placement, individual glass pills per section header
+3e0e4de Add LED stats row: Words, Sessions, WPM
+ece07bc Rebuild stats row as nixie tube cells
+7eeb3cc Pin footer to bottom of screen
+fcdeda2 Fix 6 critical Лаврентий parity issues
+5086b69 Fix 5 remaining issues from component audit
+41cb990 Send full profile payload to backend
 ```
 
 ## Still TODO
-- Google Sign-In testing (SHA-1 + OAuth + Firebase Auth now configured, pending verification)
-- Test suites (zero tests currently)
+- Test suites for WiM Android (zero tests currently — Лаврентий desktop has 1,312)
 - Play Store listing and screenshots
+- Port trigger_words, onset_weights, covert_profile detection from Лаврентий to Android

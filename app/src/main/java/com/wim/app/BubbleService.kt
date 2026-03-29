@@ -729,7 +729,7 @@ class BubbleService : Service() {
                 }
 
                 // L3+: learn from reconstruction results
-                if (layer >= 2) {
+                if (layer >= 3) {
                     profile.learnFromReconstruction(preCleaned, reconResult.cleanText)
                 }
 

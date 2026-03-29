@@ -101,9 +101,9 @@ object ReconstructClient {
                 profile.put("corrections", corr)
             }
             if (fillerWords.isNotEmpty()) profile.put("filler_words", JSONArray(fillerWords))
-            if (triggerWords.isNotEmpty()) profile.put("trigger_words", JSONArray(triggerWords))
-            if (onsetWeights.isNotEmpty()) profile.put("onset_weights", JSONObject(onsetWeights as Map<*, *>))
-            if (covertProfile.isNotEmpty()) profile.put("covert_profile", JSONObject(covertProfile as Map<*, *>))
+            profile.put("trigger_words", JSONArray(triggerWords))
+            profile.put("onset_weights", JSONObject(onsetWeights as Map<*, *>))
+            profile.put("covert_profile", JSONObject(covertProfile as Map<*, *>))
             if (profile.length() > 0) put("profile", profile)
         }
 
