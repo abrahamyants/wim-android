@@ -1,40 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon — stereo knob matching floating bubble -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer bezel ring -->
+    <!-- Outer bezel ring — aluminum body -->
     <path
-        android:fillColor="#FFC0C0C5"
-        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+        android:fillColor="#FFC8C8CC"
+        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
 
-    <!-- Bezel edge stroke -->
+    <!-- Orange bezel stroke -->
     <path
-        android:fillColor="#00000000"
-        android:strokeWidth="1.5"
-        android:strokeColor="#FF999999"
-        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
-
-    <!-- Inner well -->
-    <path
-        android:fillColor="#FFB5B5BA"
-        android:pathData="M54,54m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
-
-    <!-- Inner shadow ring -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33000000"
-        android:pathData="M54,54m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
-
-    <!-- W in orange — thick stroke letterform -->
-    <path
-        android:fillColor="#00000000"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="2.5"
         android:strokeColor="#FFEE5A24"
-        android:strokeWidth="3.5"
+        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+
+    <!-- Bezel-to-inner shadow ring -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="1"
+        android:strokeColor="#44000000"
+        android:pathData="M54,54m-23,0a23,23 0,1 1,46 0a23,23 0,1 1,-46 0" />
+
+    <!-- Inner knob — radial depth (darker rim) -->
+    <path
+        android:fillColor="#FFA8A8AD"
+        android:pathData="M54,54m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+
+    <!-- Inner knob — lighter center (concave highlight) -->
+    <path
+        android:fillColor="#FFB8B8BC"
+        android:pathData="M54,54m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" />
+
+    <!-- Highlight — top-left light catch -->
+    <path
+        android:fillColor="#0DFFFFFF"
+        android:pathData="M42,40 Q48,34 58,36 Q52,32 42,40Z" />
+
+    <!-- Tick mark at 3 o'clock — orange indicator -->
+    <path
+        android:fillColor="#FFEE5A24"
+        android:pathData="M73,52.5 L73,55.5 L80,55.5 L80,52.5Z"
+        android:strokeColor="#40000000"
+        android:strokeWidth="0.3" />
+
+    <!-- W letterform — copper gold, centered -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFD4A574"
+        android:strokeWidth="3.2"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M38,44 L44,63 L51,48 L54,48 L61,63 L67,44" />
+        android:pathData="M40,44 L46,64 L52,48 L54,48 L60,64 L66,44" />
+
 </vector>
