@@ -219,12 +219,99 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <LinearLayout
-                android:id="@+id/sessionsContainer"
+            <FrameLayout
+                android:id="@+id/sessionsPanel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"
+                android:clipChildren="true"
+                android:minHeight="200dp">
+
+                <!-- Speaker cone — centered behind session cards -->
+                <ImageView
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/speaker_cone"
+                    android:importantForAccessibility="no" />
+
+                <!-- Session cards overlay -->
+                <LinearLayout
+                    android:id="@+id/sessionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp" />
+
+                <!-- WiM badge — Marshall-style plate, bottom-left -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|start"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="@drawable/brand_plate_bg"
+                        android:gravity="center"
+                        android:paddingStart="13dp"
+                        android:paddingEnd="13dp"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WiM"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:fontFamily="serif"
+                            android:letterSpacing="0.08" />
+                    </LinearLayout>
+
+                    <!-- Screw: top-left -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="top|start"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginStart="3dp"
+                        android:background="@drawable/screw_gold" />
+
+                    <!-- Screw: top-right -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="@drawable/screw_gold" />
+
+                    <!-- Screw: bottom-left -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="bottom|start"
+                        android:layout_marginBottom="2dp"
+                        android:layout_marginStart="3dp"
+                        android:background="@drawable/screw_gold" />
+
+                    <!-- Screw: bottom-right -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginBottom="2dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="@drawable/screw_gold" />
+
+                </FrameLayout>
+
+            </FrameLayout>
 
         </LinearLayout>
 

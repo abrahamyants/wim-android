@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Volume knob tick mark — orange indicator at 12 o'clock -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Subtle shadow behind tick -->
+    <item android:left="1dp" android:top="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#40000000" />
+            <corners android:radius="1.5dp" />
+            <size android:width="3dp" android:height="8dp" />
+        </shape>
+    </item>
+    <!-- Tick body — orange -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFEE5A24" />
+            <corners android:radius="1.5dp" />
+            <size android:width="3dp" android:height="8dp" />
+        </shape>
+    </item>
+</layer-list>

@@ -46,7 +46,16 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:layout_gravity="center"
-            android:background="@drawable/bubble_inner">
+            android:background="@drawable/bubble_inner_knob">
+
+            <!-- Tick mark — volume knob indicator, 12 o'clock on inner circle -->
+            <View
+                android:id="@+id/bubbleTick"
+                android:layout_width="3dp"
+                android:layout_height="8dp"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/knob_tick" />
 
             <LinearLayout
                 android:layout_width="wrap_content"

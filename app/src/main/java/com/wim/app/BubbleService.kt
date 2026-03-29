@@ -437,7 +437,9 @@ class BubbleService : Service() {
     }
 
     private fun processText(rawText: String) {
-        Log.i(TAG, "Processing: $rawText")
+        val pipelineStart = System.currentTimeMillis()
+        val asrMs = pipelineStart - recordingStartTime
+        Log.i(TAG, "Processing (asr=${asrMs}ms): $rawText")
         checkRedo(rawText)
         setBubbleProcessing()
 
@@ -455,13 +457,16 @@ class BubbleService : Service() {
             // L1: disfluency-filtered text IS the cleanup — inject directly
             Log.i(TAG, "L1 mode, injecting pre-cleaned text")
             WimAccessibilityService.instance?.injectText(preCleaned)
+            val totalMs = System.currentTimeMillis() - recordingStartTime
             sessionHistory?.record(
                 rawText = rawText,
                 cleanText = preCleaned,
                 tone = tone,
                 layer = 1,
                 situation = situation,
+                asrMs = asrMs,
                 reconMs = 0,
+                totalMs = totalMs,
                 falconApproved = true,
                 riskFlags = emptyList()
             )
@@ -498,13 +503,16 @@ class BubbleService : Service() {
                 }
 
                 // Record session
+                val totalMs = System.currentTimeMillis() - recordingStartTime
                 sessionHistory?.record(
                     rawText = preCleaned,
                     cleanText = reconResult.cleanText,
                     tone = tone,
                     layer = layer,
                     situation = situation,
+                    asrMs = asrMs,
                     reconMs = reconResult.reconMs,
+                    totalMs = totalMs,
                     falconApproved = reconResult.falconApproved,
                     riskFlags = reconResult.riskFlags
                 )

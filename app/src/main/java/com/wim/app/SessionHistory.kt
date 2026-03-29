@@ -11,7 +11,7 @@ import android.util.Log
  * Stores session history in SQLite for analytics and profile learning.
  * Each recording session = one row.
  */
-class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions.db", null, 1) {
+class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions.db", null, 2) {
 
     companion object {
         private const val TAG = "WiM"
@@ -28,14 +28,21 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 tone TEXT NOT NULL,
                 layer INTEGER NOT NULL,
                 situation TEXT NOT NULL,
+                asr_ms INTEGER NOT NULL DEFAULT 0,
                 recon_ms INTEGER NOT NULL,
+                total_ms INTEGER NOT NULL DEFAULT 0,
                 falcon_approved INTEGER NOT NULL DEFAULT 1,
                 risk_flags TEXT NOT NULL DEFAULT ''
             )
         """)
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN asr_ms INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN total_ms INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 
     fun record(
         rawText: String,
@@ -43,7 +50,9 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         tone: String,
         layer: Int,
         situation: String,
+        asrMs: Long,
         reconMs: Long,
+        totalMs: Long,
         falconApproved: Boolean,
         riskFlags: List<String>
     ) {
@@ -55,12 +64,14 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 put("tone", tone)
                 put("layer", layer)
                 put("situation", situation)
+                put("asr_ms", asrMs)
                 put("recon_ms", reconMs)
+                put("total_ms", totalMs)
                 put("falcon_approved", if (falconApproved) 1 else 0)
                 put("risk_flags", riskFlags.joinToString(","))
             }
             writableDatabase.insert(TABLE, null, values)
-            Log.i(TAG, "Session recorded (${reconMs}ms, falcon=$falconApproved)")
+            Log.i(TAG, "Session recorded (asr=${asrMs}ms recon=${reconMs}ms total=${totalMs}ms falcon=$falconApproved)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to record session: ${e.message}")
         }
@@ -73,7 +84,9 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         val tone: String,
         val layer: Int,
         val situation: String,
+        val asrMs: Long,
         val reconMs: Long,
+        val totalMs: Long,
         val falconApproved: Boolean,
         val riskFlags: String
     )
@@ -82,7 +95,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         val sessions = mutableListOf<Session>()
         try {
             val cursor: Cursor = readableDatabase.rawQuery(
-                "SELECT timestamp, raw_text, clean_text, tone, layer, situation, recon_ms, falcon_approved, risk_flags FROM $TABLE ORDER BY timestamp DESC LIMIT ?",
+                "SELECT timestamp, raw_text, clean_text, tone, layer, situation, asr_ms, recon_ms, total_ms, falcon_approved, risk_flags FROM $TABLE ORDER BY timestamp DESC LIMIT ?",
                 arrayOf(limit.toString())
             )
             while (cursor.moveToNext()) {
@@ -93,9 +106,11 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                     tone = cursor.getString(3),
                     layer = cursor.getInt(4),
                     situation = cursor.getString(5),
-                    reconMs = cursor.getLong(6),
-                    falconApproved = cursor.getInt(7) == 1,
-                    riskFlags = cursor.getString(8)
+                    asrMs = cursor.getLong(6),
+                    reconMs = cursor.getLong(7),
+                    totalMs = cursor.getLong(8),
+                    falconApproved = cursor.getInt(9) == 1,
+                    riskFlags = cursor.getString(10)
                 ))
             }
             cursor.close()

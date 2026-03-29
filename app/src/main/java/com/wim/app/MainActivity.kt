@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
+import android.widget.FrameLayout
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -164,6 +165,11 @@ class MainActivity : AppCompatActivity() {
 
         // ── Sessions (collapsible) ───────────────────────
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
+        // Apply maroon background + grille mesh overlay
+        val sessionsPanel = findViewById<FrameLayout>(R.id.sessionsPanel)
+        val panelBg = getDrawable(R.drawable.sessions_panel_bg)!!
+        val grille = GrilleDrawable()
+        sessionsPanel.background = android.graphics.drawable.LayerDrawable(arrayOf(panelBg, grille))
         loadSessions()
 
         // ── Tone selection (TextViews) ───────────────────────
@@ -350,7 +356,7 @@ class MainActivity : AppCompatActivity() {
             Pair("L${session.layer}", false),
             Pair(session.tone.uppercase().take(3), true),
             Pair(sitLabel, false),
-            Pair("${session.reconMs}MS", false)
+            Pair("${if (session.totalMs > 0) session.totalMs else session.reconMs}MS", false)
         )
 
         for ((label, isRed) in badges) {
