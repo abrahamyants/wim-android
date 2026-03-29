@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark mode: dark knob for DAF slider -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <size android:width="16dp" android:height="16dp" />
+    <gradient
+        android:startColor="#FF4A4A50"
+        android:endColor="#FF3A3A40"
+        android:angle="270"
+        android:type="linear" />
+    <stroke android:width="1dp" android:color="#14FFFFFF" />
+</shape>

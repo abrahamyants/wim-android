@@ -2,6 +2,7 @@ package com.wim.app
 
 import android.app.Application
 import android.content.SharedPreferences
+import androidx.appcompat.app.AppCompatDelegate
 
 class WimApp : Application() {
 
@@ -25,6 +26,8 @@ class WimApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Follow system dark mode setting
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
         profileManager = ProfileManager(prefs)
     }
