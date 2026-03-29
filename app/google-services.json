@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojn.apps.googleusercontent.com",
+          "client_id": "787543109204-93l54pgfi3ol7ur2m35d8so7nqvhqm1f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wim.app",
+            "certificate_hash": "db3fb838c7c5dd344d1d29ab7eee2c3df10c9ee3"
+          }
+        },
+        {
+          "client_id": "787543109204-vnln7rus2o37s4oaptepg66i3qcb3ujb.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
