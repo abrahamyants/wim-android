@@ -165,6 +165,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Manual (collapsible, collapsed by default) ────
         setupCollapsible(R.id.headerManual, R.id.contentManual, "manual_section", defaultExpanded = false)
+        setupManualAccordion()
 
         // ── Sessions (collapsible) ───────────────────────
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
@@ -519,6 +520,71 @@ class MainActivity : AppCompatActivity() {
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
         val text = header.text.toString().replace("  \u25BE", "").replace("  \u25B8", "")
         header.text = if (expanded) "$text  \u25BE" else "$text  \u25B8"
+    }
+
+    private fun setupManualAccordion() {
+        data class ManualItem(val viewId: Int, val icon: String, val title: String, val subtitle: String, val body: String)
+
+        val items = listOf(
+            ManualItem(R.id.manualBubble, "\u25CF", "Bubble",
+                "Floating knob \u2014 gestures and controls",
+                "Tap \u2014 start recording. Tap again \u2014 stop and process.\n" +
+                "Hold \u2014 record while held, release to process.\n" +
+                "Double-tap \u2014 open quick settings (opacity, size, live transcript).\n" +
+                "Drag \u2014 reposition the bubble anywhere on screen.\n\n" +
+                "The tick mark at 12 o\u2019clock is decorative \u2014 like a volume knob on a stereo."),
+            ManualItem(R.id.manualLayers, "\u2261", "Layers",
+                "L1 Transcribe through L4 Stutter",
+                "L1 Transcribe \u2014 speech-to-text only. On-device, free, instant.\n" +
+                "L2 Reconstruct \u2014 GPT rewrites with your tone. Strips fillers, fixes grammar.\n" +
+                "L3 Profile \u2014 same as L2 + your personal vocabulary and corrections.\n" +
+                "L4 Stutter \u2014 full clinical pipeline. Whisper API, disfluency filtering, severity-scaled rewrites.\n\n" +
+                "Each layer includes everything below it. L4 = L3 + L2 + L1."),
+            ManualItem(R.id.manualTone, "\u266A", "Tone",
+                "How GPT rewrites your speech (L2+)",
+                "Casual \u2014 everyday language, contractions OK.\n" +
+                "Professional \u2014 clean business English.\n" +
+                "Friend \u2014 relaxed, informal.\n" +
+                "Formal \u2014 precise, no contractions.\n\n" +
+                "Only affects Layer 2+. Layer 1 is raw transcription."),
+            ManualItem(R.id.manualSituation, "\u2605", "Situation",
+                "Severity presets for different contexts",
+                "Default (1.0\u00D7) \u2014 baseline, everyday use.\n" +
+                "High Stress (1.5\u00D7) \u2014 phone, presentation, interview. More aggressive filtering.\n" +
+                "Reading (0.6\u00D7) \u2014 minimal intervention. Reading aloud is near-fluent for most.\n\n" +
+                "Higher severity = more aggressive disfluency removal and reconstruction."),
+            ManualItem(R.id.manualDaf, "\u23F1", "DAF",
+                "Delayed Auditory Feedback for fluency",
+                "Plays your own voice back with a slight delay (30\u2013300ms). Classic fluency technique used in speech therapy.\n\n" +
+                "100ms is a good starting point. Adjust up for more effect, down for less. Turn off when not needed \u2014 it uses the microphone."),
+            ManualItem(R.id.manualSessions, "\u2630", "Sessions",
+                "Transcription history and playback",
+                "Every recording creates a session card. Cards show: timestamp, mode (SAFE/RAW), layer, tone, situation, and processing time.\n\n" +
+                "Tap any card to copy the text to clipboard.\n\n" +
+                "The speaker grille behind the cards is decorative \u2014 matching the \u041B\u0430\u0432\u0440\u0435\u043D\u0442\u0438\u0439 desktop aesthetic.")
+        )
+
+        for (item in items) {
+            val view = findViewById<View>(item.viewId)
+            val header = view.findViewById<View>(R.id.accordionHeader)
+            val icon = view.findViewById<TextView>(R.id.accordionIcon)
+            val title = view.findViewById<TextView>(R.id.accordionTitle)
+            val subtitle = view.findViewById<TextView>(R.id.accordionSubtitle)
+            val chevron = view.findViewById<TextView>(R.id.accordionChevron)
+            val content = view.findViewById<View>(R.id.accordionContent)
+            val body = view.findViewById<TextView>(R.id.accordionBody)
+
+            icon.text = item.icon
+            title.text = item.title
+            subtitle.text = item.subtitle
+            body.text = item.body
+
+            header.setOnClickListener {
+                val isOpen = content.visibility == View.VISIBLE
+                content.visibility = if (isOpen) View.GONE else View.VISIBLE
+                chevron.text = if (isOpen) "\u25B8" else "\u25BE"
+            }
+        }
     }
 
     private fun updatePermissionStatus() {
