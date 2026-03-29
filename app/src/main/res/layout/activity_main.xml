@@ -33,73 +33,53 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Left spacer (matches right side width for centering) -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-
-                <!-- Center: branding -->
+                <!-- Center: bulb + branding -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center_horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_gravity="center_horizontal">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="WiM"
-                        android:textColor="@color/copper_gold"
-                        android:textSize="26sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.06"
-                        android:fontFamily="serif" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="What I Meant"
-                        android:textColor="#BBFFFFFF"
-                        android:textSize="11sp"
-                        android:letterSpacing="0.12" />
-                </LinearLayout>
-
-                <!-- Right: Edison bulb + status -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="end|center_vertical">
+                    <ImageView
+                        android:id="@+id/statusBulb"
+                        android:layout_width="22dp"
+                        android:layout_height="34dp"
+                        android:src="@drawable/edison_bulb_green"
+                        android:importantForAccessibility="no"
+                        android:layout_marginEnd="10dp" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:gravity="center_horizontal">
-
-                        <ImageView
-                            android:id="@+id/statusBulb"
-                            android:layout_width="15dp"
-                            android:layout_height="23dp"
-                            android:src="@drawable/edison_bulb_green"
-                            android:importantForAccessibility="no" />
+                        android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/statusText"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="IDLE"
-                            android:textColor="#AAFFFFFF"
-                            android:textSize="7sp"
-                            android:fontFamily="monospace"
-                            android:letterSpacing="0.15"
+                            android:text="WiM"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="26sp"
                             android:textStyle="bold"
-                            android:layout_marginTop="2dp" />
+                            android:letterSpacing="0.06"
+                            android:fontFamily="serif" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="What I Meant"
+                            android:textColor="#BBFFFFFF"
+                            android:textSize="11sp"
+                            android:letterSpacing="0.12" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <!-- Hidden status text for code reference -->
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
