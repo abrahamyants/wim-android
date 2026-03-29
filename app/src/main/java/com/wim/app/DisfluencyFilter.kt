@@ -35,15 +35,16 @@ object DisfluencyFilter {
     )
 
     // Step 5: False starts — "I was going to-- I went" or "I was going to... I went"
-    // Matches clause + dash/ellipsis + restart
+    // Requires at least 2 dashes/em-dashes to avoid eating legitimate single em-dashes
     private val FALSE_START = Regex(
-        """[A-Za-z\u0400-\u04FF][^.!?]*?[—\u2014\u2013-]{1,3}\s*(?=[A-Z\u0410-\u042F])""",
+        """[A-Za-z\u0400-\u04FF][^.!?]*?[-]{2,}\s*(?=[A-Z\u0410-\u042F])""",
         RegexOption.DOT_MATCHES_ALL
     )
 
     // Step 6: Prolongations — "mmmmaybe" -> "maybe", "sssso" -> "so"
+    // Collapse ALL repeated leading chars (1{3,} -> 1), not just strip some
     private val PROLONGATION = Regex(
-        """\b(\w)\1{3,}(\w+)""",
+        """\b(\w)\1{2,}""",
         RegexOption.IGNORE_CASE
     )
 
@@ -93,7 +94,7 @@ object DisfluencyFilter {
         cleaned = FALSE_START.replace(cleaned, "")
 
         // Step 6: Strip prolongations — "mmmmaybe" -> "maybe"
-        cleaned = PROLONGATION.replace(cleaned) { "${it.groupValues[1]}${it.groupValues[2]}" }
+        cleaned = PROLONGATION.replace(cleaned) { it.groupValues[1] }
 
         // Collapse multiple spaces
         cleaned = MULTI_SPACE.replace(cleaned, " ").trim()

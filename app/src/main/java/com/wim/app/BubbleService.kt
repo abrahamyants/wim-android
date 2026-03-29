@@ -713,7 +713,8 @@ class BubbleService : Service() {
                     layer = layer,
                     situation = situation,
                     vocabulary = vocabulary,
-                    corrections = corrections
+                    corrections = corrections,
+                    fillerWords = fillerWords
                 )
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 
@@ -721,7 +722,7 @@ class BubbleService : Service() {
                     ?: Log.e(TAG, "No accessibility service instance!")
 
                 // L3+: learn from reconstruction results
-                if (layer >= 3) {
+                if (layer >= 2) {
                     profile.learnFromReconstruction(preCleaned, reconResult.cleanText)
                 }
 

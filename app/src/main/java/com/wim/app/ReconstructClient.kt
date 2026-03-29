@@ -30,7 +30,7 @@ object ReconstructClient {
     /** Per-tone temperature: formal is tighter, friend is looser */
     private val TONE_TEMPERATURE = mapOf(
         "formal" to 0.1,
-        "professional" to 0.25,
+        "professional" to 0.15,
         "casual" to 0.35,
         "friend" to 0.4
     )
@@ -39,7 +39,7 @@ object ReconstructClient {
     private val SITUATION_SEVERITY = mapOf(
         "default" to 1.0,
         "high_stress" to 1.5,
-        "reading" to 0.6
+        "reading" to 0.3
     )
 
     /**
@@ -59,12 +59,13 @@ object ReconstructClient {
         layer: Int = 2,
         situation: String = "default",
         vocabulary: List<String> = emptyList(),
-        corrections: Map<String, String> = emptyMap()
+        corrections: Map<String, String> = emptyMap(),
+        fillerWords: List<String> = emptyList()
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, idToken)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, idToken)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
         return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections)
@@ -76,7 +77,8 @@ object ReconstructClient {
      */
     private suspend fun reconstructViaBackend(
         rawText: String, tone: String, layer: Int, situation: String,
-        vocabulary: List<String>, corrections: Map<String, String>, idToken: String
+        vocabulary: List<String>, corrections: Map<String, String>,
+        fillerWords: List<String>, idToken: String
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -86,14 +88,15 @@ object ReconstructClient {
             put("layer", layer)
             put("situation", situation)
             put("mode", "SAFE")
-            if (vocabulary.isNotEmpty() || corrections.isNotEmpty()) {
-                val profile = JSONObject()
-                profile.put("vocabulary", org.json.JSONArray(vocabulary))
+            val profile = JSONObject()
+            if (vocabulary.isNotEmpty()) profile.put("vocabulary", JSONArray(vocabulary))
+            if (corrections.isNotEmpty()) {
                 val corr = JSONObject()
                 corrections.forEach { (k, v) -> corr.put(k, v) }
                 profile.put("corrections", corr)
-                put("profile", profile)
             }
+            if (fillerWords.isNotEmpty()) profile.put("filler_words", JSONArray(fillerWords))
+            if (profile.length() > 0) put("profile", profile)
         }
 
         val request = Request.Builder()
@@ -116,18 +119,16 @@ object ReconstructClient {
 
         val cleanText = json.optString("clean", rawText)
         val riskFlags = computeRiskFlags(rawText, cleanText)
-        val falconOk = if (riskFlags.contains("critical_token_lost")) {
-            false
-        } else {
-            falconValidate(rawText, cleanText, layer)
-        }
+        // Trust backend's Falcon result — client has no API key to run its own
+        val backendFalcon = json.optBoolean("falcon_ok", true)
+        val falconOk = backendFalcon && !riskFlags.contains("critical_token_lost")
         val finalText = if (falconOk) cleanText else rawText
 
         if (riskFlags.isNotEmpty()) {
             Log.w("WiM", "Backend risk flags: $riskFlags")
         }
         if (!falconOk) {
-            Log.w("WiM", "Falcon rejected backend reconstruction, using raw text. Flags: $riskFlags")
+            Log.w("WiM", "Falcon rejected backend reconstruction (backend=$backendFalcon), using raw text. Flags: $riskFlags")
         }
 
         ReconstructResult(
