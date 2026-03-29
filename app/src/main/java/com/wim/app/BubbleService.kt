@@ -49,8 +49,11 @@ class BubbleService : Service() {
     private var processed = false
     private var menuView: View? = null
     private var menuParams: WindowManager.LayoutParams? = null
+    private var liveTextView: TextView? = null
+    private var liveTextParams: WindowManager.LayoutParams? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
+    private var singleTapRunnable: Runnable? = null
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -208,15 +211,21 @@ class BubbleService : Service() {
                     } else if (!isRecording) {
                         val now = System.currentTimeMillis()
                         if (now - lastTapTime < DOUBLE_TAP_TIMEOUT) {
-                            // Double-tap: show/hide menu
+                            // Double-tap: cancel pending single-tap, show/hide menu
                             lastTapTime = 0L
+                            singleTapRunnable?.let { timerHandler.removeCallbacks(it) }
+                            singleTapRunnable = null
                             if (menuView != null) dismissMenu() else showMenu()
                         } else {
-                            // Single tap: start recording
+                            // First tap: wait for possible second tap before starting
                             lastTapTime = now
-                            startPulseRings()
-                            startListening()
-                            startedOnThisPress = true
+                            singleTapRunnable = Runnable {
+                                if (!isRecording) {
+                                    startPulseRings()
+                                    startListening()
+                                }
+                            }
+                            timerHandler.postDelayed(singleTapRunnable!!, DOUBLE_TAP_TIMEOUT)
                         }
                     }
                     true
@@ -258,6 +267,8 @@ class BubbleService : Service() {
         processed = false
 
         Log.i(TAG, "Starting on-device recognition")
+        dismissMenu()
+        showLiveTranscript()
         Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
 
         // Visual: recording state — bezel glows red, inner well lights up
@@ -304,14 +315,15 @@ class BubbleService : Service() {
                 Log.i(TAG, "Partial: $text")
                 // Partial = current segment only; combine with finalized segments
                 lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+                updateLiveTranscript(lastRawText)
             }
 
             override fun onFinalResult(text: String) {
                 Log.i(TAG, "Final ASR: $text")
                 if (text.isNotBlank()) {
-                    // Commit this segment to finalized, so it won't duplicate on next partial
                     finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
                     lastRawText = finalizedSegments
+                    updateLiveTranscript(lastRawText)
                 }
             }
 
@@ -431,6 +443,7 @@ class BubbleService : Service() {
     private fun setBubbleIdle() {
         timerHandler.removeCallbacks(timerRunnable)
         stopPulseRings()
+        hideLiveTranscript()
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
             clearAnimation()
             setBackgroundResource(R.drawable.bubble_inner)
@@ -560,6 +573,52 @@ class BubbleService : Service() {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
             menuView = null
             menuParams = null
+        }
+    }
+
+    private fun showLiveTranscript() {
+        if (!WimApp.prefs.getBoolean("live_transcript", false)) return
+        if (liveTextView != null) return
+
+        val tv = TextView(this).apply {
+            setBackgroundResource(R.drawable.card_bg)
+            setTextColor(0xFF2A2A30.toInt())
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setPadding(16, 8, 16, 8)
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            text = "..."
+        }
+        liveTextView = tv
+
+        val bp = bubbleParams ?: return
+        val ltParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            width = (220 * resources.displayMetrics.density).toInt()
+            x = bp.x - 40
+            y = bp.y - 70
+        }
+        liveTextParams = ltParams
+
+        windowManager?.addView(tv, ltParams)
+    }
+
+    private fun updateLiveTranscript(text: String) {
+        liveTextView?.text = text.ifBlank { "..." }
+    }
+
+    private fun hideLiveTranscript() {
+        liveTextView?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            liveTextView = null
+            liveTextParams = null
         }
     }
 
@@ -709,6 +768,7 @@ class BubbleService : Service() {
     override fun onDestroy() {
         instance = null
         dismissMenu()
+        hideLiveTranscript()
         dafPlayer?.stop()
         dafPlayer = null
         audioRecorder?.stop()
