@@ -39,9 +39,12 @@ class BubbleService : Service() {
     private var isRecording = false
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
+    private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var lastRawText = ""
     private var processed = false
+    private val recentTexts = mutableListOf<String>()
+    private var redoCount = 0
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
@@ -75,6 +78,7 @@ class BubbleService : Service() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
         onDeviceRecognizer = OnDeviceRecognizer(this)
+        sessionHistory = SessionHistory(this)
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
     }
@@ -403,8 +407,33 @@ class BubbleService : Service() {
         setBubbleIdle()
     }
 
+    /** Jaccard similarity between two strings (word-level). */
+    private fun jaccard(a: String, b: String): Float {
+        val setA = a.lowercase().split("\\s+".toRegex()).toSet()
+        val setB = b.lowercase().split("\\s+".toRegex()).toSet()
+        if (setA.isEmpty() && setB.isEmpty()) return 1f
+        val intersection = setA.intersect(setB).size
+        val union = setA.union(setB).size
+        return if (union == 0) 0f else intersection.toFloat() / union
+    }
+
+    private fun checkRedo(text: String) {
+        if (recentTexts.isNotEmpty() && jaccard(text, recentTexts.last()) > 0.7) {
+            redoCount++
+            if (redoCount >= 3) {
+                Toast.makeText(this, "Recording similar content repeatedly — take a breath", Toast.LENGTH_LONG).show()
+                redoCount = 0
+            }
+        } else {
+            redoCount = 0
+        }
+        recentTexts.add(text)
+        if (recentTexts.size > 5) recentTexts.removeAt(0)
+    }
+
     private fun processText(rawText: String) {
         Log.i(TAG, "Processing: $rawText")
+        checkRedo(rawText)
         setBubbleProcessing()
 
         val layer = WimApp.layer()
@@ -452,6 +481,18 @@ class BubbleService : Service() {
                 if (layer >= 3) {
                     profile.learnFromReconstruction(rawText, reconResult.cleanText)
                 }
+
+                // Record session
+                sessionHistory?.record(
+                    rawText = preCleaned,
+                    cleanText = reconResult.cleanText,
+                    tone = tone,
+                    layer = layer,
+                    situation = situation,
+                    reconMs = reconResult.reconMs,
+                    falconApproved = reconResult.falconApproved,
+                    riskFlags = reconResult.riskFlags
+                )
 
                 setBubbleIdle()
             } catch (e: Exception) {

@@ -41,6 +41,12 @@ object DisfluencyFilter {
         RegexOption.DOT_MATCHES_ALL
     )
 
+    // Step 6: Prolongations — "mmmmaybe" -> "maybe", "sssso" -> "so"
+    private val PROLONGATION = Regex(
+        """\b(\w)\1{3,}(\w+)""",
+        RegexOption.IGNORE_CASE
+    )
+
     // Multi-space collapse
     private val MULTI_SPACE = Regex("""\s{2,}""")
 
@@ -85,6 +91,9 @@ object DisfluencyFilter {
 
         // Step 5: Strip false starts (clause + em-dash + restart)
         cleaned = FALSE_START.replace(cleaned, "")
+
+        // Step 6: Strip prolongations — "mmmmaybe" -> "maybe"
+        cleaned = PROLONGATION.replace(cleaned) { "${it.groupValues[1]}${it.groupValues[2]}" }
 
         // Collapse multiple spaces
         cleaned = MULTI_SPACE.replace(cleaned, " ").trim()

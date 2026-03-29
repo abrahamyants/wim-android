@@ -8,6 +8,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import android.util.Log
 import java.util.concurrent.TimeUnit
 
 object ReconstructClient {
@@ -218,16 +219,107 @@ object ReconstructClient {
                 .getString("content")
                 .trim()
 
+            val riskFlags = computeRiskFlags(rawText, cleanText)
+            val falconOk = if (riskFlags.contains("critical_token_lost")) {
+                false
+            } else {
+                falconValidate(rawText, cleanText, layer)
+            }
+
             val reconMs = System.currentTimeMillis() - t0
+            val finalText = if (falconOk) cleanText else rawText
+
+            if (!falconOk) {
+                Log.w("WiM", "Falcon rejected reconstruction, using raw text. Flags: $riskFlags")
+            }
 
             ReconstructResult(
-                cleanText = cleanText,
-                reconMs = reconMs
+                cleanText = finalText,
+                reconMs = reconMs,
+                riskFlags = riskFlags,
+                falconApproved = falconOk
             )
         }
 
+    /** Check that numbers, percentages, dollar amounts survived reconstruction. */
+    private fun checkCriticalTokens(raw: String, clean: String): Boolean {
+        val tokenPattern = Regex("""\$?\d[\d,.]*%?""")
+        val rawTokens = tokenPattern.findAll(raw).map { it.value }.toSet()
+        val cleanTokens = tokenPattern.findAll(clean).map { it.value }.toSet()
+        return rawTokens.all { it in cleanTokens }
+    }
+
+    /** Falcon validation: binary meaning-preservation check via GPT. */
+    private suspend fun falconValidate(rawText: String, cleanText: String, layer: Int): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val apiKey = WimApp.apiKey()
+                if (apiKey.isBlank()) return@withContext true // skip if no key
+
+                val prompt = if (layer >= 4) {
+                    "The speaker stutters. Disfluency removal and intent reconstruction are expected. " +
+                    "Rambling filler should be stripped. Does the reconstruction preserve intended meaning? " +
+                    "Answer ONLY 'yes' or 'no'."
+                } else {
+                    "Filler removal and grammar fixes are expected and acceptable. " +
+                    "Does the reconstruction preserve the core content and intent? " +
+                    "Answer ONLY 'yes' or 'no'."
+                }
+
+                val messages = JSONArray().apply {
+                    put(JSONObject().put("role", "system").put("content", prompt))
+                    put(JSONObject().put("role", "user").put("content",
+                        "Raw: $rawText\nReconstructed: $cleanText"))
+                }
+
+                val body = JSONObject().apply {
+                    put("model", "gpt-4o-mini")
+                    put("messages", messages)
+                    put("temperature", 0.0)
+                    put("max_tokens", 5)
+                }
+
+                val request = Request.Builder()
+                    .url("https://api.openai.com/v1/chat/completions")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+
+                val response = http.newCall(request).execute()
+                val responseBody = response.body?.string() ?: return@withContext true
+                if (!response.isSuccessful) return@withContext true
+
+                val answer = JSONObject(responseBody)
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+                    .trim()
+                    .lowercase()
+
+                answer.startsWith("yes")
+            } catch (e: Exception) {
+                Log.e("WiM", "Falcon validation error: ${e.message}")
+                true // on error, trust the reconstruction
+            }
+        }
+
+    /** Compute risk flags for a reconstruction result. */
+    fun computeRiskFlags(rawText: String, cleanText: String): List<String> {
+        val flags = mutableListOf<String>()
+        if (cleanText.length < 3) flags.add("very_short_output")
+        val lenRatio = if (rawText.isNotEmpty()) cleanText.length.toFloat() / rawText.length else 1f
+        if (lenRatio < 0.3 || lenRatio > 3.0) flags.add("large_length_delta")
+        if (cleanText.endsWith("...") || cleanText.endsWith("—")) flags.add("contains_unfinished_fragment")
+        if (!checkCriticalTokens(rawText, cleanText)) flags.add("critical_token_lost")
+        return flags
+    }
+
     data class ReconstructResult(
         val cleanText: String,
-        val reconMs: Long
+        val reconMs: Long,
+        val riskFlags: List<String> = emptyList(),
+        val falconApproved: Boolean = true
     )
 }

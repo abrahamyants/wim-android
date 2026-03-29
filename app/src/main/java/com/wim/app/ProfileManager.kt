@@ -70,6 +70,11 @@ class ProfileManager(private val prefs: SharedPreferences) {
                     for (i in 0 until arr.length()) list.add(arr.getString(i))
                 }
 
+                correctionCounts = mutableMapOf<String, Int>().also { map ->
+                    val counts = obj.optJSONObject("correction_counts") ?: JSONObject()
+                    counts.keys().forEach { key -> map[key] = counts.getInt(key) }
+                }
+
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers")
             } catch (e: Exception) {
                 Log.e(TAG, "Profile parse error, resetting to defaults: ${e.message}")
@@ -85,6 +90,7 @@ class ProfileManager(private val prefs: SharedPreferences) {
             put("vocabulary", JSONArray(vocabulary))
             put("corrections", JSONObject(corrections as Map<*, *>))
             put("filler_words", JSONArray(fillerWords))
+            put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
         }
         prefs.edit().putString(PREF_KEY, obj.toString()).apply()
         Log.i(TAG, "Profile saved")
