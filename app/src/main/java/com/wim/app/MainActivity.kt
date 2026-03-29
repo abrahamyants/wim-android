@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
         val signedOutSection = findViewById<LinearLayout>(R.id.signedOutSection)
         val signedInSection = findViewById<LinearLayout>(R.id.signedInSection)
         val googleSignInBtn = findViewById<Button>(R.id.googleSignInBtn)
-        val signOutBtn = findViewById<Button>(R.id.signOutBtn)
+        val signOutBtn = findViewById<TextView>(R.id.signOutBtn)
         val userEmail = findViewById<TextView>(R.id.userEmail)
         val userTier = findViewById<TextView>(R.id.userTier)
 
