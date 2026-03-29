@@ -99,13 +99,13 @@
             android:gravity="end" />
     </LinearLayout>
 
-    <!-- Live transcript toggle — compact, label next to toggle -->
+    <!-- Live transcript toggle — small switch aligned with sliders -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="2dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -115,32 +115,31 @@
             android:textSize="12sp"
             android:fontFamily="monospace"
             android:textStyle="bold"
+            android:minWidth="56dp"
             android:layout_marginEnd="6dp" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/menuLiveToggle"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:scaleX="0.7"
+            android:scaleY="0.7"
+            android:transformPivotX="0dp" />
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@drawable/section_divider"
-        android:layout_marginBottom="4dp" />
-
-    <!-- Open Settings -->
+    <!-- Settings button — frosted glass pill -->
     <TextView
         android:id="@+id/menuOpenSettings"
         android:layout_width="match_parent"
-        android:layout_height="28dp"
+        android:layout_height="26dp"
         android:text="Settings"
-        android:textColor="@color/orange_label"
-        android:textSize="12sp"
+        android:textColor="@color/text_dim"
+        android:textSize="11sp"
         android:fontFamily="monospace"
         android:textStyle="bold"
         android:letterSpacing="0.08"
-        android:gravity="center" />
+        android:gravity="center"
+        android:background="@drawable/settings_pill_bg"
+        android:layout_marginTop="2dp" />
 
 </LinearLayout>
