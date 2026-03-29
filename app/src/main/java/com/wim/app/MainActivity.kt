@@ -303,6 +303,16 @@ class MainActivity : AppCompatActivity() {
 
         val history = SessionHistory(this)
         val sessions = history.getRecentSessions(50)
+
+        // Compute stats
+        val totalWords = sessions.sumOf { it.cleanText.split("\\s+".toRegex()).filter { w -> w.isNotBlank() }.size }
+        val totalSessions = sessions.size
+        val totalAsrMs = sessions.sumOf { it.asrMs }
+        val wpm = if (totalAsrMs > 0) (totalWords * 60000.0 / totalAsrMs).toInt() else 0
+
+        findViewById<TextView>(R.id.statWords)?.text = "%,d".format(totalWords)
+        findViewById<TextView>(R.id.statSessions)?.text = totalSessions.toString()
+        findViewById<TextView>(R.id.statWpm)?.text = wpm.toString()
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val dpScale = resources.displayMetrics.density
 

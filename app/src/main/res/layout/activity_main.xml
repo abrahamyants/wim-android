@@ -273,6 +273,105 @@
         <!-- ═══════════════════════════════════════════ -->
         <!-- SESSIONS -->
         <!-- ═══════════════════════════════════════════ -->
+
+        <!-- STATS ROW — LED readout cells -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="6dp">
+
+            <!-- Words -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/led_cell_bg"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:paddingBottom="6dp"
+                android:layout_marginEnd="3dp">
+                <TextView
+                    android:id="@+id/statWords"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/orange_label"
+                    android:textSize="18sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WORDS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="7sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15" />
+            </LinearLayout>
+
+            <!-- Sessions -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/led_cell_bg"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:paddingBottom="6dp"
+                android:layout_marginEnd="3dp">
+                <TextView
+                    android:id="@+id/statSessions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/orange_label"
+                    android:textSize="18sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SESSIONS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="7sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15" />
+            </LinearLayout>
+
+            <!-- WPM -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/led_cell_bg"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:paddingBottom="6dp">
+                <TextView
+                    android:id="@+id/statWpm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#FF16A34A"
+                    android:textSize="18sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WPM"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="7sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15" />
+            </LinearLayout>
+
+        </LinearLayout>
+
         <TextView
             android:id="@+id/headerSessions"
             android:layout_width="wrap_content"

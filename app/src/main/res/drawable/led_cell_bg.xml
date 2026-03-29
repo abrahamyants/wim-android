@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LED readout cell — dark panel matching Лаврентий stats row -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#FF1E1E1E"
+        android:endColor="#FF141414"
+        android:angle="270" />
+    <stroke android:width="1dp" android:color="#22FFFFFF" />
+    <corners android:radius="6dp" />
+</shape>
