@@ -116,17 +116,25 @@ object ReconstructClient {
 
         val cleanText = json.optString("clean", rawText)
         val riskFlags = computeRiskFlags(rawText, cleanText)
-        val finalText = if (riskFlags.contains("critical_token_lost")) rawText else cleanText
+        val falconOk = if (riskFlags.contains("critical_token_lost")) {
+            false
+        } else {
+            falconValidate(rawText, cleanText, layer)
+        }
+        val finalText = if (falconOk) cleanText else rawText
 
         if (riskFlags.isNotEmpty()) {
             Log.w("WiM", "Backend risk flags: $riskFlags")
+        }
+        if (!falconOk) {
+            Log.w("WiM", "Falcon rejected backend reconstruction, using raw text. Flags: $riskFlags")
         }
 
         ReconstructResult(
             cleanText = finalText,
             reconMs = reconMs,
             riskFlags = riskFlags,
-            falconApproved = !riskFlags.contains("critical_token_lost")
+            falconApproved = falconOk
         )
     }
 

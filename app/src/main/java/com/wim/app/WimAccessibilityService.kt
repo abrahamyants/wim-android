@@ -80,10 +80,4 @@ class WimAccessibilityService : AccessibilityService() {
         startService(intent)
     }
 
-    private fun hideBubble() {
-        val intent = Intent(this, BubbleService::class.java).apply {
-            action = "HIDE"
-        }
-        startService(intent)
-    }
 }

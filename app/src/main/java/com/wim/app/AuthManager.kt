@@ -54,20 +54,6 @@ object AuthManager {
         }
     }
 
-    /**
-     * Sign in anonymously (for users who skip sign-in).
-     */
-    suspend fun signInAnonymously(): FirebaseUser? {
-        return try {
-            val result = auth.signInAnonymously().await()
-            Log.i(TAG, "Signed in anonymously: ${result.user?.uid}")
-            result.user
-        } catch (e: Exception) {
-            Log.e(TAG, "Anonymous sign-in failed: ${e.message}")
-            null
-        }
-    }
-
     fun signOut() {
         auth.signOut()
     }

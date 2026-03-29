@@ -65,15 +65,4 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         }
     }
 
-    fun sessionCount(): Int {
-        return try {
-            val cursor = readableDatabase.rawQuery("SELECT COUNT(*) FROM $TABLE", null)
-            cursor.moveToFirst()
-            val count = cursor.getInt(0)
-            cursor.close()
-            count
-        } catch (e: Exception) {
-            0
-        }
-    }
 }

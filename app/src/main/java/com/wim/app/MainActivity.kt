@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         updateAuthUI()
 
         // Web client ID from google-services.json oauth_client type 3
-        val webClientId = "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojon.apps.googleusercontent.com"
+        val webClientId = "787543109204-4j4k9vtqq0282qa2sfpl7v6m7iaccojn.apps.googleusercontent.com"
 
         googleSignInBtn.setOnClickListener {
             val credentialManager = CredentialManager.create(this)
