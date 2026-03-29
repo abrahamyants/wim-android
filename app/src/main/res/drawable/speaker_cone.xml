@@ -9,64 +9,64 @@
     <!-- Outer frame ring -->
     <path
         android:pathData="M200,200m-196,0a196,196 0,1 1,392 0a196,196 0,1 1,-392 0"
-        android:strokeColor="#504040"
+        android:strokeColor="#8A8A8A"
         android:strokeWidth="8"
         android:fillColor="@android:color/transparent" />
 
     <!-- Frame screws (8 around perimeter) -->
     <path android:pathData="M200,8m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M336,56m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M392,200m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M336,344m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M200,392m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M64,344m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M8,200m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
     <path android:pathData="M64,56m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#605050" />
+        android:fillColor="#999999" />
 
     <!-- Surround ring (rubber) -->
     <path
         android:pathData="M200,200m-172,0a172,172 0,1 1,344 0a172,172 0,1 1,-344 0"
-        android:strokeColor="#483030"
+        android:strokeColor="#7A7A7A"
         android:strokeWidth="32"
         android:fillColor="@android:color/transparent" />
 
     <!-- Inner ring edge -->
     <path
         android:pathData="M200,200m-155,0a155,155 0,1 1,310 0a155,155 0,1 1,-310 0"
-        android:strokeColor="#180808"
+        android:strokeColor="#707070"
         android:strokeWidth="3"
         android:fillColor="@android:color/transparent" />
 
     <!-- Cone body -->
     <path
         android:pathData="M200,200m-152,0a152,152 0,1 1,304 0a152,152 0,1 1,-304 0"
-        android:fillColor="#281818" />
+        android:fillColor="#889090" />
 
     <!-- Cone shading ring -->
     <path
         android:pathData="M200,200m-110,0a110,110 0,1 1,220 0a110,110 0,1 1,-220 0"
-        android:strokeColor="#201010"
+        android:strokeColor="#808080"
         android:strokeWidth="1"
         android:fillColor="@android:color/transparent" />
 
     <!-- Dust cap edge -->
     <path
         android:pathData="M200,200m-52,0a52,52 0,1 1,104 0a52,52 0,1 1,-104 0"
-        android:strokeColor="#180808"
+        android:strokeColor="#707070"
         android:strokeWidth="3"
         android:fillColor="@android:color/transparent" />
 
     <!-- Dust cap -->
     <path
         android:pathData="M200,200m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"
-        android:fillColor="#483030" />
+        android:fillColor="#9A9A9A" />
 
 </vector>
