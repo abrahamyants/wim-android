@@ -1133,38 +1133,71 @@
             android:layout_marginBottom="16dp" />
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- FOOTER — brand badge -->
+        <!-- FOOTER — powered by Лаврентий -->
         <!-- ═══════════════════════════════════════════ -->
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/brand_plate_bg"
-            android:gravity="center_horizontal"
-            android:paddingTop="12dp"
-            android:paddingBottom="10dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:layout_height="wrap_content">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="What I Meant"
-                android:textColor="@color/copper_gold"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.08" />
+                android:orientation="vertical"
+                android:background="@drawable/brand_plate_bg"
+                android:gravity="center_horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="speak messy. get clean text."
-                android:textColor="@color/text_secondary"
-                android:textSize="9sp"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.08"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="powered by Лаврентий"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="10sp"
+                    android:fontFamily="serif"
+                    android:fontStyle="italic"
+                    android:letterSpacing="0.06" />
+            </LinearLayout>
+
+            <!-- Screw: top-left -->
+            <View
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_gravity="top|start"
+                android:layout_marginTop="5dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/screw_gold" />
+
+            <!-- Screw: top-right -->
+            <View
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/screw_gold" />
+
+            <!-- Screw: bottom-left -->
+            <View
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_gravity="bottom|start"
+                android:layout_marginBottom="5dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/screw_gold" />
+
+            <!-- Screw: bottom-right -->
+            <View
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginBottom="5dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/screw_gold" />
+
+        </FrameLayout>
 
     </LinearLayout>
 </ScrollView>
