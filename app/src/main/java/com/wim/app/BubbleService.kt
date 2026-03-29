@@ -498,7 +498,7 @@ class BubbleService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -559,11 +559,14 @@ class BubbleService : Service() {
         }
 
         // Dismiss on tap outside menu
-        menuView!!.setOnTouchListener { _, event ->
+        menuView!!.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
                 dismissMenu()
                 true
-            } else false
+            } else {
+                v.performClick()
+                false
+            }
         }
 
         windowManager?.addView(menuView, mParams)

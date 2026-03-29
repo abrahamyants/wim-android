@@ -4,7 +4,7 @@
     android:layout_width="220dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/card_bg"
+    android:background="@drawable/menu_bg"
     android:elevation="12dp"
     android:padding="12dp">
 
