@@ -266,6 +266,27 @@ fcdeda2 Fix 6 critical Лаврентий parity issues
 41cb990 Send full profile payload to backend
 ```
 
+## Testing
+
+7 test files, 126 assertions. Run with `./gradlew.bat testDebugUnitTest`.
+
+| File | Tests | What it covers |
+|------|-------|---------------|
+| DisfluencyFilterTest | 27 | Stutter fragments, word/phrase repeats, fillers, false starts, prolongations, combined, edge cases |
+| DisfluencyFilterStressTest | 26 | Adversarial inputs, Unicode/Russian, nested patterns, prolongation edges, idempotence |
+| RiskFlagsTest | 16 | Critical token retention (numbers/dollars/percents), short output, length delta, fragments |
+| RiskFlagsStressTest | 21 | Empty inputs, boundary conditions, complex patterns, multiple simultaneous flags |
+| ProfileLearningTest | 7 | Position-aware matching, junk promotion prevention, distance threshold, count threshold |
+| ProfileLearningStressTest | 12 | Multiple substitutions, position boundaries, large inputs, duplicates, empty inputs |
+| ReconstructPromptTest | 17 | Tone temps match Лаврентий, severity values match, tone rules distinct, threshold triggers |
+
+### Not yet tested (needs Android mocks)
+- SessionHistory (SQLite — needs Context)
+- ProfileManager save/load (needs SharedPreferences)
+- BubbleService state machine (needs Service lifecycle)
+- OnDeviceRecognizer (needs SpeechRecognizer)
+- HTTP clients (WhisperClient, ReconstructClient — needs OkHttp mock)
+
 ## Still TODO
 - Test suites for WiM Android (zero tests currently — Лаврентий desktop has 1,312)
 - Play Store listing and screenshots
