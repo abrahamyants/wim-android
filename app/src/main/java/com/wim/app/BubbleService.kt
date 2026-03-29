@@ -43,6 +43,7 @@ class BubbleService : Service() {
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
     private var lastRawText = ""
+    private var finalizedSegments = ""
     private var processed = false
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
@@ -237,6 +238,7 @@ class BubbleService : Service() {
         if (isRecording) return
         isRecording = true
         lastRawText = ""
+        finalizedSegments = ""
         processed = false
 
         Log.i(TAG, "Starting on-device recognition")
@@ -284,13 +286,16 @@ class BubbleService : Service() {
         onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
             override fun onPartialResult(text: String) {
                 Log.i(TAG, "Partial: $text")
-                lastRawText = text
+                // Partial = current segment only; combine with finalized segments
+                lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
             }
 
             override fun onFinalResult(text: String) {
                 Log.i(TAG, "Final ASR: $text")
                 if (text.isNotBlank()) {
-                    lastRawText = if (lastRawText.isBlank()) text else "$lastRawText $text"
+                    // Commit this segment to finalized, so it won't duplicate on next partial
+                    finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+                    lastRawText = finalizedSegments
                 }
             }
 
