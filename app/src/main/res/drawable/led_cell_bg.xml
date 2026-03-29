@@ -1,11 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- LED readout cell — dark panel matching Лаврентий stats row -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:startColor="#FF1E1E1E"
-        android:endColor="#FF141414"
-        android:angle="270" />
-    <stroke android:width="1dp" android:color="#22FFFFFF" />
-    <corners android:radius="6dp" />
-</shape>
+<!-- Nixie tube cell — dark glass enclosure with inset depth -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer bevel — light catch on top edge -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#14FFFFFF" />
+            <corners android:radius="7dp" />
+        </shape>
+    </item>
+    <!-- Main dark glass body -->
+    <item android:top="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FF0c0c0e"
+                android:centerColor="#FF141418"
+                android:endColor="#FF0a0a0e"
+                android:angle="270" />
+            <corners android:radius="6dp" />
+            <stroke android:width="1dp" android:color="#993C3228" />
+        </shape>
+    </item>
+    <!-- Inset shadow — deep recess effect (top darker) -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#CC000000"
+                android:centerColor="#33000000"
+                android:endColor="#66000000"
+                android:angle="270" />
+            <corners android:radius="5dp" />
+        </shape>
+    </item>
+    <!-- Inner glass body -->
+    <item android:left="3dp" android:top="4dp" android:right="3dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FF111115"
+                android:centerColor="#FF161619"
+                android:endColor="#FF111115"
+                android:angle="270" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <!-- Orange ambient glow (subtle, from the "filament") -->
+    <item android:left="8dp" android:top="6dp" android:right="8dp" android:bottom="10dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="30dp"
+                android:centerX="0.5"
+                android:centerY="0.35"
+                android:startColor="#10EE5A24"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    <!-- Glass reflection — top-left highlight -->
+    <item android:left="4dp" android:top="2dp" android:right="12dp" android:bottom="20dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0AFFFFFF"
+                android:endColor="#00FFFFFF"
+                android:angle="250" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</layer-list>
