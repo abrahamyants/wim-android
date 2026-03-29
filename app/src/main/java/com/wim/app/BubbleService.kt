@@ -41,6 +41,7 @@ class BubbleService : Service() {
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
+    private var audioRecorder: AudioRecorder? = null
     private var lastRawText = ""
     private var processed = false
     private val recentTexts = mutableListOf<String>()
@@ -168,6 +169,8 @@ class BubbleService : Service() {
                             if (startedOnThisPress && isRecording) {
                                 isRecording = false
                                 onDeviceRecognizer?.stop()
+                                audioRecorder?.stop()
+                                audioRecorder = null
                                 dafPlayer?.stop()
                                 dafPlayer = null
                                 stopPulseRings()
@@ -260,6 +263,18 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
+        // L4: also record audio for Whisper API transcription
+        if (WimApp.layer() >= 4 && WimApp.apiKey().isNotBlank()) {
+            try {
+                audioRecorder = AudioRecorder(this)
+                audioRecorder?.start()
+                Log.i(TAG, "L4: AudioRecorder started for Whisper pipeline")
+            } catch (e: Exception) {
+                Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
+                audioRecorder = null
+            }
+        }
+
         // Start DAF playback if enabled
         if (WimApp.dafEnabled()) {
             dafPlayer = DafPlayer()
@@ -299,6 +314,10 @@ class BubbleService : Service() {
         dafPlayer?.stop()
         dafPlayer = null
 
+        // Stop audio recorder immediately (captures full audio)
+        val wavFile = audioRecorder?.stop()
+        audioRecorder = null
+
         // Delay stopping the recognizer — let it finish processing the last audio buffer
         timerHandler.postDelayed({
             val textBeforeStop = lastRawText
@@ -306,12 +325,40 @@ class BubbleService : Service() {
 
             // Wait another 250ms for the final result callback
             timerHandler.postDelayed({
-                val finalText = if (lastRawText.length > textBeforeStop.length) lastRawText else textBeforeStop
-                Log.i(TAG, "Final text after delay: $finalText")
-                if (finalText.isNotBlank()) {
-                    processText(finalText)
+                val onDeviceText = if (lastRawText.length > textBeforeStop.length) lastRawText else textBeforeStop
+
+                // L4 with recorded audio: use Whisper API for better stutter transcription
+                if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
+                    Log.i(TAG, "L4: Sending ${wavFile.length()} bytes to Whisper API")
+                    scope.launch {
+                        try {
+                            val whisperResult = WhisperClient.transcribe(wavFile)
+                            Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                            val finalText = whisperResult.text.ifBlank { onDeviceText }
+                            if (finalText.isNotBlank()) {
+                                processText(finalText)
+                            } else {
+                                setBubbleIdle()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Whisper failed, falling back to on-device: ${e.message}")
+                            if (onDeviceText.isNotBlank()) {
+                                processText(onDeviceText)
+                            } else {
+                                setBubbleIdle()
+                            }
+                        } finally {
+                            wavFile.delete()
+                        }
+                    }
                 } else {
-                    setBubbleIdle()
+                    // L1-3 or no audio: use on-device result
+                    Log.i(TAG, "Final text after delay: $onDeviceText")
+                    if (onDeviceText.isNotBlank()) {
+                        processText(onDeviceText)
+                    } else {
+                        setBubbleIdle()
+                    }
                 }
             }, 250)
         }, 750)
@@ -550,6 +597,8 @@ class BubbleService : Service() {
         instance = null
         dafPlayer?.stop()
         dafPlayer = null
+        audioRecorder?.stop()
+        audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
         scope.cancel()
