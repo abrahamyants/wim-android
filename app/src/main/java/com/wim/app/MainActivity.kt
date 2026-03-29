@@ -163,6 +163,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ── Manual (collapsible, collapsed by default) ────
+        setupCollapsible(R.id.headerManual, R.id.contentManual, "manual_section", defaultExpanded = false)
+
         // ── Sessions (collapsible) ───────────────────────
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
         // Apply maroon background + grille mesh overlay
@@ -530,8 +533,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.micPermBtn).text =
             if (micOk) "Microphone: Granted" else "Grant Microphone Permission"
 
+        val statusText = findViewById<TextView>(R.id.statusText)
+        val statusDot = findViewById<View>(R.id.statusDot)
         if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
-            findViewById<TextView>(R.id.statusText).text = "Ready \u2014 open any app and start talking"
+            statusText.text = "IDLE"
+            statusDot.setBackgroundResource(R.drawable.led_green)
+        } else {
+            statusText.text = "SETUP REQUIRED"
+            statusDot.setBackgroundResource(R.drawable.led_red)
         }
     }
 }

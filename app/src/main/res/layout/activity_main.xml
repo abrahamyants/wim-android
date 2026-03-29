@@ -185,17 +185,171 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Status indicator -->
-        <TextView
-            android:id="@+id/statusText"
+        <!-- Status LED -->
+        <LinearLayout
+            android:id="@+id/statusLed"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enter your API key to get started"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+            <View
+                android:id="@+id/statusDot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/led_green"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="IDLE"
+                android:textColor="@color/text_dim"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.1" />
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- MANUAL -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerManual"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MANUAL  ▸"
+            android:textColor="@color/orange_label"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.15"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentManual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:background="@drawable/card_bg"
-            android:padding="12dp"
-            android:layout_marginBottom="20dp" />
+            android:padding="14dp"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="THE BUBBLE"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tap — start recording. Tap again — stop and process.\nHold — record while held, release to process.\nDouble-tap — open quick settings (opacity, size, live transcript).\nDrag — reposition the bubble anywhere on screen."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="LAYERS"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="I. Transcribe — speech-to-text only, no cleanup.\nII. Reconstruct — AI rewrites with your selected tone.\nIII. Profile — adds your personal vocabulary and corrections.\nIV. Stutter — full pipeline: disfluency filtering, Whisper API, all assists."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TONE"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Casual — everyday language, contractions OK.\nProfessional — clean business English.\nFriend — relaxed, informal.\nFormal — precise, no contractions."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SITUATION"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Default — baseline, everyday use.\nHigh Stress — aggressive filtering, full assists.\nReading — minimal intervention, near-fluent."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="DAF"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Delayed Auditory Feedback. Plays your voice back with a slight delay. Classic fluency technique. 100ms is a good starting point."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SESSIONS"
+                android:textColor="@color/orange_label"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="History of your transcriptions. Each card shows timestamp, mode, layer, tone, situation, and processing time. Tap any card to copy the text."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- SESSIONS -->

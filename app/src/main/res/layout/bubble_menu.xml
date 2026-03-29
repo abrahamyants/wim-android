@@ -6,7 +6,9 @@
     android:orientation="vertical"
     android:background="@drawable/menu_bg"
     android:elevation="12dp"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:clipToOutline="true"
+    android:outlineProvider="background">
 
     <!-- Opacity slider -->
     <LinearLayout
