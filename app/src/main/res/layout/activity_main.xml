@@ -1128,6 +1128,16 @@
                     android:fontFamily="serif"
                     android:fontStyle="italic"
                     android:letterSpacing="0.06" />
+
+                <TextView
+                    android:id="@+id/privacyLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Privacy Policy"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
 
             <!-- Screw: top-left -->

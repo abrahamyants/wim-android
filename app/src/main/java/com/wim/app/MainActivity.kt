@@ -284,6 +284,11 @@ class MainActivity : AppCompatActivity() {
                 100
             )
         }
+
+        // ── Privacy Policy ────────────────────────────────
+        findViewById<TextView>(R.id.privacyLink).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/gugosf114/lavrentiy/blob/main/PRIVACY.md")))
+        }
     }
 
     override fun onResume() {
