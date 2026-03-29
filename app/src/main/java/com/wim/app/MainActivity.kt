@@ -1,10 +1,16 @@
 package com.wim.app
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -24,6 +30,9 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Main settings screen — instrument-panel aesthetic matching Лаврентий dashboard.
@@ -153,6 +162,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ── Sessions (collapsible) ───────────────────────
+        setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
+        loadSessions()
+
         // ── Tone selection (TextViews) ───────────────────────
         setupToneGroup(toneIds, toneValues, "tone", WimApp.tone())
 
@@ -268,6 +281,137 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updatePermissionStatus()
+        loadSessions()
+    }
+
+    private fun loadSessions() {
+        val container = findViewById<LinearLayout>(R.id.sessionsContainer)
+        container.removeAllViews()
+
+        val history = SessionHistory(this)
+        val sessions = history.getRecentSessions(50)
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val dpScale = resources.displayMetrics.density
+
+        if (sessions.isEmpty()) {
+            val empty = TextView(this).apply {
+                text = "No sessions yet"
+                setTextColor(getColor(R.color.text_dim))
+                textSize = 12f
+                typeface = Typeface.MONOSPACE
+                setPadding((14 * dpScale).toInt(), (10 * dpScale).toInt(), (14 * dpScale).toInt(), (10 * dpScale).toInt())
+            }
+            container.addView(empty)
+            return
+        }
+
+        for (session in sessions) {
+            val card = buildSessionCard(session, timeFormat, dpScale)
+            container.addView(card)
+        }
+    }
+
+    private fun buildSessionCard(session: SessionHistory.Session, timeFormat: SimpleDateFormat, dp: Float): LinearLayout {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.session_card_bg)
+            setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = (4 * dp).toInt() }
+        }
+
+        // Top row: timestamp + badges
+        val topRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = (6 * dp).toInt() }
+        }
+
+        // Timestamp
+        val timeText = TextView(this).apply {
+            text = timeFormat.format(Date(session.timestamp))
+            setTextColor(0xFF888890.toInt())
+            textSize = 11f
+            typeface = Typeface.MONOSPACE
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        topRow.addView(timeText)
+
+        // Badges: SAFE/FAST, L#, TONE, situation, timing
+        val mode = if (session.falconApproved) "SAFE" else "RAW"
+        val sitLabel = if (session.situation != "default") session.situation.uppercase().replace("_", " ") else "NONE"
+        val badges = listOf(
+            Pair(mode, false),
+            Pair("L${session.layer}", false),
+            Pair(session.tone.uppercase().take(3), true),
+            Pair(sitLabel, false),
+            Pair("${session.reconMs}MS", false)
+        )
+
+        for ((label, isRed) in badges) {
+            val badge = TextView(this).apply {
+                text = label
+                textSize = 8f
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                setTextColor(0xFFDDDDDD.toInt())
+                setBackgroundResource(if (isRed) R.drawable.badge_bg_red else R.drawable.badge_bg)
+                setPadding((5 * dp).toInt(), (2 * dp).toInt(), (5 * dp).toInt(), (2 * dp).toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = (3 * dp).toInt() }
+            }
+            topRow.addView(badge)
+        }
+
+        card.addView(topRow)
+
+        // Output row: OUT label + text
+        val outputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val outLabel = TextView(this).apply {
+            text = "OUT"
+            textSize = 11f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            setTextColor(0xFFEE5A24.toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = (8 * dp).toInt() }
+        }
+        outputRow.addView(outLabel)
+
+        val outputText = TextView(this).apply {
+            text = session.cleanText
+            setTextColor(0xFFE0E0E0.toInt())
+            textSize = 13f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            maxLines = 4
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        outputRow.addView(outputText)
+
+        card.addView(outputRow)
+
+        // Copy on tap
+        card.setOnClickListener {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("wim", session.cleanText))
+            Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
+        }
+
+        return card
     }
 
     // ── Tone-group selection (simple TextViews) ─────────────

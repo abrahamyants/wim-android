@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.content.ContentValues
+import android.database.Cursor
 import android.util.Log
 
 /**
@@ -65,4 +66,42 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         }
     }
 
+    data class Session(
+        val timestamp: Long,
+        val rawText: String,
+        val cleanText: String,
+        val tone: String,
+        val layer: Int,
+        val situation: String,
+        val reconMs: Long,
+        val falconApproved: Boolean,
+        val riskFlags: String
+    )
+
+    fun getRecentSessions(limit: Int = 50): List<Session> {
+        val sessions = mutableListOf<Session>()
+        try {
+            val cursor: Cursor = readableDatabase.rawQuery(
+                "SELECT timestamp, raw_text, clean_text, tone, layer, situation, recon_ms, falcon_approved, risk_flags FROM $TABLE ORDER BY timestamp DESC LIMIT ?",
+                arrayOf(limit.toString())
+            )
+            while (cursor.moveToNext()) {
+                sessions.add(Session(
+                    timestamp = cursor.getLong(0),
+                    rawText = cursor.getString(1),
+                    cleanText = cursor.getString(2),
+                    tone = cursor.getString(3),
+                    layer = cursor.getInt(4),
+                    situation = cursor.getString(5),
+                    reconMs = cursor.getLong(6),
+                    falconApproved = cursor.getInt(7) == 1,
+                    riskFlags = cursor.getString(8)
+                ))
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to query sessions: ${e.message}")
+        }
+        return sessions
+    }
 }

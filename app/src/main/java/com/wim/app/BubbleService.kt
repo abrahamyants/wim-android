@@ -455,6 +455,16 @@ class BubbleService : Service() {
             // L1: disfluency-filtered text IS the cleanup — inject directly
             Log.i(TAG, "L1 mode, injecting pre-cleaned text")
             WimAccessibilityService.instance?.injectText(preCleaned)
+            sessionHistory?.record(
+                rawText = rawText,
+                cleanText = preCleaned,
+                tone = tone,
+                layer = 1,
+                situation = situation,
+                reconMs = 0,
+                falconApproved = true,
+                riskFlags = emptyList()
+            )
             setBubbleIdle()
             return
         }
