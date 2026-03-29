@@ -600,13 +600,13 @@ class MainActivity : AppCompatActivity() {
             if (micOk) "Microphone: Granted" else "Grant Microphone Permission"
 
         val statusText = findViewById<TextView>(R.id.statusText)
-        val statusDot = findViewById<View>(R.id.statusDot)
+        val statusBulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
         if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
             statusText.text = "IDLE"
-            statusDot.setBackgroundResource(R.drawable.led_green)
+            statusBulb.setImageResource(R.drawable.edison_bulb_green)
         } else {
-            statusText.text = "SETUP REQUIRED"
-            statusDot.setBackgroundResource(R.drawable.led_red)
+            statusText.text = "SETUP"
+            statusBulb.setImageResource(R.drawable.edison_bulb_red)
         }
     }
 }

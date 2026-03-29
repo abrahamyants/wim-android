@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Edison bulb — glass envelope with glowing filament -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="14dp"
+    android:height="20dp"
+    android:viewportWidth="28"
+    android:viewportHeight="40">
+
+    <!-- Glass envelope -->
+    <path
+        android:pathData="M14,2 C8,2 4,8 4,16 C4,22 7,26 10,28 L18,28 C21,26 24,22 24,16 C24,8 20,2 14,2Z"
+        android:fillColor="#18FFFFFF"
+        android:strokeColor="#30FFFFFF"
+        android:strokeWidth="0.8" />
+
+    <!-- Base/screw cap -->
+    <path
+        android:pathData="M10,28 L18,28 L18,36 C18,38 16,40 14,40 C12,40 10,38 10,36Z"
+        android:fillColor="#FF8A7060" />
+    <!-- Cap threads -->
+    <path android:pathData="M10,30 L18,30" android:strokeColor="#60000000" android:strokeWidth="0.6" />
+    <path android:pathData="M10,32 L18,32" android:strokeColor="#60000000" android:strokeWidth="0.6" />
+    <path android:pathData="M10,34 L18,34" android:strokeColor="#60000000" android:strokeWidth="0.6" />
+
+    <!-- Filament support wires -->
+    <path
+        android:pathData="M12,28 L12,18"
+        android:strokeColor="#AACC9944"
+        android:strokeWidth="0.5" />
+    <path
+        android:pathData="M16,28 L16,18"
+        android:strokeColor="#AACC9944"
+        android:strokeWidth="0.5" />
+
+    <!-- Coiled filament — glowing -->
+    <path
+        android:pathData="M12,18 C12,16 13,15 14,14 C15,13 16,14 16,16 C16,18 15,19 14,18 C13,17 12,16 12,14 C12,12 13,11 14,10 C15,9 16,10 16,12"
+        android:strokeColor="#FF44DD44"
+        android:strokeWidth="1.2"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Filament glow aura -->
+    <path
+        android:pathData="M14,14m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
+        android:fillColor="#2200CC44" />
+
+</vector>
