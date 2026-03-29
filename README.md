@@ -185,7 +185,7 @@ Found 5 more issues:
 - Abandoned. Built HTML mockup with drawing tools instead.
 - Drawing mockup worked but George decided deploy-to-phone (3 seconds) is faster than mockup iteration.
 
-## Commits This Session
+## Commits — Session 1 (March 28)
 ```
 4a1f5f4 Add Google sign-in UI and brand plate styling
 773fe4f Embed pulse rings in bubble, resize to 120dp
@@ -195,9 +195,44 @@ c090d87 Fix bubble opacity bug and adjust size slider range
 c9fdd33 Fix 5 remaining Play Store blockers
 ```
 
+## Session 2 — March 28-29
+
+### What We Did
+
+1. **Codebase audit triage** — reviewed 18-component audit, identified 4 of 6 findings were already fixed in Round 2 commits, 2 real issues remained
+2. **Fix Google Sign-In client ID** — one-character typo (`iaccojon` → `iaccojn`), later replaced entirely when Firebase created new OAuth clients
+3. **Add Falcon validation to backend path** — safety checks now run on both direct and backend reconstruct paths
+4. **Dead code removal** — deleted WhisperClient.kt, stripped AudioRecorder, removed signInAnonymously, unused WimApp getters, sessionCount, hideBubble (-216 lines)
+5. **Session transcript history** — collapsible SESSIONS section on main screen with dark cards matching Лаврентий Sessions tab. Tap to copy. L1 sessions now recorded.
+6. **Speaker grille UI** — maroon panel (#5c2a2a), programmatic honeycomb mesh (GrilleDrawable), speaker cone vector, WiM badge with brass screws
+7. **Bubble knob enhancements** — orange tick mark at 12 o'clock, inner radial gradient depth
+8. **Full pipeline timing** — asr_ms, recon_ms, total_ms tracked. DB schema v2 migration.
+9. **Whisper API wired into L4** — AudioRecorder captures WAV alongside on-device ASR, sends to Whisper for L4. Falls back to on-device if no API key or Whisper fails.
+10. **Fix double transcription** — separated finalized segments from partial results to prevent duplication on recognizer auto-restart
+11. **Double-tap bubble menu** — floating settings panel (opacity, size, live transcript toggle, open settings) with brushed aluminum texture and rounded corners
+12. **Live transcript strip** — floating text bar above bubble showing partial ASR results during recording (toggle in menu)
+13. **In-app manual** — accordion-style guide (Bubble, Layers, Tone, Situation, DAF, Sessions) extracted from Лаврентий owner's manual
+14. **Status LED** — green/red LED replaces old "Ready" text
+15. **Google Sign-In fully configured** — registered debug SHA-1 in Firebase, created Android OAuth client in GCP, enabled Google provider in Firebase Auth, updated google-services.json and web client ID
+
+### Commits — Session 2
+```
+560f02e Fix Google Sign-In client ID, add Falcon to backend path, remove dead code
+596acf9 Add session transcript history to main screen
+3061879 Add speaker grille UI, knob tick mark, and full pipeline timing
+66a56a7 Wire Whisper API into L4 stutter pipeline
+12c1a25 Fix double transcription in continuous listening
+f0c3a08 Add double-tap bubble menu with opacity, size, live transcript toggle
+ea12f1a Fix double-tap detection and add live transcript strip
+428c88d Fix bubble menu crash: use themed context for MaterialSwitch inflation
+f6e2c56 Fix menu dismiss on outside touch, add brushed aluminum texture
+dcab3dd Add in-app manual, status LED, and rounded menu corners
+e28f4ef Rebuild manual as accordion with expandable topic rows
+11dface Change manual subtitle and body text to red accent color
+977f0b4 Update google-services.json and web client ID for Google Sign-In
+```
+
 ## Still TODO
-- Wire WhisperClient into L4 (code exists, just needs connection)
-- Google Sign-In on Jana's phone (SHA-1 fingerprint registration)
+- Google Sign-In testing (SHA-1 + OAuth + Firebase Auth now configured, pending verification)
 - Test suites (zero tests currently)
-- Transcript history UI (all competitors have it)
 - Play Store listing and screenshots
