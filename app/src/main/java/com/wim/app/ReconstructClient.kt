@@ -114,9 +114,19 @@ object ReconstructClient {
         val json = JSONObject(responseBody)
         val reconMs = System.currentTimeMillis() - t0
 
+        val cleanText = json.optString("clean", rawText)
+        val riskFlags = computeRiskFlags(rawText, cleanText)
+        val finalText = if (riskFlags.contains("critical_token_lost")) rawText else cleanText
+
+        if (riskFlags.isNotEmpty()) {
+            Log.w("WiM", "Backend risk flags: $riskFlags")
+        }
+
         ReconstructResult(
-            cleanText = json.optString("clean", rawText),
-            reconMs = reconMs
+            cleanText = finalText,
+            reconMs = reconMs,
+            riskFlags = riskFlags,
+            falconApproved = !riskFlags.contains("critical_token_lost")
         )
     }
 

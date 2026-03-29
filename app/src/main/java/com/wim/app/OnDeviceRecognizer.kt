@@ -55,13 +55,18 @@ class OnDeviceRecognizer(private val context: Context) {
 
             override fun onError(error: Int) {
                 Log.e(TAG, "SpeechRecognizer error: $error")
-                // Error 7 = no speech detected — restart if still listening
-                if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                    if (keepListening) {
-                        Log.d(TAG, "No speech detected, restarting...")
-                        listenIntent?.let { recognizer?.startListening(it) }
-                        return
-                    }
+                if (keepListening && (error == SpeechRecognizer.ERROR_NO_MATCH
+                        || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                        || error == 8 /* ERROR_RECOGNIZER_BUSY */
+                        || error == SpeechRecognizer.ERROR_SERVER)) {
+                    val delay = if (error == 8) 150L else 0L
+                    Log.d(TAG, "Recoverable error $error, restarting in ${delay}ms...")
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        if (keepListening) {
+                            listenIntent?.let { recognizer?.startListening(it) }
+                        }
+                    }, delay)
+                    return
                 }
                 listener?.onError(error)
             }

@@ -404,7 +404,12 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleProcessing() {
-        setBubbleIdle()
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+            ?.setBackgroundResource(R.drawable.bubble_bg_processing)
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "PROC"
+            setTextColor(0xFFFFA000.toInt())
+        }
     }
 
     /** Jaccard similarity between two strings (word-level). */
@@ -479,7 +484,7 @@ class BubbleService : Service() {
 
                 // L3+: learn from reconstruction results
                 if (layer >= 3) {
-                    profile.learnFromReconstruction(rawText, reconResult.cleanText)
+                    profile.learnFromReconstruction(preCleaned, reconResult.cleanText)
                 }
 
                 // Record session
