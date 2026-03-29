@@ -254,12 +254,10 @@ class MainActivity : AppCompatActivity() {
         // ── Collapsible sections ─────────────────────────────
         setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = true)
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
-
-        setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = true)
-
-        setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
+        setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = false)
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
-        setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = false)
+        setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
 
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)

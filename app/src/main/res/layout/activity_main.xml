@@ -20,7 +20,7 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -394,12 +394,7 @@
 
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- TONE -->
@@ -428,7 +423,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <TextView
                 android:id="@+id/toneCasual"
@@ -489,12 +484,7 @@
 
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- LAYER -->
@@ -523,7 +513,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <!-- Layer I: Transcribe -->
             <LinearLayout
@@ -650,12 +640,7 @@
 
         <!-- MODE removed — consumer doesn't need it, SAFE is default -->
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- SITUATION -->
@@ -684,7 +669,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <!-- Default -->
             <LinearLayout
@@ -899,12 +884,7 @@
 
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- DAF -->
@@ -976,7 +956,7 @@
             android:background="@drawable/card_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -1036,7 +1016,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="8dp">
 
             <EditText
                 android:id="@+id/apiKeyInput"
@@ -1063,12 +1043,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginBottom="12dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- PERMISSIONS -->
@@ -1124,13 +1099,7 @@
 
         </LinearLayout>
 
-        <!-- ── Section divider ── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/section_divider"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="16dp" />
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- FOOTER — powered by Лаврентий -->
