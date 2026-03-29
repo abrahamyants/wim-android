@@ -36,6 +36,7 @@
     <!-- Dashboard sidebar — Лаврентий theme (already dark, minor tweaks) -->
     <color name="copper_gold">#FFD4A574</color>
     <color name="orange_label">#FFEE5A24</color>
+    <color name="section_header">#FF7A7A82</color>
     <color name="active_bg">#FF7A1515</color>
     <color name="active_text">#FFFFD8D8</color>
     <color name="led_red">#FFFF5555</color>
