@@ -115,6 +115,37 @@ class ProfileManager(private val prefs: SharedPreferences) {
 
     fun getVocabulary(): List<String> = vocabulary.toList()
 
+    /** Trigger words — populated by backend learning, empty until then */
+    fun getTriggerWords(): List<String> {
+        val json = prefs.getString(PREF_KEY, null) ?: return emptyList()
+        return try {
+            val arr = JSONObject(json).optJSONArray("trigger_words") ?: return emptyList()
+            (0 until arr.length()).map { arr.getString(it) }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    /** Onset weights — phonetic difficulty map, populated by backend */
+    fun getOnsetWeights(): Map<String, Double> {
+        val json = prefs.getString(PREF_KEY, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(json).optJSONObject("onset_weights") ?: return emptyMap()
+            val map = mutableMapOf<String, Double>()
+            obj.keys().forEach { map[it] = obj.getDouble(it) }
+            map
+        } catch (_: Exception) { emptyMap() }
+    }
+
+    /** Covert avoidance profile — word substitution pairs, populated by backend */
+    fun getCovertProfile(): Map<String, String> {
+        val json = prefs.getString(PREF_KEY, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(json).optJSONObject("covert_profile") ?: return emptyMap()
+            val map = mutableMapOf<String, String>()
+            obj.keys().forEach { map[it] = obj.getString(it) }
+            map
+        } catch (_: Exception) { emptyMap() }
+    }
+
     /**
      * Learn from usage: when reconstruction consistently changes a word,
      * auto-add to corrections after seeing it 3+ times.

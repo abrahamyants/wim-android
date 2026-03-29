@@ -714,7 +714,10 @@ class BubbleService : Service() {
                     situation = situation,
                     vocabulary = vocabulary,
                     corrections = corrections,
-                    fillerWords = fillerWords
+                    fillerWords = fillerWords,
+                    triggerWords = profile.getTriggerWords(),
+                    onsetWeights = profile.getOnsetWeights(),
+                    covertProfile = profile.getCovertProfile()
                 )
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 

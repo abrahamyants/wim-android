@@ -60,12 +60,15 @@ object ReconstructClient {
         situation: String = "default",
         vocabulary: List<String> = emptyList(),
         corrections: Map<String, String> = emptyMap(),
-        fillerWords: List<String> = emptyList()
+        fillerWords: List<String> = emptyList(),
+        triggerWords: List<String> = emptyList(),
+        onsetWeights: Map<String, Double> = emptyMap(),
+        covertProfile: Map<String, String> = emptyMap()
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, idToken)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
         return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections)
@@ -78,7 +81,9 @@ object ReconstructClient {
     private suspend fun reconstructViaBackend(
         rawText: String, tone: String, layer: Int, situation: String,
         vocabulary: List<String>, corrections: Map<String, String>,
-        fillerWords: List<String>, idToken: String
+        fillerWords: List<String>, triggerWords: List<String>,
+        onsetWeights: Map<String, Double>, covertProfile: Map<String, String>,
+        idToken: String
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -96,6 +101,9 @@ object ReconstructClient {
                 profile.put("corrections", corr)
             }
             if (fillerWords.isNotEmpty()) profile.put("filler_words", JSONArray(fillerWords))
+            if (triggerWords.isNotEmpty()) profile.put("trigger_words", JSONArray(triggerWords))
+            if (onsetWeights.isNotEmpty()) profile.put("onset_weights", JSONObject(onsetWeights as Map<*, *>))
+            if (covertProfile.isNotEmpty()) profile.put("covert_profile", JSONObject(covertProfile as Map<*, *>))
             if (profile.length() > 0) put("profile", profile)
         }
 
