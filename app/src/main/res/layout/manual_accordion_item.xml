@@ -46,7 +46,7 @@
                 android:id="@+id/accordionSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/red_bright"
                 android:textSize="9sp"
                 android:fontFamily="monospace" />
         </LinearLayout>
@@ -76,7 +76,7 @@
             android:id="@+id/accordionBody"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/red_bright"
             android:textSize="11sp"
             android:lineSpacingExtra="3dp" />
     </LinearLayout>
