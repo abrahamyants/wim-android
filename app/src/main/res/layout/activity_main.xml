@@ -878,9 +878,9 @@
                 android:layout_height="wrap_content"
                 android:min="20"
                 android:max="100"
-                android:progress="70"
                 android:thumb="@drawable/daf_seekbar_thumb"
-                android:progressDrawable="@drawable/daf_seekbar_track" />
+                android:progressDrawable="@drawable/daf_seekbar_track"
+                android:progress="70" />
 
             <TextView
                 android:id="@+id/bubbleOpacityValue"
@@ -925,9 +925,9 @@
                 android:layout_height="wrap_content"
                 android:min="70"
                 android:max="150"
-                android:progress="110"
                 android:thumb="@drawable/daf_seekbar_thumb"
-                android:progressDrawable="@drawable/daf_seekbar_track" />
+                android:progressDrawable="@drawable/daf_seekbar_track"
+                android:progress="110" />
 
             <TextView
                 android:id="@+id/bubbleSizeValue"
@@ -989,7 +989,8 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1001,9 +1002,9 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="delayed auditory feedback"
-                    android:textColor="@color/red_bright"
-                    android:textSize="10sp"
+                    android:text="  Delayed Auditory Feedback"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
                     android:fontFamily="monospace" />
             </LinearLayout>
 
