@@ -277,6 +277,7 @@
 
         <!-- STATS ROW — Nixie tube readout cells -->
         <LinearLayout
+            android:id="@+id/statsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

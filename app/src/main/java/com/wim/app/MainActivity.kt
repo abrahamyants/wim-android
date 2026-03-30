@@ -11,6 +11,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.widget.FrameLayout
 import android.util.TypedValue
+import android.view.DragEvent
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -269,6 +270,9 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = false)
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
+
+        // ── Section reorder (long-press headers to drag) ─
+        setupSectionReorder()
 
         // ── Dark mode toggle ──────────────────────────────
         val darkBtn = findViewById<Button>(R.id.darkModeBtn)
@@ -642,6 +646,190 @@ class MainActivity : AppCompatActivity() {
         } else {
             statusText.text = "SETUP"
             statusBulb.setImageResource(R.drawable.edison_bulb_red)
+        }
+    }
+
+    // ── Section drag-to-reorder ──────────────────────────────
+    // Sections are defined as groups of views (header + content, or stats + header + content).
+    // On long-press of a header, all sections collapse and become draggable.
+    // Drop reorders sections in the parent LinearLayout. Order persists in SharedPreferences.
+
+    data class Section(val key: String, val viewIds: List<Int>)
+
+    private val sectionDefs = listOf(
+        Section("manual", listOf(R.id.headerManual, R.id.contentManual)),
+        Section("sessions", listOf(R.id.headerSessions, R.id.contentSessions)),
+        Section("tone", listOf(R.id.headerTone, R.id.contentTone)),
+        Section("layer", listOf(R.id.headerLayer, R.id.contentLayer)),
+        Section("situation", listOf(R.id.headerSituation, R.id.contentSituation)),
+        Section("bubble", listOf(R.id.headerBubble, R.id.contentBubble)),
+        Section("daf", listOf(R.id.headerDaf, R.id.contentDaf)),
+        Section("permissions", listOf(R.id.headerPermissions, R.id.contentPermissions))
+    )
+
+    private var sectionContainers = mutableListOf<LinearLayout>()
+    private var isReorderMode = false
+
+    private fun setupSectionReorder() {
+        // Find the root LinearLayout: it's the parent of any header view
+        val anyHeader = findViewById<View>(R.id.headerTone) ?: return
+        val parent = anyHeader.parent as? LinearLayout ?: return
+
+        // Wrap each section's views into a container LinearLayout
+        val savedOrder = WimApp.prefs.getString("section_order", null)
+        val orderedKeys = savedOrder?.split(",") ?: sectionDefs.map { it.key }
+
+        for (section in sectionDefs) {
+            val views = section.viewIds.mapNotNull { findViewById<View>(it) }
+            if (views.isEmpty()) continue
+
+            val container = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                tag = section.key
+            }
+
+            // Remove views from parent and add to container
+            val firstView = views[0]
+            val insertIndex = parent.indexOfChild(firstView)
+            for (v in views) parent.removeView(v)
+            for (v in views) container.addView(v)
+            parent.addView(container, insertIndex)
+
+            sectionContainers.add(container)
+
+            // Long-press on container to enter reorder mode
+            container.setOnLongClickListener { view ->
+                enterReorderMode(parent)
+                val dragData = ClipData.newPlainText("section", section.key)
+                val shadow = View.DragShadowBuilder(view)
+                view.startDragAndDrop(dragData, shadow, view, 0)
+                view.alpha = 0.4f
+                true
+            }
+        }
+
+        // Apply saved order
+        if (savedOrder != null) {
+            applySectionOrder(parent, orderedKeys)
+        }
+
+        // Set up drop listener on parent
+        parent.setOnDragListener { parentView, event ->
+            when (event.action) {
+                DragEvent.ACTION_DRAG_STARTED -> true
+                DragEvent.ACTION_DRAG_ENTERED -> true
+                DragEvent.ACTION_DRAG_LOCATION -> {
+                    val draggedView = event.localState as? View ?: return@setOnDragListener true
+                    val targetContainer = findContainerAt(parentView as LinearLayout, event.y + (parentView.parent as? View)?.let {
+                        // Account for scroll position
+                        val sv2 = it as? android.widget.ScrollView
+                        sv2?.scrollY?.toFloat() ?: 0f
+                    }.let { event.y })
+                    if (targetContainer != null && targetContainer != draggedView) {
+                        val p = parentView as LinearLayout
+                        val dragIdx = p.indexOfChild(draggedView)
+                        val targetIdx = p.indexOfChild(targetContainer)
+                        if (dragIdx >= 0 && targetIdx >= 0 && dragIdx != targetIdx) {
+                            p.removeView(draggedView)
+                            p.addView(draggedView, targetIdx)
+                        }
+                    }
+                    true
+                }
+                DragEvent.ACTION_DRAG_ENDED -> {
+                    val draggedView = event.localState as? View
+                    draggedView?.alpha = 1.0f
+                    exitReorderMode()
+                    saveSectionOrder(parentView as LinearLayout)
+                    true
+                }
+                DragEvent.ACTION_DROP -> true
+                else -> true
+            }
+        }
+    }
+
+    private fun enterReorderMode(parent: LinearLayout) {
+        if (isReorderMode) return
+        isReorderMode = true
+        // Collapse all sections
+        for (container in sectionContainers) {
+            for (i in 0 until container.childCount) {
+                val child = container.getChildAt(i)
+                // Keep headers visible, hide content
+                if (child is LinearLayout || child is FrameLayout) {
+                    // Check if this is a content view (not a header TextView)
+                    val id = child.id
+                    val isContent = sectionDefs.any { sec ->
+                        sec.viewIds.size > 1 && sec.viewIds.last() == id
+                    }
+                    if (isContent) child.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun exitReorderMode() {
+        if (!isReorderMode) return
+        isReorderMode = false
+        // Restore saved expand/collapse state for each section
+        for (section in sectionDefs) {
+            val prefKey = "${section.key}_section"
+            val expanded = WimApp.prefs.getBoolean("section_$prefKey", false)
+            val contentId = section.viewIds.last()
+            val contentView = findViewById<View>(contentId)
+            contentView?.visibility = if (expanded) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun findContainerAt(parent: LinearLayout, y: Float): View? {
+        for (container in sectionContainers) {
+            val idx = parent.indexOfChild(container)
+            if (idx < 0) continue
+            if (y >= container.top && y <= container.bottom) return container
+        }
+        return null
+    }
+
+    private fun saveSectionOrder(parent: LinearLayout) {
+        val order = mutableListOf<String>()
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            val key = child.tag as? String
+            if (key != null && sectionDefs.any { it.key == key }) {
+                order.add(key)
+            }
+        }
+        if (order.isNotEmpty()) {
+            WimApp.prefs.edit().putString("section_order", order.joinToString(",")).apply()
+        }
+    }
+
+    private fun applySectionOrder(parent: LinearLayout, orderedKeys: List<String>) {
+        val containerMap = sectionContainers.associateBy { it.tag as? String }
+        // Find the position of the first section container as our insertion anchor
+        val firstIdx = sectionContainers.minOfOrNull { parent.indexOfChild(it) } ?: return
+
+        // Remove all section containers
+        for (c in sectionContainers) parent.removeView(c)
+
+        // Re-add in saved order
+        var insertAt = firstIdx
+        for (key in orderedKeys) {
+            val container = containerMap[key] ?: continue
+            parent.addView(container, insertAt)
+            insertAt++
+        }
+        // Add any sections not in the saved order (new sections added after save)
+        for (c in sectionContainers) {
+            if (parent.indexOfChild(c) < 0) {
+                parent.addView(c, insertAt)
+                insertAt++
+            }
         }
     }
 }
