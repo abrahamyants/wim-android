@@ -56,6 +56,10 @@ class BubbleService : Service() {
     private var singleTapRunnable: Runnable? = null
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
+    private var isWorkMode = false  // false=personal, true=work
+    private var isClarifierActive = false
+    private var clarifierCallback: ((Boolean?) -> Unit)? = null
+    private val clarifierTimeout = Runnable { dismissClarifier(null) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
@@ -140,14 +144,18 @@ class BubbleService : Service() {
             }
         }
 
+        // Initialize work/personal from prefs
+        isWorkMode = WimApp.prefs.getBoolean("work_mode", false)
+        updateBezelLabels()
+
         bubbleView?.setOnTouchListener { v, event ->
-            // Only handle touches on the visible bubble, not the transparent ring area
+            // Accept touches on the bezel area (up to 50% radius) — covers both knob and bezel ring
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val cx = v.width / 2f
                 val cy = v.height / 2f
                 val tx = event.x - cx
                 val ty = event.y - cy
-                val r = v.width * 0.3f
+                val r = v.width * 0.5f
                 if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
             }
 
@@ -197,6 +205,35 @@ class BubbleService : Service() {
                 MotionEvent.ACTION_UP -> {
                     timerHandler.removeCallbacks(startRecordingRunnable)
                     if (isDragging) return@setOnTouchListener true
+
+                    // Check if tap was in the bezel ring (not the inner knob)
+                    val cx = v.width / 2f
+                    val cy = v.height / 2f
+                    val tx = event.x - cx
+                    val ty = event.y - cy
+                    val dist = kotlin.math.sqrt(tx * tx + ty * ty)
+                    val innerR = v.width * 0.18f   // inner knob edge
+                    val outerR = v.width * 0.40f    // bezel outer edge
+                    val tapDuration = System.currentTimeMillis() - downTime
+
+                    if (!isRecording && dist > innerR && dist < outerR && tapDuration < 300) {
+                        try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        if (isClarifierActive) {
+                            // Clarifier mode — left = ✓ yes, right = ✕ no
+                            dismissClarifier(tx < 0)
+                        } else {
+                            // Normal mode — toggle work/life
+                            if (tx < 0) {
+                                isWorkMode = true
+                                WimApp.prefs.edit().putBoolean("work_mode", true).putString("tone", "professional").apply()
+                            } else {
+                                isWorkMode = false
+                                WimApp.prefs.edit().putBoolean("work_mode", false).putString("tone", "casual").apply()
+                            }
+                            updateBezelLabels()
+                        }
+                        return@setOnTouchListener true
+                    }
 
                     try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
 
@@ -451,13 +488,64 @@ class BubbleService : Service() {
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
             ?.setBackgroundResource(R.drawable.bubble_bg_idle)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "IDLE"
-            setTextColor(0xFF55555E.toInt())
+            text = if (isWorkMode) "WORK" else "LIFE"
+            setTextColor(if (isWorkMode) 0xFFAADDFF.toInt() else 0xFFFFCC88.toInt())
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             text = "0:00"
             setTextColor(0xFFEE5A24.toInt())
         }
+    }
+
+    private fun updateBezelLabels() {
+        // Update the knob label text and bezel border color based on work/life mode
+        if (!isRecording && !isClarifierActive) {
+            bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+                text = if (isWorkMode) "WORK" else "LIFE"
+                setTextColor(if (isWorkMode) 0xFFAADDFF.toInt() else 0xFFFFCC88.toInt())
+            }
+        }
+    }
+
+    /**
+     * Show a clarifier question on the knob with ✓ and ✕ on the bezel.
+     * @param questionWord Short word shown on the knob (e.g. "WORK?" or "VENT?")
+     * @param onAnswer Callback with true=✓ false=✕ null=timeout
+     */
+    fun showClarifier(questionWord: String, onAnswer: (Boolean?) -> Unit) {
+        isClarifierActive = true
+        clarifierCallback = { answer -> onAnswer(answer) }
+
+        // Show question on the knob
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = questionWord
+            setTextColor(0xFFFFFFFF.toInt())
+        }
+        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
+
+        // Show ✓ and ✕
+        bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.VISIBLE
+        bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.VISIBLE
+
+        // Auto-dismiss after 5 seconds
+        timerHandler.postDelayed(clarifierTimeout, 5000)
+    }
+
+    private fun dismissClarifier(answer: Boolean?) {
+        timerHandler.removeCallbacks(clarifierTimeout)
+        isClarifierActive = false
+
+        // Hide ✓ and ✕
+        bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.GONE
+        bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.GONE
+
+        // Restore timer and knob label
+        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
+        updateBezelLabels()
+
+        // Fire callback
+        clarifierCallback?.invoke(answer)
+        clarifierCallback = null
     }
 
     fun updateBubbleAppearance() {

@@ -34,11 +34,44 @@
     <!-- Outer raised bezel ring -->
     <FrameLayout
         android:id="@+id/bubbleBezel"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
         android:layout_gravity="center"
         android:background="@drawable/bubble_bg_idle"
         android:elevation="8dp">
+
+        <!-- Clarifier: checkmark (left) and X (right) — hidden by default -->
+        <TextView
+            android:id="@+id/bezelYes"
+            android:layout_width="18dp"
+            android:layout_height="24dp"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="1dp"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="#FF44DD44"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false" />
+
+        <TextView
+            android:id="@+id/bezelNo"
+            android:layout_width="18dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="1dp"
+            android:gravity="center"
+            android:text="✕"
+            android:textColor="#FFEF4444"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false" />
 
         <!-- Inner sunken well -->
         <FrameLayout
