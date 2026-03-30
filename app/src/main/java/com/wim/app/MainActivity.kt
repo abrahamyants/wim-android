@@ -268,6 +268,9 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
 
+        // ── Profile overlay (iron curtain) ───────────────
+        setupProfileOverlay()
+
         // ── Dark mode toggle ──────────────────────────────
         val darkBtn = findViewById<TextView>(R.id.darkModeBtn)
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -587,4 +590,97 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ── Profile overlay (iron curtain) ───────────────────
+    private var profileOverlay: View? = null
+
+    private fun setupProfileOverlay() {
+        findViewById<View>(R.id.profileStrip)?.setOnClickListener {
+            showProfileOverlay()
+        }
+    }
+
+    private fun showProfileOverlay() {
+        if (profileOverlay != null) return
+
+        val rootFrame = findViewById<FrameLayout>(android.R.id.content)
+        val overlay = layoutInflater.inflate(R.layout.profile_overlay, rootFrame, false)
+        profileOverlay = overlay
+
+        // Slide in from right
+        overlay.translationX = rootFrame.width.toFloat()
+        rootFrame.addView(overlay)
+        overlay.animate().translationX(0f).setDuration(250).start()
+
+        // Close button
+        overlay.findViewById<TextView>(R.id.profileClose)?.setOnClickListener {
+            dismissProfileOverlay()
+        }
+
+        // Load saved profile values and set up tap handlers
+        setupProfileSelections(overlay)
+    }
+
+    private fun dismissProfileOverlay() {
+        val overlay = profileOverlay ?: return
+        val rootFrame = findViewById<FrameLayout>(android.R.id.content)
+        overlay.animate().translationX(rootFrame.width.toFloat()).setDuration(200).withEndAction {
+            rootFrame.removeView(overlay)
+            profileOverlay = null
+        }.start()
+    }
+
+    private fun setupProfileSelections(overlay: View) {
+        val prefs = WimApp.prefs
+
+        // ── Usage mode ──
+        val usageIds = listOf(R.id.profileWorkOnly, R.id.profileLifeOnly, R.id.profileBothWork, R.id.profileBothLife)
+        val usageValues = listOf("work_only", "life_only", "both_work", "both_life")
+        val savedUsage = prefs.getString("profile_usage", "both_work") ?: "both_work"
+        setupProfileGroup(overlay, usageIds, usageValues, "profile_usage", savedUsage)
+
+        // ── Industry ──
+        val industryIds = listOf(R.id.indFinance, R.id.indLegal, R.id.indMedical, R.id.indTech, R.id.indSales, R.id.indTrades, R.id.indFood, R.id.indEducation, R.id.indOther)
+        val industryValues = listOf("finance", "legal", "medical", "tech", "sales", "trades", "food", "education", "other")
+        val savedIndustry = prefs.getString("profile_industry", "") ?: ""
+        setupProfileGroup(overlay, industryIds, industryValues, "profile_industry", savedIndustry)
+
+        // ── Speech ──
+        val speechIds = listOf(R.id.profileSpeechClean, R.id.profileSpeechStumble, R.id.profileSpeechStutter)
+        val speechValues = listOf("clean", "stumble", "stutter")
+        val savedSpeech = prefs.getString("profile_speech", "clean") ?: "clean"
+        setupProfileGroup(overlay, speechIds, speechValues, "profile_speech", savedSpeech)
+
+        // ── Work hours ──
+        val hoursIds = listOf(R.id.hoursMorning, R.id.hoursDay, R.id.hoursEvening, R.id.hoursFlexible)
+        val hoursValues = listOf("morning", "nine_to_five", "evening", "flexible")
+        val savedHours = prefs.getString("profile_hours", "nine_to_five") ?: "nine_to_five"
+        setupProfileGroup(overlay, hoursIds, hoursValues, "profile_hours", savedHours)
+    }
+
+    private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String) {
+        for (i in ids.indices) {
+            val tv = overlay.findViewById<TextView>(ids[i]) ?: continue
+            if (values[i] == current) {
+                tv.setBackgroundResource(R.drawable.card_bg_selected)
+                tv.setTextColor(getColor(R.color.active_text))
+            } else {
+                tv.setBackgroundResource(R.drawable.card_bg)
+                tv.setTextColor(getColor(R.color.text_dim))
+            }
+            tv.setOnClickListener {
+                WimApp.prefs.edit().putString(prefKey, values[i]).apply()
+                // Update all in group
+                for (j in ids.indices) {
+                    val other = overlay.findViewById<TextView>(ids[j]) ?: continue
+                    if (j == i) {
+                        other.setBackgroundResource(R.drawable.card_bg_selected)
+                        other.setTextColor(getColor(R.color.active_text))
+                    } else {
+                        other.setBackgroundResource(R.drawable.card_bg)
+                        other.setTextColor(getColor(R.color.text_dim))
+                    }
+                }
+            }
+        }
+    }
 }

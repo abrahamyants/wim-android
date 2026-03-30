@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Iron Curtain — full-screen profile overlay, slides in from right -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0222228"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="40dp"
+        android:paddingBottom="24dp">
+
+        <!-- Header row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="YOUR PROFILE"
+                android:textColor="@color/copper_gold"
+                android:textSize="16sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:letterSpacing="0.12" />
+
+            <TextView
+                android:id="@+id/profileClose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✕"
+                android:textColor="@color/text_secondary"
+                android:textSize="22sp"
+                android:fontFamily="monospace"
+                android:paddingStart="16dp"
+                android:paddingEnd="4dp" />
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbarThumbVertical="@android:color/transparent">
+
+            <LinearLayout
+                android:id="@+id/profileContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Usage mode -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOSTLY USE FOR"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:id="@+id/profileUsageGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:id="@+id/profileWorkOnly"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Work"
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/profileLifeOnly"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Life"
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/profileBothWork"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Both ≈W"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/profileBothLife"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Both ≈L"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg" />
+                </LinearLayout>
+
+                <!-- Industry -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="INDUSTRY"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:id="@+id/profileIndustryGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <!-- Row 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="4dp">
+
+                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    </LinearLayout>
+
+                    <!-- Row 2 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="4dp">
+
+                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    </LinearLayout>
+
+                    <!-- Row 3 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Speech -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="YOUR SPEECH"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/profileSpeechClean"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:text="I speak clearly, just clean up my text"
+                    android:textColor="@color/text_dim"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/profileSpeechStumble"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:text="I sometimes stumble over words"
+                    android:textColor="@color/text_dim"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/profileSpeechStutter"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:text="I stutter — show me everything"
+                    android:textColor="@color/text_dim"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- Work hours -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WORK HOURS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="9–5" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</FrameLayout>
