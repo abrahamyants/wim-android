@@ -553,11 +553,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val headerSubtitles = mapOf(
-        R.id.headerDaf to "Delayed Auditory Feedback",
-        R.id.headerBubble to "Floating knob — gestures and controls",
-        R.id.headerSessions to "Transcription history"
-    )
+    private val headerSubtitles = emptyMap<Int, String>()
 
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
         val rawText = header.text.toString()
