@@ -103,6 +103,12 @@ class BubbleService : Service() {
         when (intent?.action) {
             "SHOW" -> showBubble()
             "HIDE" -> hideBubble()
+            "TEST_CLARIFIER" -> {
+                val q = intent.getStringExtra("question") ?: "WORK?"
+                showClarifier(q) { answer ->
+                    Log.i(TAG, "Clarifier answer: $answer")
+                }
+            }
         }
         return START_STICKY
     }
@@ -534,9 +540,20 @@ class BubbleService : Service() {
         bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.GONE
         bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.GONE
 
-        // Restore timer and knob label
-        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
-        updateBezelLabels()
+        // Show acknowledgment if user answered (not timeout)
+        if (answer != null) {
+            bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+                text = "\uD83D\uDC4D"
+                setTextColor(0xFFFFFFFF.toInt())
+            }
+            timerHandler.postDelayed({
+                bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
+                setBubbleIdle()
+            }, 800)
+        } else {
+            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
+            setBubbleIdle()
+        }
 
         // Fire callback
         clarifierCallback?.invoke(answer)

@@ -271,6 +271,14 @@ class MainActivity : AppCompatActivity() {
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
 
+        // ── DEBUG: test clarifier on bubble (remove before release) ──
+        findViewById<View>(R.id.profileStrip)?.setOnLongClickListener {
+            BubbleService.instance?.showClarifier("WORK?") { answer ->
+                Log.i("WiM", "Clarifier answer: $answer")
+            }
+            true
+        }
+
         // ── Dark mode toggle ──────────────────────────────
         val darkBtn = findViewById<TextView>(R.id.darkModeBtn)
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -520,7 +528,7 @@ class MainActivity : AppCompatActivity() {
         if (selected) {
             view.setBackgroundResource(R.drawable.card_bg_selected)
         } else {
-            view.setBackgroundResource(R.drawable.card_bg)
+            view.setBackgroundResource(R.drawable.card_bg_pressable)
         }
         // Build text with clarifier from tag
         val rawText = view.text.toString().split("  ").first().trim()
@@ -550,7 +558,7 @@ class MainActivity : AppCompatActivity() {
             container.setBackgroundResource(R.drawable.card_bg_selected)
             label.setTextColor(getColor(R.color.active_text))
         } else {
-            container.setBackgroundResource(R.drawable.card_bg)
+            container.setBackgroundResource(R.drawable.card_bg_pressable)
             label.setTextColor(getColor(R.color.text_dim))
         }
     }
