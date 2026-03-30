@@ -334,8 +334,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -355,7 +355,7 @@
             <LinearLayout
                 android:id="@+id/layer1"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -375,17 +375,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="On-device"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- Layer II: Reconstruct -->
             <LinearLayout
                 android:id="@+id/layer2"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -405,17 +404,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="LLM + tone"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- Layer III: Profile -->
             <LinearLayout
                 android:id="@+id/layer3"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -435,17 +433,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ vocabulary"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- Layer IV: Stutter -->
             <LinearLayout
                 android:id="@+id/layer4"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -465,10 +462,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ disfluency"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
         </LinearLayout>
 
@@ -493,8 +489,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -625,8 +621,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -720,8 +716,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -741,7 +737,7 @@
             <LinearLayout
                 android:id="@+id/sitDefault"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -761,17 +757,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="everyday use"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- High Stress -->
             <LinearLayout
                 android:id="@+id/sitHighStress"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -791,17 +786,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ full assist"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- Reading -->
             <LinearLayout
                 android:id="@+id/sitReading"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
@@ -821,10 +815,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ near-fluent"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
         </LinearLayout>
 
@@ -849,8 +842,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -974,8 +967,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout
@@ -1138,8 +1131,8 @@
             android:background="@drawable/glass_panel_bg"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="4dp" />
 
         <LinearLayout

@@ -75,7 +75,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="8dp">
 
                     <TextView
                         android:id="@+id/profileWorkOnly"
@@ -104,29 +104,67 @@
                         android:layout_marginEnd="4dp" />
 
                     <TextView
-                        android:id="@+id/profileBothWork"
+                        android:id="@+id/profileBoth"
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Both ≈W"
+                        android:text="Both"
                         android:textColor="@color/text_dim"
-                        android:textSize="11sp"
-                        android:fontFamily="monospace"
-                        android:background="@drawable/card_bg"
-                        android:layout_marginEnd="4dp" />
-
-                    <TextView
-                        android:id="@+id/profileBothLife"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="40dp"
-                        android:gravity="center"
-                        android:text="Both ≈L"
-                        android:textColor="@color/text_dim"
-                        android:textSize="11sp"
+                        android:textSize="12sp"
                         android:fontFamily="monospace"
                         android:background="@drawable/card_bg" />
+                </LinearLayout>
+
+                <!-- Work/Life balance slider — visible when "Both" is selected -->
+                <LinearLayout
+                    android:id="@+id/balanceSliderRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="W"
+                        android:textColor="#FFAADDFF"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="8dp" />
+
+                    <SeekBar
+                        android:id="@+id/balanceSeek"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:max="100"
+                        android:progress="50"
+                        android:progressTint="@color/orange_label"
+                        android:thumbTint="@color/copper_gold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textColor="#FFFFCC88"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:textStyle="bold"
+                        android:layout_marginStart="8dp" />
+
+                    <TextView
+                        android:id="@+id/balanceValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="50/50"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginStart="8dp" />
                 </LinearLayout>
 
                 <!-- Industry -->
@@ -181,6 +219,25 @@
                         <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
                         <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                     </LinearLayout>
+
+                    <!-- Other industry text input — hidden until "Other" is tapped -->
+                    <EditText
+                        android:id="@+id/indOtherInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:hint="Type your industry"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:inputType="text"
+                        android:imeOptions="actionDone"
+                        android:maxLines="1"
+                        android:visibility="gone"
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
 
                 <!-- Speech -->

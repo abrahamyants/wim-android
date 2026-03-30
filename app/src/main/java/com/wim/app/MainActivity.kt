@@ -633,16 +633,52 @@ class MainActivity : AppCompatActivity() {
         val prefs = WimApp.prefs
 
         // ── Usage mode ──
-        val usageIds = listOf(R.id.profileWorkOnly, R.id.profileLifeOnly, R.id.profileBothWork, R.id.profileBothLife)
-        val usageValues = listOf("work_only", "life_only", "both_work", "both_life")
-        val savedUsage = prefs.getString("profile_usage", "both_work") ?: "both_work"
-        setupProfileGroup(overlay, usageIds, usageValues, "profile_usage", savedUsage)
+        val usageIds = listOf(R.id.profileWorkOnly, R.id.profileLifeOnly, R.id.profileBoth)
+        val usageValues = listOf("work_only", "life_only", "both")
+        val savedUsage = prefs.getString("profile_usage", "both") ?: "both"
+        val sliderRow = overlay.findViewById<View>(R.id.balanceSliderRow)
+        sliderRow?.visibility = if (savedUsage == "both") View.VISIBLE else View.GONE
+        setupProfileGroup(overlay, usageIds, usageValues, "profile_usage", savedUsage) { _, value ->
+            sliderRow?.visibility = if (value == "both") View.VISIBLE else View.GONE
+        }
+
+        // Balance slider
+        val balanceSeek = overlay.findViewById<SeekBar>(R.id.balanceSeek)
+        val balanceValue = overlay.findViewById<TextView>(R.id.balanceValue)
+        val savedBalance = prefs.getInt("profile_balance", 50)
+        balanceSeek?.progress = savedBalance
+        balanceValue?.text = "${100 - savedBalance}/${savedBalance}"
+        balanceSeek?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                balanceValue?.text = "${100 - progress}/${progress}"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                val p = seekBar?.progress ?: 50
+                prefs.edit().putInt("profile_balance", p).apply()
+            }
+        })
 
         // ── Industry ──
         val industryIds = listOf(R.id.indFinance, R.id.indLegal, R.id.indMedical, R.id.indTech, R.id.indSales, R.id.indTrades, R.id.indFood, R.id.indEducation, R.id.indOther)
         val industryValues = listOf("finance", "legal", "medical", "tech", "sales", "trades", "food", "education", "other")
         val savedIndustry = prefs.getString("profile_industry", "") ?: ""
-        setupProfileGroup(overlay, industryIds, industryValues, "profile_industry", savedIndustry)
+        val otherInput = overlay.findViewById<EditText>(R.id.indOtherInput)
+        otherInput?.visibility = if (savedIndustry == "other") View.VISIBLE else View.GONE
+        otherInput?.setText(prefs.getString("profile_industry_other", "") ?: "")
+        setupProfileGroup(overlay, industryIds, industryValues, "profile_industry", savedIndustry) { _, value ->
+            if (value == "other") {
+                otherInput?.visibility = View.VISIBLE
+                otherInput?.requestFocus()
+            } else {
+                otherInput?.visibility = View.GONE
+            }
+        }
+        otherInput?.setOnEditorActionListener { _, _, _ ->
+            val text = otherInput.text.toString().trim()
+            prefs.edit().putString("profile_industry_other", text).apply()
+            true
+        }
 
         // ── Speech ──
         val speechIds = listOf(R.id.profileSpeechClean, R.id.profileSpeechStumble, R.id.profileSpeechStutter)
@@ -657,7 +693,7 @@ class MainActivity : AppCompatActivity() {
         setupProfileGroup(overlay, hoursIds, hoursValues, "profile_hours", savedHours)
     }
 
-    private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String) {
+    private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String, onSelect: ((Int, String) -> Unit)? = null) {
         for (i in ids.indices) {
             val tv = overlay.findViewById<TextView>(ids[i]) ?: continue
             if (values[i] == current) {
@@ -669,7 +705,6 @@ class MainActivity : AppCompatActivity() {
             }
             tv.setOnClickListener {
                 WimApp.prefs.edit().putString(prefKey, values[i]).apply()
-                // Update all in group
                 for (j in ids.indices) {
                     val other = overlay.findViewById<TextView>(ids[j]) ?: continue
                     if (j == i) {
@@ -680,6 +715,7 @@ class MainActivity : AppCompatActivity() {
                         other.setTextColor(getColor(R.color.text_dim))
                     }
                 }
+                onSelect?.invoke(i, values[i])
             }
         }
     }
