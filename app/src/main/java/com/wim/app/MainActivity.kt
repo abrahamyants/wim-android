@@ -11,7 +11,6 @@ import android.text.TextUtils
 import android.util.Log
 import android.widget.FrameLayout
 import android.util.TypedValue
-import android.view.DragEvent
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -63,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         val layoutVersion = WimApp.prefs.getInt("layout_version", 0)
         if (layoutVersion < 2) {
             val editor = WimApp.prefs.edit()
-            listOf("manual_section", "sessions_section", "tone_section", "layer_section",
+            listOf("sessions_section", "tone_section", "layer_section",
                 "situation_section", "bubble_section", "daf_section", "permissions_section"
             ).forEach { editor.remove("section_$it") }
             editor.putInt("layout_version", 2).apply()
@@ -175,9 +174,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // ── Manual (collapsible, collapsed by default) ────
-        setupCollapsible(R.id.headerManual, R.id.contentManual, "manual_section", defaultExpanded = false)
-        setupManualAccordion()
+        // Manual section removed — manual content accessible via help/about
 
         // ── Sessions (collapsible) ───────────────────────
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
@@ -271,11 +268,8 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
 
-        // ── Section reorder (long-press headers to drag) ─
-        setupSectionReorder()
-
         // ── Dark mode toggle ──────────────────────────────
-        val darkBtn = findViewById<Button>(R.id.darkModeBtn)
+        val darkBtn = findViewById<TextView>(R.id.darkModeBtn)
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         darkBtn.text = if (isNight) "LIGHT" else "DARK"
         darkBtn.setOnClickListener {
@@ -557,73 +551,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
-        val text = header.text.toString().replace("  \u25BC", "").replace("  \u25B6", "").replace("  \u25BE", "").replace("  \u25B8", "")
-        header.text = if (expanded) "$text  \u25BC" else "$text  \u25B6"
-    }
-
-    private fun setupManualAccordion() {
-        data class ManualItem(val viewId: Int, val icon: String, val title: String, val subtitle: String, val body: String)
-
-        val items = listOf(
-            ManualItem(R.id.manualBubble, "\u25CF", "Bubble",
-                "Floating knob \u2014 gestures and controls",
-                "Tap \u2014 start recording. Tap again \u2014 stop and process.\n" +
-                "Hold \u2014 record while held, release to process.\n" +
-                "Double-tap \u2014 open quick settings (opacity, size, live transcript).\n" +
-                "Drag \u2014 reposition the bubble anywhere on screen.\n\n" +
-                "The tick mark at 12 o\u2019clock is decorative \u2014 like a volume knob on a stereo."),
-            ManualItem(R.id.manualLayers, "\u2261", "Layers",
-                "L1 Transcribe through L4 Stutter",
-                "L1 Transcribe \u2014 speech-to-text only. On-device, free, instant.\n" +
-                "L2 Reconstruct \u2014 GPT rewrites with your tone. Strips fillers, fixes grammar.\n" +
-                "L3 Profile \u2014 same as L2 + your personal vocabulary and corrections.\n" +
-                "L4 Stutter \u2014 full clinical pipeline. Whisper API, disfluency filtering, severity-scaled rewrites.\n\n" +
-                "Each layer includes everything below it. L4 = L3 + L2 + L1."),
-            ManualItem(R.id.manualTone, "\u266A", "Tone",
-                "How GPT rewrites your speech (L2+)",
-                "Casual \u2014 everyday language, contractions OK.\n" +
-                "Professional \u2014 clean business English.\n" +
-                "Friend \u2014 relaxed, informal.\n" +
-                "Formal \u2014 precise, no contractions.\n\n" +
-                "Only affects Layer 2+. Layer 1 is raw transcription."),
-            ManualItem(R.id.manualSituation, "\u2605", "Situation",
-                "Severity presets for different contexts",
-                "Default (1.0\u00D7) \u2014 baseline, everyday use.\n" +
-                "High Stress (1.5\u00D7) \u2014 phone, presentation, interview. More aggressive filtering.\n" +
-                "Reading (0.6\u00D7) \u2014 minimal intervention. Reading aloud is near-fluent for most.\n\n" +
-                "Higher severity = more aggressive disfluency removal and reconstruction."),
-            ManualItem(R.id.manualDaf, "\u23F1", "DAF",
-                "Delayed Auditory Feedback for fluency",
-                "Plays your own voice back with a slight delay (30\u2013300ms). Classic fluency technique used in speech therapy.\n\n" +
-                "100ms is a good starting point. Adjust up for more effect, down for less. Turn off when not needed \u2014 it uses the microphone."),
-            ManualItem(R.id.manualSessions, "\u2630", "Sessions",
-                "Transcription history and playback",
-                "Every recording creates a session card. Cards show: timestamp, mode (SAFE/RAW), layer, tone, situation, and processing time.\n\n" +
-                "Tap any card to copy the text to clipboard.\n\n" +
-                "The speaker grille behind the cards is decorative \u2014 matching the \u041B\u0430\u0432\u0440\u0435\u043D\u0442\u0438\u0439 desktop aesthetic.")
+        val text = header.text.toString()
+            .replace("  \u25BC", "").replace("  \u25B6", "")
+            .replace("  \u25BE", "").replace("  \u25B8", "")
+        val arrow = if (expanded) "  \u25BC" else "  \u25B6"
+        val spannable = android.text.SpannableString("$text$arrow")
+        spannable.setSpan(
+            android.text.style.ForegroundColorSpan(getColor(R.color.orange_label)),
+            text.length, spannable.length,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-
-        for (item in items) {
-            val view = findViewById<View>(item.viewId)
-            val header = view.findViewById<View>(R.id.accordionHeader)
-            val icon = view.findViewById<TextView>(R.id.accordionIcon)
-            val title = view.findViewById<TextView>(R.id.accordionTitle)
-            val subtitle = view.findViewById<TextView>(R.id.accordionSubtitle)
-            val chevron = view.findViewById<TextView>(R.id.accordionChevron)
-            val content = view.findViewById<View>(R.id.accordionContent)
-            val body = view.findViewById<TextView>(R.id.accordionBody)
-
-            icon.text = item.icon
-            title.text = item.title
-            subtitle.text = item.subtitle
-            body.text = item.body
-
-            header.setOnClickListener {
-                val isOpen = content.visibility == View.VISIBLE
-                content.visibility = if (isOpen) View.GONE else View.VISIBLE
-                chevron.text = if (isOpen) "\u25B8" else "\u25BE"
-            }
-        }
+        header.text = spannable
     }
 
     private fun updatePermissionStatus() {
@@ -649,187 +587,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── Section drag-to-reorder ──────────────────────────────
-    // Sections are defined as groups of views (header + content, or stats + header + content).
-    // On long-press of a header, all sections collapse and become draggable.
-    // Drop reorders sections in the parent LinearLayout. Order persists in SharedPreferences.
-
-    data class Section(val key: String, val viewIds: List<Int>)
-
-    private val sectionDefs = listOf(
-        Section("manual", listOf(R.id.headerManual, R.id.contentManual)),
-        Section("sessions", listOf(R.id.headerSessions, R.id.contentSessions)),
-        Section("tone", listOf(R.id.headerTone, R.id.contentTone)),
-        Section("layer", listOf(R.id.headerLayer, R.id.contentLayer)),
-        Section("situation", listOf(R.id.headerSituation, R.id.contentSituation)),
-        Section("bubble", listOf(R.id.headerBubble, R.id.contentBubble)),
-        Section("daf", listOf(R.id.headerDaf, R.id.contentDaf)),
-        Section("permissions", listOf(R.id.headerPermissions, R.id.contentPermissions))
-    )
-
-    private var sectionContainers = mutableListOf<LinearLayout>()
-    private var isReorderMode = false
-
-    private fun setupSectionReorder() {
-        // Find the root LinearLayout: it's the parent of any header view
-        val anyHeader = findViewById<View>(R.id.headerTone) ?: return
-        val parent = anyHeader.parent as? LinearLayout ?: return
-
-        // Wrap each section's views into a container LinearLayout
-        val savedOrder = WimApp.prefs.getString("section_order", null)
-        val orderedKeys = savedOrder?.split(",") ?: sectionDefs.map { it.key }
-
-        for (section in sectionDefs) {
-            val views = section.viewIds.mapNotNull { findViewById<View>(it) }
-            if (views.isEmpty()) continue
-
-            val container = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                tag = section.key
-            }
-
-            // Remove views from parent and add to container
-            val firstView = views[0]
-            val insertIndex = parent.indexOfChild(firstView)
-            for (v in views) parent.removeView(v)
-            for (v in views) container.addView(v)
-            parent.addView(container, insertIndex)
-
-            sectionContainers.add(container)
-
-            // Long-press on container to enter reorder mode
-            container.setOnLongClickListener { view ->
-                enterReorderMode(parent)
-                val dragData = ClipData.newPlainText("section", section.key)
-                val shadow = View.DragShadowBuilder(view)
-                view.startDragAndDrop(dragData, shadow, view, 0)
-                view.alpha = 0.4f
-                true
-            }
-        }
-
-        // Apply saved order
-        if (savedOrder != null) {
-            applySectionOrder(parent, orderedKeys)
-        }
-
-        // Set up drop listener on parent
-        parent.setOnDragListener { parentView, event ->
-            when (event.action) {
-                DragEvent.ACTION_DRAG_STARTED -> true
-                DragEvent.ACTION_DRAG_ENTERED -> true
-                DragEvent.ACTION_DRAG_LOCATION -> {
-                    val draggedView = event.localState as? View ?: return@setOnDragListener true
-                    val targetContainer = findContainerAt(parentView as LinearLayout, event.y + (parentView.parent as? View)?.let {
-                        // Account for scroll position
-                        val sv2 = it as? android.widget.ScrollView
-                        sv2?.scrollY?.toFloat() ?: 0f
-                    }.let { event.y })
-                    if (targetContainer != null && targetContainer != draggedView) {
-                        val p = parentView as LinearLayout
-                        val dragIdx = p.indexOfChild(draggedView)
-                        val targetIdx = p.indexOfChild(targetContainer)
-                        if (dragIdx >= 0 && targetIdx >= 0 && dragIdx != targetIdx) {
-                            p.removeView(draggedView)
-                            p.addView(draggedView, targetIdx)
-                        }
-                    }
-                    true
-                }
-                DragEvent.ACTION_DRAG_ENDED -> {
-                    val draggedView = event.localState as? View
-                    draggedView?.alpha = 1.0f
-                    exitReorderMode()
-                    saveSectionOrder(parentView as LinearLayout)
-                    true
-                }
-                DragEvent.ACTION_DROP -> true
-                else -> true
-            }
-        }
-    }
-
-    private fun enterReorderMode(parent: LinearLayout) {
-        if (isReorderMode) return
-        isReorderMode = true
-        // Collapse all sections
-        for (container in sectionContainers) {
-            for (i in 0 until container.childCount) {
-                val child = container.getChildAt(i)
-                // Keep headers visible, hide content
-                if (child is LinearLayout || child is FrameLayout) {
-                    // Check if this is a content view (not a header TextView)
-                    val id = child.id
-                    val isContent = sectionDefs.any { sec ->
-                        sec.viewIds.size > 1 && sec.viewIds.last() == id
-                    }
-                    if (isContent) child.visibility = View.GONE
-                }
-            }
-        }
-    }
-
-    private fun exitReorderMode() {
-        if (!isReorderMode) return
-        isReorderMode = false
-        // Restore saved expand/collapse state for each section
-        for (section in sectionDefs) {
-            val prefKey = "${section.key}_section"
-            val expanded = WimApp.prefs.getBoolean("section_$prefKey", false)
-            val contentId = section.viewIds.last()
-            val contentView = findViewById<View>(contentId)
-            contentView?.visibility = if (expanded) View.VISIBLE else View.GONE
-        }
-    }
-
-    private fun findContainerAt(parent: LinearLayout, y: Float): View? {
-        for (container in sectionContainers) {
-            val idx = parent.indexOfChild(container)
-            if (idx < 0) continue
-            if (y >= container.top && y <= container.bottom) return container
-        }
-        return null
-    }
-
-    private fun saveSectionOrder(parent: LinearLayout) {
-        val order = mutableListOf<String>()
-        for (i in 0 until parent.childCount) {
-            val child = parent.getChildAt(i)
-            val key = child.tag as? String
-            if (key != null && sectionDefs.any { it.key == key }) {
-                order.add(key)
-            }
-        }
-        if (order.isNotEmpty()) {
-            WimApp.prefs.edit().putString("section_order", order.joinToString(",")).apply()
-        }
-    }
-
-    private fun applySectionOrder(parent: LinearLayout, orderedKeys: List<String>) {
-        val containerMap = sectionContainers.associateBy { it.tag as? String }
-        // Find the position of the first section container as our insertion anchor
-        val firstIdx = sectionContainers.minOfOrNull { parent.indexOfChild(it) } ?: return
-
-        // Remove all section containers
-        for (c in sectionContainers) parent.removeView(c)
-
-        // Re-add in saved order
-        var insertAt = firstIdx
-        for (key in orderedKeys) {
-            val container = containerMap[key] ?: continue
-            parent.addView(container, insertAt)
-            insertAt++
-        }
-        // Add any sections not in the saved order (new sections added after save)
-        for (c in sectionContainers) {
-            if (parent.indexOfChild(c) < 0) {
-                parent.addView(c, insertAt)
-                insertAt++
-            }
-        }
-    }
 }

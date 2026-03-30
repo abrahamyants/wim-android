@@ -205,77 +205,8 @@
         <!-- Status LED removed — now in brand plate -->
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- MANUAL -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:id="@+id/headerManual"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="MANUAL  ▶"
-            android:textColor="@color/section_header"
-            android:textSize="14sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.12"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:background="@drawable/glass_panel_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:layout_marginBottom="4dp" />
-
-        <LinearLayout
-            android:id="@+id/contentManual"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="20dp"
-            android:visibility="gone">
-
-            <!-- ── Bubble ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualBubble"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <!-- ── Layers ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualLayers"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <!-- ── Tone ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualTone"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <!-- ── Situation ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualSituation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <!-- ── DAF ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualDaf"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <!-- ── Sessions ── -->
-            <include layout="@layout/manual_accordion_item"
-                android:id="@+id/manualSessions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-        </LinearLayout>
-
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- SESSIONS -->
-        <!-- ═══════════════════════════════════════════ -->
-
         <!-- STATS ROW — Nixie tube readout cells -->
+        <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/statsRow"
             android:layout_width="match_parent"
@@ -386,6 +317,168 @@
 
         </LinearLayout>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- LAYER -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerLayer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LAYER  ▼"
+            android:textColor="@color/section_header"
+            android:textSize="14sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:id="@+id/contentLayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/layerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp">
+
+            <!-- Layer I: Transcribe -->
+            <LinearLayout
+                android:id="@+id/layer1"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer1Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="I.  Transcribe"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="On-device"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer II: Reconstruct -->
+            <LinearLayout
+                android:id="@+id/layer2"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer2Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="II.  Reconstruct"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LLM + tone"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer III: Profile -->
+            <LinearLayout
+                android:id="@+id/layer3"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer3Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="III.  Profile"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ vocabulary"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Layer IV: Stutter -->
+            <LinearLayout
+                android:id="@+id/layer4"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/layer4Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="IV.  Stutter"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ disfluency"
+                    android:textColor="@color/red_bright"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- spacer -->
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- SESSIONS -->
+        <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerSessions"
             android:layout_width="wrap_content"
@@ -611,167 +704,6 @@
         <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- LAYER -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:id="@+id/headerLayer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="LAYER  ▼"
-            android:textColor="@color/section_header"
-            android:textSize="14sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.12"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:background="@drawable/glass_panel_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:layout_marginBottom="4dp" />
-
-        <LinearLayout
-            android:id="@+id/contentLayer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-        <LinearLayout
-            android:id="@+id/layerContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="8dp">
-
-            <!-- Layer I: Transcribe -->
-            <LinearLayout
-                android:id="@+id/layer1"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/layer1Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="I.  Transcribe"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="On-device"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Layer II: Reconstruct -->
-            <LinearLayout
-                android:id="@+id/layer2"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/layer2Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="II.  Reconstruct"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="LLM + tone"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Layer III: Profile -->
-            <LinearLayout
-                android:id="@+id/layer3"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/layer3Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="III.  Profile"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ vocabulary"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Layer IV: Stutter -->
-            <LinearLayout
-                android:id="@+id/layer4"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/layer4Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="IV.  Stutter"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ disfluency"
-                    android:textColor="@color/red_bright"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- MODE removed — consumer doesn't need it, SAFE is default -->
-
-        <!-- spacer -->
-
-        <!-- ═══════════════════════════════════════════ -->
         <!-- SITUATION -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
@@ -898,7 +830,7 @@
 
         </LinearLayout>
 
-        <!-- ENHANCEMENTS removed — paralinguistic/prosodic not wired on Android -->
+        <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- BUBBLE -->
@@ -1190,25 +1122,6 @@
         <!-- spacer -->
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- DARK MODE TOGGLE -->
-        <!-- ═══════════════════════════════════════════ -->
-        <Button
-            android:id="@+id/darkModeBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="DARK"
-            android:textColor="@color/section_header"
-            android:textSize="12sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.12"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:background="@drawable/card_bg"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ═══════════════════════════════════════════ -->
         <!-- PERMISSIONS -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
@@ -1309,6 +1222,17 @@
                     android:textColor="#88FFFFFF"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:id="@+id/darkModeBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DARK"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
                     android:layout_marginTop="4dp" />
             </LinearLayout>
 
