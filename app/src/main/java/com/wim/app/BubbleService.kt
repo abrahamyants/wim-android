@@ -488,8 +488,8 @@ class BubbleService : Service() {
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
             ?.setBackgroundResource(R.drawable.bubble_bg_idle)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = if (isWorkMode) "WORK" else "LIFE"
-            setTextColor(if (isWorkMode) 0xFFAADDFF.toInt() else 0xFFFFCC88.toInt())
+            text = "IDLE"
+            setTextColor(0xFFFFFFFF.toInt())
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             text = "0:00"
@@ -498,13 +498,8 @@ class BubbleService : Service() {
     }
 
     private fun updateBezelLabels() {
-        // Update the knob label text and bezel border color based on work/life mode
-        if (!isRecording && !isClarifierActive) {
-            bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-                text = if (isWorkMode) "WORK" else "LIFE"
-                setTextColor(if (isWorkMode) 0xFFAADDFF.toInt() else 0xFFFFCC88.toInt())
-            }
-        }
+        // No-op in normal state — knob shows IDLE/REC/PROC
+        // WORK/LIFE only shown during clarifier
     }
 
     /**
