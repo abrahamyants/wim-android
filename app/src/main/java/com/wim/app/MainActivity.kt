@@ -553,15 +553,44 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val headerSubtitles = mapOf(
+        R.id.headerDaf to "Delayed Auditory Feedback",
+        R.id.headerBubble to "Floating knob — gestures and controls",
+        R.id.headerSessions to "Transcription history"
+    )
+
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
-        val text = header.text.toString()
+        val rawText = header.text.toString()
             .replace("  \u25BC", "").replace("  \u25B6", "")
             .replace("  \u25BE", "").replace("  \u25B8", "")
+        // Strip any previous subtitle
+        val title = rawText.split("  ").first().trim()
+        val subtitle = headerSubtitles[header.id]
         val arrow = if (expanded) "  \u25BC" else "  \u25B6"
-        val spannable = android.text.SpannableString("$text$arrow")
+
+        val fullText = if (subtitle != null) "$title  $subtitle$arrow" else "$title$arrow"
+        val spannable = android.text.SpannableString(fullText)
+
+        // Subtitle in gold
+        if (subtitle != null) {
+            val subStart = title.length + 2
+            val subEnd = subStart + subtitle.length
+            spannable.setSpan(
+                android.text.style.ForegroundColorSpan(getColor(R.color.copper_gold)),
+                subStart, subEnd,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                android.text.style.RelativeSizeSpan(0.7f),
+                subStart, subEnd,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
+        // Arrow in orange
         spannable.setSpan(
             android.text.style.ForegroundColorSpan(getColor(R.color.orange_label)),
-            text.length, spannable.length,
+            fullText.length - arrow.length, fullText.length,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         header.text = spannable

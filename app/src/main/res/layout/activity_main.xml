@@ -364,8 +364,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/layer1Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="I.  Transcribe"
                     android:textColor="@color/text_dim"
@@ -374,7 +373,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="On-device"
+                    android:text="  On-device"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -393,8 +392,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/layer2Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="II.  Reconstruct"
                     android:textColor="@color/text_dim"
@@ -403,7 +401,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="LLM + tone"
+                    android:text="  LLM + tone"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -422,8 +420,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/layer3Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="III.  Profile"
                     android:textColor="@color/text_dim"
@@ -432,7 +429,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ vocabulary"
+                    android:text="  + vocabulary"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -451,8 +448,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/layer4Label"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="IV.  Stutter"
                     android:textColor="@color/text_dim"
@@ -461,7 +457,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ disfluency"
+                    android:text="  + disfluency"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -746,8 +742,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/sitDefaultLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Default"
                     android:textColor="@color/text_dim"
@@ -756,7 +751,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="everyday use"
+                    android:text="  everyday use"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -775,8 +770,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/sitHighStressLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="High Stress"
                     android:textColor="@color/text_dim"
@@ -785,7 +779,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ full assist"
+                    android:text="  + full assist"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -804,8 +798,7 @@
                 android:layout_marginBottom="2dp">
                 <TextView
                     android:id="@+id/sitReadingLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Reading"
                     android:textColor="@color/text_dim"
@@ -814,7 +807,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ near-fluent"
+                    android:text="  + near-fluent"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
