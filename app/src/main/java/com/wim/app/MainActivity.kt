@@ -519,10 +519,29 @@ class MainActivity : AppCompatActivity() {
     private fun setCardSelected(view: TextView, selected: Boolean) {
         if (selected) {
             view.setBackgroundResource(R.drawable.card_bg_selected)
-            view.setTextColor(getColor(R.color.active_text))
         } else {
             view.setBackgroundResource(R.drawable.card_bg)
-            view.setTextColor(getColor(R.color.text_dim))
+        }
+        // Build text with clarifier from tag
+        val rawText = view.text.toString().split("  ").first().trim()
+        val clarifier = view.tag as? String
+        val labelColor = if (selected) getColor(R.color.active_text) else getColor(R.color.text_dim)
+        if (clarifier != null) {
+            val full = "$rawText  $clarifier"
+            val spannable = android.text.SpannableString(full)
+            spannable.setSpan(
+                android.text.style.ForegroundColorSpan(labelColor),
+                0, rawText.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                android.text.style.ForegroundColorSpan(getColor(R.color.copper_gold)),
+                rawText.length, full.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            view.text = spannable
+        } else {
+            view.setTextColor(labelColor)
         }
     }
 

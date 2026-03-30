@@ -637,7 +637,7 @@
             <TextView
                 android:id="@+id/toneCasual"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:text="Casual"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
@@ -646,12 +646,13 @@
                 android:paddingEnd="14dp"
                 android:background="@drawable/card_bg"
                 android:layout_marginBottom="2dp"
-                android:letterSpacing="0.04" />
+                android:letterSpacing="0.04"
+                android:tag="everyday" />
 
             <TextView
                 android:id="@+id/toneProfessional"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:text="Professional"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
@@ -660,12 +661,13 @@
                 android:paddingEnd="14dp"
                 android:background="@drawable/card_bg"
                 android:layout_marginBottom="2dp"
-                android:letterSpacing="0.04" />
+                android:letterSpacing="0.04"
+                android:tag="business" />
 
             <TextView
                 android:id="@+id/toneFriend"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:text="Friend"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
@@ -674,12 +676,13 @@
                 android:paddingEnd="14dp"
                 android:background="@drawable/card_bg"
                 android:layout_marginBottom="2dp"
-                android:letterSpacing="0.04" />
+                android:letterSpacing="0.04"
+                android:tag="relaxed" />
 
             <TextView
                 android:id="@+id/toneFormal"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:text="Formal"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
@@ -688,7 +691,8 @@
                 android:paddingEnd="14dp"
                 android:background="@drawable/card_bg"
                 android:layout_marginBottom="2dp"
-                android:letterSpacing="0.04" />
+                android:letterSpacing="0.04"
+                android:tag="precise" />
         </LinearLayout>
 
         </LinearLayout>
