@@ -346,14 +346,24 @@ class MainActivity : AppCompatActivity() {
         val sessions = history.getRecentSessions(50)
 
         // Compute stats
-        val totalWords = sessions.sumOf { it.cleanText.split("\\s+".toRegex()).filter { w -> w.isNotBlank() }.size }
         val totalSessions = sessions.size
+        val totalWords = sessions.sumOf { it.cleanText.split("\\s+".toRegex()).filter { w -> w.isNotBlank() }.size }
         val totalAsrMs = sessions.sumOf { it.asrMs }
         val wpm = if (totalAsrMs > 0) (totalWords * 60000.0 / totalAsrMs).toInt() else 0
 
-        findViewById<TextView>(R.id.statWords)?.text = "%,d".format(totalWords)
+        // Average cleanup %: how much disfluency/reconstruction changed across all sessions
+        val avgCleanup = if (sessions.isNotEmpty()) {
+            val total = sessions.sumOf { s ->
+                val rw = s.rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                val cw = s.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                if (rw > 0) ((rw - cw).toFloat() / rw * 100).toInt() else 0
+            }
+            total / sessions.size
+        } else 0
+
         findViewById<TextView>(R.id.statSessions)?.text = totalSessions.toString()
         findViewById<TextView>(R.id.statWpm)?.text = wpm.toString()
+        findViewById<TextView>(R.id.statCleanup)?.text = "${avgCleanup}%"
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val dpScale = resources.displayMetrics.density
 
@@ -467,6 +477,58 @@ class MainActivity : AppCompatActivity() {
         outputRow.addView(outputText)
 
         card.addView(outputRow)
+
+        // Metrics row: edit distance, disfluency ratio, timing breakdown
+        val rawWords = session.rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        val cleanWords = session.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        val rawCount = rawWords.size
+        val cleanCount = cleanWords.size
+        val stripped = rawCount - cleanCount
+        val editPct = if (rawCount > 0) ((stripped.toFloat() / rawCount) * 100).toInt() else 0
+
+        val metricsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = (4 * dp).toInt() }
+        }
+
+        // asr | recon | val timing
+        val timingParts = mutableListOf("asr:${session.asrMs}ms")
+        if (session.reconMs > 0) timingParts.add("recon:${session.reconMs}ms")
+        if (session.totalMs > 0) timingParts.add("total:${session.totalMs}ms")
+
+        val metricsText = TextView(this).apply {
+            text = "${timingParts.joinToString("  ")}  cleanup:${editPct}%  (${rawCount}w→${cleanCount}w)"
+            setTextColor(0xFF666670.toInt())
+            textSize = 9f
+            typeface = Typeface.MONOSPACE
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        metricsRow.addView(metricsText)
+
+        // Risk flag badges if any
+        if (session.riskFlags.isNotBlank()) {
+            for (flag in session.riskFlags.split(",").filter { it.isNotBlank() }) {
+                val flagBadge = TextView(this).apply {
+                    text = flag.trim().uppercase().replace("_", " ")
+                    textSize = 7f
+                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    setTextColor(0xFFFFAAAA.toInt())
+                    setBackgroundResource(R.drawable.badge_bg_red)
+                    setPadding((4 * dp).toInt(), (1 * dp).toInt(), (4 * dp).toInt(), (1 * dp).toInt())
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { marginStart = (3 * dp).toInt() }
+                }
+                metricsRow.addView(flagBadge)
+            }
+        }
+
+        card.addView(metricsRow)
 
         // Copy on tap
         card.setOnClickListener {

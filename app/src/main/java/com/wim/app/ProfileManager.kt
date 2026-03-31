@@ -2,6 +2,9 @@ package com.wim.app
 
 import android.content.SharedPreferences
 import android.util.Log
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -180,6 +183,92 @@ class ProfileManager(private val prefs: SharedPreferences) {
                     }
                 }
             }
+        }
+    }
+
+    // ── Firestore sync: pull learned profile from Lavrentiy desktop ──
+
+    private var syncListener: ListenerRegistration? = null
+
+    fun startSync(uid: String) {
+        stopSync()
+        syncListener = FirebaseFirestore.getInstance()
+            .collection("wim_users")
+            .document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Profile sync error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    mergeRemoteProfile(snapshot)
+                }
+            }
+        Log.i(TAG, "Profile sync started for uid=$uid")
+    }
+
+    fun stopSync() {
+        syncListener?.remove()
+        syncListener = null
+    }
+
+    private fun mergeRemoteProfile(doc: DocumentSnapshot) {
+        try {
+            val json = prefs.getString(PREF_KEY, null)
+            val obj = if (json != null) JSONObject(json) else JSONObject()
+
+            // Remote wins for clinical fields (learned by Lavrentiy desktop)
+            doc.get("trigger_words")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val list = raw as? List<String> ?: emptyList()
+                obj.put("trigger_words", JSONArray(list))
+                Log.i(TAG, "Synced ${list.size} trigger words from desktop")
+            }
+
+            doc.get("onset_weights")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val map = raw as? Map<String, Number> ?: emptyMap()
+                obj.put("onset_weights", JSONObject(map))
+                Log.i(TAG, "Synced ${map.size} onset weights from desktop")
+            }
+
+            doc.get("covert_profile")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val map = raw as? Map<String, Any> ?: emptyMap()
+                obj.put("covert_profile", JSONObject(map))
+                Log.i(TAG, "Synced covert profile from desktop")
+            }
+
+            // Merge (union) for shared fields — don't overwrite local additions
+            doc.get("vocabulary")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val remote = (raw as? List<String>)?.toSet() ?: emptySet()
+                val local = vocabulary.toSet()
+                val merged = (local + remote).toList()
+                vocabulary = merged.toMutableList()
+                obj.put("vocabulary", JSONArray(merged))
+            }
+
+            doc.get("corrections")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val remote = raw as? Map<String, String> ?: emptyMap()
+                remote.forEach { (k, v) -> corrections.putIfAbsent(k, v) }
+                obj.put("corrections", JSONObject(corrections as Map<*, *>))
+            }
+
+            doc.get("filler_words")?.let { raw ->
+                @Suppress("UNCHECKED_CAST")
+                val remote = (raw as? List<String>)?.toSet() ?: emptySet()
+                val local = fillerWords.toSet()
+                val merged = (local + remote).toList()
+                fillerWords = merged.toMutableList()
+                obj.put("filler_words", JSONArray(merged))
+            }
+
+            prefs.edit().putString(PREF_KEY, obj.toString()).apply()
+            Log.i(TAG, "Remote profile merged successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Remote profile merge failed: ${e.message}")
         }
     }
 

@@ -489,7 +489,7 @@ class BubbleService : Service() {
         hideLiveTranscript()
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
             clearAnimation()
-            setBackgroundResource(R.drawable.bubble_inner)
+            setBackgroundResource(R.drawable.bubble_inner_knob)
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
             ?.setBackgroundResource(R.drawable.bubble_bg_idle)
@@ -695,15 +695,17 @@ class BubbleService : Service() {
     }
 
     private fun showLiveTranscript() {
-        if (!WimApp.prefs.getBoolean("live_transcript", false)) return
+        val enabled = WimApp.prefs.getBoolean("live_transcript", false)
+        Log.i(TAG, "showLiveTranscript: enabled=$enabled, existing=${liveTextView != null}, params=${bubbleParams != null}")
+        if (!enabled) return
         if (liveTextView != null) return
 
         val tv = TextView(this).apply {
-            setBackgroundResource(R.drawable.card_bg)
-            setTextColor(0xFF2A2A30.toInt())
+            setBackgroundColor(0xDD1A1A2E.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
-            setPadding(16, 8, 16, 8)
+            setPadding(20, 10, 20, 10)
             maxLines = 2
             ellipsize = android.text.TextUtils.TruncateAt.END
             text = "..."

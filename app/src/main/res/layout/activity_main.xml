@@ -207,40 +207,6 @@
             android:orientation="horizontal"
             android:layout_marginBottom="6dp">
 
-            <!-- Words -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/led_cell_bg"
-                android:gravity="center"
-                android:paddingTop="12dp"
-                android:paddingBottom="8dp"
-                android:layout_marginEnd="4dp">
-                <TextView
-                    android:id="@+id/statWords"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="#FFff8c42"
-                    android:textSize="22sp"
-                    android:fontFamily="monospace"
-                    android:shadowColor="#CCEE5A24"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="12" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="WORDS"
-                    android:textColor="#88888890"
-                    android:textSize="7sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.2"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
             <!-- Sessions -->
             <LinearLayout
                 android:layout_width="0dp"
@@ -301,6 +267,39 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="WPM"
+                    android:textColor="#88888890"
+                    android:textSize="7sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.2"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- CLEANUP % -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/led_cell_bg"
+                android:gravity="center"
+                android:paddingTop="12dp"
+                android:paddingBottom="8dp">
+                <TextView
+                    android:id="@+id/statCleanup"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0%"
+                    android:textColor="#FFEE5A24"
+                    android:textSize="22sp"
+                    android:fontFamily="monospace"
+                    android:shadowColor="#AAEE5A24"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="12" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CLEANUP"
                     android:textColor="#88888890"
                     android:textSize="7sp"
                     android:fontFamily="monospace"

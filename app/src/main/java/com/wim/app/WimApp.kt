@@ -3,6 +3,7 @@ package com.wim.app
 import android.app.Application
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.firebase.auth.FirebaseAuth
 
 class WimApp : Application() {
 
@@ -31,5 +32,15 @@ class WimApp : Application() {
         // Restore user's dark mode preference, default to system
         val nightMode = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         AppCompatDelegate.setDefaultNightMode(nightMode)
+
+        // Sync profile from Firestore when signed in (pulls Lavrentiy desktop learning)
+        FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            val user = auth.currentUser
+            if (user != null) {
+                profileManager.startSync(user.uid)
+            } else {
+                profileManager.stopSync()
+            }
+        }
     }
 }

@@ -61,6 +61,7 @@ dependencies {
     // Firebase Auth + Google Sign-In
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
 
     // Credential Manager for Google Sign-In
