@@ -59,12 +59,12 @@ class WimAccessibilityService : AccessibilityService() {
      */
     fun injectText(text: String) {
         val node = activeTextField ?: run {
-            android.widget.Toast.makeText(this, "Tap a text field first", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.toast_tap_field), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         if (!node.refresh()) {
             activeTextField = null
-            android.widget.Toast.makeText(this, "Text field lost — tap a field and try again", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val clip = android.content.ClipData.newPlainText("wim", text)

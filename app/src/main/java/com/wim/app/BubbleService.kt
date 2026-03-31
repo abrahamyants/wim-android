@@ -312,7 +312,7 @@ class BubbleService : Service() {
         Log.i(TAG, "Starting on-device recognition")
         dismissMenu()
         showLiveTranscript()
-        Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
         // Visual: recording state — bezel glows red, inner well lights up
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
@@ -698,7 +698,6 @@ class BubbleService : Service() {
 
     private fun showLiveTranscript() {
         val enabled = WimApp.prefs.getBoolean("live_transcript", false)
-        Log.i(TAG, "showLiveTranscript: enabled=$enabled, existing=${liveTextView != null}, params=${bubbleParams != null}")
         if (!enabled) return
         if (liveTextView != null) return
 
@@ -767,7 +766,7 @@ class BubbleService : Service() {
         if (recentTexts.isNotEmpty() && jaccard(text, recentTexts.last()) > 0.7) {
             redoCount++
             if (redoCount >= 3) {
-                Toast.makeText(this, "Recording similar content repeatedly — take a breath", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.toast_redo_warning), Toast.LENGTH_LONG).show()
                 redoCount = 0
             }
         } else {
@@ -816,7 +815,7 @@ class BubbleService : Service() {
         }
 
         // L2+: reconstruct via GPT (with pre-cleaned input)
-        Toast.makeText(this, "Reconstructing...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_reconstructing), Toast.LENGTH_SHORT).show()
 
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
@@ -843,7 +842,7 @@ class BubbleService : Service() {
                     WimAccessibilityService.instance!!.injectText(reconResult.cleanText)
                 } else {
                     Log.e(TAG, "No accessibility service instance!")
-                    Toast.makeText(this@BubbleService, "Enable accessibility service to paste text", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 }
 
                 // L3+: learn from reconstruction results

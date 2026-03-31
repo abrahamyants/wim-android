@@ -99,8 +99,8 @@ class MainActivity : AppCompatActivity() {
 
         updateAuthUI()
 
-        // Web client ID from google-services.json oauth_client type 3
-        val webClientId = "787543109204-vnln7rus2o37s4oaptepg66i3qcb3ujb.apps.googleusercontent.com"
+        // Web client ID from google-services.json (oauth_client type 3)
+        val webClientId = getString(R.string.default_web_client_id)
 
         googleSignInBtn.setOnClickListener {
             val credentialManager = CredentialManager.create(this)
@@ -281,14 +281,6 @@ class MainActivity : AppCompatActivity() {
 
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
-
-        // ── DEBUG: test clarifier on bubble (remove before release) ──
-        findViewById<View>(R.id.profileStrip)?.setOnLongClickListener {
-            BubbleService.instance?.showClarifier("WORK?") { answer ->
-                Log.i("WiM", "Clarifier answer: $answer")
-            }
-            true
-        }
 
         // ── Guide button — opens operations manual overlay ──
         findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
@@ -547,7 +539,7 @@ class MainActivity : AppCompatActivity() {
         card.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("wim", session.cleanText))
-            Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
         }
 
         return card

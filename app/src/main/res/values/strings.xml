@@ -2,4 +2,11 @@
 <resources>
     <string name="app_name">What I Meant</string>
     <string name="accessibility_description">WiM detects text fields to show the voice dictation bubble and pastes transcribed text into the active field.</string>
+    <string name="toast_listening">Listening…</string>
+    <string name="toast_reconstructing">Reconstructing…</string>
+    <string name="toast_enable_accessibility">Enable accessibility service to paste text</string>
+    <string name="toast_tap_field">Tap a text field first</string>
+    <string name="toast_field_lost">Text field lost — tap a field and try again</string>
+    <string name="toast_copied">Copied</string>
+    <string name="toast_redo_warning">Recording similar content repeatedly — take a breath</string>
 </resources>
