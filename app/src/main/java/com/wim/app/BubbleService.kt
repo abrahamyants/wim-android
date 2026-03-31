@@ -529,7 +529,7 @@ class BubbleService : Service() {
         bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.VISIBLE
 
         // Auto-dismiss after 5 seconds
-        timerHandler.postDelayed(clarifierTimeout, 5000)
+        timerHandler.postDelayed(clarifierTimeout, 10000)
     }
 
     private fun dismissClarifier(answer: Boolean?) {
