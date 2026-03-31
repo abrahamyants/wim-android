@@ -580,40 +580,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val headerSubtitles = emptyMap<Int, String>()
-
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
-        val rawText = header.text.toString()
+        val title = header.text.toString()
             .replace("  \u25BC", "").replace("  \u25B6", "")
             .replace("  \u25BE", "").replace("  \u25B8", "")
-        // Strip any previous subtitle
-        val title = rawText.split("  ").first().trim()
-        val subtitle = headerSubtitles[header.id]
-        val arrow = if (expanded) "  \u25BC" else "  \u25B6"
+            .trim()
+        val arrow = if (expanded) "\u25BC" else "\u25B6"
+        header.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+        header.text = title
+        header.gravity = android.view.Gravity.CENTER_VERTICAL
 
-        val fullText = if (subtitle != null) "$title  $subtitle$arrow" else "$title$arrow"
-        val spannable = android.text.SpannableString(fullText)
-
-        // Subtitle in gold
-        if (subtitle != null) {
-            val subStart = title.length + 2
-            val subEnd = subStart + subtitle.length
-            spannable.setSpan(
-                android.text.style.ForegroundColorSpan(getColor(R.color.copper_gold)),
-                subStart, subEnd,
-                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-            spannable.setSpan(
-                android.text.style.RelativeSizeSpan(0.7f),
-                subStart, subEnd,
-                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
-
-        // Arrow in orange
+        // Build spannable with arrow right-padded using spaces
+        val padded = "$title   $arrow"
+        val spannable = android.text.SpannableString(padded)
         spannable.setSpan(
             android.text.style.ForegroundColorSpan(getColor(R.color.orange_label)),
-            fullText.length - arrow.length, fullText.length,
+            padded.length - 1, padded.length,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         header.text = spannable
