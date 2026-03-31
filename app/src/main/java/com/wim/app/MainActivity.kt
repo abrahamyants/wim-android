@@ -228,10 +228,12 @@ class MainActivity : AppCompatActivity() {
 
         // ── Gold tint all SeekBars — copper gold matching WiM brand ──
         val copperGold = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        val trackDefault = android.content.res.ColorStateList.valueOf(0x40000000.toInt())
         listOf(R.id.bubbleOpacitySeek, R.id.bubbleSizeSeek, R.id.seekDafDelay).forEach { id ->
             findViewById<SeekBar>(id)?.apply {
                 thumbTintList = copperGold
                 progressTintList = copperGold
+                progressBackgroundTintList = trackDefault
             }
         }
 
