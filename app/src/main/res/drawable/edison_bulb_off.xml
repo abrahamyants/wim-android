@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Edison bulb — OFF: cold, no glow, dim filament -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="34dp"
+    android:viewportWidth="44"
+    android:viewportHeight="68">
+
+    <!-- Glass envelope — cold, barely visible -->
+    <path
+        android:pathData="M22,3 C13,3 6,12 6,26 C6,36 11,42 16,46 L28,46 C33,42 38,36 38,26 C38,12 31,3 22,3Z"
+        android:fillColor="#0CFFFFFF"
+        android:strokeColor="#18FFFFFF"
+        android:strokeWidth="1" />
+
+    <!-- Glass highlight arc — faint -->
+    <path
+        android:pathData="M14,8 C16,5 20,4 22,4"
+        android:strokeColor="#10FFFFFF"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Base/screw cap -->
+    <path
+        android:pathData="M16,46 L28,46 L28,60 C28,64 26,68 22,68 C18,68 16,64 16,60Z"
+        android:fillColor="#FF6A5848" />
+    <path
+        android:pathData="M16,46 L28,46 L28,48 L16,48Z"
+        android:fillColor="#FF8A7060" />
+    <path android:pathData="M16,50 L28,50" android:strokeColor="#50000000" android:strokeWidth="0.8" />
+    <path android:pathData="M16,53 L28,53" android:strokeColor="#50000000" android:strokeWidth="0.8" />
+    <path android:pathData="M16,56 L28,56" android:strokeColor="#50000000" android:strokeWidth="0.8" />
+    <path android:pathData="M17,59 L27,59" android:strokeColor="#50000000" android:strokeWidth="0.8" />
+
+    <!-- Filament support wires — dark -->
+    <path android:pathData="M19,46 L19,30" android:strokeColor="#44554433" android:strokeWidth="0.7" />
+    <path android:pathData="M25,46 L25,30" android:strokeColor="#44554433" android:strokeWidth="0.7" />
+
+    <!-- Coiled filament — cold gray, no glow -->
+    <path
+        android:pathData="M19,30 C19,27 20,25 22,23 C24,21 25,23 25,25 C25,27 24,29 22,28 C20,27 19,25 19,22 C19,19 20,17 22,15 C24,13 25,15 25,18 C25,20 24,22 22,21 C20,20 19,18 19,15"
+        android:strokeColor="#66888888"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- No glow -->
+
+</vector>

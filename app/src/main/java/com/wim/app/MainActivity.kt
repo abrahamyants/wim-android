@@ -226,14 +226,13 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // ── Gold tint all SeekBars — copper gold matching WiM brand ──
+        // ── Gold SeekBars: gold thumb, gold filled track, gray unfilled track ──
         val copperGold = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
-        val trackDefault = android.content.res.ColorStateList.valueOf(0x40000000.toInt())
         listOf(R.id.bubbleOpacitySeek, R.id.bubbleSizeSeek, R.id.seekDafDelay).forEach { id ->
             findViewById<SeekBar>(id)?.apply {
                 thumbTintList = copperGold
-                progressTintList = copperGold
-                progressBackgroundTintList = trackDefault
+                // Force-reload XML drawable to bypass Material theme tinting
+                progressDrawable = resources.getDrawable(R.drawable.daf_seekbar_track, theme)
             }
         }
 
@@ -290,11 +289,11 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // ── Dark mode toggle ──────────────────────────────
-        val darkBtn = findViewById<TextView>(R.id.darkModeBtn)
+        // ── Dark/light toggle — Edison bulb in brand plate ──
+        val bulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        darkBtn.text = if (isNight) "LIGHT" else "DARK"
-        darkBtn.setOnClickListener {
+        bulb?.setImageResource(if (isNight) R.drawable.edison_bulb_lit else R.drawable.edison_bulb_off)
+        bulb?.setOnClickListener {
             val currentNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
             val newMode = if (currentNight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
             WimApp.prefs.edit().putInt("night_mode", newMode).apply()
@@ -630,9 +629,10 @@ class MainActivity : AppCompatActivity() {
 
         val statusText = findViewById<TextView>(R.id.statusText)
         val statusBulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
+        val nightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
             statusText.text = "IDLE"
-            statusBulb.setImageResource(R.drawable.edison_bulb_green)
+            statusBulb.setImageResource(if (nightMode) R.drawable.edison_bulb_lit else R.drawable.edison_bulb_off)
         } else {
             statusText.text = "SETUP"
             statusBulb.setImageResource(R.drawable.edison_bulb_red)

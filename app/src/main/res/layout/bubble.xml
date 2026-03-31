@@ -40,7 +40,26 @@
         android:background="@drawable/bubble_bg_idle"
         android:elevation="8dp">
 
-        <!-- Clarifier: checkmark (left) and X (right) — hidden by default -->
+        <!-- Clarifier: split bezel backgrounds (green left, red right) — hidden by default -->
+        <View
+            android:id="@+id/clarifierBgYes"
+            android:layout_width="36dp"
+            android:layout_height="72dp"
+            android:layout_gravity="start"
+            android:background="@drawable/clarifier_half_yes"
+            android:visibility="gone"
+            android:clipChildren="true" />
+
+        <View
+            android:id="@+id/clarifierBgNo"
+            android:layout_width="36dp"
+            android:layout_height="72dp"
+            android:layout_gravity="end"
+            android:background="@drawable/clarifier_half_no"
+            android:visibility="gone"
+            android:clipChildren="true" />
+
+        <!-- Clarifier: checkmark (left) and X (right) — white on colored bg -->
         <TextView
             android:id="@+id/bezelYes"
             android:layout_width="18dp"
@@ -49,7 +68,7 @@
             android:layout_marginStart="1dp"
             android:gravity="center"
             android:text="✓"
-            android:textColor="#FF44DD44"
+            android:textColor="#FFFFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="monospace"
@@ -65,7 +84,7 @@
             android:layout_marginEnd="1dp"
             android:gravity="center"
             android:text="✕"
-            android:textColor="#FFEF4444"
+            android:textColor="#FFFFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="monospace"
@@ -91,22 +110,26 @@
                 android:background="@drawable/knob_tick" />
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp">
 
                 <TextView
                     android:id="@+id/bubbleLabel"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="IDLE"
                     android:textColor="#FFFFFFFF"
                     android:textSize="7sp"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.15"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:maxLines="1" />
 
                 <TextView
                     android:id="@+id/bubbleTime"

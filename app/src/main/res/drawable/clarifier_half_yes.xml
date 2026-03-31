@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Left half-circle: green background for ✓ -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:right="-36dp">
+        <shape android:shape="oval">
+            <solid android:color="#CC2E7D32" />
+            <size android:width="72dp" android:height="72dp" />
+        </shape>
+    </item>
+</layer-list>

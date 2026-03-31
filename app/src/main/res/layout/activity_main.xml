@@ -23,49 +23,32 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp">
 
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:background="@drawable/brand_plate_bg"
-                android:gravity="center_vertical"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Centered: WiM text + bulb next to M, then What I Meant below -->
+                <!-- Centered: WiM + What I Meant -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center_horizontal">
+                    android:gravity="center_horizontal"
+                    android:layout_gravity="center">
 
-                    <LinearLayout
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="bottom">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="WiM"
-                            android:textColor="@color/copper_gold"
-                            android:textSize="26sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.06"
-                            android:fontFamily="serif" />
-
-                        <ImageView
-                            android:id="@+id/statusBulb"
-                            android:layout_width="22dp"
-                            android:layout_height="34dp"
-                            android:src="@drawable/edison_bulb_green"
-                            android:importantForAccessibility="no"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginBottom="2dp" />
-                    </LinearLayout>
+                        android:text="WiM"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:fontFamily="serif" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -76,6 +59,16 @@
                         android:letterSpacing="0.12" />
                 </LinearLayout>
 
+                <!-- Bulb: top-right corner, doubles as dark/light toggle -->
+                <ImageView
+                    android:id="@+id/statusBulb"
+                    android:layout_width="22dp"
+                    android:layout_height="34dp"
+                    android:src="@drawable/edison_bulb_green"
+                    android:importantForAccessibility="no"
+                    android:layout_gravity="end|center_vertical"
+                    android:contentDescription="Toggle dark/light mode" />
+
                 <!-- Hidden status text for code reference -->
                 <TextView
                     android:id="@+id/statusText"
@@ -83,7 +76,7 @@
                     android:layout_height="0dp"
                     android:visibility="gone" />
 
-            </LinearLayout>
+            </FrameLayout>
 
             <!-- Screw: top-left -->
             <View
@@ -1261,16 +1254,6 @@
                     android:fontFamily="monospace"
                     android:layout_marginTop="4dp" />
 
-                <TextView
-                    android:id="@+id/darkModeBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="DARK"
-                    android:textColor="@color/copper_gold"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.1"
-                    android:layout_marginTop="4dp" />
             </LinearLayout>
 
             <!-- Screw: top-left -->

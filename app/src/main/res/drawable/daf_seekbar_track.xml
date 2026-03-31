@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Track with bright gold progress -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background track — gray -->
+    <!-- Background track — gray (unfilled portion) -->
     <item android:id="@android:id/background" android:gravity="center_vertical">
         <shape android:shape="rectangle">
-            <solid android:color="#FF999999" />
+            <solid android:color="#FF666666" />
             <corners android:radius="3dp" />
             <size android:height="5dp" />
         </shape>
     </item>
-    <!-- Progress — bright gold -->
+    <!-- Progress — copper gold (filled portion, matches thumb) -->
     <item android:id="@android:id/progress" android:gravity="center_vertical">
         <clip>
             <shape android:shape="rectangle">
-                <solid android:color="#FFFFD700" />
+                <solid android:color="#FFD4A574" />
                 <corners android:radius="3dp" />
                 <size android:height="5dp" />
             </shape>
