@@ -495,7 +495,7 @@ class BubbleService : Service() {
             ?.setBackgroundResource(R.drawable.bubble_bg_idle)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFF555560.toInt())
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             text = "0:00"
@@ -517,13 +517,14 @@ class BubbleService : Service() {
         isClarifierActive = true
         clarifierCallback = { answer -> onAnswer(answer) }
 
-        // Show question on the knob — auto-size to fill available space
+        // Show question on the knob — auto-size to fill, dark gray, bold
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = questionWord
-            setTextColor(0xFFFFFFFF.toInt())
-            letterSpacing = 0.02f
+            setTextColor(0xFF444450.toInt())
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            letterSpacing = 0.0f
             setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
-            setAutoSizeTextTypeUniformWithConfiguration(5, 16, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            setAutoSizeTextTypeUniformWithConfiguration(8, 28, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
 
@@ -547,11 +548,12 @@ class BubbleService : Service() {
         bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.GONE
         bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.GONE
 
-        // Restore normal label sizing
+        // Restore normal label sizing and style
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 7f)
-            letterSpacing = 0.15f
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
+            letterSpacing = 0.05f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
 
         // Show acknowledgment if user answered (not timeout)

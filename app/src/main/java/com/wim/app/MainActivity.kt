@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -289,6 +290,9 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        // ── Guide button — opens operations manual overlay ──
+        findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
+
         // ── Dark/light toggle — Edison bulb in brand plate ──
         val bulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -363,7 +367,16 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.statSessions)?.text = totalSessions.toString()
         findViewById<TextView>(R.id.statWpm)?.text = wpm.toString()
-        findViewById<TextView>(R.id.statCleanup)?.text = "${avgCleanup}%"
+
+        // Third stat: layer-dependent
+        val currentLayer = WimApp.layer()
+        if (currentLayer >= 2) {
+            findViewById<TextView>(R.id.statCleanup)?.text = "${avgCleanup}%"
+            findViewById<TextView>(R.id.statThirdLabel)?.text = "CLEANUP"
+        } else {
+            findViewById<TextView>(R.id.statCleanup)?.text = "%,d".format(totalWords)
+            findViewById<TextView>(R.id.statThirdLabel)?.text = "WORDS"
+        }
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val dpScale = resources.displayMetrics.density
 
@@ -590,6 +603,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
                 WimApp.prefs.edit().putInt(prefKey, values[i]).apply()
+                loadSessions() // refresh stats — third cell changes per layer
             }
         }
     }
@@ -675,6 +689,185 @@ class MainActivity : AppCompatActivity() {
         val drawable = android.graphics.drawable.BitmapDrawable(resources, bitmap)
         drawable.setBounds(0, 0, w, h)
         header.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, drawable, null)
+    }
+
+    // ── Operations Manual (Лаврентий-style guide overlay) ──────────
+
+    private fun showGuide() {
+        val dp = resources.displayMetrics.density
+        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bgColor = if (isNight) 0xFF1a1a2e.toInt() else 0xFFe8e8ec.toInt()
+        val cardColor = if (isNight) 0xFF252530.toInt() else 0xFFd8d8dc.toInt()
+        val textColor = if (isNight) 0xFFe0e0e4.toInt() else 0xFF2a2a30.toInt()
+        val dimColor = if (isNight) 0xFF8a8a92.toInt() else 0xFF666670.toInt()
+        val accentColor = 0xFFEE5A24.toInt()
+
+        val sections = listOf(
+            Triple("How It Works", "What happens when you tap the bubble", """
+<b><font color="#EE5A24">1. You speak</font></b><br>Tap the bubble to start recording. Your voice is captured through the microphone.<br><br>
+<b><font color="#EE5A24">2. On-device transcription</font></b><br>Android's built-in speech recognition converts your voice to text, right on your phone. No internet needed for this step, no cost.<br><br>
+<b><font color="#EE5A24">3. Quick cleanup</font></b><br>Obvious disfluencies are stripped automatically (instant, free):<br>
+&#8226; Repeated syllables: "p-p-pop" &#8594; "pop"<br>
+&#8226; Repeated words: "I I I want" &#8594; "I want"<br>
+&#8226; Fillers: "um", "uh", "like", "you know"<br>
+&#8226; False starts and prolongations<br>
+Natural phrases like "bye bye" are kept.<br><br>
+<b><font color="#EE5A24">4. Depends on your Layer:</font></b><br><br>
+<b>Layer I</b> &#8212; Done. Cleaned text is pasted. No AI, no cost.<br><br>
+<b>Layer II</b> &#8212; GPT rewrites using your tone (casual, professional, etc). No personal data used.<br><br>
+<b>Layer III</b> &#8212; Same as II, plus GPT knows your preferred words and learned corrections.<br><br>
+<b>Layer IV</b> &#8212; Full stutter-aware engine. Stronger AI model, plus your personal phoneme map, avoidance patterns, and block detection.<br><br>
+<b><font color="#EE5A24">5. Safety check</font></b><br>A second AI verifies the meaning wasn't changed. If it was, your original text is used instead. Numbers and dollar amounts are double-checked.<br><br>
+<b><font color="#EE5A24">6. Paste</font></b><br>The final text is injected into whatever text field you're typing in.""".trimIndent()),
+
+            Triple("The Bubble", "Your floating control center", """
+<b>Tap</b> &#8212; Start recording. Tap again to stop and process.<br><br>
+<b>Hold</b> &#8212; Record while held, release to process.<br><br>
+<b>Double-tap</b> &#8212; Open the settings menu (opacity, size, live transcript).<br><br>
+<b>Drag</b> &#8212; Move the bubble anywhere on screen.<br><br>
+<b>Bezel tap (left/right)</b> &#8212; Quick toggle between work mode (professional) and personal mode (casual).<br><br>
+The bubble shows your current state: <b>IDLE</b> (ready), <b>REC</b> (recording), <b>PROC</b> (processing).""".trimIndent()),
+
+            Triple("Layers", "What each layer does", """
+<b>I. Transcribe</b> &#8212; On-device speech-to-text + disfluency filter. Free, instant, no internet after setup.<br><br>
+<b>II. Reconstruct</b> &#8212; GPT cleans grammar, strips fillers, applies your tone. ~1-2s.<br><br>
+<b>III. Profile</b> &#8212; Same as II + your personal vocabulary and corrections. The app learns which words you prefer over time.<br><br>
+<b>IV. Stutter</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
+
+            Triple("Tones", "How your text sounds", """
+<b>Casual</b> &#8212; Natural spoken rhythm. Like texting.<br>
+<b>Professional</b> &#8212; Clean business language.<br>
+<b>Friend</b> &#8212; Relaxed, conversational.<br>
+<b>Formal</b> &#8212; No contractions, precise grammar.<br><br>
+Tone only affects Layers II+. On Layer I, tone has no effect.""".trimIndent()),
+
+            Triple("Situations", "Context-aware adjustments", """
+<b>Default</b> &#8212; Everyday use. Balanced cleanup.<br>
+<b>High Stress</b> &#8212; Phone calls, presentations, interviews. More aggressive cleanup, expects heavier disfluencies.<br>
+<b>Reading</b> &#8212; Reading aloud. Light touch, minimal changes.""".trimIndent()),
+
+            Triple("DAF", "Delayed Auditory Feedback", """
+Plays your voice back to you with a slight delay (30-300ms). This is a well-known fluency technique &#8212; hearing yourself on a delay can reduce stuttering severity.<br><br>
+Toggle it on, adjust the delay with the slider. Works alongside recording.""".trimIndent()),
+
+            Triple("Tips", "Get the most out of WiM", """
+&#8226; Keep the bubble <b>visible</b> &#8212; you don't need the app open to use it.<br>
+&#8226; <b>Layer I</b> is free and instant &#8212; great for quick dictation.<br>
+&#8226; <b>Double-tap</b> the bubble to adjust opacity if it's in the way.<br>
+&#8226; The app <b>learns from you</b> at Layer III+ &#8212; corrections get smarter over time.<br>
+&#8226; Tap any <b>session card</b> to copy the text.""".trimIndent()),
+        )
+
+        // Build overlay
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(0xCC000000.toInt())
+            setOnClickListener { (parent as? android.view.ViewGroup)?.removeView(this) }
+        }
+
+        val panel = ScrollView(this)
+        panel.layoutParams = FrameLayout.LayoutParams(
+            (340 * dp).toInt(),
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ).apply {
+            gravity = Gravity.END
+            topMargin = (40 * dp).toInt()
+            bottomMargin = (40 * dp).toInt()
+        }
+        panel.setBackgroundColor(bgColor)
+        panel.isVerticalScrollBarEnabled = false
+        panel.setOnClickListener { /* consume click, don't close */ }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((16 * dp).toInt(), (20 * dp).toInt(), (16 * dp).toInt(), (40 * dp).toInt())
+        }
+
+        // Header
+        content.addView(TextView(this).apply {
+            text = "Guide"
+            setTextColor(textColor)
+            textSize = 20f
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            letterSpacing = 0.08f
+        })
+        content.addView(TextView(this).apply {
+            text = "OPERATIONS MANUAL"
+            setTextColor(accentColor)
+            textSize = 8f
+            typeface = Typeface.MONOSPACE
+            letterSpacing = 0.15f
+            setPadding(0, (2 * dp).toInt(), 0, (16 * dp).toInt())
+        })
+
+        // Accordion sections
+        for ((title, subtitle, body) in sections) {
+            val sectionHeader = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding((12 * dp).toInt(), (14 * dp).toInt(), (12 * dp).toInt(), (14 * dp).toInt())
+                setBackgroundColor(cardColor)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = (4 * dp).toInt() }
+            }
+
+            val titleCol = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            titleCol.addView(TextView(this).apply {
+                text = title
+                setTextColor(textColor)
+                textSize = 13f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            })
+            titleCol.addView(TextView(this).apply {
+                text = subtitle
+                setTextColor(dimColor)
+                textSize = 9f
+                typeface = Typeface.MONOSPACE
+                letterSpacing = 0.05f
+            })
+            sectionHeader.addView(titleCol)
+
+            val chevron = TextView(this).apply {
+                text = "\u25B6"
+                setTextColor(dimColor)
+                textSize = 10f
+            }
+            sectionHeader.addView(chevron)
+
+            val bodyView = TextView(this).apply {
+                text = android.text.Html.fromHtml(body, android.text.Html.FROM_HTML_MODE_COMPACT)
+                setTextColor(dimColor)
+                textSize = 11f
+                setLineSpacing(0f, 1.5f)
+                setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt())
+                visibility = View.GONE
+            }
+
+            sectionHeader.setOnClickListener {
+                if (bodyView.visibility == View.GONE) {
+                    bodyView.visibility = View.VISIBLE
+                    chevron.text = "\u25BC"
+                    chevron.setTextColor(accentColor)
+                } else {
+                    bodyView.visibility = View.GONE
+                    chevron.text = "\u25B6"
+                    chevron.setTextColor(dimColor)
+                }
+            }
+
+            content.addView(sectionHeader)
+            content.addView(bodyView)
+        }
+
+        panel.addView(content)
+        overlay.addView(panel)
+
+        val root = findViewById<View>(android.R.id.content) as FrameLayout
+        root.addView(overlay)
     }
 
     private fun updatePermissionStatus() {

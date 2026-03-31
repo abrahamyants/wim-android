@@ -123,10 +123,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="IDLE"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="7sp"
+                    android:textColor="#FF555560"
+                    android:textSize="10sp"
                     android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
+                    android:letterSpacing="0.05"
                     android:textStyle="bold"
                     android:gravity="center"
                     android:maxLines="1" />

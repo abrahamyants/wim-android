@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filament wire: straight → telephone coil → straight, copper gold -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="12dp"
+    android:viewportWidth="200"
+    android:viewportHeight="24">
+
+    <!-- Left straight segment (from WiM text area) -->
+    <path
+        android:pathData="M0,12 L35,12"
+        android:strokeColor="#BBD4AF37"
+        android:strokeWidth="1.4"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Coiled middle segment (telephone cord — tighter loops) -->
+    <path
+        android:pathData="M35,12 C39,4 43,4 47,12 C51,20 55,20 59,12 C63,4 67,4 71,12 C75,20 79,20 83,12 C87,4 91,4 95,12 C99,20 103,20 107,12 C111,4 115,4 119,12 C123,20 127,20 131,12 C135,4 139,4 143,12 C147,20 151,20 155,12"
+        android:strokeColor="#BBD4AF37"
+        android:strokeWidth="1.4"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Right straight segment (into bulb base) -->
+    <path
+        android:pathData="M155,12 L200,12"
+        android:strokeColor="#BBD4AF37"
+        android:strokeWidth="1.4"
+        android:fillColor="@android:color/transparent" />
+
+</vector>
