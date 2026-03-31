@@ -585,20 +585,24 @@ class MainActivity : AppCompatActivity() {
             .replace("  \u25BC", "").replace("  \u25B6", "")
             .replace("  \u25BE", "").replace("  \u25B8", "")
             .trim()
-        val arrow = if (expanded) "\u25BC" else "\u25B6"
-        header.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
         header.text = title
-        header.gravity = android.view.Gravity.CENTER_VERTICAL
-
-        // Build spannable with arrow right-padded using spaces
-        val padded = "$title   $arrow"
-        val spannable = android.text.SpannableString(padded)
-        spannable.setSpan(
-            android.text.style.ForegroundColorSpan(getColor(R.color.orange_label)),
-            padded.length - 1, padded.length,
-            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        header.text = spannable
+        // Pin arrow to right edge using drawableEnd with a small text drawable
+        val arrow = if (expanded) "\u25BC" else "\u25B6"
+        val arrowDrawable = android.graphics.drawable.GradientDrawable()
+        // Use a TextDrawable approach: paint the arrow character
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = header.textSize * 0.9f
+            color = getColor(R.color.orange_label)
+            typeface = android.graphics.Typeface.MONOSPACE
+        }
+        val w = paint.measureText(arrow).toInt() + 4
+        val h = (paint.textSize + 4).toInt()
+        val bitmap = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawText(arrow, 2f, paint.textSize, paint)
+        val drawable = android.graphics.drawable.BitmapDrawable(resources, bitmap)
+        drawable.setBounds(0, 0, w, h)
+        header.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, drawable, null)
     }
 
     private fun updatePermissionStatus() {
