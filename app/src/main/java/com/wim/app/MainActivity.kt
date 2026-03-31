@@ -226,6 +226,15 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // ── Gold tint all SeekBars — copper gold matching WiM brand ──
+        val copperGold = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        listOf(R.id.bubbleOpacitySeek, R.id.bubbleSizeSeek, R.id.seekDafDelay).forEach { id ->
+            findViewById<SeekBar>(id)?.apply {
+                thumbTintList = copperGold
+                progressTintList = copperGold
+            }
+        }
+
         // ── Bubble opacity slider ─────────────────────────
         val seekOpacity = findViewById<SeekBar>(R.id.bubbleOpacitySeek)
         val opacityValue = findViewById<TextView>(R.id.bubbleOpacityValue)
