@@ -64,7 +64,19 @@ class BubbleService : Service() {
     private var isWorkMode = false  // false=personal, true=work
     private var isClarifierActive = false
     private var clarifierCallback: ((Boolean?) -> Unit)? = null
-    private val clarifierTimeout = Runnable { dismissClarifier(null) }
+    private val clarifierTimeout = Runnable {
+        if (clarifierRetryCount < 1) {
+            // First timeout — retry
+            clarifierRetryCount++
+            pendingClarifierCallback?.let { cb ->
+                showClarifier(pendingClarifierWord, pendingClarifierQuestion, cb)
+            }
+        } else {
+            // Second timeout — give up
+            clarifierRetryCount = 0
+            dismissClarifier(null)
+        }
+    }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
@@ -100,8 +112,14 @@ class BubbleService : Service() {
         onDeviceRecognizer = OnDeviceRecognizer(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification(),
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val fgsType = if (hasMic) {
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        } else {
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        }
+        startForeground(NOTIFICATION_ID, buildNotification(), fgsType)
         setupShakeDetector()
     }
 
@@ -258,31 +276,18 @@ class BubbleService : Service() {
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(bubbleView, params)
 
-                        // Comet tail: teardrop based on frame-to-frame velocity
-                        val vx = event.rawX - prevMoveX
-                        val vy = event.rawY - prevMoveY
-                        prevMoveX = event.rawX
-                        prevMoveY = event.rawY
-                        val velocity = kotlin.math.sqrt(vx * vx + vy * vy)
+                        // Taffy: stretch in drag direction
+                        val speed = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
                         val baseScale = WimApp.bubbleSize() / 100f
-                        val stretch = baseScale * (1f + (velocity / 15f).coerceAtMost(0.25f))
-                        val squeeze = baseScale * (1f - (velocity / 30f).coerceAtMost(0.15f))
+                        val stretch = baseScale * (1f + (speed / 800f).coerceAtMost(0.15f))
+                        val squeeze = baseScale * (1f - (speed / 1600f).coerceAtMost(0.08f))
                         val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-                        val w = bezel?.width?.toFloat() ?: 1f
-                        val h = bezel?.height?.toFloat() ?: 1f
-
-                        if (kotlin.math.abs(vx) > kotlin.math.abs(vy)) {
-                            // Horizontal — leading edge is where we're heading
-                            bezel?.pivotX = if (vx > 0) w else 0f
-                            bezel?.pivotY = h / 2f
+                        if (kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
                             bezel?.scaleX = stretch
                             bezel?.scaleY = squeeze
                         } else {
-                            // Vertical
-                            bezel?.pivotX = w / 2f
-                            bezel?.pivotY = if (vy > 0) h else 0f
-                            bezel?.scaleX = squeeze
                             bezel?.scaleY = stretch
+                            bezel?.scaleX = squeeze
                         }
                     }
                     true
@@ -290,22 +295,30 @@ class BubbleService : Service() {
                 MotionEvent.ACTION_UP -> {
                     timerHandler.removeCallbacks(startRecordingRunnable)
                     if (isDragging) {
-                        // Snap back to normal shape — reset pivot + spring animation
+                        // Snap back to normal
                         val scale = WimApp.bubbleSize() / 100f
-                        val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-                        bezel?.pivotX = (bezel?.width ?: 0) / 2f
-                        bezel?.pivotY = (bezel?.height ?: 0) / 2f
-                        bezel?.animate()
-                            ?.scaleX(scale)?.scaleY(scale)
-                            ?.setDuration(250)
-                            ?.setInterpolator(android.view.animation.OvershootInterpolator(2f))
-                            ?.start()
+                        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+                            it.animate().scaleX(scale).scaleY(scale).setDuration(200).start()
+                        }
 
                         // Check if dragged to bottom edge — hide bubble
                         val screenHeight = resources.displayMetrics.heightPixels
-                        if (params.y > screenHeight - (80 * resources.displayMetrics.density).toInt()) {
+                        val dp = resources.displayMetrics.density
+                        val hideZone = screenHeight - (80 * dp).toInt()
+                        val almostZone = screenHeight - (200 * dp).toInt()
+                        if (params.y > hideZone) {
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
+                        } else if (params.y > almostZone) {
+                            // Close but not enough — coach the user
+                            val nudges = listOf(
+                                Pair("Hey!", "Put your back into it! Drag me all the way down."),
+                                Pair("So close!", "Almost there — just a little further south."),
+                                Pair("Nice try!", "You gotta commit. All the way to the bottom.")
+                            )
+                            val nudge = nudges[(System.currentTimeMillis() % nudges.size).toInt()]
+                            showPipelineStage(nudge.first, nudge.second)
+                            timerHandler.postDelayed({ hideLiveTranscript() }, 2500)
                         }
                         return@setOnTouchListener true
                     }
@@ -616,14 +629,23 @@ class BubbleService : Service() {
      */
     private var preClarifierSize = -1
     private var preClarifierOpacity = -1
+    private var clarifierRetryCount = 0
+    private var pendingClarifierWord = ""
+    private var pendingClarifierQuestion = ""
+    private var pendingClarifierCallback: ((Boolean?) -> Unit)? = null
 
-    fun showClarifier(questionWord: String, onAnswer: (Boolean?) -> Unit) {
+    fun showClarifier(questionWord: String, contextQuestion: String = "", onAnswer: (Boolean?) -> Unit) {
         isClarifierActive = true
         clarifierCallback = { answer -> onAnswer(answer) }
+        pendingClarifierWord = questionWord
+        pendingClarifierQuestion = contextQuestion
+        pendingClarifierCallback = onAnswer
 
         // Save current size/opacity and max out for visibility
-        preClarifierSize = WimApp.bubbleSize()
-        preClarifierOpacity = WimApp.bubbleOpacity()
+        if (preClarifierSize < 0) {
+            preClarifierSize = WimApp.bubbleSize()
+            preClarifierOpacity = WimApp.bubbleOpacity()
+        }
         WimApp.prefs.edit().putInt("bubble_size", 150).putInt("bubble_opacity", 100).apply()
         updateBubbleAppearance()
 
@@ -638,19 +660,27 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
 
+        // Show full question on live transcript bar
+        if (contextQuestion.isNotBlank()) {
+            val retryLabel = if (clarifierRetryCount > 0) "Still waiting..." else "Quick question"
+            showPipelineStage(retryLabel, contextQuestion)
+        }
+
         // Show split bezel (green/red) and ✓/✕
         bubbleView?.findViewById<View>(R.id.clarifierBgYes)?.visibility = View.VISIBLE
         bubbleView?.findViewById<View>(R.id.clarifierBgNo)?.visibility = View.VISIBLE
         bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.VISIBLE
         bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.VISIBLE
 
-        // Auto-dismiss after 5 seconds
+        // Auto-retry or dismiss after 10 seconds
+        timerHandler.removeCallbacks(clarifierTimeout)
         timerHandler.postDelayed(clarifierTimeout, 10000)
     }
 
     private fun dismissClarifier(answer: Boolean?) {
         timerHandler.removeCallbacks(clarifierTimeout)
         isClarifierActive = false
+        clarifierRetryCount = 0
 
         // Hide split bezel and ✓/✕
         bubbleView?.findViewById<View>(R.id.clarifierBgYes)?.visibility = View.GONE
@@ -853,6 +883,42 @@ class BubbleService : Service() {
         liveTextView?.text = text.ifBlank { "..." }
     }
 
+    private fun showPipelineStage(stage: String, detail: String) {
+        if (liveTextView == null) {
+            // Force-show the transcript bar for pipeline display
+            val bp = bubbleParams ?: return
+            val tv = TextView(this).apply {
+                setBackgroundColor(0xDD1A1A2E.toInt())
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 12f
+                typeface = android.graphics.Typeface.MONOSPACE
+                setPadding(20, 10, 20, 10)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            liveTextView = tv
+            val ltParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                width = (220 * resources.displayMetrics.density).toInt()
+                x = bp.x - 40
+                y = bp.y - 70
+            }
+            liveTextParams = ltParams
+            try { windowManager?.addView(tv, ltParams) } catch (_: Exception) {}
+        }
+        val styled = android.text.SpannableStringBuilder()
+        styled.append(stage, android.text.style.ForegroundColorSpan(0xFFEE5A24.toInt()), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        styled.append("\n")
+        styled.append(detail)
+        liveTextView?.text = styled
+    }
+
     private fun hideLiveTranscript() {
         liveTextView?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
@@ -907,13 +973,20 @@ class BubbleService : Service() {
         val profile = WimApp.profile()
 
         // Pre-clean: strip disfluencies from raw ASR text before any further processing
+        val rawWordCount = rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val fillerWords = profile.getFillerWords()
+        showPipelineStage("\u29BB Cleaning up...", "Removing disfluencies & fillers")
         val preCleaned = DisfluencyFilter.filter(rawText, fillerWords)
+        val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+        val stripped = rawWordCount - cleanWordCount
         Log.i(TAG, "Pre-cleaned: $preCleaned")
 
         if (layer < 2) {
             // L1: disfluency-filtered text IS the cleanup — inject directly
             Log.i(TAG, "L1 mode, injecting pre-cleaned text")
+            if (stripped > 0) {
+                showPipelineStage("\u2713 Cleaned", "$stripped words stripped \u00B7 ${rawWordCount}w \u2192 ${cleanWordCount}w")
+            }
             WimAccessibilityService.instance?.injectText(preCleaned)
             val totalMs = System.currentTimeMillis() - recordingStartTime
             sessionHistory?.record(
@@ -933,7 +1006,9 @@ class BubbleService : Service() {
         }
 
         // L2+: reconstruct via GPT (with pre-cleaned input)
-        Toast.makeText(this, getString(R.string.toast_reconstructing), Toast.LENGTH_SHORT).show()
+        if (stripped > 0) {
+            showPipelineStage("\u2713 $stripped disfluencies removed", "${rawWordCount}w \u2192 ${cleanWordCount}w")
+        }
 
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
@@ -941,6 +1016,14 @@ class BubbleService : Service() {
 
         scope.launch {
             try {
+                val layerLabel = when (layer) {
+                    2 -> "generic cleanup"
+                    3 -> "+ your vocabulary"
+                    4 -> "stutter-aware"
+                    else -> "processing"
+                }
+                showPipelineStage("\u29BB Reconstructing intent...", "$tone tone \u00B7 L$layer $layerLabel")
+
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = preCleaned,
@@ -955,6 +1038,13 @@ class BubbleService : Service() {
                     covertProfile = profile.getCovertProfile()
                 )
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
+
+                val finalWordCount = reconResult.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                val falconLabel = if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
+                showPipelineStage(falconLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
+
+                // Brief pause so user can see the final stage
+                kotlinx.coroutines.delay(800)
 
                 if (WimAccessibilityService.instance != null) {
                     WimAccessibilityService.instance!!.injectText(reconResult.cleanText)

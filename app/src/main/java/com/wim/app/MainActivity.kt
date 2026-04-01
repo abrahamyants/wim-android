@@ -284,7 +284,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Dev: long-press profile strip to test bubble functions ──
         findViewById<View>(R.id.profileStrip)?.setOnLongClickListener {
-            BubbleService.instance?.showClarifier("WORK?") { answer ->
+            BubbleService.instance?.showClarifier("WORK?", "Is this for work or casual?") { answer ->
                 Log.i("WiM", "Clarifier answer: $answer")
             }
             true

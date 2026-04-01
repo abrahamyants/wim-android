@@ -47,7 +47,7 @@
         <!-- Floating bubble service -->
         <service
             android:name=".BubbleService"
-            android:foregroundServiceType="specialUse"
+            android:foregroundServiceType="specialUse|microphone"
             android:exported="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
