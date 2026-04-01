@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WM waveform logomark — Broadway-style filled shapes, thick/thin built into geometry -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="40dp"
+    android:viewportWidth="320"
+    android:viewportHeight="80">
+
+    <!-- W: first thick downstroke (left leg) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M4,8 L14,8 L52,62 L42,62Z" />
+
+    <!-- W: thin upstroke (first valley to center peak) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M42,62 L47,62 L82,8 L77,8Z" />
+
+    <!-- W: second thick downstroke (right leg of W / shared with M) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M77,8 L87,8 L125,62 L115,62Z" />
+
+    <!-- W→M: thin upstroke (the weld — center transition) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M115,62 L120,62 L155,8 L150,8Z" />
+
+    <!-- M: first thick downstroke -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M150,8 L160,8 L198,62 L188,62Z" />
+
+    <!-- M: thin upstroke (inner valley) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M188,62 L193,62 L228,8 L223,8Z" />
+
+    <!-- M: second thick downstroke (right leg, slightly shorter — wave fading out) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M223,8 L233,8 L260,48 L250,48Z" />
+
+    <!-- Fade-out thin tail -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M250,48 L254,48 L276,18 L272,18Z" />
+
+</vector>

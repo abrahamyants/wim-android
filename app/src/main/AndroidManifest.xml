@@ -18,6 +18,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- Prevent battery optimizer from killing the service -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Restart bubble after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".WimApp"
         android:allowBackup="false"
@@ -41,12 +47,21 @@
         <!-- Floating bubble service -->
         <service
             android:name=".BubbleService"
-            android:foregroundServiceType="specialUse|microphone"
+            android:foregroundServiceType="specialUse"
             android:exported="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Persistent floating overlay for voice-to-text dictation that must remain active while the user speaks into other apps" />
         </service>
+
+        <!-- Boot receiver: restart bubble after device reboot -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Accessibility service for text field detection + injection -->
         <service

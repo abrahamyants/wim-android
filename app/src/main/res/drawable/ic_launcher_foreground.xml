@@ -1,59 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher icon — stereo knob matching floating bubble -->
+<!-- Launcher icon — Limelight WM logo on 3D brushed aluminum knob -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer bezel ring — aluminum body -->
+    <!-- Outer bezel ring — lighter aluminum -->
     <path
-        android:fillColor="#FFC8C8CC"
+        android:fillColor="#FFEBEBEF"
         android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
 
-    <!-- Orange bezel stroke -->
+    <!-- Track lane 1 (outer) — orange groove -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeWidth="2.5"
+        android:strokeWidth="1.2"
         android:strokeColor="#FFEE5A24"
-        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+        android:pathData="M54,54m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
 
-    <!-- Bezel-to-inner shadow ring -->
+    <!-- Track lane 2 (inner) — orange groove -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeWidth="1"
-        android:strokeColor="#44000000"
-        android:pathData="M54,54m-23,0a23,23 0,1 1,46 0a23,23 0,1 1,-46 0" />
+        android:strokeWidth="1.2"
+        android:strokeColor="#FFEE5A24"
+        android:pathData="M54,54m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" />
 
-    <!-- Inner knob — radial depth (darker rim) -->
+    <!-- Bezel inner depth ring -->
     <path
-        android:fillColor="#FFA8A8AD"
+        android:fillColor="#FFDADADE"
+        android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0" />
+
+    <!-- Bezel top highlight shimmer -->
+    <path
+        android:fillColor="#18FFFFFF"
+        android:pathData="M34,30 Q54,22 74,30 Q64,26 44,26Z" />
+
+    <!-- Knob shadow well -->
+    <path
+        android:fillColor="#FF4A4A52"
         android:pathData="M54,54m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
 
-    <!-- Inner knob — lighter center (concave highlight) -->
+    <!-- Knob side wall -->
     <path
-        android:fillColor="#FFB8B8BC"
-        android:pathData="M54,54m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" />
+        android:fillColor="#FFBBBBC2"
+        android:pathData="M54,53m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
 
-    <!-- Highlight — top-left light catch -->
+    <!-- Knob side wall — darker bottom -->
     <path
-        android:fillColor="#0DFFFFFF"
-        android:pathData="M42,40 Q48,34 58,36 Q52,32 42,40Z" />
+        android:fillColor="#FF909098"
+        android:pathData="M33,54 A21,21 0 0,0 75,54 L75,56 A21,21 0 0,1 33,56Z" />
 
-    <!-- Tick mark at 3 o'clock — orange indicator -->
+    <!-- Knob top face — matte brushed aluminum -->
     <path
-        android:fillColor="#FFEE5A24"
-        android:pathData="M73,52.5 L73,55.5 L80,55.5 L80,52.5Z"
-        android:strokeColor="#40000000"
-        android:strokeWidth="0.3" />
+        android:fillColor="#FFCDCDD2"
+        android:pathData="M54,52m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0" />
 
-    <!-- W letterform — copper gold, centered -->
+    <!-- Knob face — darker bottom gradient -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFD4A574"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M40,44 L46,64 L52,48 L54,48 L60,64 L66,44" />
+        android:fillColor="#FFBABAC0"
+        android:pathData="M36,58 Q54,68 72,58 Q72,70 54,70 Q36,70 36,58Z" />
+
+    <!-- Knob top highlight -->
+    <path
+        android:fillColor="#14FFFFFF"
+        android:pathData="M40,42 Q54,36 68,42 Q60,38 48,38Z" />
+
+    <!-- Bottom shadow on knob -->
+    <path
+        android:fillColor="#18000000"
+        android:pathData="M38,62 Q54,70 70,62 Q66,66 54,68 Q42,66 38,62Z" />
+
+
+    <!-- WM Limelight logo — scaled from font paths to fit knob -->
+    <!-- Original viewport: 3663 x 1534. Scale to ~32x14 centered on knob at (54,52) -->
+    <!-- Scale: 32/3663 = 0.00874. Offset: 54-16=38, 52-7=45 -->
+
+    <!-- Engraved shadow (offset +0.5 down) -->
+    <group
+        android:translateX="38"
+        android:translateY="45.5"
+        android:scaleX="0.00874"
+        android:scaleY="0.00874">
+        <path
+            android:fillColor="#30000000"
+            android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
+        <path
+            android:fillColor="#30000000"
+            android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
+    </group>
+
+    <!-- Highlight (offset -0.5 up) -->
+    <group
+        android:translateX="38"
+        android:translateY="44.5"
+        android:scaleX="0.00874"
+        android:scaleY="0.00874">
+        <path
+            android:fillColor="#18FFFFFF"
+            android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
+        <path
+            android:fillColor="#18FFFFFF"
+            android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
+    </group>
+
+    <!-- Main WM letterforms — orange -->
+    <group
+        android:translateX="38"
+        android:translateY="45"
+        android:scaleX="0.00874"
+        android:scaleY="0.00874">
+        <path
+            android:fillColor="#FFEE5A24"
+            android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
+        <path
+            android:fillColor="#FFEE5A24"
+            android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
+    </group>
 
 </vector>

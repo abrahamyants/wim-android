@@ -2,6 +2,7 @@ package com.wim.app
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -74,10 +75,15 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     private fun showBubble() {
-        val intent = Intent(this, BubbleService::class.java).apply {
-            action = "SHOW"
+        try {
+            val intent = Intent(this, BubbleService::class.java).apply {
+                action = "SHOW"
+            }
+            startForegroundService(intent)
+            Log.i("WiM", "Bubble service started via startForegroundService")
+        } catch (e: Exception) {
+            Log.e("WiM", "Failed to start bubble service: ${e.message}")
         }
-        startService(intent)
     }
 
 }

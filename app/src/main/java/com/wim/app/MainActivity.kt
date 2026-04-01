@@ -282,6 +282,14 @@ class MainActivity : AppCompatActivity() {
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
 
+        // ── Dev: long-press profile strip to test bubble functions ──
+        findViewById<View>(R.id.profileStrip)?.setOnLongClickListener {
+            BubbleService.instance?.showClarifier("WORK?") { answer ->
+                Log.i("WiM", "Clarifier answer: $answer")
+            }
+            true
+        }
+
         // ── Guide button — opens operations manual overlay ──
         findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
 
@@ -321,6 +329,9 @@ class MainActivity : AppCompatActivity() {
                 100
             )
         }
+
+        // Request battery optimization exemption so Samsung/OEMs don't kill the bubble
+        requestBatteryExemption()
 
         // ── Privacy Policy ────────────────────────────────
         findViewById<TextView>(R.id.privacyLink).setOnClickListener {
@@ -748,6 +759,21 @@ Toggle it on, adjust the delay with the slider. Works alongside recording.""".tr
 &#8226; <b>Double-tap</b> the bubble to adjust opacity if it's in the way.<br>
 &#8226; The app <b>learns from you</b> at Layer III+ &#8212; corrections get smarter over time.<br>
 &#8226; Tap any <b>session card</b> to copy the text.""".trimIndent()),
+
+            Triple("Having Trouble?", "If the bubble disappears", """
+<b>Bubble disappeared?</b><br>
+Open this app &#8212; it will restart automatically if permissions are still granted.<br><br>
+<b>Bubble keeps disappearing?</b><br>
+Your phone may be killing WiM to save battery. Fix it once and forget:<br><br>
+&#8226; Go to <b>Settings &#8594; Battery</b> (or Battery and device care)<br>
+&#8226; Tap <b>Background usage limits</b><br>
+&#8226; Tap <b>Never sleeping apps</b><br>
+&#8226; Add <b>What I Meant</b> to the list<br><br>
+This tells your phone to stop shutting WiM down. You only need to do this once.<br><br>
+<b>Bubble gone after reboot?</b><br>
+WiM restarts automatically after your phone turns back on, as long as the accessibility service is still enabled. If it doesn't, open the app once.<br><br>
+<b>Text not pasting?</b><br>
+Make sure a text field is active (cursor blinking) before you speak. WiM needs a place to put the text.""".trimIndent()),
         )
 
         // Build overlay
@@ -862,9 +888,43 @@ Toggle it on, adjust the delay with the slider. Works alongside recording.""".tr
         root.addView(overlay)
     }
 
+    private fun requestBatteryExemption() {
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            try {
+                startActivity(Intent(
+                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:$packageName")
+                ))
+            } catch (e: Exception) {
+                Log.e("WiM", "Battery exemption request failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun isAccessibilityEnabled(): Boolean {
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        return enabledServices.contains("$packageName/${WimAccessibilityService::class.java.canonicalName}")
+    }
+
+    private fun ensureBubbleRunning() {
+        if (BubbleService.instance != null) return
+        if (!Settings.canDrawOverlays(this)) return
+        if (!isAccessibilityEnabled()) return
+        try {
+            startForegroundService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
+            Log.i("WiM", "Bubble started from MainActivity")
+        } catch (e: Exception) {
+            Log.e("WiM", "Failed to start bubble: ${e.message}")
+        }
+    }
+
     private fun updatePermissionStatus() {
         val overlayOk = Settings.canDrawOverlays(this)
-        val accessibilityOk = WimAccessibilityService.instance != null
+        val accessibilityOk = isAccessibilityEnabled()
         val micOk = AudioRecorder(this).hasPermission()
 
         findViewById<Button>(R.id.overlayPermBtn).text =
@@ -880,6 +940,9 @@ Toggle it on, adjust the delay with the slider. Works alongside recording.""".tr
         if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
             statusText.text = "IDLE"
             statusBulb.setImageResource(if (nightMode) R.drawable.edison_bulb_lit else R.drawable.edison_bulb_off)
+            // Start bubble now, and retry after 2s in case accessibility service is still connecting
+            ensureBubbleRunning()
+            window.decorView.postDelayed({ ensureBubbleRunning() }, 2000)
         } else {
             statusText.text = "SETUP"
             statusBulb.setImageResource(R.drawable.edison_bulb_red)

@@ -45,10 +45,9 @@
                         android:layout_height="wrap_content"
                         android:text="WiM"
                         android:textColor="@color/copper_gold"
-                        android:textSize="26sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.06"
-                        android:fontFamily="serif" />
+                        android:textSize="32sp"
+                        android:fontFamily="@font/limelight"
+                        android:letterSpacing="0.08" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -56,7 +55,8 @@
                         android:text="What I Meant"
                         android:textColor="#BBFFFFFF"
                         android:textSize="11sp"
-                        android:letterSpacing="0.12" />
+                        android:letterSpacing="0.12"
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
 
                 <!-- Guide: top-left corner, opens operations manual -->

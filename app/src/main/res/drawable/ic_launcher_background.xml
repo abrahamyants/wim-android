@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Brushed aluminum background for adaptive icon -->
+<!-- Background matches bezel — seamless, tracks define the boundary -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#FFD0D0D4" />
+    <solid android:color="#FFEBEBEF" />
 </shape>
