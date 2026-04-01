@@ -348,6 +348,11 @@ class MainActivity : AppCompatActivity() {
         loadSessions()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) ensureBubbleRunning()
+    }
+
     private fun loadSessions() {
         val container = findViewById<LinearLayout>(R.id.sessionsContainer)
         container.removeAllViews()

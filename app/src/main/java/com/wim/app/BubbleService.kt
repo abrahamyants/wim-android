@@ -186,6 +186,8 @@ class BubbleService : Service() {
         var initialTouchX = 0f
         var initialTouchY = 0f
         var isDragging = false
+        var prevMoveX = 0f
+        var prevMoveY = 0f
         var downTime = 0L
         var startedOnThisPress = false
         val DRAG_THRESHOLD = 40
@@ -219,6 +221,8 @@ class BubbleService : Service() {
                     initialY = params.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    prevMoveX = event.rawX
+                    prevMoveY = event.rawY
                     isDragging = false
                     downTime = System.currentTimeMillis()
                     startedOnThisPress = false
@@ -253,12 +257,50 @@ class BubbleService : Service() {
                         params.x = initialX + dx
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(bubbleView, params)
+
+                        // Comet tail: teardrop based on frame-to-frame velocity
+                        val vx = event.rawX - prevMoveX
+                        val vy = event.rawY - prevMoveY
+                        prevMoveX = event.rawX
+                        prevMoveY = event.rawY
+                        val velocity = kotlin.math.sqrt(vx * vx + vy * vy)
+                        val baseScale = WimApp.bubbleSize() / 100f
+                        val stretch = baseScale * (1f + (velocity / 15f).coerceAtMost(0.25f))
+                        val squeeze = baseScale * (1f - (velocity / 30f).coerceAtMost(0.15f))
+                        val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+                        val w = bezel?.width?.toFloat() ?: 1f
+                        val h = bezel?.height?.toFloat() ?: 1f
+
+                        if (kotlin.math.abs(vx) > kotlin.math.abs(vy)) {
+                            // Horizontal — leading edge is where we're heading
+                            bezel?.pivotX = if (vx > 0) w else 0f
+                            bezel?.pivotY = h / 2f
+                            bezel?.scaleX = stretch
+                            bezel?.scaleY = squeeze
+                        } else {
+                            // Vertical
+                            bezel?.pivotX = w / 2f
+                            bezel?.pivotY = if (vy > 0) h else 0f
+                            bezel?.scaleX = squeeze
+                            bezel?.scaleY = stretch
+                        }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     timerHandler.removeCallbacks(startRecordingRunnable)
                     if (isDragging) {
+                        // Snap back to normal shape — reset pivot + spring animation
+                        val scale = WimApp.bubbleSize() / 100f
+                        val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+                        bezel?.pivotX = (bezel?.width ?: 0) / 2f
+                        bezel?.pivotY = (bezel?.height ?: 0) / 2f
+                        bezel?.animate()
+                            ?.scaleX(scale)?.scaleY(scale)
+                            ?.setDuration(250)
+                            ?.setInterpolator(android.view.animation.OvershootInterpolator(2f))
+                            ?.start()
+
                         // Check if dragged to bottom edge — hide bubble
                         val screenHeight = resources.displayMetrics.heightPixels
                         if (params.y > screenHeight - (80 * resources.displayMetrics.density).toInt()) {
