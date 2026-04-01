@@ -33,7 +33,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WhatIMeant">
 
-        <!-- Main activity: settings, onboarding, API key -->
+        <!-- Onboarding (first run) -->
+        <activity
+            android:name=".OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.WhatIMeant" />
+
+        <!-- Main activity: settings -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -38,6 +38,8 @@ class WimApp : Application() {
             val user = auth.currentUser
             if (user != null) {
                 profileManager.startSync(user.uid)
+                // Restore sessions from Firestore on sign-in
+                SessionHistory(this).syncFromFirestore()
             } else {
                 profileManager.stopSync()
             }

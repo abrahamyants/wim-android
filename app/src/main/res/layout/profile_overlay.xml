@@ -313,6 +313,87 @@
                     <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
+                <!-- VOCABULARY -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VOCABULARY"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/profileVocabulary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="preferred words, one per line"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:padding="10dp"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="5"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- CORRECTIONS -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CORRECTIONS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/profileCorrections"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="wrong=right, one per line"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:padding="10dp"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="5"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- TRIGGER WORDS -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TRIGGER WORDS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/profileTriggers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="words you block on, one per line"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:padding="10dp"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="5"
+                    android:layout_marginBottom="20dp" />
+
             </LinearLayout>
         </ScrollView>
     </LinearLayout>

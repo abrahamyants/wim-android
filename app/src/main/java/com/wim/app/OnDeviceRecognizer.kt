@@ -28,6 +28,7 @@ class OnDeviceRecognizer(private val context: Context) {
         fun onPartialResult(text: String)
         fun onFinalResult(text: String)
         fun onError(errorCode: Int)
+        fun onSoundEvent(label: String) {}
     }
 
     fun start(resultListener: ResultListener) {
@@ -55,6 +56,10 @@ class OnDeviceRecognizer(private val context: Context) {
 
             override fun onError(error: Int) {
                 Log.e(TAG, "SpeechRecognizer error: $error")
+                // Detect silence/pause as a sound event
+                if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                    listener?.onSoundEvent("[Pause]")
+                }
                 if (keepListening && (error == SpeechRecognizer.ERROR_NO_MATCH
                         || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
                         || error == 8 /* ERROR_RECOGNIZER_BUSY */
@@ -95,11 +100,29 @@ class OnDeviceRecognizer(private val context: Context) {
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
 
+        val primaryLang = android.preference.PreferenceManager.getDefaultSharedPreferences(context)
+            .getString("primary_language", null)
+            ?: com.wim.app.WimApp.prefs.getString("primary_language", "en-US")
+            ?: "en-US"
+        val secondaryLang = com.wim.app.WimApp.prefs.getString("secondary_language", null)
+
+        // Patience Mode: extend silence timeout for L4/high_stress (blocks last 3-4s)
+        val layer = com.wim.app.WimApp.layer()
+        val situation = com.wim.app.WimApp.situation()
+        val patienceMs = if (layer >= 4 || situation == "high_stress") 4500L else 2000L
+
         listenIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, patienceMs)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, patienceMs)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, primaryLang)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            // If secondary language set, allow both
+            if (!secondaryLang.isNullOrBlank()) {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, primaryLang)
+                putStringArrayListExtra(RecognizerIntent.EXTRA_LANGUAGE, arrayListOf(primaryLang, secondaryLang))
+            }
         }
 
         recognizer?.startListening(listenIntent!!)

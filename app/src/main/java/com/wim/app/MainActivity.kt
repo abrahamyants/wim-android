@@ -54,6 +54,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // First run → onboarding
+        if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_main)
 
         // Reset section prefs once after layout changes (v2)
@@ -183,6 +191,37 @@ class MainActivity : AppCompatActivity() {
         sessionsPanel.background = android.graphics.drawable.LayerDrawable(arrayOf(panelBg, grille))
         loadSessions()
 
+        // Export all sessions
+        findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
+            val history = SessionHistory(this)
+            val all = history.getRecentSessions(10000)
+            if (all.isEmpty()) {
+                Toast.makeText(this, "No sessions to export", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val sb = StringBuilder("WiM Session Export\n${"=".repeat(40)}\n\n")
+            val tf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            for (s in all) {
+                sb.append("[${tf.format(java.util.Date(s.timestamp))}] L${s.layer} ${s.tone}\n")
+                sb.append("${s.cleanText}\n\n")
+            }
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, sb.toString())
+                putExtra(Intent.EXTRA_SUBJECT, "WiM Sessions Export")
+            }
+            startActivity(Intent.createChooser(intent, "Export sessions"))
+        }
+
+        // Session search
+        findViewById<EditText>(R.id.sessionSearch)?.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                loadSessions(s?.toString()?.trim())
+            }
+        })
+
         // ── Tone selection (TextViews) ───────────────────────
         // Tone auto-detected — no manual selection needed
 
@@ -286,6 +325,127 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("tips_enabled", checked).apply()
         }
 
+        // ── FAST mode toggle ──
+        val fastToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.fastModeToggle)
+        fastToggle.isChecked = WimApp.prefs.getBoolean("fast_mode", false)
+        styleToggle(fastToggle)
+        fastToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("fast_mode", checked).apply()
+        }
+
+        // ── Languages ──
+        val primaryLang = findViewById<EditText>(R.id.primaryLangInput)
+        val secondaryLang = findViewById<EditText>(R.id.secondaryLangInput)
+        primaryLang?.setText(WimApp.prefs.getString("primary_language", "en-US") ?: "en-US")
+        secondaryLang?.setText(WimApp.prefs.getString("secondary_language", "") ?: "")
+        primaryLang?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) WimApp.prefs.edit().putString("primary_language", primaryLang.text.toString().trim().ifBlank { "en-US" }).apply()
+        }
+        secondaryLang?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) WimApp.prefs.edit().putString("secondary_language", secondaryLang.text.toString().trim()).apply()
+        }
+
+        // ── Your name (for name vibration) ──
+        val nameInput = findViewById<EditText>(R.id.userNameInput)
+        nameInput?.setText(WimApp.prefs.getString("user_name", "") ?: "")
+        nameInput?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) WimApp.prefs.edit().putString("user_name", nameInput.text.toString().trim()).apply()
+        }
+
+        // ── Voice shortcuts ──
+        val shortcutsInput = findViewById<EditText>(R.id.shortcutsInput)
+        shortcutsInput?.setText(WimApp.prefs.getString("voice_shortcuts", "") ?: "")
+        shortcutsInput?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) WimApp.prefs.edit().putString("voice_shortcuts", shortcutsInput.text.toString()).apply()
+        }
+
+        // ── Type-to-speak ──
+        val tts = android.speech.tts.TextToSpeech(this) { status ->
+            if (status != android.speech.tts.TextToSpeech.SUCCESS) Log.e("WiM", "TTS init failed")
+        }
+        findViewById<TextView>(R.id.ttsSpeak)?.setOnClickListener {
+            val text = findViewById<EditText>(R.id.ttsInput)?.text?.toString()?.trim() ?: return@setOnClickListener
+            if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
+        }
+
+        // ── Double-shake toggle ──
+        val shakeToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.shakeToggle)
+        shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", true)
+        styleToggle(shakeToggle!!)
+        shakeToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()
+        }
+
+        // ── Auto-tone toggle ──
+        val autoToneToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.autoToneToggle)
+        autoToneToggle?.isChecked = WimApp.prefs.getBoolean("auto_tone", true)
+        styleToggle(autoToneToggle!!)
+        autoToneToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("auto_tone", checked).apply()
+        }
+
+        // ── Cloud backup toggle ──
+        val cloudToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.cloudBackupToggle)
+        cloudToggle?.isChecked = WimApp.prefs.getBoolean("cloud_backup", true)
+        styleToggle(cloudToggle!!)
+        cloudToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("cloud_backup", checked).apply()
+        }
+
+        // ── DAF in Settings ──
+        val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
+        val settingsDafDelay = findViewById<SeekBar>(R.id.settingsDafDelay)
+        val settingsDafValue = findViewById<TextView>(R.id.settingsDafValue)
+        settingsDafToggle?.isChecked = WimApp.dafEnabled()
+        styleToggle(settingsDafToggle!!)
+        val savedDafDelay = WimApp.dafDelay().coerceIn(30, 300)
+        settingsDafDelay?.progress = savedDafDelay - 30
+        settingsDafValue?.text = "$savedDafDelay ms"
+        settingsDafToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("daf_enabled", checked).apply()
+        }
+        settingsDafDelay?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val ms = progress + 30
+                settingsDafValue?.text = "$ms ms"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                val ms = (seekBar?.progress ?: 70) + 30
+                WimApp.prefs.edit().putInt("daf_delay", ms).apply()
+            }
+        })
+
+        // ── Layer selector in Settings ──
+        val sLayerBtns = listOf(
+            findViewById<TextView>(R.id.settingsLayer1),
+            findViewById<TextView>(R.id.settingsLayer2),
+            findViewById<TextView>(R.id.settingsLayer3),
+            findViewById<TextView>(R.id.settingsLayer4)
+        )
+        val curLayer = WimApp.layer()
+        sLayerBtns.forEachIndexed { i, btn ->
+            val layerVal = i + 1
+            btn?.setTextColor(if (layerVal == curLayer) 0xFFEE5A24.toInt() else 0xFF888890.toInt())
+            btn?.setOnClickListener {
+                WimApp.prefs.edit().putInt("layer", layerVal).apply()
+                sLayerBtns.forEach { b -> b?.setTextColor(0xFF888890.toInt()) }
+                btn.setTextColor(0xFFEE5A24.toInt())
+                loadSessions()
+            }
+        }
+
+        // ── Dark mode toggle in Settings ──
+        val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
+        val isCurrentlyNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        darkToggle?.isChecked = isCurrentlyNight
+        styleToggle(darkToggle!!)
+        darkToggle.setOnCheckedChangeListener { _, checked ->
+            val newMode = if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            WimApp.prefs.edit().putInt("night_mode", newMode).apply()
+            AppCompatDelegate.setDefaultNightMode(newMode)
+        }
+
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
 
@@ -363,12 +523,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadSessions() {
+    private fun loadSessions(query: String? = null) {
         val container = findViewById<LinearLayout>(R.id.sessionsContainer)
         container.removeAllViews()
 
         val history = SessionHistory(this)
-        val sessions = history.getRecentSessions(50)
+        val sessions = history.getRecentSessions(50, query)
 
         // Compute stats
         val totalSessions = sessions.size
@@ -413,7 +573,30 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val today = dateFormat.format(java.util.Date())
+        val yesterday = dateFormat.format(java.util.Date(System.currentTimeMillis() - 86400000))
+        var lastDateLabel = ""
+
         for (session in sessions) {
+            val sessionDate = dateFormat.format(java.util.Date(session.timestamp))
+            if (sessionDate != lastDateLabel) {
+                lastDateLabel = sessionDate
+                val label = when (sessionDate) {
+                    today -> "Today"
+                    yesterday -> "Yesterday"
+                    else -> SimpleDateFormat("MMMM d", Locale.getDefault()).format(java.util.Date(session.timestamp))
+                }
+                val header = TextView(this).apply {
+                    text = label
+                    setTextColor(0xFFD4A574.toInt())
+                    textSize = 10f
+                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    letterSpacing = 0.1f
+                    setPadding((4 * dpScale).toInt(), (8 * dpScale).toInt(), 0, (4 * dpScale).toInt())
+                }
+                container.addView(header)
+            }
             val card = buildSessionCard(session, timeFormat, dpScale)
             container.addView(card)
         }
@@ -501,7 +684,17 @@ class MainActivity : AppCompatActivity() {
         outputRow.addView(outLabel)
 
         val outputText = TextView(this).apply {
-            text = session.cleanText
+            // First sentence bold (summary), rest normal
+            val fullText = session.cleanText
+            val firstDot = fullText.indexOfAny(charArrayOf('.', '!', '?'))
+            if (firstDot > 0 && firstDot < fullText.length - 1) {
+                val styled = android.text.SpannableStringBuilder(fullText)
+                styled.setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, firstDot + 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text = styled
+            } else {
+                text = fullText
+                setTypeface(null, Typeface.BOLD)
+            }
             setTextColor(0xFFE0E0E0.toInt())
             textSize = 13f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -519,6 +712,8 @@ class MainActivity : AppCompatActivity() {
         val cleanCount = cleanWords.size
         val stripped = rawCount - cleanCount
         val editPct = if (rawCount > 0) ((stripped.toFloat() / rawCount) * 100).toInt() else 0
+        val wer = SessionHistory(this).computeWer(session.rawText, session.cleanText)
+        val werPct = (wer * 100).toInt()
 
         val metricsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -535,7 +730,7 @@ class MainActivity : AppCompatActivity() {
         if (session.totalMs > 0) timingParts.add("total:${session.totalMs}ms")
 
         val metricsText = TextView(this).apply {
-            text = "${timingParts.joinToString("  ")}  cleanup:${editPct}%  (${rawCount}w→${cleanCount}w)"
+            text = "${timingParts.joinToString("  ")}  WER:${werPct}%  (${rawCount}w\u2192${cleanCount}w)"
             setTextColor(0xFF666670.toInt())
             textSize = 9f
             typeface = Typeface.MONOSPACE
@@ -642,6 +837,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
                 WimApp.prefs.edit().putString(prefKey, values[i]).apply()
+                // Situation auto-config
+                if (prefKey == "situation" && values[i] == "high_stress") {
+                    WimApp.prefs.edit().putInt("layer", 4).putBoolean("daf_enabled", true).apply()
+                    loadSessions() // refresh stats for new layer
+                }
             }
         }
     }
@@ -1126,6 +1326,44 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val hoursValues = listOf("morning", "nine_to_five", "evening", "flexible")
         val savedHours = prefs.getString("profile_hours", "nine_to_five") ?: "nine_to_five"
         setupProfileGroup(overlay, hoursIds, hoursValues, "profile_hours", savedHours)
+
+        // ── Profile editor: vocabulary, corrections, triggers ──
+        val profile = WimApp.profile()
+        val vocabField = overlay.findViewById<EditText>(R.id.profileVocabulary)
+        vocabField?.setText(profile.getVocabulary().joinToString("\n"))
+        vocabField?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val words = vocabField.text.toString().split("\n").map { it.trim() }.filter { it.isNotBlank() }
+                words.forEach { profile.addVocabulary(it) }
+            }
+        }
+
+        val correctionsField = overlay.findViewById<EditText>(R.id.profileCorrections)
+        val corrText = profile.getCorrections().entries.joinToString("\n") { "${it.key}=${it.value}" }
+        correctionsField?.setText(corrText)
+        correctionsField?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                for (line in correctionsField.text.toString().split("\n")) {
+                    val parts = line.split("=", limit = 2)
+                    if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                        profile.addCorrection(parts[0].trim(), parts[1].trim())
+                    }
+                }
+            }
+        }
+
+        val triggersField = overlay.findViewById<EditText>(R.id.profileTriggers)
+        triggersField?.setText(profile.getTriggerWords().joinToString("\n"))
+        triggersField?.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val words = triggersField.text.toString().split("\n").map { it.trim() }.filter { it.isNotBlank() }
+                // Save triggers to SharedPreferences profile JSON
+                val json = prefs.getString("profile_json", null)
+                val obj = if (json != null) org.json.JSONObject(json) else org.json.JSONObject()
+                obj.put("trigger_words", org.json.JSONArray(words))
+                prefs.edit().putString("profile_json", obj.toString()).apply()
+            }
+        }
     }
 
     private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String, onSelect: ((Int, String) -> Unit)? = null) {

@@ -242,7 +242,10 @@ object ReconstructClient {
                 .trim()
 
             val riskFlags = computeRiskFlags(rawText, cleanText)
-            val falconOk = if (riskFlags.contains("critical_token_lost")) {
+            val fastMode = com.wim.app.WimApp.prefs.getBoolean("fast_mode", false)
+            val falconOk = if (fastMode) {
+                true // FAST mode: skip Falcon validation
+            } else if (riskFlags.contains("critical_token_lost")) {
                 false
             } else {
                 falconValidate(rawText, cleanText, layer)

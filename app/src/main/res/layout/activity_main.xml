@@ -427,6 +427,45 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+            <EditText
+                android:id="@+id/sessionSearch"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="34dp"
+                android:hint="Search sessions..."
+                android:textColor="@color/text_bright"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/exportBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="EXPORT"
+                android:textColor="@color/section_header"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:background="@drawable/card_bg" />
+
+            </LinearLayout>
+
             <FrameLayout
                 android:id="@+id/sessionsPanel"
                 android:layout_width="match_parent"
@@ -672,6 +711,7 @@
         <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerDaf"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:minWidth="180dp"
@@ -1046,6 +1086,423 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true" />
+            </LinearLayout>
+
+            <!-- Primary language -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Language"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/primaryLangInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="en-US"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+"
+                    android:textColor="@color/section_header"
+                    android:textSize="14sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/secondaryLangInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="2nd lang"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <!-- FAST mode toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="FAST mode (skip validation)"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/fastModeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false" />
+            </LinearLayout>
+
+            <!-- Your name (for name vibration) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Your name"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/userNameInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="for name vibration"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="textPersonName"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <!-- Voice shortcuts -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Voice shortcuts"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/shortcutsInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="my email=george@example.com&#10;my phone=555-1234"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="5" />
+            </LinearLayout>
+
+            <!-- Type-to-speak -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="6dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <EditText
+                    android:id="@+id/ttsInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="Type to speak aloud..."
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/ttsSpeak"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:text="SPEAK"
+                    android:textColor="@color/section_header"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp" />
+            </LinearLayout>
+
+            <!-- Double-shake toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Shake to hide/show"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/shakeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- Auto-tone toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Auto-detect tone by app"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/autoToneToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- Cloud backup toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Cloud backup sessions"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/cloudBackupToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- DAF toggle + delay -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DAF"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/settingsDafToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <SeekBar
+                    android:id="@+id/settingsDafDelay"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:max="270"
+                    android:progress="70"
+                    android:thumb="@drawable/daf_seekbar_thumb"
+                    android:progressDrawable="@drawable/daf_seekbar_track"
+                    android:layout_marginStart="8dp" />
+
+                <TextView
+                    android:id="@+id/settingsDafValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100 ms"
+                    android:textColor="@color/text_bright"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:layout_marginStart="6dp"
+                    android:minWidth="40dp"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <!-- Layer selector -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Layer"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/settingsLayer1"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="I"
+                    android:textSize="13sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_dim" />
+                <TextView
+                    android:id="@+id/settingsLayer2"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="II"
+                    android:textSize="13sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_dim" />
+                <TextView
+                    android:id="@+id/settingsLayer3"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="III"
+                    android:textSize="13sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_dim" />
+                <TextView
+                    android:id="@+id/settingsLayer4"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="IV"
+                    android:textSize="13sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_dim" />
+            </LinearLayout>
+
+            <!-- Dark/light mode toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Dark mode"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/darkModeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
 
         </LinearLayout>

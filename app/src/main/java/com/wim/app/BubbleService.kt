@@ -141,7 +141,7 @@ class BubbleService : Service() {
                 val z = event.values[2]
                 val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
 
-                if (gForce > 2.5) {
+                if (gForce > 2.5 && WimApp.prefs.getBoolean("shake_enabled", true)) {
                     val now = System.currentTimeMillis()
                     if (now - lastShakeTime > 500) {
                         shakeCount = 1
@@ -484,6 +484,8 @@ class BubbleService : Service() {
                 // Partial = current segment only; combine with finalized segments
                 lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
                 updateLiveTranscript(lastRawText)
+                // Name vibration — buzz when user's name is spoken
+                checkNameMention(text)
             }
 
             override fun onFinalResult(text: String) {
@@ -493,6 +495,10 @@ class BubbleService : Service() {
                     lastRawText = finalizedSegments
                     updateLiveTranscript(lastRawText)
                 }
+            }
+
+            override fun onSoundEvent(label: String) {
+                updateLiveTranscript("$lastRawText $label")
             }
 
             override fun onError(errorCode: Int) {
@@ -604,6 +610,19 @@ class BubbleService : Service() {
         listOf(R.id.ring1, R.id.ring2, R.id.ring3).forEach { id ->
             bubbleView?.findViewById<View>(id)?.apply {
                 scaleX = 1f; scaleY = 1f; alpha = 0f
+            }
+        }
+    }
+
+    private var lastNameMentionTime = 0L
+    private fun checkNameMention(text: String) {
+        val userName = WimApp.prefs.getString("user_name", null) ?: return
+        if (userName.isBlank()) return
+        if (text.lowercase().contains(userName.lowercase())) {
+            val now = System.currentTimeMillis()
+            if (now - lastNameMentionTime > 3000) { // debounce 3s
+                lastNameMentionTime = now
+                try { vibrator?.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 100, 50, 100), -1)) } catch (_: Exception) {}
             }
         }
     }
@@ -1039,11 +1058,28 @@ class BubbleService : Service() {
         val situation = WimApp.situation()
         val profile = WimApp.profile()
 
+        // Voice shortcuts — expand triggers before processing
+        var expandedText = rawText
+        val shortcuts = WimApp.prefs.getString("voice_shortcuts", null)
+        if (!shortcuts.isNullOrBlank()) {
+            for (line in shortcuts.split("\n")) {
+                val parts = line.split("=", limit = 2)
+                if (parts.size == 2) {
+                    val trigger = parts[0].trim()
+                    val replacement = parts[1].trim()
+                    if (trigger.isNotBlank() && expandedText.lowercase().contains(trigger.lowercase())) {
+                        expandedText = expandedText.replace(Regex("(?i)${Regex.escape(trigger)}"), replacement)
+                        Log.i(TAG, "Voice shortcut: '$trigger' → '$replacement'")
+                    }
+                }
+            }
+        }
+
         // Pre-clean: strip disfluencies from raw ASR text before any further processing
-        val rawWordCount = rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+        val rawWordCount = expandedText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val fillerWords = profile.getFillerWords()
         showPipelineStage("\u29BB Cleaning up...", "Removing disfluencies & fillers")
-        val preCleaned = DisfluencyFilter.filter(rawText, fillerWords)
+        val preCleaned = DisfluencyFilter.filter(expandedText, fillerWords)
         val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val stripped = rawWordCount - cleanWordCount
         Log.i(TAG, "Pre-cleaned: $preCleaned")
