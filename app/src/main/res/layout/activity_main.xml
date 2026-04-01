@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_app"
-    android:scrollbarThumbVertical="@android:color/transparent"
-    android:fillViewport="true">
+    android:background="@drawable/bg_app">
+
+    <!-- Subtle ambient center glow — animated in code -->
+    <View
+        android:id="@+id/ambientGlow"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:background="@drawable/ambient_center_glow"
+        android:alpha="0.4" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbarThumbVertical="@android:color/transparent"
+        android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,22 +29,13 @@
         android:paddingBottom="48dp">
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- GLOW ORB — warm ambient light above brand plate -->
-        <!-- ═══════════════════════════════════════════ -->
-        <View
-            android:layout_width="240dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center_horizontal"
-            android:background="@drawable/orb_glow"
-            android:layout_marginBottom="-40dp" />
-
-        <!-- ═══════════════════════════════════════════ -->
         <!-- BRAND PLATE — dark badge matching Лаврентий -->
         <!-- ═══════════════════════════════════════════ -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="8dp"
+            android:elevation="6dp">
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -261,12 +265,13 @@
             android:id="@+id/headerLayer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="LAYER  ▼"
-            android:textColor="@color/section_header"
+            android:text="LAYER"
+            android:textColor="@color/copper_gold"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
@@ -411,12 +416,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="SESSIONS  ▼"
-            android:textColor="@color/section_header"
+            android:text="SESSIONS"
+            android:textColor="@color/copper_gold"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
@@ -587,12 +593,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="SITUATION  ▼"
-            android:textColor="@color/section_header"
+            android:text="SITUATION"
+            android:textColor="@color/copper_gold"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
@@ -717,12 +724,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="DAF  ▼"
-            android:textColor="@color/section_header"
+            android:text="DAF"
+            android:textColor="@color/copper_gold"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
@@ -833,12 +841,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="PERMISSIONS  ▼"
-            android:textColor="@color/section_header"
+            android:text="PERMISSIONS"
+            android:textColor="@color/copper_gold"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
@@ -899,16 +908,16 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:text="SETTINGS"
-            android:textColor="@color/section_header"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:letterSpacing="0.15"
+            android:textColor="@color/copper_gold"
+            android:textSize="14sp"
+            android:fontFamily="@font/josefin_sans_light"
+            android:elevation="4dp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
             android:gravity="center_vertical"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:background="@drawable/glass_panel_bg_pressable"
-            android:drawableEnd="@android:drawable/arrow_down_float"
+            android:background="@drawable/glass_panel_bg_dark_pressable"
             android:layout_marginBottom="12dp" />
 
         <LinearLayout
@@ -1629,4 +1638,5 @@
         </FrameLayout>
 
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>

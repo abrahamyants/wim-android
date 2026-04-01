@@ -60,6 +60,21 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
+        // Ambient center glow — subtle radiating pulse
+        findViewById<View>(R.id.ambientGlow)?.let { glow ->
+            val dur = 4000L
+            val interp = android.view.animation.AccelerateDecelerateInterpolator()
+            fun anim(prop: String, from: Float, to: Float) =
+                android.animation.ObjectAnimator.ofFloat(glow, prop, from, to).apply {
+                    duration = dur; repeatCount = android.animation.ValueAnimator.INFINITE
+                    repeatMode = android.animation.ValueAnimator.REVERSE; interpolator = interp
+                }
+            android.animation.AnimatorSet().apply {
+                playTogether(anim("scaleX", 0.75f, 1.25f), anim("scaleY", 0.75f, 1.25f), anim("alpha", 0.55f, 0.15f))
+                start()
+            }
+        }
+
         // Reset section prefs once after layout changes (v2)
         val layoutVersion = WimApp.prefs.getInt("layout_version", 0)
         if (layoutVersion < 2) {
@@ -897,22 +912,21 @@ class MainActivity : AppCompatActivity() {
         val title = header.text.toString()
             .replace("  \u25BC", "").replace("  \u25B6", "")
             .replace("  \u25BE", "").replace("  \u25B8", "")
+            .replace("  +", "").replace("  \u2212", "")
             .trim()
         header.text = title
-        // Pin arrow to right edge using drawableEnd with a small text drawable
-        val arrow = if (expanded) "\u25BC" else "\u25B6"
-        val arrowDrawable = android.graphics.drawable.GradientDrawable()
-        // Use a TextDrawable approach: paint the arrow character
+        // Pin +/− toggle to right edge using drawableEnd
+        val symbol = if (expanded) "\u2212" else "+"
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = header.textSize * 0.9f
+            textSize = header.textSize * 1.1f
             color = getColor(R.color.orange_label)
-            typeface = android.graphics.Typeface.MONOSPACE
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
-        val w = paint.measureText(arrow).toInt() + 4
+        val w = paint.measureText(symbol).toInt() + 4
         val h = (paint.textSize + 4).toInt()
         val bitmap = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        canvas.drawText(arrow, 2f, paint.textSize, paint)
+        canvas.drawText(symbol, 2f, paint.textSize, paint)
         val drawable = android.graphics.drawable.BitmapDrawable(resources, bitmap)
         drawable.setBounds(0, 0, w, h)
         header.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, drawable, null)
