@@ -35,6 +35,11 @@ import kotlinx.coroutines.launch
 
 class BubbleService : Service() {
 
+    private var sensorManager: android.hardware.SensorManager? = null
+    private var shakeListener: android.hardware.SensorEventListener? = null
+    private var lastShakeTime = 0L
+    private var shakeCount = 0
+
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
@@ -95,7 +100,49 @@ class BubbleService : Service() {
         onDeviceRecognizer = OnDeviceRecognizer(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startForeground(NOTIFICATION_ID, buildNotification(),
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        setupShakeDetector()
+    }
+
+    private fun setupShakeDetector() {
+        sensorManager = getSystemService(android.hardware.SensorManager::class.java)
+        val accelerometer = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) ?: return
+
+        shakeListener = object : android.hardware.SensorEventListener {
+            override fun onSensorChanged(event: android.hardware.SensorEvent) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
+
+                if (gForce > 2.5) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastShakeTime > 500) {
+                        shakeCount = 1
+                    } else {
+                        shakeCount++
+                    }
+                    lastShakeTime = now
+
+                    if (shakeCount >= 2) {
+                        shakeCount = 0
+                        // Double-shake: toggle bubble visibility
+                        if (bubbleView != null) {
+                            hideBubble()
+                            try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        } else {
+                            showBubble()
+                            try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        }
+                    }
+                }
+            }
+
+            override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+        }
+
+        sensorManager?.registerListener(shakeListener, accelerometer, android.hardware.SensorManager.SENSOR_DELAY_UI)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -117,6 +164,7 @@ class BubbleService : Service() {
         if (bubbleView != null) return
 
         Log.i(TAG, "Showing bubble")
+        updateNotification("Voice dictation active")
         val inflater = LayoutInflater.from(this)
         bubbleView = inflater.inflate(R.layout.bubble, null)
 
@@ -210,7 +258,15 @@ class BubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     timerHandler.removeCallbacks(startRecordingRunnable)
-                    if (isDragging) return@setOnTouchListener true
+                    if (isDragging) {
+                        // Check if dragged to bottom edge — hide bubble
+                        val screenHeight = resources.displayMetrics.heightPixels
+                        if (params.y > screenHeight - (80 * resources.displayMetrics.density).toInt()) {
+                            hideBubble()
+                            updateNotification("Bubble hidden — tap to show")
+                        }
+                        return@setOnTouchListener true
+                    }
 
                     // Check if tap was in the bezel ring (not the inner knob)
                     val cx = v.width / 2f
@@ -297,9 +353,12 @@ class BubbleService : Service() {
 
     private fun hideBubble() {
         bubbleView?.let {
-            windowManager?.removeView(it)
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
             bubbleView = null
         }
+        // Re-post notification so it stays visible as the recall button
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.notify(NOTIFICATION_ID, buildNotification("Bubble hidden — tap to show"))
     }
 
     private fun startListening() {
@@ -513,9 +572,18 @@ class BubbleService : Service() {
      * @param questionWord Short word shown on the knob (e.g. "WORK?" or "VENT?")
      * @param onAnswer Callback with true=✓ false=✕ null=timeout
      */
+    private var preClarifierSize = -1
+    private var preClarifierOpacity = -1
+
     fun showClarifier(questionWord: String, onAnswer: (Boolean?) -> Unit) {
         isClarifierActive = true
         clarifierCallback = { answer -> onAnswer(answer) }
+
+        // Save current size/opacity and max out for visibility
+        preClarifierSize = WimApp.bubbleSize()
+        preClarifierOpacity = WimApp.bubbleOpacity()
+        WimApp.prefs.edit().putInt("bubble_size", 150).putInt("bubble_opacity", 100).apply()
+        updateBubbleAppearance()
 
         // Show question on the knob — auto-size to fill, dark gray, bold
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -554,6 +622,14 @@ class BubbleService : Service() {
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
             letterSpacing = 0.05f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+
+        // Restore original size and opacity
+        if (preClarifierSize > 0) {
+            WimApp.prefs.edit().putInt("bubble_size", preClarifierSize).putInt("bubble_opacity", preClarifierOpacity).apply()
+            updateBubbleAppearance()
+            preClarifierSize = -1
+            preClarifierOpacity = -1
         }
 
         // Show acknowledgment if user answered (not timeout)
@@ -879,23 +955,38 @@ class BubbleService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "WiM Voice Dictation",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Keeps the voice dictation bubble active"
+            setSound(null, null)
+            enableVibration(false)
         }
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(channel)
     }
 
-    private fun buildNotification(): Notification =
-        Notification.Builder(this, CHANNEL_ID)
+    private fun buildNotification(text: String = "Voice dictation active"): Notification {
+        val showIntent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
+        val pendingIntent = android.app.PendingIntent.getService(
+            this, 0, showIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("What I Meant")
-            .setContentText("Voice dictation active")
+            .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentIntent(pendingIntent)
             .build()
+    }
+
+    private fun updateNotification(text: String) {
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.notify(NOTIFICATION_ID, buildNotification(text))
+    }
 
     override fun onDestroy() {
         instance = null
+        sensorManager?.unregisterListener(shakeListener)
         dismissMenu()
         hideLiveTranscript()
         dafPlayer?.stop()

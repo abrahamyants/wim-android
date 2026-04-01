@@ -333,6 +333,9 @@ class MainActivity : AppCompatActivity() {
         // Request battery optimization exemption so Samsung/OEMs don't kill the bubble
         requestBatteryExemption()
 
+        // Check notification channel is enabled — needed for bubble recall
+        checkNotificationChannel()
+
         // ── Privacy Policy ────────────────────────────────
         findViewById<TextView>(R.id.privacyLink).setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/gugosf114/lavrentiy/blob/main/PRIVACY.md")))
@@ -888,6 +891,20 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         root.addView(overlay)
     }
 
+    private fun checkNotificationChannel() {
+        val nm = getSystemService(android.app.NotificationManager::class.java)
+        val channel = nm.getNotificationChannel("wim_bubble")
+        if (channel != null && channel.importance == android.app.NotificationManager.IMPORTANCE_NONE) {
+            // User disabled the notification channel — bubble recall won't work
+            Toast.makeText(this, "WiM notifications are disabled — you won't be able to recall the bubble. Please re-enable in Settings.", Toast.LENGTH_LONG).show()
+            val intent = Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+                putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, "wim_bubble")
+            }
+            try { startActivity(intent) } catch (_: Exception) {}
+        }
+    }
+
     private fun requestBatteryExemption() {
         val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
@@ -911,12 +928,12 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     }
 
     private fun ensureBubbleRunning() {
-        if (BubbleService.instance != null) return
         if (!Settings.canDrawOverlays(this)) return
         if (!isAccessibilityEnabled()) return
+        // Send SHOW regardless — if service is running but bubble is hidden, this brings it back
         try {
             startForegroundService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
-            Log.i("WiM", "Bubble started from MainActivity")
+            Log.i("WiM", "Bubble started/shown from MainActivity")
         } catch (e: Exception) {
             Log.e("WiM", "Failed to start bubble: ${e.message}")
         }
