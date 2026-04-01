@@ -205,6 +205,7 @@ class MainActivity : AppCompatActivity() {
         val dafDelayValue = findViewById<TextView>(R.id.dafDelayValue)
 
         switchDaf.isChecked = WimApp.dafEnabled()
+        styleToggle(switchDaf)
 
         // SeekBar range: 0..270 maps to 30..300 ms
         val savedDelay = WimApp.dafDelay().coerceIn(30, 300)
@@ -275,9 +276,18 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = true)
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
         setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
-        setupCollapsible(R.id.headerBubble, R.id.contentBubble, "bubble_section", defaultExpanded = false)
+        // Bubble section moved to Settings
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
+
+        // ── Settings: tips toggle ──
+        val tipsToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.tipsToggle)
+        tipsToggle.isChecked = WimApp.prefs.getBoolean("tips_enabled", true)
+        styleToggle(tipsToggle)
+        tipsToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("tips_enabled", checked).apply()
+        }
 
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
@@ -350,7 +360,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) ensureBubbleRunning()
+        if (hasFocus) {
+            ensureBubbleRunning()
+            loadSessions()
+        }
     }
 
     private fun loadSessions() {
@@ -554,12 +567,47 @@ class MainActivity : AppCompatActivity() {
 
         card.addView(metricsRow)
 
-        // Copy on tap
-        card.setOnClickListener {
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newPlainText("wim", session.cleanText))
-            Toast.makeText(this, getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+        // Action row: copy + share
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = (4 * dp).toInt() }
         }
+
+        val copyBtn = TextView(this).apply {
+            text = "COPY"
+            textSize = 9f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            setTextColor(0xFFD4A574.toInt())
+            setPadding((8 * dp).toInt(), (4 * dp).toInt(), (8 * dp).toInt(), (4 * dp).toInt())
+            setOnClickListener {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("wim", session.cleanText))
+                Toast.makeText(this@MainActivity, getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+            }
+        }
+        actionRow.addView(copyBtn)
+
+        val shareBtn = TextView(this).apply {
+            text = "SHARE"
+            textSize = 9f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            setTextColor(0xFFEE5A24.toInt())
+            setPadding((8 * dp).toInt(), (4 * dp).toInt(), (8 * dp).toInt(), (4 * dp).toInt())
+            setOnClickListener {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, session.cleanText)
+                }
+                startActivity(Intent.createChooser(intent, "Share transcription"))
+            }
+        }
+        actionRow.addView(shareBtn)
+
+        card.addView(actionRow)
 
         return card
     }
@@ -922,6 +970,14 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 Log.e("WiM", "Battery exemption request failed: ${e.message}")
             }
         }
+    }
+
+    private fun styleToggle(toggle: MaterialSwitch) {
+        toggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        toggle.trackTintList = android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())
+        )
     }
 
     private fun isAccessibilityEnabled(): Boolean {

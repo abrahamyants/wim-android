@@ -101,6 +101,8 @@ class BubbleService : Service() {
             private set
     }
 
+    fun isCurrentlyRecording(): Boolean = isRecording
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -129,6 +131,11 @@ class BubbleService : Service() {
 
         shakeListener = object : android.hardware.SensorEventListener {
             override fun onSensorChanged(event: android.hardware.SensorEvent) {
+                // Only respond to shakes when screen is on and phone is unlocked
+                val powerManager = getSystemService(android.os.PowerManager::class.java)
+                val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
+                if (!powerManager.isInteractive || keyguardManager.isKeyguardLocked) return
+
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
@@ -168,6 +175,10 @@ class BubbleService : Service() {
         when (intent?.action) {
             "SHOW" -> showBubble()
             "HIDE" -> hideBubble()
+            "TOGGLE_RECORDING" -> {
+                if (bubbleView == null) showBubble()
+                if (isRecording) stopAndProcess() else startListening()
+            }
             "TEST_CLARIFIER" -> {
                 val q = intent.getStringExtra("question") ?: "WORK?"
                 showClarifier(q) { answer ->
@@ -597,10 +608,36 @@ class BubbleService : Service() {
         }
     }
 
+    private val tips = listOf(
+        Pair("Did you know?", "Tap the ? in the app for a quick guide to all features."),
+        Pair("Light or dark?", "Tap the bulb icon in the app to switch between light and dark mode."),
+        Pair("Hide me!", "Drag the bubble to the bottom edge to hide. Shake to bring me back."),
+        Pair("Double-tap me", "Double-tap the bubble for quick settings — size, opacity, live text.")
+    )
+
+    private fun maybeShowTip() {
+        if (!WimApp.prefs.getBoolean("tips_enabled", true)) return
+        val lastTip = WimApp.prefs.getLong("last_tip_time", 0L)
+        val now = System.currentTimeMillis()
+        // Show a tip at most once every 24 hours
+        if (now - lastTip < 24 * 60 * 60 * 1000) return
+        val tipIndex = WimApp.prefs.getInt("tip_index", 0) % tips.size
+        val tip = tips[tipIndex]
+        timerHandler.postDelayed({
+            showPipelineStage(tip.first, tip.second)
+            timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
+        }, 2000) // 2s delay after idle so it doesn't flash during quick interactions
+        WimApp.prefs.edit()
+            .putLong("last_tip_time", now)
+            .putInt("tip_index", tipIndex + 1)
+            .apply()
+    }
+
     private fun setBubbleIdle() {
         timerHandler.removeCallbacks(timerRunnable)
         stopPulseRings()
         hideLiveTranscript()
+        maybeShowTip()
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
             clearAnimation()
             setBackgroundResource(R.drawable.bubble_inner_knob)
@@ -810,6 +847,12 @@ class BubbleService : Service() {
 
         val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
         liveToggle.isChecked = liveEnabled
+        // Gold thumb, light gray track
+        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        liveToggle.trackTintList = android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())
+        )
         liveToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
         }

@@ -16,6 +16,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
     companion object {
         private const val TAG = "WiM"
         private const val TABLE = "sessions"
+        private const val MAX_SESSIONS = 10_000
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -72,8 +73,26 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             }
             writableDatabase.insert(TABLE, null, values)
             Log.i(TAG, "Session recorded (asr=${asrMs}ms recon=${reconMs}ms total=${totalMs}ms falcon=$falconApproved)")
+            pruneIfNeeded()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to record session: ${e.message}")
+        }
+    }
+
+    private fun pruneIfNeeded() {
+        try {
+            val db = writableDatabase
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE", null)
+            cursor.moveToFirst()
+            val count = cursor.getInt(0)
+            cursor.close()
+            if (count > MAX_SESSIONS) {
+                val excess = count - MAX_SESSIONS
+                db.execSQL("DELETE FROM $TABLE WHERE id IN (SELECT id FROM $TABLE ORDER BY timestamp ASC LIMIT ?)", arrayOf(excess.toString()))
+                Log.i(TAG, "Pruned $excess old sessions")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to prune sessions: ${e.message}")
         }
     }
 
