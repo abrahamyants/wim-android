@@ -654,6 +654,11 @@ class BubbleService : Service() {
         }
     }
 
+    fun updateIdleDisplay() {
+        if (isRecording || isClarifierActive) return
+        setBubbleIdle()
+    }
+
     private fun updateBezelLabels() {
         // No-op in normal state — knob shows IDLE/REC/PROC
         // WORK/LIFE only shown during clarifier
@@ -855,6 +860,25 @@ class BubbleService : Service() {
         )
         liveToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
+        }
+
+        // Layer selector
+        val layerBtns = listOf(
+            menuView!!.findViewById<TextView>(R.id.menuLayer1),
+            menuView!!.findViewById<TextView>(R.id.menuLayer2),
+            menuView!!.findViewById<TextView>(R.id.menuLayer3),
+            menuView!!.findViewById<TextView>(R.id.menuLayer4)
+        )
+        val currentLayer = WimApp.layer()
+        layerBtns.forEachIndexed { i, btn ->
+            val layerVal = i + 1
+            btn.setTextColor(if (layerVal == currentLayer) 0xFFEE5A24.toInt() else 0xFF888890.toInt())
+            btn.setOnClickListener {
+                WimApp.prefs.edit().putInt("layer", layerVal).apply()
+                layerBtns.forEach { b -> b.setTextColor(0xFF888890.toInt()) }
+                btn.setTextColor(0xFFEE5A24.toInt())
+                updateIdleDisplay()
+            }
         }
 
         menuView!!.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {

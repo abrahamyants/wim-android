@@ -44,9 +44,6 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     // Card IDs grouped by section for selection logic
-    private val toneIds = listOf(R.id.toneCasual, R.id.toneProfessional, R.id.toneFriend, R.id.toneFormal)
-    private val toneValues = listOf("casual", "professional", "friend", "formal")
-
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
@@ -187,7 +184,7 @@ class MainActivity : AppCompatActivity() {
         loadSessions()
 
         // ── Tone selection (TextViews) ───────────────────────
-        setupToneGroup(toneIds, toneValues, "tone", WimApp.tone())
+        // Tone auto-detected — no manual selection needed
 
         // ── Layer selection (LinearLayouts with label child) ─
         val currentLayer = WimApp.layer()
@@ -273,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ── Collapsible sections ─────────────────────────────
-        setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = true)
+        // Tone section removed — auto-detected by app context
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
         setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
         // Bubble section moved to Settings
@@ -785,7 +782,8 @@ Natural phrases like "bye bye" are kept.<br><br>
 <b>Double-tap</b> &#8212; Open the settings menu (opacity, size, live transcript).<br><br>
 <b>Drag</b> &#8212; Move the bubble anywhere on screen.<br><br>
 <b>Bezel tap (left/right)</b> &#8212; Quick toggle between work mode (professional) and personal mode (casual).<br><br>
-The bubble shows your current state: <b>IDLE</b> (ready), <b>REC</b> (recording), <b>PROC</b> (processing).""".trimIndent()),
+The bubble shows your current layer (L1-L4) and tone (CAS/PRO/FRI/FOR). During recording: <b>REC</b>. During processing: <b>PROC</b>.<br><br>
+<b>Double-tap menu</b> also lets you change layers without opening the app.""".trimIndent()),
 
             Triple("Layers", "What each layer does", """
 <b>I. Transcribe</b> &#8212; On-device speech-to-text + disfluency filter. Free, instant, no internet after setup.<br><br>
@@ -793,12 +791,12 @@ The bubble shows your current state: <b>IDLE</b> (ready), <b>REC</b> (recording)
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and corrections. The app learns which words you prefer over time.<br><br>
 <b>IV. Stutter</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
 
-            Triple("Tones", "How your text sounds", """
-<b>Casual</b> &#8212; Natural spoken rhythm. Like texting.<br>
-<b>Professional</b> &#8212; Clean business language.<br>
-<b>Friend</b> &#8212; Relaxed, conversational.<br>
-<b>Formal</b> &#8212; No contractions, precise grammar.<br><br>
-Tone only affects Layers II+. On Layer I, tone has no effect.""".trimIndent()),
+            Triple("Smart Tone", "Automatic context detection", """
+WiM detects which app you're in and adjusts the tone automatically:<br><br>
+<b>Work apps</b> (Gmail, Slack, Teams, LinkedIn) &#8594; Professional tone<br>
+<b>Personal apps</b> (WhatsApp, Messenger, Telegram) &#8594; Casual tone<br><br>
+No manual switching needed. The bubble shows your current tone underneath the layer number.<br><br>
+Four tones available: <b>Casual</b>, <b>Professional</b>, <b>Friend</b>, <b>Formal</b>. Tone only affects Layers II+.""".trimIndent()),
 
             Triple("Situations", "Context-aware adjustments", """
 <b>Default</b> &#8212; Everyday use. Balanced cleanup.<br>
