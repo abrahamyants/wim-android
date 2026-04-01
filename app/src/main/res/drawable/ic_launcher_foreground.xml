@@ -1,74 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher icon — Limelight WM logo on 3D brushed aluminum knob -->
+<!-- Launcher icon — dark premium knob with copper WM -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer bezel ring — lighter aluminum -->
+    <!-- Outer bezel ring — dark gunmetal -->
     <path
-        android:fillColor="#FFEBEBEF"
+        android:fillColor="#FF2A2A3A"
         android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
 
-    <!-- Track lane 1 (outer) — orange groove -->
+    <!-- Track lane 1 (outer) — copper groove -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeWidth="1.2"
-        android:strokeColor="#FFEE5A24"
+        android:strokeColor="#FFD4A574"
         android:pathData="M54,54m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
 
-    <!-- Track lane 2 (inner) — orange groove -->
+    <!-- Track lane 2 (inner) — copper groove -->
     <path
         android:fillColor="@android:color/transparent"
         android:strokeWidth="1.2"
-        android:strokeColor="#FFEE5A24"
+        android:strokeColor="#FFD4A574"
         android:pathData="M54,54m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" />
 
-    <!-- Bezel inner depth ring -->
+    <!-- Bezel inner depth ring — dark navy -->
     <path
-        android:fillColor="#FFDADADE"
+        android:fillColor="#FF1E1E30"
         android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0" />
 
-    <!-- Bezel top highlight shimmer -->
+    <!-- Bezel top highlight shimmer — subtle -->
     <path
-        android:fillColor="#18FFFFFF"
+        android:fillColor="#0CFFFFFF"
         android:pathData="M34,30 Q54,22 74,30 Q64,26 44,26Z" />
 
-    <!-- Knob shadow well -->
+    <!-- Knob shadow well — deep recess around knob -->
     <path
-        android:fillColor="#FF4A4A52"
-        android:pathData="M54,54m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+        android:fillColor="#FF080812"
+        android:pathData="M54,55m-23,0a23,23 0,1 1,46 0a23,23 0,1 1,-46 0" />
 
-    <!-- Knob side wall -->
+    <!-- Knob outer rim — raised lip catching light -->
     <path
-        android:fillColor="#FFBBBBC2"
+        android:fillColor="#FF4A4A5C"
         android:pathData="M54,53m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
 
-    <!-- Knob side wall — darker bottom -->
+    <!-- Knob side wall — cylinder body, darker = depth -->
     <path
-        android:fillColor="#FF909098"
-        android:pathData="M33,54 A21,21 0 0,0 75,54 L75,56 A21,21 0 0,1 33,56Z" />
+        android:fillColor="#FF2A2A3C"
+        android:pathData="M54,54m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
 
-    <!-- Knob top face — matte brushed aluminum -->
+    <!-- Knob side wall — bottom shadow band (cylinder illusion) -->
     <path
-        android:fillColor="#FFCDCDD2"
-        android:pathData="M54,52m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0" />
+        android:fillColor="#FF1A1A28"
+        android:pathData="M34,58 A20,20 0 0,0 74,58 L74,62 A20,20 0 0,1 34,62Z" />
 
-    <!-- Knob face — darker bottom gradient -->
+    <!-- Knob rim highlight — top edge catching light -->
     <path
-        android:fillColor="#FFBABAC0"
-        android:pathData="M36,58 Q54,68 72,58 Q72,70 54,70 Q36,70 36,58Z" />
+        android:fillColor="#FF585868"
+        android:pathData="M34,46 A20,8 0 0,1 74,46 A20,8 0 0,1 34,46Z" />
 
-    <!-- Knob top highlight -->
+    <!-- Knob top face — lighter than sides = overhead light -->
+    <path
+        android:fillColor="#FF3E3E54"
+        android:pathData="M54,50m-17,0a17,17 0,1 1,34 0a17,17 0,1 1,-34 0" />
+
+    <!-- Concave dish — darker center recess -->
+    <path
+        android:fillColor="#FF2E2E44"
+        android:pathData="M54,50m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
+
+    <!-- Top specular highlight — bright arc across top third -->
     <path
         android:fillColor="#14FFFFFF"
-        android:pathData="M40,42 Q54,36 68,42 Q60,38 48,38Z" />
+        android:pathData="M40,40 Q54,34 68,40 Q62,37 46,37Z" />
 
-    <!-- Bottom shadow on knob -->
+    <!-- Secondary highlight — softer, wider -->
     <path
-        android:fillColor="#18000000"
-        android:pathData="M38,62 Q54,70 70,62 Q66,66 54,68 Q42,66 38,62Z" />
+        android:fillColor="#08FFFFFF"
+        android:pathData="M38,43 Q54,36 70,43 Q64,39 44,39Z" />
+
+    <!-- Bottom shadow crescent — ground shadow -->
+    <path
+        android:fillColor="#30000000"
+        android:pathData="M36,62 Q54,72 72,62 Q68,67 54,69 Q40,67 36,62Z" />
+
+    <!-- Indicator notch — copper tick mark at 12 o'clock -->
+    <path
+        android:fillColor="#FFD4A574"
+        android:pathData="M53,34 L55,34 L55,38 L53,38Z" />
 
 
     <!-- WM Limelight logo — scaled from font paths to fit knob -->
@@ -103,17 +123,17 @@
             android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
     </group>
 
-    <!-- Main WM letterforms — orange -->
+    <!-- Main WM letterforms — copper gold -->
     <group
         android:translateX="38"
         android:translateY="45"
         android:scaleX="0.00874"
         android:scaleY="0.00874">
         <path
-            android:fillColor="#FFEE5A24"
+            android:fillColor="#FFD4A574"
             android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
         <path
-            android:fillColor="#FFEE5A24"
+            android:fillColor="#FFD4A574"
             android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
     </group>
 

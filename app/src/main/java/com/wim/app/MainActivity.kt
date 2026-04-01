@@ -55,12 +55,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // First run → onboarding
-        if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-            finish()
-            return
-        }
+        // Onboarding disabled — rebuilding
+        // WimApp.prefs.edit().putBoolean("onboarding_complete", true).apply()
 
         setContentView(R.layout.activity_main)
 
@@ -82,8 +78,6 @@ class MainActivity : AppCompatActivity() {
         val userEmail = findViewById<TextView>(R.id.userEmail)
         val userTier = findViewById<TextView>(R.id.userTier)
 
-        val apiKeyHeaderView = findViewById<TextView>(R.id.apiKeyHeader)
-        val apiKeySectionView = findViewById<LinearLayout>(R.id.apiKeySection)
 
         fun updateAuthUI() {
             val user = AuthManager.currentUser
@@ -93,12 +87,9 @@ class MainActivity : AppCompatActivity() {
                 userEmail.text = user.email ?: user.uid.take(12)
                 userTier.text = "Free tier"
                 // Hide API key section — consumer doesn't need it
-                apiKeyHeaderView.visibility = View.GONE
-                apiKeySectionView.visibility = View.GONE
             } else {
                 signedOutSection.visibility = View.VISIBLE
                 signedInSection.visibility = View.GONE
-                apiKeyHeaderView.visibility = View.VISIBLE
             }
         }
 
@@ -143,45 +134,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show()
         }
 
-        // ── API Key section (collapsible) ──────────────────
-        val apiKeyHeader = findViewById<TextView>(R.id.apiKeyHeader)
-        val apiKeySection = findViewById<LinearLayout>(R.id.apiKeySection)
-        val apiKeyInput = findViewById<EditText>(R.id.apiKeyInput)
-        val saveKeyBtn = findViewById<Button>(R.id.saveKeyBtn)
-        val statusText = findViewById<TextView>(R.id.statusText)
-
-        // Toggle expand/collapse
-        apiKeyHeader.setOnClickListener {
-            if (apiKeySection.visibility == View.GONE) {
-                apiKeySection.visibility = View.VISIBLE
-                apiKeyHeader.text = "API KEY  \u25BE"
-            } else {
-                apiKeySection.visibility = View.GONE
-                apiKeyHeader.text = "API KEY  \u25B8"
-            }
-        }
-
-        // Load saved API key
-        val savedKey = WimApp.apiKey()
-        if (savedKey.isNotBlank()) {
-            apiKeyInput.setText(savedKey)
-            statusText.text = "API key configured"
-        }
-
-        // Save API key
-        saveKeyBtn.setOnClickListener {
-            val key = apiKeyInput.text.toString().trim()
-            if (key.startsWith("sk-")) {
-                WimApp.prefs.edit().putString("api_key", key).apply()
-                statusText.text = "API key saved"
-                Toast.makeText(this, "Key saved", Toast.LENGTH_SHORT).show()
-            } else {
-                statusText.text = "Invalid key \u2014 must start with sk-"
-            }
-        }
-
-        // Manual section removed — manual content accessible via help/about
-
         // ── Sessions (collapsible) ───────────────────────
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
         // Apply maroon background + grille mesh overlay
@@ -190,6 +142,21 @@ class MainActivity : AppCompatActivity() {
         val grille = GrilleDrawable()
         sessionsPanel.background = android.graphics.drawable.LayerDrawable(arrayOf(panelBg, grille))
         loadSessions()
+
+        // Stats row → tap to expand and scroll to sessions
+        findViewById<View>(R.id.statsRow)?.setOnClickListener {
+            val header = findViewById<TextView>(R.id.headerSessions)
+            val content = findViewById<LinearLayout>(R.id.contentSessions)
+            if (content.visibility != View.VISIBLE) {
+                content.visibility = View.VISIBLE
+                updateCollapseArrow(header, true)
+                WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
+            }
+            header.post {
+                val sv = findViewById<ViewGroup>(android.R.id.content)?.getChildAt(0) as? ScrollView
+                sv?.smoothScrollTo(0, header.top)
+            }
+        }
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
@@ -317,6 +284,27 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
         setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
 
+        // ── Auto-collapse sections on scroll ──
+        val contentFrame = findViewById<ViewGroup>(android.R.id.content)
+        val scrollView = contentFrame?.getChildAt(0) as? ScrollView
+        scrollView?.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            val sections = listOf(
+                Triple(R.id.headerLayer, R.id.contentLayer, "layer_section"),
+                Triple(R.id.headerSessions, R.id.contentSessions, "sessions_section"),
+                Triple(R.id.headerSituation, R.id.contentSituation, "situation_section")
+            )
+            for ((hId, cId, key) in sections) {
+                val header = findViewById<TextView>(hId) ?: continue
+                val content = findViewById<LinearLayout>(cId) ?: continue
+                // If the bottom of the content is above the viewport, collapse it
+                if (content.visibility == View.VISIBLE && header.bottom + content.height < scrollY) {
+                    content.visibility = View.GONE
+                    updateCollapseArrow(header, false)
+                    WimApp.prefs.edit().putBoolean("section_$key", false).apply()
+                }
+            }
+        }
+
         // ── Settings: tips toggle ──
         val tipsToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.tipsToggle)
         tipsToggle.isChecked = WimApp.prefs.getBoolean("tips_enabled", true)
@@ -435,16 +423,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // ── Dark mode toggle in Settings ──
-        val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
-        val isCurrentlyNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        darkToggle?.isChecked = isCurrentlyNight
-        styleToggle(darkToggle!!)
-        darkToggle.setOnCheckedChangeListener { _, checked ->
-            val newMode = if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-            WimApp.prefs.edit().putInt("night_mode", newMode).apply()
-            AppCompatDelegate.setDefaultNightMode(newMode)
-        }
 
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
@@ -461,15 +439,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
 
         // ── Dark/light toggle — Edison bulb in brand plate ──
-        val bulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
-        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        bulb?.setImageResource(if (isNight) R.drawable.edison_bulb_lit else R.drawable.edison_bulb_off)
-        bulb?.setOnClickListener {
-            val currentNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val newMode = if (currentNight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
-            WimApp.prefs.edit().putInt("night_mode", newMode).apply()
-            AppCompatDelegate.setDefaultNightMode(newMode)
-        }
+        // Edison bulb removed
+        // Dark/light toggle removed — dark mode only
 
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)
@@ -1054,6 +1025,20 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             setPadding((16 * dp).toInt(), (20 * dp).toInt(), (16 * dp).toInt(), (40 * dp).toInt())
         }
 
+        // Close button
+        content.addView(TextView(this).apply {
+            text = "✕ Close"
+            setTextColor(0xFFD4A574.toInt())
+            textSize = 14f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            gravity = android.view.Gravity.END
+            setPadding(0, 0, 0, (8 * dp).toInt())
+            setOnClickListener {
+                val root = findViewById<android.widget.FrameLayout>(android.R.id.content)
+                root.removeView(overlay)
+            }
+        })
+
         // Header
         content.addView(TextView(this).apply {
             text = "Guide"
@@ -1211,17 +1196,17 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             if (micOk) "Microphone: Granted" else "Grant Microphone Permission"
 
         val statusText = findViewById<TextView>(R.id.statusText)
-        val statusBulb = findViewById<android.widget.ImageView>(R.id.statusBulb)
-        val nightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        // statusBulb removed
+        // nightMode check removed
         if (overlayOk && accessibilityOk && micOk && (WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn)) {
             statusText.text = "IDLE"
-            statusBulb.setImageResource(if (nightMode) R.drawable.edison_bulb_lit else R.drawable.edison_bulb_off)
+            // bulb removed
             // Start bubble now, and retry after 2s in case accessibility service is still connecting
             ensureBubbleRunning()
             window.decorView.postDelayed({ ensureBubbleRunning() }, 2000)
         } else {
             statusText.text = "SETUP"
-            statusBulb.setImageResource(R.drawable.edison_bulb_red)
+            // bulb removed
         }
     }
 
@@ -1315,11 +1300,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             true
         }
 
-        // ── Speech ──
-        val speechIds = listOf(R.id.profileSpeechClean, R.id.profileSpeechStumble, R.id.profileSpeechStutter)
-        val speechValues = listOf("clean", "stumble", "stutter")
-        val savedSpeech = prefs.getString("profile_speech", "clean") ?: "clean"
-        setupProfileGroup(overlay, speechIds, speechValues, "profile_speech", savedSpeech)
+        // Speech section removed — layer selection covers this
 
         // ── Work hours ──
         val hoursIds = listOf(R.id.hoursMorning, R.id.hoursDay, R.id.hoursEvening, R.id.hoursFlexible)

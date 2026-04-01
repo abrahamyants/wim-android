@@ -1,38 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Brushed aluminum menu panel with depth and border -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bottom shadow -->
-    <item android:bottom="0dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#40000000" />
-            <corners android:radius="14dp" />
-        </shape>
-    </item>
-    <!-- Brushed aluminum texture -->
-    <item android:bottom="2dp">
-        <bitmap
-            android:src="@drawable/bg_brushed_aluminum"
-            android:tileMode="repeat"
-            android:dither="true" />
-    </item>
-    <!-- Gradient overlay for depth -->
-    <item android:bottom="2dp">
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#00000000"
-                android:centerColor="#06000000"
-                android:endColor="#12000000"
-                android:angle="270" />
-            <stroke android:width="1dp" android:color="#1F000000" />
-            <corners android:radius="14dp" />
-        </shape>
-    </item>
-    <!-- Inner highlight -->
-    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="3dp">
-        <shape android:shape="rectangle">
-            <solid android:color="@android:color/transparent" />
-            <stroke android:width="1dp" android:color="#1AFFFFFF" />
-            <corners android:radius="13dp" />
-        </shape>
-    </item>
-</layer-list>
+<!-- Bubble menu — dark glass matching app redesign -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#EE252530" />
+    <corners android:radius="16dp" />
+    <stroke android:width="1dp" android:color="#20D4A574" />
+</shape>

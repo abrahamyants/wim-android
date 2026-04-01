@@ -16,6 +16,16 @@
         android:paddingBottom="48dp">
 
         <!-- ═══════════════════════════════════════════ -->
+        <!-- GLOW ORB — warm ambient light above brand plate -->
+        <!-- ═══════════════════════════════════════════ -->
+        <View
+            android:layout_width="240dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/orb_glow"
+            android:layout_marginBottom="-40dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
         <!-- BRAND PLATE — dark badge matching Лаврентий -->
         <!-- ═══════════════════════════════════════════ -->
         <FrameLayout
@@ -75,15 +85,12 @@
                     android:contentDescription="Operations manual" />
 
 
-<!-- Bulb: top-right corner, doubles as dark/light toggle -->
-                <ImageView
+<!-- Edison bulb removed — dark mode only -->
+                <TextView
                     android:id="@+id/statusBulb"
-                    android:layout_width="22dp"
-                    android:layout_height="34dp"
-                    android:src="@drawable/edison_bulb_green"
-                    android:importantForAccessibility="no"
-                    android:layout_gravity="end|center_vertical"
-                    android:contentDescription="Toggle dark/light mode" />
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
 
                 <!-- Hidden status text for code reference -->
                 <TextView
@@ -96,8 +103,8 @@
 
             <!-- Screw: top-left -->
             <View
-                android:layout_width="7dp"
-                android:layout_height="7dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
                 android:layout_gravity="top|start"
                 android:layout_marginTop="6dp"
                 android:layout_marginStart="8dp"
@@ -105,8 +112,8 @@
 
             <!-- Screw: top-right -->
             <View
-                android:layout_width="7dp"
-                android:layout_height="7dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
                 android:layout_gravity="top|end"
                 android:layout_marginTop="6dp"
                 android:layout_marginEnd="8dp"
@@ -114,8 +121,8 @@
 
             <!-- Screw: bottom-left -->
             <View
-                android:layout_width="7dp"
-                android:layout_height="7dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
                 android:layout_gravity="bottom|start"
                 android:layout_marginBottom="6dp"
                 android:layout_marginStart="8dp"
@@ -123,8 +130,8 @@
 
             <!-- Screw: bottom-right -->
             <View
-                android:layout_width="7dp"
-                android:layout_height="7dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
                 android:layout_gravity="bottom|end"
                 android:layout_marginBottom="6dp"
                 android:layout_marginEnd="8dp"
@@ -252,9 +259,8 @@
         <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerLayer"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="180dp"
             android:text="LAYER  ▼"
             android:textColor="@color/section_header"
             android:textSize="14sp"
@@ -267,7 +273,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentLayer"
@@ -397,16 +403,14 @@
 
         </LinearLayout>
 
-        <!-- spacer -->
-
         <!-- ═══════════════════════════════════════════ -->
         <!-- SESSIONS -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerSessions"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="180dp"
+            android:layout_marginTop="10dp"
             android:text="SESSIONS  ▼"
             android:textColor="@color/section_header"
             android:textSize="14sp"
@@ -419,7 +423,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentSessions"
@@ -580,9 +584,9 @@
         <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerSituation"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="180dp"
+            android:layout_marginTop="10dp"
             android:text="SITUATION  ▼"
             android:textColor="@color/section_header"
             android:textSize="14sp"
@@ -595,7 +599,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentSituation"
@@ -704,8 +708,6 @@
         <!-- ═══════════════════════════════════════════ -->
         <!-- Bubble section removed — opacity/size moved to Settings -->
 
-        <!-- spacer -->
-
         <!-- ═══════════════════════════════════════════ -->
         <!-- DAF -->
         <!-- ═══════════════════════════════════════════ -->
@@ -714,7 +716,7 @@
             android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minWidth="180dp"
+            android:layout_marginTop="10dp"
             android:text="DAF  ▼"
             android:textColor="@color/section_header"
             android:textSize="14sp"
@@ -727,7 +729,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentDaf"
@@ -821,66 +823,16 @@
 
         </LinearLayout>
 
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- API KEY (collapsed section) -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:id="@+id/apiKeyHeader"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:text="API KEY  ▶"
-            android:textColor="@color/section_header"
-            android:textSize="11sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.15"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="4dp" />
-
-        <LinearLayout
-            android:id="@+id/apiKeySection"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-            android:layout_marginBottom="8dp">
-
-            <EditText
-                android:id="@+id/apiKeyInput"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:background="@drawable/card_bg"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_dim"
-                android:hint="sk-proj-..."
-                android:inputType="textPassword"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:textSize="13sp"
-                android:fontFamily="monospace"
-                android:layout_marginBottom="6dp" />
-
-            <Button
-                android:id="@+id/saveKeyBtn"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:text="Save Key"
-                android:backgroundTint="@color/red_primary"
-                android:textColor="@color/text_white"
-                android:textSize="13sp" />
-        </LinearLayout>
-
-        <!-- spacer -->
+        <!-- API key section removed -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- PERMISSIONS -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/headerPermissions"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="180dp"
+            android:layout_marginTop="10dp"
             android:text="PERMISSIONS  ▼"
             android:textColor="@color/section_header"
             android:textSize="14sp"
@@ -893,7 +845,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentPermissions"
@@ -945,7 +897,7 @@
         <TextView
             android:id="@+id/headerSettings"
             android:layout_width="match_parent"
-            android:layout_height="34dp"
+            android:layout_height="40dp"
             android:text="SETTINGS"
             android:textColor="@color/section_header"
             android:textSize="11sp"
@@ -957,7 +909,7 @@
             android:paddingEnd="14dp"
             android:background="@drawable/glass_panel_bg_pressable"
             android:drawableEnd="@android:drawable/arrow_down_float"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/contentSettings"
@@ -1479,31 +1431,7 @@
                     android:textColor="@color/text_dim" />
             </LinearLayout>
 
-            <!-- Dark/light mode toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="Dark mode"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/darkModeToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
+            <!-- Dark mode removed — dark only -->
 
         </LinearLayout>
 
@@ -1563,11 +1491,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="G"
-                android:textColor="@color/copper_gold"
-                android:textSize="16sp"
+                android:text="Google"
+                android:textColor="#FF4285F4"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:fontFamily="serif"
+                android:fontFamily="sans-serif"
                 android:layout_marginEnd="8dp" />
 
             <Button
@@ -1600,11 +1528,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="G"
-                android:textColor="@color/copper_gold"
-                android:textSize="16sp"
+                android:text="Google"
+                android:textColor="#FF4285F4"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:fontFamily="serif"
+                android:fontFamily="sans-serif"
                 android:layout_marginEnd="8dp" />
 
             <TextView
@@ -1659,15 +1587,23 @@
                 android:paddingStart="20dp"
                 android:paddingEnd="20dp">
 
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/wm_waveform_logo"
+                    android:scaleType="fitCenter"
+                    android:importantForAccessibility="no" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="powered by Лаврентий"
-                    android:textColor="@color/copper_gold"
-                    android:textSize="10sp"
+                    android:textColor="#55FFFFFF"
+                    android:textSize="8sp"
                     android:fontFamily="serif"
                     android:fontStyle="italic"
-                    android:letterSpacing="0.06" />
+                    android:letterSpacing="0.06"
+                    android:layout_marginTop="2dp" />
 
                 <TextView
                     android:id="@+id/privacyLink"
@@ -1681,34 +1617,7 @@
 
             </LinearLayout>
 
-            <!-- Screw: top-left -->
-            <View
-                android:layout_width="5dp"
-                android:layout_height="5dp"
-                android:layout_gravity="top|start"
-                android:layout_marginTop="5dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/screw_gold" />
-
-            <!-- Screw: top-right -->
-            <View
-                android:layout_width="5dp"
-                android:layout_height="5dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="5dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/screw_gold" />
-
-            <!-- Screw: bottom-left -->
-            <View
-                android:layout_width="5dp"
-                android:layout_height="5dp"
-                android:layout_gravity="bottom|start"
-                android:layout_marginBottom="5dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/screw_gold" />
-
-            <!-- Screw: bottom-right -->
+            <!-- Footer screws removed -->
             <View
                 android:layout_width="5dp"
                 android:layout_height="5dp"

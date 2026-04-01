@@ -1,45 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pressable card: shows pressed state on touch -->
+<!-- Pressable dark glass card -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
-        <layer-list>
-            <!-- Pressed: darker, flatter, no bottom shadow -->
-            <item>
-                <shape android:shape="rectangle">
-                    <solid android:color="#FFA5A5AA" />
-                    <stroke android:width="1dp" android:color="#2A000000" />
-                    <corners android:radius="6dp" />
-                </shape>
-            </item>
-        </layer-list>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF2E2E3A" />
+            <corners android:radius="12dp" />
+            <stroke android:width="1dp" android:color="#20D4A574" />
+        </shape>
     </item>
     <item>
-        <!-- Normal: same as card_bg -->
-        <layer-list>
-            <item android:bottom="0dp">
-                <shape android:shape="rectangle">
-                    <solid android:color="#40000000" />
-                    <corners android:radius="6dp" />
-                </shape>
-            </item>
-            <item android:bottom="2dp">
-                <shape android:shape="rectangle">
-                    <gradient
-                        android:startColor="#FFB5B5BA"
-                        android:centerColor="#FFBFBFC4"
-                        android:endColor="#FFB8B8BD"
-                        android:angle="270" />
-                    <stroke android:width="1dp" android:color="#1F000000" />
-                    <corners android:radius="6dp" />
-                </shape>
-            </item>
-            <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="3dp">
-                <shape android:shape="rectangle">
-                    <solid android:color="@android:color/transparent" />
-                    <stroke android:width="1dp" android:color="#1AFFFFFF" />
-                    <corners android:radius="5dp" />
-                </shape>
-            </item>
-        </layer-list>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF252530" />
+            <corners android:radius="12dp" />
+            <stroke android:width="1dp" android:color="#10FFFFFF" />
+        </shape>
     </item>
 </selector>

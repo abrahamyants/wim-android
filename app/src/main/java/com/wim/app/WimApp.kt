@@ -19,8 +19,8 @@ class WimApp : Application() {
         fun situation(): String = prefs.getString("situation", "default") ?: "default"
         fun dafEnabled(): Boolean = prefs.getBoolean("daf_enabled", false)
         fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
-        fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 70)
-        fun bubbleSize(): Int = prefs.getInt("bubble_size", 110)
+        fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 100)
+        fun bubbleSize(): Int = prefs.getInt("bubble_size", 95)
 
         fun profile(): ProfileManager = profileManager
     }

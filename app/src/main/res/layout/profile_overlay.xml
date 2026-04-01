@@ -240,55 +240,7 @@
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
-                <!-- Speech -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="YOUR SPEECH"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:id="@+id/profileSpeechClean"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:text="I speak clearly, just clean up my text"
-                    android:textColor="@color/text_dim"
-                    android:textSize="12sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:id="@+id/profileSpeechStumble"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:text="I sometimes stumble over words"
-                    android:textColor="@color/text_dim"
-                    android:textSize="12sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:id="@+id/profileSpeechStutter"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:text="I stutter — show me everything"
-                    android:textColor="@color/text_dim"
-                    android:textSize="12sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:layout_marginBottom="20dp" />
+                <!-- Speech section removed — layer selection covers this -->
 
                 <!-- Work hours -->
                 <TextView

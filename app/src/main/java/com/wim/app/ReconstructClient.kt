@@ -204,7 +204,7 @@ object ReconstructClient {
                 }
             }
 
-            val model = if (layer >= 4) "gpt-4o" else "gpt-4o-mini"
+            val model = if (layer >= 4) "gpt-4o" else "gpt-4o"
 
             val messages = JSONArray().apply {
                 put(JSONObject().put("role", "system").put("content", systemPrompt))
@@ -298,7 +298,7 @@ object ReconstructClient {
                 }
 
                 val body = JSONObject().apply {
-                    put("model", "gpt-4o-mini")
+                    put("model", "gpt-4o")
                     put("messages", messages)
                     put("temperature", 0.0)
                     put("max_tokens", 5)

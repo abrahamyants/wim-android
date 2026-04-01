@@ -41,7 +41,7 @@ class BubbleService : Service() {
     private var shakeCount = 0
 
     private var windowManager: WindowManager? = null
-    private var bubbleView: View? = null
+    var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var isRecording = false
     private var vibrator: Vibrator? = null
@@ -102,6 +102,12 @@ class BubbleService : Service() {
     }
 
     fun isCurrentlyRecording(): Boolean = isRecording
+
+    // Public wrappers for onboarding demo script
+    fun setBubbleIdlePublic() = setBubbleIdle()
+    fun showMenuPublic() = showMenu()
+    fun dismissMenuPublic() = dismissMenu()
+    fun hideLiveTranscriptPublic() = hideLiveTranscript()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -667,8 +673,8 @@ class BubbleService : Service() {
             text = "IDLE"
             setTextColor(0xFF555560.toInt())
         }
+        // Keep session timer — don't reset to 0:00
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            text = "0:00"
             setTextColor(0xFFEE5A24.toInt())
         }
     }
@@ -767,14 +773,36 @@ class BubbleService : Service() {
 
         // Show acknowledgment if user answered (not timeout)
         if (answer != null) {
-            bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-                text = "\uD83D\uDC4D"
-                setTextColor(0xFFFFFFFF.toInt())
+            val label = bubbleView?.findViewById<TextView>(R.id.bubbleLabel)
+            val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+            // Flash the checkmark, then cycle sparkle sequence
+            label?.apply {
+                text = if (answer == true) "✓" else "✕"
+                setTextColor(if (answer == true) 0xFF44DD44.toInt() else 0xFFFF4444.toInt())
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 28f)
             }
+            // Quick scale-pulse animation on the bezel
+            bezel?.let { v ->
+                val scaleUp = android.animation.ObjectAnimator.ofPropertyValuesHolder(v,
+                    android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f, 1.15f, 1f),
+                    android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f, 1.15f, 1f))
+                scaleUp.duration = 350
+                scaleUp.interpolator = android.view.animation.OvershootInterpolator()
+                scaleUp.start()
+            }
+            // Sparkle sequence: ✓ → ✦ → ✧ → idle
+            timerHandler.postDelayed({
+                label?.text = "✦"
+                label?.setTextColor(0xFFD4A574.toInt()) // copper gold
+            }, 400)
+            timerHandler.postDelayed({
+                label?.text = "✧"
+                label?.setTextColor(0x88D4A574.toInt())
+            }, 650)
             timerHandler.postDelayed({
                 bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
                 setBubbleIdle()
-            }, 800)
+            }, 900)
         } else {
             bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
             setBubbleIdle()
@@ -969,7 +997,7 @@ class BubbleService : Service() {
         liveTextView?.text = text.ifBlank { "..." }
     }
 
-    private fun showPipelineStage(stage: String, detail: String) {
+    fun showPipelineStage(stage: String, detail: String) {
         if (liveTextView == null) {
             // Force-show the transcript bar for pipeline display
             val bp = bubbleParams ?: return

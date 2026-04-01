@@ -1,37 +1,35 @@
 package com.wim.app
 
 import android.Manifest
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
-import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 
 /**
- * First-run onboarding — 5 screens:
- * 1. Welcome (logo + tagline)
- * 2. How it works (3-step visual)
- * 3. Permissions (one at a time)
- * 4. Meet the bubble (interactive)
- * 5. You're all set (close the app)
+ * Premium animated onboarding — 5 screens with personality.
  */
 class OnboardingActivity : AppCompatActivity() {
 
     private var currentScreen = 0
     private lateinit var container: FrameLayout
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        container = FrameLayout(this).apply {
-            setBackgroundColor(0xFF1A1A2E.toInt())
-        }
+        container = FrameLayout(this).apply { setBackgroundColor(0xFF1A1A2E.toInt()) }
         setContentView(container)
         showScreen(0)
     }
@@ -41,45 +39,85 @@ class OnboardingActivity : AppCompatActivity() {
         container.removeAllViews()
         when (index) {
             0 -> showWelcome()
-            1 -> showHowItWorks()
-            2 -> showPermissions()
-            3 -> showMeetBubble()
-            4 -> showAllSet()
+            1 -> showDemo()
+            2 -> showHowItWorks()
+            3 -> showPermissions()
+            4 -> showMeetBubble()
+            5 -> showAllSet()
         }
     }
 
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+    // ══════════════════════════════════════════
+    // SCREEN 1.5: ANIMATED DEMO
+    // ══════════════════════════════════════════
 
-    private fun makeTitle(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 24f
-        setTextColor(0xFFD4A574.toInt())
-        typeface = Typeface.create("serif", Typeface.BOLD)
-        gravity = Gravity.CENTER
-        letterSpacing = 0.05f
+    private fun showDemo() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // Animation view — takes most of the screen
+        val demo = ReconstructionDemoView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0, 1f
+            )
+        }
+        layout.addView(demo)
+        demo.startAnimation()
+
+        // Button at bottom
+        val btnFrame = FrameLayout(this).apply {
+            setPadding(dp(32), dp(12), dp(32), dp(32))
+        }
+        val btn = makeActionButton("Next") {
+            demo.stopAnimation()
+            showScreen(2)
+        }
+        btnFrame.addView(btn)
+        layout.addView(btnFrame)
+
+        container.addView(layout)
     }
 
-    private fun makeBody(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 14f
-        setTextColor(0xBBFFFFFF.toInt())
-        gravity = Gravity.CENTER
-        setPadding(dp(32), dp(12), dp(32), dp(12))
-        setLineSpacing(0f, 1.4f)
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    // ── Entrance animations ──
+
+    private fun fadeSlideIn(view: View, delayMs: Long, fromY: Float = 60f) {
+        view.alpha = 0f
+        view.translationY = fromY
+        view.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(500)
+            .setStartDelay(delayMs)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
     }
 
-    private fun makeButton(text: String, onClick: () -> Unit): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 14f
-        setTextColor(0xFF1A1A2E.toInt())
-        setBackgroundColor(0xFFD4A574.toInt())
-        gravity = Gravity.CENTER
-        typeface = Typeface.DEFAULT_BOLD
-        setPadding(dp(32), dp(14), dp(32), dp(14))
-        setOnClickListener { onClick() }
+    private fun pulseIn(view: View, delayMs: Long) {
+        view.alpha = 0f
+        view.scaleX = 0.5f
+        view.scaleY = 0.5f
+        view.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(600)
+            .setStartDelay(delayMs)
+            .setInterpolator(OvershootInterpolator(1.5f))
+            .start()
     }
 
-    // ── Screen 1: Welcome ──
+    // ══════════════════════════════════════════
+    // SCREEN 1: WELCOME
+    // ══════════════════════════════════════════
 
     private fun showWelcome() {
         val layout = LinearLayout(this).apply {
@@ -89,44 +127,103 @@ class OnboardingActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            setPadding(dp(32), dp(80), dp(32), dp(80))
+            setPadding(dp(40), dp(100), dp(40), dp(80))
         }
 
-        // WiM in Limelight
-        layout.addView(TextView(this).apply {
+        // WiM logo
+        val logo = TextView(this).apply {
             text = "WiM"
-            textSize = 48f
+            textSize = 56f
             setTextColor(0xFFD4A574.toInt())
             gravity = Gravity.CENTER
-            try { typeface = resources.getFont(R.font.limelight) } catch (_: Exception) {}
-        })
+            try { typeface = resources.getFont(R.font.limelight) } catch (_: Exception) {
+                typeface = Typeface.create("serif", Typeface.BOLD)
+            }
+        }
+        layout.addView(logo)
+        pulseIn(logo, 200)
 
-        layout.addView(TextView(this).apply {
+        // Subtitle
+        val subtitle = TextView(this).apply {
             text = "What I Meant"
             textSize = 14f
-            setTextColor(0xAAFFFFFF.toInt())
+            setTextColor(0x99FFFFFF.toInt())
             gravity = Gravity.CENTER
-            letterSpacing = 0.12f
-            setPadding(0, dp(4), 0, dp(40))
-        })
+            letterSpacing = 0.15f
+            setPadding(0, dp(4), 0, 0)
+        }
+        layout.addView(subtitle)
+        fadeSlideIn(subtitle, 500)
 
-        layout.addView(makeBody("Voice-to-text that understands you.\nSpeak messy, get clean text."))
+        // Divider line
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(60), dp(2)).apply {
+                gravity = Gravity.CENTER
+                topMargin = dp(32)
+                bottomMargin = dp(32)
+            }
+            setBackgroundColor(0xFFEE5A24.toInt())
+        }
+        layout.addView(divider)
+        fadeSlideIn(divider, 700)
 
+        // Tagline
+        val tagline = TextView(this).apply {
+            text = "Speak messy.\nGet clean text."
+            textSize = 20f
+            setTextColor(0xDDFFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setLineSpacing(0f, 1.3f)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        layout.addView(tagline)
+        fadeSlideIn(tagline, 900)
+
+        // Second tagline
+        val tagline2 = TextView(this).apply {
+            text = "Voice-to-text that understands\nwhat you meant to say."
+            textSize = 13f
+            setTextColor(0x88FFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setLineSpacing(0f, 1.4f)
+            setPadding(0, dp(16), 0, 0)
+        }
+        layout.addView(tagline2)
+        fadeSlideIn(tagline2, 1100)
+
+        // Spacer
         layout.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        layout.addView(makeButton("Get Started") { showScreen(1) })
+        // Button
+        val btn = makeActionButton("Get Started") { showScreen(1) }
+        layout.addView(btn)
+        fadeSlideIn(btn, 1400)
+
+        // Skip to permissions for returning users
+        val skip = TextView(this).apply {
+            text = "Already know WiM? Skip to setup →"
+            textSize = 11f
+            setTextColor(0x66FFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, 0)
+            setOnClickListener { showScreen(3) }
+        }
+        layout.addView(skip)
+        fadeSlideIn(skip, 1600)
 
         container.addView(layout)
     }
 
-    // ── Screen 2: How it works ──
+    // ══════════════════════════════════════════
+    // SCREEN 2: HOW IT WORKS
+    // ══════════════════════════════════════════
 
     private fun showHowItWorks() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -134,42 +231,73 @@ class OnboardingActivity : AppCompatActivity() {
             setPadding(dp(32), dp(60), dp(32), dp(60))
         }
 
-        layout.addView(makeTitle("How It Works"))
+        val title = makeScreenTitle("How It Works")
+        layout.addView(title)
+        fadeSlideIn(title, 100)
 
         val steps = listOf(
-            Pair("1. SPEAK", "Tap the floating bubble and talk.\nSay it however it comes out."),
-            Pair("2. CLEAN", "Fillers removed. Grammar fixed.\nDisfluencies stripped automatically."),
-            Pair("3. PASTE", "Clean text injected into whatever\napp you're typing in.")
+            Triple("🎙", "SPEAK", "Talk naturally into the floating\nbubble. Don't worry about how\nit comes out."),
+            Triple("✨", "CLEAN", "Fillers stripped. Repetitions removed.\nGrammar fixed. Intent preserved.\nAll automatic."),
+            Triple("📋", "PASTE", "Clean text appears right where\nyou're typing. Any app. Instantly.")
         )
 
-        for ((title, desc) in steps) {
-            layout.addView(TextView(this).apply {
-                text = title
-                textSize = 18f
+        steps.forEachIndexed { i, (icon, title2, desc) ->
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setBackgroundColor(0xFF252530.toInt())
+                setPadding(dp(20), dp(16), dp(20), dp(16))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(16) }
+            }
+
+            card.addView(TextView(this).apply {
+                text = icon
+                textSize = 32f
+                setPadding(0, 0, dp(16), 0)
+            })
+
+            val textCol = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            textCol.addView(TextView(this).apply {
+                text = title2
+                textSize = 16f
                 setTextColor(0xFFEE5A24.toInt())
                 typeface = Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setPadding(0, dp(24), 0, dp(4))
+                letterSpacing = 0.1f
             })
-            layout.addView(TextView(this).apply {
+            textCol.addView(TextView(this).apply {
                 text = desc
-                textSize = 13f
+                textSize = 12f
                 setTextColor(0xAAFFFFFF.toInt())
-                gravity = Gravity.CENTER
                 setLineSpacing(0f, 1.3f)
+                setPadding(0, dp(4), 0, 0)
             })
+            card.addView(textCol)
+
+            layout.addView(card)
+            fadeSlideIn(card, 300L + (i * 250L))
         }
 
+        // Arrow between steps would be nice but text works
         layout.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        layout.addView(makeButton("Next") { showScreen(2) })
+        val btn = makeActionButton("Next") { showScreen(3) }
+        layout.addView(btn)
+        fadeSlideIn(btn, 1100)
 
         container.addView(layout)
     }
 
-    // ── Screen 3: Permissions ──
+    // ══════════════════════════════════════════
+    // SCREEN 3: PERMISSIONS
+    // ══════════════════════════════════════════
 
     private fun showPermissions() {
         val layout = LinearLayout(this).apply {
@@ -182,112 +310,146 @@ class OnboardingActivity : AppCompatActivity() {
             setPadding(dp(32), dp(60), dp(32), dp(60))
         }
 
-        layout.addView(makeTitle("Permissions"))
-        layout.addView(makeBody("WiM needs a few permissions to work.\nEach one has a purpose."))
+        val title = makeScreenTitle("Before We Start")
+        layout.addView(title)
+        fadeSlideIn(title, 100)
+
+        val sub = TextView(this).apply {
+            text = "WiM needs these to work properly.\nTap each one to enable."
+            textSize = 13f
+            setTextColor(0x88FFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setLineSpacing(0f, 1.3f)
+            setPadding(0, dp(8), 0, dp(16))
+        }
+        layout.addView(sub)
+        fadeSlideIn(sub, 250)
 
         val overlayOk = Settings.canDrawOverlays(this)
         val micOk = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         val accessibilityOk = isAccessibilityEnabled()
+        val batteryOk = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
 
-        fun permRow(label: String, why: String, granted: Boolean, onClick: () -> Unit): LinearLayout {
-            return LinearLayout(this).apply {
+        data class Perm(val icon: String, val name: String, val why: String, val granted: Boolean, val action: () -> Unit)
+
+        val perms = listOf(
+            Perm("🔲", "Display Over Apps", "The floating bubble needs to\nappear on top of other apps", overlayOk) {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            },
+            Perm("♿", "Accessibility", "WiM detects text fields and\npastes your clean text into them", accessibilityOk) {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            },
+            Perm("🎤", "Microphone", "WiM needs to hear your voice\nto transcribe it", micOk) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 100)
+            },
+            Perm("🔋", "Battery", "Keeps the bubble alive.\nWithout this, your phone\nwill kill WiM in the background", batteryOk) {
+                try { startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))) } catch (_: Exception) {}
+            }
+        )
+
+        perms.forEachIndexed { i, perm ->
+            val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(12), dp(16), dp(12))
-                setBackgroundColor(0xFF252530.toInt())
+                setBackgroundColor(if (perm.granted) 0xFF1E2E1E.toInt() else 0xFF2E2530.toInt())
+                setPadding(dp(16), dp(14), dp(16), dp(14))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { topMargin = dp(8) }
-
-                addView(LinearLayout(this@OnboardingActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    addView(TextView(this@OnboardingActivity).apply {
-                        text = label
-                        textSize = 13f
-                        setTextColor(0xFFFFFFFF.toInt())
-                        typeface = Typeface.DEFAULT_BOLD
-                    })
-                    addView(TextView(this@OnboardingActivity).apply {
-                        text = why
-                        textSize = 11f
-                        setTextColor(0x99FFFFFF.toInt())
-                    })
-                })
-
-                addView(TextView(this@OnboardingActivity).apply {
-                    text = if (granted) "✓" else "GRANT"
-                    textSize = 12f
-                    setTextColor(if (granted) 0xFF44DD44.toInt() else 0xFFEE5A24.toInt())
-                    typeface = Typeface.DEFAULT_BOLD
-                    setPadding(dp(12), dp(8), dp(12), dp(8))
-                    if (!granted) setOnClickListener { onClick() }
-                })
+                if (!perm.granted) setOnClickListener { perm.action(); }
             }
+
+            row.addView(TextView(this).apply {
+                text = perm.icon
+                textSize = 24f
+                setPadding(0, 0, dp(14), 0)
+            })
+
+            val col = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            col.addView(TextView(this).apply {
+                text = perm.name
+                textSize = 14f
+                setTextColor(0xFFFFFFFF.toInt())
+                typeface = Typeface.DEFAULT_BOLD
+            })
+            col.addView(TextView(this).apply {
+                text = perm.why
+                textSize = 11f
+                setTextColor(0x99FFFFFF.toInt())
+                setLineSpacing(0f, 1.2f)
+            })
+            row.addView(col)
+
+            row.addView(TextView(this).apply {
+                text = if (perm.granted) "✓" else "TAP"
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(if (perm.granted) 0xFF44DD44.toInt() else 0xFFD4A574.toInt())
+                gravity = Gravity.CENTER
+                minWidth = dp(44)
+            })
+
+            layout.addView(row)
+            fadeSlideIn(row, 400L + (i * 200L))
         }
 
-        layout.addView(permRow("Overlay", "So the bubble floats over other apps", overlayOk) {
-            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-        })
-
-        layout.addView(permRow("Accessibility", "So WiM can detect text fields and paste text", accessibilityOk) {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        })
-
-        layout.addView(permRow("Microphone", "So WiM can hear your voice", micOk) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 100)
-        })
-
-        val batteryOk = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
-        layout.addView(permRow("Battery", "So the bubble stays alive (recommended)", batteryOk) {
-            try {
-                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
-            } catch (_: Exception) {}
-        })
-
-        // Samsung-specific
+        // Samsung warning
         if (android.os.Build.MANUFACTURER.equals("samsung", ignoreCase = true)) {
-            layout.addView(TextView(this).apply {
-                text = "Samsung users: Also add WiM to Settings → Battery → Never sleeping apps"
-                textSize = 10f
+            val samsung = TextView(this).apply {
+                text = "📱 Samsung: Also add WiM to\nSettings → Battery → Never sleeping apps"
+                textSize = 11f
                 setTextColor(0xFFEE5A24.toInt())
                 gravity = Gravity.CENTER
                 setPadding(0, dp(16), 0, 0)
-            })
+                setLineSpacing(0f, 1.3f)
+            }
+            layout.addView(samsung)
+            fadeSlideIn(samsung, 1200)
         }
 
         layout.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        val nextBtn = makeButton("Next") { showScreen(3) }
-        // Only enable if core permissions granted
-        if (!overlayOk || !accessibilityOk || !micOk) {
-            nextBtn.alpha = 0.4f
-            nextBtn.setOnClickListener {
-                Toast.makeText(this, "Please grant overlay, accessibility, and microphone first", Toast.LENGTH_SHORT).show()
+        val allGranted = overlayOk && accessibilityOk && micOk && batteryOk
+        val btn = makeActionButton(if (allGranted) "Next" else "Grant permissions above") {
+            if (allGranted) {
+                showScreen(4)
+            } else {
+                Toast.makeText(this, "Please grant all permissions first", Toast.LENGTH_SHORT).show()
             }
         }
-        layout.addView(nextBtn)
+        if (!allGranted) btn.alpha = 0.5f
+        layout.addView(btn)
+        fadeSlideIn(btn, 1300)
 
-        // Refresh button to recheck permissions
-        layout.addView(TextView(this).apply {
-            text = "Refresh"
+        // Refresh
+        val refresh = TextView(this).apply {
+            text = "↻ I've granted them, refresh"
             textSize = 12f
             setTextColor(0xFFD4A574.toInt())
             gravity = Gravity.CENTER
             setPadding(0, dp(12), 0, 0)
-            setOnClickListener { showScreen(2) } // rebuild the screen
-        })
+            setOnClickListener { showScreen(3) }
+        }
+        layout.addView(refresh)
+        fadeSlideIn(refresh, 1400)
 
         container.addView(layout)
     }
 
-    // ── Screen 4: Meet the bubble ──
+    // ══════════════════════════════════════════
+    // SCREEN 4: MEET THE BUBBLE
+    // ══════════════════════════════════════════
+
+    private var demoScript: BubbleDemoScript? = null
 
     private fun showMeetBubble() {
-        // Start the bubble service so the user can see it
+        // Launch the bubble
         try {
             startForegroundService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
         } catch (_: Exception) {}
@@ -299,41 +461,65 @@ class OnboardingActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            setPadding(dp(32), dp(60), dp(32), dp(60))
+            setPadding(dp(32), dp(80), dp(32), dp(60))
         }
 
-        layout.addView(makeTitle("Meet the Bubble"))
-        layout.addView(makeBody("Your floating control center.\nIt works in any app, even when WiM is closed."))
+        val title = makeScreenTitle("The Bubble's Show")
+        layout.addView(title)
+        fadeSlideIn(title, 100)
 
-        val tips = listOf(
-            "TAP the bubble to start recording",
-            "TAP again to stop and process",
-            "HOLD to record, release to stop",
-            "DOUBLE-TAP for quick settings",
-            "DRAG to move it anywhere",
-            "DRAG to bottom to hide it",
-            "SHAKE phone twice to show/hide"
-        )
-
-        for (tip in tips) {
-            layout.addView(TextView(this).apply {
-                text = "• $tip"
-                textSize = 13f
-                setTextColor(0xBBFFFFFF.toInt())
-                setPadding(dp(16), dp(6), dp(16), dp(6))
-            })
+        val sub = TextView(this).apply {
+            text = "Watch the bubble. It'll teach you everything."
+            textSize = 13f
+            setTextColor(0x99FFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(20))
         }
+        layout.addView(sub)
+        fadeSlideIn(sub, 300)
+
+        // Status text that updates during the demo
+        val statusText = TextView(this).apply {
+            text = "Starting the show..."
+            textSize = 12f
+            setTextColor(0xFFD4A574.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(20), 0, 0)
+        }
+        layout.addView(statusText)
+        pulseIn(statusText, 500)
 
         layout.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        layout.addView(makeButton("Got it") { showScreen(4) })
+        // Button appears after demo completes
+        val btn = makeActionButton("My Turn") {
+            demoScript?.cancel()
+            showScreen(5)
+        }
+        btn.alpha = 0f
+        layout.addView(btn)
 
         container.addView(layout)
+
+        // Start the demo after a short delay (let bubble appear)
+        handler.postDelayed({
+            statusText.text = "👀 Watch the bubble..."
+            demoScript = BubbleDemoScript {
+                // Demo complete — show the button
+                runOnUiThread {
+                    statusText.text = "Your turn. Try tapping the bubble."
+                    btn.animate().alpha(1f).setDuration(500).start()
+                }
+            }
+            demoScript?.start()
+        }, 1500)
     }
 
-    // ── Screen 5: All set ──
+    // ══════════════════════════════════════════
+    // SCREEN 5: ALL SET
+    // ══════════════════════════════════════════
 
     private fun showAllSet() {
         val layout = LinearLayout(this).apply {
@@ -343,25 +529,103 @@ class OnboardingActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            setPadding(dp(32), dp(80), dp(32), dp(80))
+            setPadding(dp(40), dp(80), dp(40), dp(80))
         }
 
-        layout.addView(makeTitle("You're All Set"))
+        // Checkmark
+        val check = TextView(this).apply {
+            text = "✓"
+            textSize = 64f
+            setTextColor(0xFF44DD44.toInt())
+            gravity = Gravity.CENTER
+        }
+        layout.addView(check)
+        pulseIn(check, 200)
 
-        layout.addView(makeBody("Close this app.\nThe bubble is everything you need.\n\nIt floats over every app, records your voice, cleans it up, and pastes it where you're typing.\n\nThe bubble is your app now."))
+        val title = TextView(this).apply {
+            text = "You're All Set"
+            textSize = 28f
+            setTextColor(0xFFD4A574.toInt())
+            gravity = Gravity.CENTER
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            setPadding(0, dp(16), 0, 0)
+        }
+        layout.addView(title)
+        fadeSlideIn(title, 500)
+
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(60), dp(2)).apply {
+                gravity = Gravity.CENTER
+                topMargin = dp(24)
+                bottomMargin = dp(24)
+            }
+            setBackgroundColor(0xFFEE5A24.toInt())
+        }
+        layout.addView(divider)
+        fadeSlideIn(divider, 700)
+
+        val msg = TextView(this).apply {
+            text = "Close this app.\n\nThe bubble is everything you need.\nIt works in every app, even when\nWiM is closed.\n\nJust tap, speak, and go."
+            textSize = 15f
+            setTextColor(0xBBFFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setLineSpacing(0f, 1.4f)
+        }
+        layout.addView(msg)
+        fadeSlideIn(msg, 900)
 
         layout.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        layout.addView(makeButton("Let's Go") {
-            // Mark onboarding complete
+        val btn = makeActionButton("Let's Go") {
             WimApp.prefs.edit().putBoolean("onboarding_complete", true).apply()
             startActivity(Intent(this, MainActivity::class.java))
             finish()
-        })
+        }
+        layout.addView(btn)
+        fadeSlideIn(btn, 1200)
 
         container.addView(layout)
+    }
+
+    // ── Shared components ──
+
+    private fun makeScreenTitle(text: String): TextView = TextView(this).apply {
+        this.text = text
+        textSize = 26f
+        setTextColor(0xFFD4A574.toInt())
+        gravity = Gravity.CENTER
+        typeface = Typeface.create("serif", Typeface.BOLD)
+        letterSpacing = 0.04f
+        setPadding(0, 0, 0, dp(8))
+    }
+
+    private fun makeActionButton(text: String, onClick: () -> Unit): FrameLayout {
+        val frame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+            setBackgroundColor(0xFFD4A574.toInt())
+            setOnClickListener { onClick() }
+            elevation = dp(4).toFloat()
+        }
+
+        frame.addView(TextView(this).apply {
+            this.text = text
+            textSize = 15f
+            setTextColor(0xFF1A1A2E.toInt())
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            letterSpacing = 0.08f
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        })
+
+        return frame
     }
 
     private fun isAccessibilityEnabled(): Boolean {
@@ -374,7 +638,6 @@ class OnboardingActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh permissions screen when returning from settings
-        if (currentScreen == 2) showScreen(2)
+        if (currentScreen == 3) showScreen(3)
     }
 }

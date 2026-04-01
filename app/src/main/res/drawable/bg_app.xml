@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Brushed aluminum background: tiled grain + vertical depth gradient -->
+<!-- Screen 1 premium dark background with subtle depth -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base: tiled brushed grain -->
-    <item android:drawable="@drawable/bg_brushed_tile" />
-    <!-- Overlay: vertical shading for depth (lighter top → darker bottom) -->
     <item>
         <shape android:shape="rectangle">
+            <solid android:color="#FF1A1A2E" />
+        </shape>
+    </item>
+    <!-- Subtle radial glow from top center -->
+    <item android:top="-100dp" android:left="-50dp" android:right="-50dp">
+        <shape android:shape="oval">
             <gradient
-                android:startColor="#00000000"
-                android:centerColor="#08000000"
-                android:endColor="#14000000"
-                android:angle="270" />
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:startColor="#0AEE5A24"
+                android:endColor="#00000000" />
+            <size android:width="500dp" android:height="400dp" />
         </shape>
     </item>
 </layer-list>

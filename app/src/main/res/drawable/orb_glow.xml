@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Warm copper ambient glow orb — centered above brand plate -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="120dp"
+        android:startColor="#40D4A574"
+        android:centerColor="#18A0724A"
+        android:endColor="#00000000" />
+    <size android:width="240dp" android:height="160dp" />
+</shape>
