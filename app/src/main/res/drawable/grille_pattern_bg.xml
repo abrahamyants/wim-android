@@ -1,63 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Perforated metal grille — visible brushed texture for category content areas
-     Reference: Лаврентий left panel background -->
+<!-- Category content grille — same mesh as sessions panel, neutral dark -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base: dark metal -->
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="#FF161620" />
-            <corners android:radius="8dp" />
-        </shape>
-    </item>
-    <!-- Brushed diagonal grain — direction 1, visible -->
+    <!-- Base dark -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#0EFFFFFF"
+                android:startColor="#FF141420"
+                android:centerColor="#FF1A1A28"
+                android:endColor="#FF141420"
+                android:angle="270" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <!-- Mesh tint overlay — subtle navy -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#18303050"
+                android:centerColor="#0C202040"
+                android:endColor="#14282848"
+                android:angle="135" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <!-- Diagonal mesh line — direction 1 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0CFFFFFF"
                 android:centerColor="#00FFFFFF"
                 android:endColor="#08FFFFFF"
-                android:angle="135" />
-            <corners android:radius="8dp" />
+                android:angle="45" />
+            <corners android:radius="10dp" />
         </shape>
     </item>
-    <!-- Brushed diagonal grain — direction 2, cross -->
+    <!-- Diagonal mesh line — direction 2 -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#06FFFFFF"
+                android:startColor="#08FFFFFF"
                 android:centerColor="#00FFFFFF"
-                android:endColor="#0AFFFFFF"
-                android:angle="225" />
-            <corners android:radius="8dp" />
+                android:endColor="#0CFFFFFF"
+                android:angle="315" />
+            <corners android:radius="10dp" />
         </shape>
     </item>
-    <!-- Horizontal band — subtle machining lines -->
-    <item>
+    <!-- Inset shadow — top edge recess -->
+    <item android:left="2dp" android:top="1dp" android:right="2dp" android:bottom="0dp">
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#05FFFFFF"
-                android:centerColor="#02FFFFFF"
-                android:endColor="#05FFFFFF"
-                android:angle="0" />
-            <corners android:radius="8dp" />
-        </shape>
-    </item>
-    <!-- Inner shadow — recessed into body -->
-    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="0dp">
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#20000000"
-                android:endColor="#00000000"
+                android:startColor="#40000000"
+                android:centerColor="#10000000"
+                android:endColor="#30000000"
                 android:angle="270" />
-            <corners android:radius="7dp" />
+            <corners android:radius="9dp" />
         </shape>
     </item>
-    <!-- Machined border — visible edge -->
+    <!-- Border — machined edge -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
-            <corners android:radius="8dp" />
-            <stroke android:width="1dp" android:color="#18FFFFFF" />
+            <corners android:radius="10dp" />
+            <stroke android:width="1dp" android:color="#20FFFFFF" />
         </shape>
     </item>
 </layer-list>

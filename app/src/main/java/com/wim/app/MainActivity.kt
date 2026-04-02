@@ -465,9 +465,9 @@ class MainActivity : AppCompatActivity() {
         // Dark/light toggle removed — dark mode only
 
         // ── Permissions ────────────────────────────────────
-        val overlayBtn = findViewById<Button>(R.id.overlayPermBtn)
-        val accessibilityBtn = findViewById<Button>(R.id.accessibilityPermBtn)
-        val micBtn = findViewById<Button>(R.id.micPermBtn)
+        val overlayBtn = findViewById<View>(R.id.overlayPermBtn)
+        val accessibilityBtn = findViewById<View>(R.id.accessibilityPermBtn)
+        val micBtn = findViewById<View>(R.id.micPermBtn)
 
         overlayBtn.setOnClickListener {
             if (!Settings.canDrawOverlays(this)) {
@@ -1220,12 +1220,12 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val accessibilityOk = isAccessibilityEnabled()
         val micOk = AudioRecorder(this).hasPermission()
 
-        findViewById<Button>(R.id.overlayPermBtn).text =
-            if (overlayOk) "Overlay: Granted" else "Grant Overlay Permission"
-        findViewById<Button>(R.id.accessibilityPermBtn).text =
-            if (accessibilityOk) "Accessibility: Enabled" else "Enable Accessibility Service"
-        findViewById<Button>(R.id.micPermBtn).text =
-            if (micOk) "Microphone: Granted" else "Grant Microphone Permission"
+        findViewById<TextView>(R.id.overlayPermLabel)?.text =
+            if (overlayOk) "Overlay ✓" else "Overlay"
+        findViewById<TextView>(R.id.accessibilityPermLabel)?.text =
+            if (accessibilityOk) "Accessibility ✓" else "Accessibility"
+        findViewById<TextView>(R.id.micPermLabel)?.text =
+            if (micOk) "Microphone ✓" else "Microphone"
 
         val statusText = findViewById<TextView>(R.id.statusText)
         // statusBulb removed

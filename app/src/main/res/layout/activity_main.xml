@@ -40,8 +40,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/brand_plate_bg"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
@@ -58,7 +58,7 @@
                         android:layout_height="wrap_content"
                         android:text="WiM"
                         android:textColor="@color/copper_gold"
-                        android:textSize="32sp"
+                        android:textSize="26sp"
                         android:fontFamily="@font/limelight"
                         android:letterSpacing="0.08" />
 
@@ -72,20 +72,7 @@
                         android:layout_marginTop="0dp" />
                 </LinearLayout>
 
-                <!-- Guide: top-left corner, opens operations manual -->
-                <TextView
-                    android:id="@+id/guideBtn"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:layout_gravity="start|center_vertical"
-                    android:gravity="center"
-                    android:text="?"
-                    android:textColor="@color/copper_gold"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:fontFamily="serif"
-                    android:background="@drawable/guide_btn_bg"
-                    android:contentDescription="Operations manual" />
+                <!-- Guide button moved to footer tile -->
 
 
 <!-- Edison bulb removed — dark mode only -->
@@ -106,39 +93,39 @@
 
             <!-- Screw: top-left -->
             <View
-                android:layout_width="12dp"
-                android:layout_height="12dp"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
                 android:layout_gravity="top|start"
-                android:layout_marginTop="6dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/screw_gold" />
+                android:layout_marginTop="4dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/screw_gold_small" />
 
             <!-- Screw: top-right -->
             <View
-                android:layout_width="12dp"
-                android:layout_height="12dp"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
                 android:layout_gravity="top|end"
-                android:layout_marginTop="6dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/screw_gold" />
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/screw_gold_small" />
 
             <!-- Screw: bottom-left -->
             <View
-                android:layout_width="12dp"
-                android:layout_height="12dp"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
                 android:layout_gravity="bottom|start"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/screw_gold" />
+                android:layout_marginBottom="4dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/screw_gold_small" />
 
             <!-- Screw: bottom-right -->
             <View
-                android:layout_width="12dp"
-                android:layout_height="12dp"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
                 android:layout_gravity="bottom|end"
-                android:layout_marginBottom="6dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/screw_gold" />
+                android:layout_marginBottom="4dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/screw_gold_small" />
 
         </FrameLayout>
 
@@ -179,8 +166,8 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="10dp"
-                android:paddingBottom="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
                 android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
@@ -214,8 +201,8 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="10dp"
-                android:paddingBottom="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
                 android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
@@ -249,8 +236,8 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="10dp"
-                android:paddingBottom="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
                 android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
@@ -285,8 +272,8 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="10dp"
-                android:paddingBottom="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
                 android:elevation="3dp">
                 <TextView
                     android:id="@+id/statFourth"
@@ -877,35 +864,86 @@
             android:background="@drawable/grille_pattern_bg"
             android:padding="4dp">
 
-        <Button
+        <LinearLayout
             android:id="@+id/overlayPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:text="Grant Overlay Permission"
-            android:backgroundTint="@color/bg_surface"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:layout_marginBottom="4dp" />
+            android:layout_height="34dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="2dp">
+            <TextView
+                android:id="@+id/overlayPermLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Overlay"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:letterSpacing="0.04" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  draw over apps"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
 
-        <Button
+        <LinearLayout
             android:id="@+id/accessibilityPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:text="Enable Accessibility Service"
-            android:backgroundTint="@color/bg_surface"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:layout_marginBottom="4dp" />
+            android:layout_height="34dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="2dp">
+            <TextView
+                android:id="@+id/accessibilityPermLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Accessibility"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:letterSpacing="0.04" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  text injection"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
 
-        <Button
+        <LinearLayout
             android:id="@+id/micPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:text="Grant Microphone Permission"
-            android:backgroundTint="@color/bg_surface"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:layout_marginBottom="8dp" />
+            android:layout_height="34dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="2dp">
+            <TextView
+                android:id="@+id/micPermLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Microphone"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:letterSpacing="0.04" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  voice recording"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
 
         </LinearLayout>
 
@@ -951,9 +989,9 @@
                 android:background="@drawable/card_bg"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:layout_marginBottom="4dp">
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -998,9 +1036,9 @@
                 android:background="@drawable/card_bg"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:layout_marginBottom="4dp">
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1039,13 +1077,13 @@
             <!-- Tips/reminders toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -1066,13 +1104,13 @@
             <!-- Primary language -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1126,13 +1164,13 @@
             <!-- FAST mode toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -1153,13 +1191,13 @@
             <!-- Your name (for name vibration) -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1260,13 +1298,13 @@
             <!-- Double-shake toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -1287,13 +1325,13 @@
             <!-- Auto-tone toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -1314,13 +1352,13 @@
             <!-- Cloud backup toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -1341,13 +1379,13 @@
             <!-- DAF toggle + delay -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1391,13 +1429,13 @@
             <!-- Layer selector -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="2dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1593,28 +1631,17 @@
                 android:orientation="vertical"
                 android:background="@drawable/brand_plate_bg"
                 android:gravity="center_horizontal"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
                 android:paddingStart="20dp"
                 android:paddingEnd="20dp">
 
                 <ImageView
-                    android:layout_width="80dp"
-                    android:layout_height="20dp"
+                    android:layout_width="60dp"
+                    android:layout_height="16dp"
                     android:src="@drawable/wm_logo"
                     android:scaleType="fitCenter"
                     android:importantForAccessibility="no" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="powered by Лаврентий"
-                    android:textColor="#55FFFFFF"
-                    android:textSize="8sp"
-                    android:fontFamily="serif"
-                    android:fontStyle="italic"
-                    android:letterSpacing="0.06"
-                    android:layout_marginTop="2dp" />
 
                 <TextView
                     android:id="@+id/privacyLink"
@@ -1624,11 +1651,27 @@
                     android:textColor="#88FFFFFF"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
-                    android:layout_marginTop="4dp" />
+                    android:layout_marginTop="3dp" />
 
             </LinearLayout>
 
-            <!-- Footer screws — 40% smaller than brand plate -->
+            <!-- Guide button — operations manual -->
+            <TextView
+                android:id="@+id/guideBtn"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="18dp"
+                android:gravity="center"
+                android:text="?"
+                android:textColor="@color/copper_gold"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="serif"
+                android:background="@drawable/guide_btn_bg"
+                android:contentDescription="Operations manual" />
+
+            <!-- Footer screws — small Phillips -->
             <View
                 android:layout_width="7dp"
                 android:layout_height="7dp"

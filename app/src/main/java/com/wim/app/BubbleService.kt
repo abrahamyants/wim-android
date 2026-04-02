@@ -79,17 +79,17 @@ class BubbleService : Service() {
     }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var recordingStartTime = 0L
+    private var sessionStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
-            if (isRecording) {
-                val elapsed = (System.currentTimeMillis() - recordingStartTime) / 1000
-                val min = elapsed / 60
-                val sec = elapsed % 60
-                bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "$min:${"%02d".format(sec)}"
-                timerHandler.postDelayed(this, 500)
-            }
+            // Timer tracks full session duration, not individual recording
+            val elapsed = (System.currentTimeMillis() - sessionStartTime) / 1000
+            val min = elapsed / 60
+            val sec = elapsed % 60
+            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "$min:${"%02d".format(sec)}"
+            timerHandler.postDelayed(this, 1000)
         }
     }
 
@@ -115,6 +115,7 @@ class BubbleService : Service() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
         instance = this
+        sessionStartTime = System.currentTimeMillis()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
         onDeviceRecognizer = OnDeviceRecognizer(this)
@@ -421,6 +422,9 @@ class BubbleService : Service() {
         }
 
         windowManager?.addView(bubbleView, params)
+
+        // Start session timer (always running, shows total session time)
+        timerHandler.post(timerRunnable)
     }
 
     private fun hideBubble() {
@@ -458,7 +462,6 @@ class BubbleService : Service() {
             setTextColor(0xFFFF6B35.toInt())
         }
         recordingStartTime = System.currentTimeMillis()
-        timerHandler.post(timerRunnable)
         val pulse = AlphaAnimation(1.0f, 0.6f).apply {
             duration = 600
             repeatMode = Animation.REVERSE
