@@ -319,20 +319,19 @@ class MainActivity : AppCompatActivity() {
         // ── Auto-collapse sections on scroll ──
         // Find the ScrollView in our split layout (fixed top + scrollable bottom)
         val scrollView = findScrollView(findViewById<ViewGroup>(android.R.id.content))
+        val settingsHeader = findViewById<TextView>(R.id.headerSettings)
         scrollView?.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            val sections = listOf(
-                Triple(R.id.headerLayer, R.id.contentLayer, "layer_section"),
-                Triple(R.id.headerSessions, R.id.contentSessions, "sessions_section"),
-                Triple(R.id.headerSituation, R.id.contentSituation, "situation_section")
-            )
-            for ((hId, cId, key) in sections) {
-                val header = findViewById<TextView>(hId) ?: continue
-                val content = findViewById<LinearLayout>(cId) ?: continue
-                // If the bottom of the content is above the viewport, collapse it
-                if (content.visibility == View.VISIBLE && header.bottom + content.height < scrollY) {
-                    content.visibility = View.GONE
-                    updateCollapseArrow(header, false)
-                    WimApp.prefs.edit().putBoolean("section_$key", false).apply()
+            // One-directional sticky: Settings header can go down but not off-screen top
+            settingsHeader?.let { header ->
+                val headerTop = header.top
+                if (headerTop < scrollY) {
+                    // Header would be off-screen — pin it
+                    header.translationY = (scrollY - headerTop).toFloat()
+                    header.elevation = 8f
+                } else {
+                    // Header is naturally visible — no translation
+                    header.translationY = 0f
+                    header.elevation = 4f
                 }
             }
         }

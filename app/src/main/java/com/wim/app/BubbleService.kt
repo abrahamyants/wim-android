@@ -111,6 +111,9 @@ class BubbleService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private var audioManager: android.media.AudioManager? = null
+    private var bluetoothScoActive = false
+
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
@@ -118,9 +121,11 @@ class BubbleService : Service() {
         sessionStartTime = System.currentTimeMillis()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         onDeviceRecognizer = OnDeviceRecognizer(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
+        setupBluetoothSco()
         val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         val fgsType = if (hasMic) {
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
@@ -130,6 +135,38 @@ class BubbleService : Service() {
         }
         startForeground(NOTIFICATION_ID, buildNotification(), fgsType)
         setupShakeDetector()
+    }
+
+    private fun setupBluetoothSco() {
+        val am = audioManager ?: return
+        // Listen for Bluetooth SCO state changes
+        val scoReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                val state = intent?.getIntExtra(android.media.AudioManager.EXTRA_SCO_AUDIO_STATE, -1)
+                when (state) {
+                    android.media.AudioManager.SCO_AUDIO_STATE_CONNECTED -> {
+                        Log.i(TAG, "Bluetooth SCO connected — using BT mic")
+                        bluetoothScoActive = true
+                    }
+                    android.media.AudioManager.SCO_AUDIO_STATE_DISCONNECTED -> {
+                        Log.i(TAG, "Bluetooth SCO disconnected — using default mic")
+                        bluetoothScoActive = false
+                    }
+                }
+            }
+        }
+        registerReceiver(scoReceiver, android.content.IntentFilter(android.media.AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED))
+
+        // If Bluetooth headset is already connected, start SCO
+        if (am.isBluetoothScoAvailableOffCall) {
+            try {
+                am.startBluetoothSco()
+                am.isBluetoothScoOn = true
+                Log.i(TAG, "Bluetooth SCO started")
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not start Bluetooth SCO: ${e.message}")
+            }
+        }
     }
 
     private fun setupShakeDetector() {

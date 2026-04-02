@@ -16,6 +16,9 @@
     <!-- Notifications (required Android 13+, keeps foreground service alive) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Bluetooth mic routing for wireless headsets -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- Foreground service for persistent bubble -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
