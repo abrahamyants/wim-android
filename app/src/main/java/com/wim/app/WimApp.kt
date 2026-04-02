@@ -8,10 +8,15 @@ import com.google.firebase.auth.FirebaseAuth
 class WimApp : Application() {
 
     companion object {
+        lateinit var instance: WimApp
+            private set
         lateinit var prefs: SharedPreferences
             private set
 
         private lateinit var profileManager: ProfileManager
+
+        // Session sync listener — MainActivity registers to refresh UI after Firestore sync
+        var onSessionsSynced: (() -> Unit)? = null
 
         fun apiKey(): String = prefs.getString("api_key", "") ?: ""
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
@@ -27,6 +32,7 @@ class WimApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
         profileManager = ProfileManager(prefs)
         // Restore user's dark mode preference, default to system
@@ -39,7 +45,13 @@ class WimApp : Application() {
             if (user != null) {
                 profileManager.startSync(user.uid)
                 // Restore sessions from Firestore on sign-in
-                SessionHistory(this).syncFromFirestore()
+                SessionHistory(this).syncFromFirestore { imported ->
+                    if (imported > 0) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            onSessionsSynced?.invoke()
+                        }
+                    }
+                }
             } else {
                 profileManager.stopSync()
             }

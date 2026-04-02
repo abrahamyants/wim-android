@@ -155,7 +155,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             .addOnFailureListener { Log.e(TAG, "Session backup failed: ${it.message}") }
     }
 
-    fun syncFromFirestore() {
+    fun syncFromFirestore(onSyncComplete: ((Int) -> Unit)? = null) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         Log.i(TAG, "Syncing sessions from Firestore...")
         FirebaseFirestore.getInstance()
@@ -194,6 +194,8 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                     imported++
                 }
                 Log.i(TAG, "Synced $imported sessions from Firestore")
+                // Notify callback if provided
+                onSyncComplete?.invoke(imported)
             }
             .addOnFailureListener { Log.e(TAG, "Session sync failed: ${it.message}") }
     }

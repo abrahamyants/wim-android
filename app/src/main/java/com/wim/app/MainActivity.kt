@@ -171,6 +171,9 @@ class MainActivity : AppCompatActivity() {
         sessionsPanel.background = android.graphics.drawable.LayerDrawable(arrayOf(panelBg, grille))
         loadSessions()
 
+        // Refresh sessions UI after Firestore sync completes (e.g. after sign-in on fresh install)
+        WimApp.onSessionsSynced = { loadSessions() }
+
         // Stats cells → tap to expand and scroll to relevant section
         fun statClickExpand(statViewId: Int, headerId: Int, contentId: Int, sectionKey: String) {
             findViewById<View>(statViewId)?.setOnClickListener {
