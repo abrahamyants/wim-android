@@ -1196,6 +1196,23 @@ class BubbleService : Service() {
                 }
                 showPipelineStage("\u29BB Reconstructing intent...", "$tone tone \u00B7 L$layer $layerLabel")
 
+                // TurboTax engagement: animated stage messages for L4 (long processing)
+                val turboTaxJob = if (layer >= 4) {
+                    scope.launch {
+                        val stages = listOf(
+                            "\u29BB Analyzing speech patterns..." to "Mapping phoneme difficulty",
+                            "\u29BB Detecting disfluencies..." to "Blocks, prolongations, repetitions",
+                            "\u29BB Building phoneme context..." to "Your personal speech profile",
+                            "\u29BB Reconstructing intent..." to "Stutter-aware AI processing",
+                            "\u29BB Validating meaning..." to "Making sure nothing was lost"
+                        )
+                        for ((title, sub) in stages) {
+                            showPipelineStage(title, sub)
+                            kotlinx.coroutines.delay(1200)
+                        }
+                    }
+                } else null
+
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = preCleaned,
@@ -1209,6 +1226,7 @@ class BubbleService : Service() {
                     onsetWeights = profile.getOnsetWeights(),
                     covertProfile = profile.getCovertProfile()
                 )
+                turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 
                 val finalWordCount = reconResult.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size

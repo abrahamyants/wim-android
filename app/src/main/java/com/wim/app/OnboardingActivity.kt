@@ -196,22 +196,33 @@ class OnboardingActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         })
 
-        // Button
-        val btn = makeActionButton("Get Started") { showScreen(1) }
-        layout.addView(btn)
-        fadeSlideIn(btn, 1400)
+        // Full Setup — walks through demo, how-it-works, permissions, meet bubble
+        val btnFull = makeActionButton("Full Setup") { showScreen(1) }
+        layout.addView(btnFull)
+        fadeSlideIn(btnFull, 1400)
 
-        // Skip to permissions for returning users
-        val skip = TextView(this).apply {
-            text = "Already know WiM? Skip to setup →"
-            textSize = 11f
-            setTextColor(0x66FFFFFF.toInt())
+        // Quick Setup — straight to permissions, get the bubble running fast
+        val btnQuick = TextView(this).apply {
+            text = "Quick Setup — just the essentials"
+            textSize = 13f
+            setTextColor(0xFFD4A574.toInt())
             gravity = Gravity.CENTER
-            setPadding(0, dp(12), 0, 0)
+            setPadding(0, dp(16), 0, 0)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setOnClickListener { showScreen(3) }
         }
-        layout.addView(skip)
-        fadeSlideIn(skip, 1600)
+        layout.addView(btnQuick)
+        fadeSlideIn(btnQuick, 1600)
+
+        val quickHint = TextView(this).apply {
+            text = "Grant permissions, meet your bubble, go."
+            textSize = 10f
+            setTextColor(0x66FFFFFF.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(4), 0, 0)
+        }
+        layout.addView(quickHint)
+        fadeSlideIn(quickHint, 1700)
 
         container.addView(layout)
     }
@@ -344,8 +355,25 @@ class OnboardingActivity : AppCompatActivity() {
             },
             Perm("🔋", "Battery", "Keeps the bubble alive.\nWithout this, your phone\nwill kill WiM in the background", batteryOk) {
                 try { startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))) } catch (_: Exception) {}
+            },
+            Perm("🔔", "Notifications", "Required for the foreground\nservice that keeps your\nbubble running", android.os.Build.VERSION.SDK_INT < 33 || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 200)
+                }
             }
         )
+
+        // Google sign-in recommendation
+        val signInHint = TextView(this).apply {
+            text = "💡 Sign in with Google to unlock Layer III+\nYour corrections teach WiM over time."
+            textSize = 11f
+            setTextColor(0xAAD4A574.toInt())
+            gravity = Gravity.CENTER
+            setLineSpacing(0f, 1.3f)
+            setPadding(0, dp(20), 0, 0)
+        }
+        layout.addView(signInHint)
+        fadeSlideIn(signInHint, 400 + perms.size * 150L)
 
         perms.forEachIndexed { i, perm ->
             val row = LinearLayout(this).apply {
