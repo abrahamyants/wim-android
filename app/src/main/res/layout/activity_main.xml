@@ -1496,7 +1496,32 @@
                     android:textColor="@color/text_dim" />
             </LinearLayout>
 
-            <!-- Dark mode removed — dark only -->
+            <!-- Dark / Light mode toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Dark mode"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/darkModeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
 
         </LinearLayout>
 

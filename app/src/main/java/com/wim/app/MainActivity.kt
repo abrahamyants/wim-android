@@ -53,6 +53,12 @@ class MainActivity : AppCompatActivity() {
     private val situationValues = listOf("default", "high_stress", "reading")
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply saved dark/light mode before setContentView
+        val darkMode = WimApp.prefs.getBoolean("dark_mode", true)
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkMode) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
+
         super.onCreate(savedInstanceState)
 
         // Onboarding disabled — rebuilding
@@ -469,9 +475,16 @@ class MainActivity : AppCompatActivity() {
         // ── Guide button — opens operations manual overlay ──
         findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
 
-        // ── Dark/light toggle — Edison bulb in brand plate ──
-        // Edison bulb removed
-        // Dark/light toggle removed — dark mode only
+        // ── Dark/light mode toggle (in Settings) ──
+        val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
+        val isDark = AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO
+        darkToggle.isChecked = isDark
+        darkToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("dark_mode", checked).apply()
+            AppCompatDelegate.setDefaultNightMode(
+                if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            )
+        }
 
         // ── Permissions ────────────────────────────────────
         val overlayBtn = findViewById<View>(R.id.overlayPermBtn)
