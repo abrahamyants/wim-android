@@ -31,7 +31,7 @@ class ReconstructionDemoView @JvmOverloads constructor(
     private val phoneScreenPaint = Paint().apply { color = 0xFF2A2A3E.toInt() }
     private val bubblePaint = Paint().apply { color = 0xFFEE5A24.toInt() }
     private val textPaint = Paint().apply {
-        color = 0xFFFFFFFF.toInt(); textSize = 28f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD); isAntiAlias = true
+        color = 0xFFEE5A24.toInt(); textSize = 28f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD); isAntiAlias = true
     }
     private val messyPaint = Paint().apply {
         color = 0xFFFF6666.toInt(); textSize = 22f; typeface = Typeface.MONOSPACE; isAntiAlias = true
@@ -40,7 +40,7 @@ class ReconstructionDemoView @JvmOverloads constructor(
         color = 0xFF66FF66.toInt(); textSize = 22f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD); isAntiAlias = true
     }
     private val labelPaint = Paint().apply {
-        color = 0xFFFFFFFF.toInt(); textSize = 24f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true; textAlign = Paint.Align.CENTER
+        color = 0xFFEE5A24.toInt(); textSize = 24f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true; textAlign = Paint.Align.CENTER
     }
     private val dimPaint = Paint().apply {
         color = 0x88FFFFFF.toInt(); textSize = 18f; isAntiAlias = true; textAlign = Paint.Align.CENTER
@@ -194,7 +194,7 @@ class ReconstructionDemoView @JvmOverloads constructor(
             labelPaint.alpha = 255
             val badge = Paint().apply { color = 0xFF2E7D32.toInt(); isAntiAlias = true }
             canvas.drawRoundRect(RectF(w/2 - 80, h * 0.48f, w/2 + 80, h * 0.54f), 10f, 10f, badge)
-            dimPaint.color = 0xFFFFFFFF.toInt()
+            dimPaint.color = 0xFFEE5A24.toInt()
             dimPaint.textSize = 16f
             canvas.drawText("✨ PROFESSIONAL", w / 2, h * 0.53f, dimPaint)
 
@@ -224,7 +224,7 @@ class ReconstructionDemoView @JvmOverloads constructor(
 
                 val badge = Paint().apply { color = 0xFF1565C0.toInt(); isAntiAlias = true }
                 canvas.drawRoundRect(RectF(w/2 - 60, h * 0.48f, w/2 + 60, h * 0.54f), 10f, 10f, badge)
-                dimPaint.color = 0xFFFFFFFF.toInt()
+                dimPaint.color = 0xFFEE5A24.toInt()
                 dimPaint.textSize = 16f
                 dimPaint.alpha = cleanAlpha
                 canvas.drawText("😎 CASUAL", w / 2, h * 0.53f, dimPaint)

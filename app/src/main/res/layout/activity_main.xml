@@ -179,10 +179,10 @@
                     android:textSize="20sp"
                     android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:shadowColor="#60C87840"
+                    android:shadowColor="#E0EE5A24"
                     android:shadowDx="0"
                     android:shadowDy="0"
-                    android:shadowRadius="0" />
+                    android:shadowRadius="14" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -215,10 +215,10 @@
                     android:textSize="20sp"
                     android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:shadowColor="#6038A848"
+                    android:shadowColor="#E0EE5A24"
                     android:shadowDx="0"
                     android:shadowDy="0"
-                    android:shadowRadius="0" />
+                    android:shadowRadius="14" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -251,10 +251,10 @@
                     android:textSize="20sp"
                     android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:shadowColor="#60C06030"
+                    android:shadowColor="#E0EE5A24"
                     android:shadowDx="0"
                     android:shadowDy="0"
-                    android:shadowRadius="0" />
+                    android:shadowRadius="14" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -287,10 +287,10 @@
                     android:textSize="20sp"
                     android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:shadowColor="#60B08050"
+                    android:shadowColor="#E0EE5A24"
                     android:shadowDx="0"
                     android:shadowDy="0"
-                    android:shadowRadius="0" />
+                    android:shadowRadius="14" />
                 <TextView
                     android:id="@+id/statFourthLabel"
                     android:layout_width="wrap_content"

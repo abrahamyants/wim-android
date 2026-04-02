@@ -134,7 +134,7 @@ class OnboardingActivity : AppCompatActivity() {
         val logo = TextView(this).apply {
             text = "WiM"
             textSize = 56f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             gravity = Gravity.CENTER
             try { typeface = resources.getFont(R.font.limelight) } catch (_: Exception) {
                 typeface = Typeface.create("serif", Typeface.BOLD)
@@ -205,7 +205,7 @@ class OnboardingActivity : AppCompatActivity() {
         val btnQuick = TextView(this).apply {
             text = "Quick Setup — just the essentials"
             textSize = 13f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             gravity = Gravity.CENTER
             setPadding(0, dp(16), 0, 0)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -401,7 +401,7 @@ class OnboardingActivity : AppCompatActivity() {
             col.addView(TextView(this).apply {
                 text = perm.name
                 textSize = 14f
-                setTextColor(0xFFFFFFFF.toInt())
+                setTextColor(0xFFEE5A24.toInt())
                 typeface = Typeface.DEFAULT_BOLD
             })
             col.addView(TextView(this).apply {
@@ -416,7 +416,7 @@ class OnboardingActivity : AppCompatActivity() {
                 text = if (perm.granted) "✓" else "TAP"
                 textSize = 14f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(if (perm.granted) 0xFF44DD44.toInt() else 0xFFFFFFFF.toInt())
+                setTextColor(if (perm.granted) 0xFF44DD44.toInt() else 0xFFEE5A24.toInt())
                 gravity = Gravity.CENTER
                 minWidth = dp(44)
             })
@@ -459,7 +459,7 @@ class OnboardingActivity : AppCompatActivity() {
         val refresh = TextView(this).apply {
             text = "↻ I've granted them, refresh"
             textSize = 12f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             gravity = Gravity.CENTER
             setPadding(0, dp(12), 0, 0)
             setOnClickListener { showScreen(3) }
@@ -510,7 +510,7 @@ class OnboardingActivity : AppCompatActivity() {
         val statusText = TextView(this).apply {
             text = "Starting the show..."
             textSize = 12f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             gravity = Gravity.CENTER
             setPadding(0, dp(20), 0, 0)
         }
@@ -573,7 +573,7 @@ class OnboardingActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = "You're All Set"
             textSize = 28f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             gravity = Gravity.CENTER
             typeface = Typeface.create("serif", Typeface.BOLD)
             setPadding(0, dp(16), 0, 0)
@@ -622,7 +622,7 @@ class OnboardingActivity : AppCompatActivity() {
     private fun makeScreenTitle(text: String): TextView = TextView(this).apply {
         this.text = text
         textSize = 26f
-        setTextColor(0xFFFFFFFF.toInt())
+        setTextColor(0xFFEE5A24.toInt())
         gravity = Gravity.CENTER
         typeface = Typeface.create("serif", Typeface.BOLD)
         letterSpacing = 0.04f
@@ -635,7 +635,7 @@ class OnboardingActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(52)
             )
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(0xFFEE5A24.toInt())
             setOnClickListener { onClick() }
             elevation = dp(4).toFloat()
         }

@@ -818,7 +818,7 @@ class BubbleService : Service() {
             // Flash the checkmark, then cycle sparkle sequence
             label?.apply {
                 text = if (answer == true) "✓" else "✕"
-                setTextColor(if (answer == true) 0xFFFFFFFF.toInt() else 0xFFCC4444.toInt())
+                setTextColor(if (answer == true) 0xFFEE5A24.toInt() else 0xFFCC4444.toInt())
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 24f)
                 setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80FFFFFF.toInt() else 0x80CC4444.toInt())
             }
@@ -834,7 +834,7 @@ class BubbleService : Service() {
             // Sparkle sequence: ✓ → ✦ → ✧ → idle
             timerHandler.postDelayed({
                 label?.text = "✦"
-                label?.setTextColor(0xFFFFFFFF.toInt()) // copper gold
+                label?.setTextColor(0xFFEE5A24.toInt()) // copper gold
             }, 400)
             timerHandler.postDelayed({
                 label?.text = "✧"
@@ -941,7 +941,7 @@ class BubbleService : Service() {
         val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
         liveToggle.isChecked = liveEnabled
         // Gold thumb, light gray track
-        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFEE5A24.toInt())
         liveToggle.trackTintList = android.content.res.ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())
@@ -1006,7 +1006,7 @@ class BubbleService : Service() {
 
         val tv = TextView(this).apply {
             setBackgroundColor(0xDD1A1A2E.toInt())
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(0xFFEE5A24.toInt())
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding(20, 10, 20, 10)
@@ -1044,7 +1044,7 @@ class BubbleService : Service() {
             val bp = bubbleParams ?: return
             val tv = TextView(this).apply {
                 setBackgroundColor(0xDD1A1A2E.toInt())
-                setTextColor(0xFFFFFFFF.toInt())
+                setTextColor(0xFFEE5A24.toInt())
                 textSize = 12f
                 typeface = android.graphics.Typeface.MONOSPACE
                 setPadding(20, 10, 20, 10)

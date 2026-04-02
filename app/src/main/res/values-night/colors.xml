@@ -7,7 +7,7 @@
     <color name="bg_elevated">#FF333338</color>
     <color name="bg_sunken">#FF18181c</color>
 
-    <color name="copper_gold">#FFFFFFFF</color>
+    <color name="copper_gold">#FFEE5A24</color>
     <color name="orange_label">#FFEE5A24</color>
     <color name="section_header">#FFEE5A24</color>
 
@@ -30,7 +30,7 @@
     <color name="dial_inner">#FFB5B5BA</color>
 
     <color name="border_subtle">#14FFFFFF</color>
-    <color name="border_accent">#FFFFFFFF</color>
+    <color name="border_accent">#FFEE5A24</color>
 
     <color name="card_bg_base">#FF222226</color>
     <color name="active_bg">#FF3A2020</color>
