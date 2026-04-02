@@ -287,7 +287,69 @@ fcdeda2 Fix 6 critical Лаврентий parity issues
 - OnDeviceRecognizer (needs SpeechRecognizer)
 - HTTP clients (WhisperClient, ReconstructClient — needs OkHttp mock)
 
+## Session 3 — April 1, 2026
+
+### The API 400 Mystery — Solved
+
+Three separate sessions crashed with `API Error: 400 — "Could not process image"`, killing ~27 hours of work across 3 attempts. Root cause: **Claude Code's `Read` tool was reading `.png` screenshot files from a multi-display Windows setup. Instead of returning actual PNG bytes, the system returned a text warning (`[Warning] Multiple displays were found...`) but wrapped it in an `image/png` content block. The API rejected it because the "image" was just ASCII text.**
+
+Crashed sessions and their triggers:
+| Session | File Read | Error |
+|---------|-----------|-------|
+| `6bfa8d60` | `C:/Users/georg/Downloads/current_state.png` | Text wrapped as PNG |
+| `482f0462` | `wim-android/phone_screenshot.png` | Text wrapped as PNG |
+| `a561c16e` | `C:/Users/georg/Downloads/redesign_check.png` | Text wrapped as PNG |
+
+This is a Claude Code bug — the Read tool should validate image headers before tagging content as `image/png`. Once a bad image enters conversation history, every subsequent turn fails because the API resends the full context.
+
+**Workaround:** Use `adb shell screencap` to take phone screenshots instead of reading existing PNG files. Always specify the display ID to avoid the multi-display warning.
+
+### What We Built
+
+**UI Overhaul (29+ design items from George's feedback chunks)**
+
+1. **WM logo** — Discovered the real logo (Limelight font W and M letterforms from the launcher icon foreground vector). Replaced the coil/waveform drawable everywhere — sessions panel watermark (1.75x), footer, bottom-left badge on square dark tile.
+2. **Sessions panel** — Maroon-tinted mesh background, WM watermark centered, speaker cone replaced. Logo on square dark tile bottom-left.
+3. **Category headers** — Changed from Limelight to sans-serif-light (matching "What I Meant" subtitle). All categories now visually consistent.
+4. **Google sign-in** — Real Google G logo (transparent PNG from official source), removed "Free tier" label, clean layout.
+5. **Brand plate** — Slimmer (reduced padding, smaller WiM text 26sp), screws downsized to 7dp small Phillips, ? guide button moved to footer.
+6. **Footer** — Removed "powered by Лаврентий" text, kept WM logo + Privacy Policy. Small Phillips screws. ? guide button repositioned right of screws.
+7. **Nixie tube readouts** — Brighter interior, copper gold border, compact padding. Added 4th cell (SCORE placeholder). Vintage retro styling (muted warm colors, thin font, reduced glow).
+8. **Permissions restyled** — Changed from Material Buttons to row format matching Situation (Overlay/Accessibility/Microphone with copper gold descriptions and checkmarks).
+9. **Settings repositioned** — Moved under Permissions as a category, matching header style.
+10. **Profile cleanup** — Removed 👤 emoji, clean sans-serif text. "Your speech" options confirmed already removed.
+11. **Unified card backgrounds** — card_bg, card_bg_pressable, card_bg_selected all use same base color (#FF222230).
+12. **Category spacing** — Increased (14dp top margin, 6dp bottom) for more breathing room.
+13. **Background pattern** — Diagonal crosshatch with vignette, visible texture.
+14. **Grille pattern** — Visible crosshatch with copper border on all category content areas.
+15. **Sticky scroll** — WiM brand plate frozen at top, everything else scrolls. Stats row moved to scrollable area.
+16. **Stats clickable** — Each nixie cell taps to expand its relevant category.
+17. **Session timer** — Now tracks full session duration (from bubble start), not individual recording time. No reset on double-tap.
+18. **Clarifier acknowledgment** — Copper gold glow instead of bright green Unicode checkmark.
+19. **Default bubble** — Opacity 100%, size 95%.
+20. **POST_NOTIFICATIONS permission** — Added to manifest + runtime request on Android 13+. Fixes Samsung greyed-out notification toggle that was killing the foreground service.
+
+**Lavrentiy Fixes**
+- Fixed stuck recording on F9 hold-to-talk: added toggle safety (F9 while recording stops it), 3-second startup guard, 30-second auto-stop timeout.
+- Portable launcher uses `desktop.py` wrapper, not `lavrentiy.py` directly.
+
+**Phone Diagnostic**
+- Identified Samsung killing bubble via `Suppressing notification from package com.wim.app by user request` — caused by missing POST_NOTIFICATIONS permission on Android 13+/targetSdk 35.
+
+### Commits — Session 3
+```
+a6d5f9b Refactor main layout, add drawables & permission
+5227af2 Add 4th nixie tube, fix layout gaps, freeze WiM brand plate
+c9171b2 Nixie tubes, timer, permissions, grille, brand plate, footer
+a7b6008 Unify category colors, clickable stats, spacing, background pattern
+```
+
 ## Still TODO
+- One-directional sticky Settings header (can go down, can't go up off screen)
+- Onboarding — quick vs full setup paths
+- TurboTax engagement animations during L4 processing
+- Background pattern — reference Лаврентий left panel texture more closely
+- Bluetooth mic support (AudioManager SCO for Buds/headsets)
 - Test suites for WiM Android (zero tests currently — Лаврентий desktop has 1,312)
 - Play Store listing and screenshots
 - Port trigger_words, onset_weights, covert_profile detection from Лаврентий to Android
