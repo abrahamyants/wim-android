@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base surfaces — Лаврентий dark mode -->
-    <color name="bg_base">#FF1a1a1e</color>
-    <color name="bg_surface">#FF222226</color>
-    <color name="bg_surface_light">#FF2a2a2f</color>
-    <color name="bg_elevated">#FF333338</color>
-    <color name="bg_sunken">#FF18181c</color>
+    <!-- Base surfaces — Лаврентий light mode (brushed aluminum) -->
+    <color name="bg_base">#FFd8d8dc</color>
+    <color name="bg_surface">#FFc8c8cc</color>
+    <color name="bg_surface_light">#FFbfbfc4</color>
+    <color name="bg_elevated">#FFb5b5ba</color>
+    <color name="bg_sunken">#FFb8b8bc</color>
 
-    <!-- Primary accents — white for now, easy to swap -->
-    <color name="copper_gold">#FFFFFFFF</color>
+    <!-- Primary accents -->
+    <color name="copper_gold">#FF2a2a30</color>
     <color name="orange_label">#FFEE5A24</color>
     <color name="section_header">#FFEE5A24</color>
 
@@ -22,33 +22,33 @@
     <color name="yellow_gold">#FFCA8A04</color>
     <color name="green_active">#FF16a34a</color>
 
-    <!-- Text hierarchy — Лаврентий dark mode -->
-    <color name="text_primary">#FFd4d4d8</color>
-    <color name="text_bright">#FFf0f0f4</color>
-    <color name="text_secondary">#FF8a8a92</color>
-    <color name="text_dim">#FFd4d4d8</color>
-    <color name="text_white">#FFFFFFFF</color>
+    <!-- Text hierarchy — Лаврентий light mode (dark text on light bg) -->
+    <color name="text_primary">#FF2a2a30</color>
+    <color name="text_bright">#FF111116</color>
+    <color name="text_secondary">#FF888890</color>
+    <color name="text_dim">#FF55555e</color>
+    <color name="text_white">#FF111116</color>
 
     <!-- Metallic dial / bubble -->
     <color name="dial_body">#FFC0C0C5</color>
     <color name="dial_stroke">#FFAAAAAF</color>
     <color name="dial_inner">#FFB5B5BA</color>
 
-    <!-- Borders — Лаврентий -->
-    <color name="border_subtle">#14FFFFFF</color>
-    <color name="border_accent">#FFFFFFFF</color>
+    <!-- Borders — Лаврентий light -->
+    <color name="border_subtle">#1A000000</color>
+    <color name="border_accent">#FF2a2a30</color>
 
     <!-- Cards and interactive -->
-    <color name="card_bg_base">#FF222226</color>
-    <color name="active_bg">#FF3A2020</color>
-    <color name="active_text">#FFFFD8D8</color>
+    <color name="card_bg_base">#FFc8c8cc</color>
+    <color name="active_bg">#FFe0c0c0</color>
+    <color name="active_text">#FF4a1010</color>
     <color name="led_red">#FFFF5555</color>
 
     <!-- Brand -->
-    <color name="brand_dark">#FF1a1a1e</color>
-    <color name="brand_dark_top">#FF222226</color>
-    <color name="brand_subtitle">#88FFFFFF</color>
+    <color name="brand_dark">#FFd8d8dc</color>
+    <color name="brand_dark_top">#FFc8c8cc</color>
+    <color name="brand_subtitle">#66000000</color>
 
     <!-- App background -->
-    <color name="bg_app">#FF1a1a1e</color>
+    <color name="bg_app">#FFd8d8dc</color>
 </resources>

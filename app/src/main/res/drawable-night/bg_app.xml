@@ -1,20 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark mode: deep dark background with subtle grain texture -->
+<!-- Лаврентий dark mode — #1a1a1e base with vertical brushed grain -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base: solid dark -->
+    <!-- Base: exact Лаврентий dark bg -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FF1A1A1E" />
+            <solid android:color="#FF1a1a1e" />
         </shape>
     </item>
-    <!-- Subtle vertical depth gradient -->
+    <!-- Vertical brushed grain (approximation of repeating-linear-gradient 90deg) -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#00000000"
-                android:centerColor="#06000000"
-                android:endColor="#10000000"
-                android:angle="270" />
+                android:startColor="#06FFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#04FFFFFF"
+                android:angle="0" />
+        </shape>
+    </item>
+    <!-- Second pass — tighter grain -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#03FFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#05FFFFFF"
+                android:angle="180" />
         </shape>
     </item>
 </layer-list>

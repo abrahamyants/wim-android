@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Лаврентий dark — Settings header, matches other category headers -->
+<!-- Лаврентий light — Settings header -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FF3a3a40"
-                android:centerColor="#FF333338"
-                android:endColor="#FF2e2e34"
+                android:startColor="#FFb5b5ba"
+                android:centerColor="#FFbfbfc4"
+                android:endColor="#FFc8c8cc"
                 android:angle="270" />
             <corners android:radius="6dp" />
-            <stroke android:width="1dp" android:color="#24FFFFFF" />
+            <stroke android:width="1dp" android:color="#2A000000" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FF333338"
-                android:centerColor="#FF2a2a2f"
-                android:endColor="#FF24242a"
+                android:startColor="#FFbfbfc4"
+                android:centerColor="#FFc8c8cc"
+                android:endColor="#FFd0d0d4"
                 android:angle="270" />
             <corners android:radius="6dp" />
-            <stroke android:width="0.5dp" android:color="#14FFFFFF" />
+            <stroke android:width="0.5dp" android:color="#1A000000" />
         </shape>
     </item>
 </selector>
