@@ -781,8 +781,9 @@ class BubbleService : Service() {
             // Flash the checkmark, then cycle sparkle sequence
             label?.apply {
                 text = if (answer == true) "✓" else "✕"
-                setTextColor(if (answer == true) 0xFF44DD44.toInt() else 0xFFFF4444.toInt())
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 28f)
+                setTextColor(if (answer == true) 0xFFD4A574.toInt() else 0xFFCC4444.toInt())
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 24f)
+                setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80D4A574.toInt() else 0x80CC4444.toInt())
             }
             // Quick scale-pulse animation on the bezel
             bezel?.let { v ->

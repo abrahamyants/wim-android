@@ -1,54 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Premium dark background with Лаврентий-style subtle fabric texture -->
+<!-- Premium dark background with visible fabric/brushed texture -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Base dark -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FF141420" />
+            <solid android:color="#FF121220" />
         </shape>
     </item>
-    <!-- Subtle vertical grain — fabric/brushed texture feel -->
+    <!-- Visible diagonal grain — direction 1 -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#04FFFFFF"
-                android:centerColor="#00FFFFFF"
-                android:endColor="#03FFFFFF"
-                android:angle="90" />
-        </shape>
-    </item>
-    <!-- Diagonal crosshatch overlay -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#03FFFFFF"
-                android:centerColor="#00FFFFFF"
-                android:endColor="#02FFFFFF"
+                android:startColor="#10FFFFFF"
+                android:centerColor="#02FFFFFF"
+                android:endColor="#08FFFFFF"
                 android:angle="135" />
         </shape>
     </item>
-    <!-- Second crosshatch pass — opposite angle -->
+    <!-- Visible diagonal grain — direction 2, cross -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#02FFFFFF"
-                android:centerColor="#00FFFFFF"
-                android:endColor="#03FFFFFF"
+                android:startColor="#08FFFFFF"
+                android:centerColor="#02FFFFFF"
+                android:endColor="#10FFFFFF"
                 android:angle="225" />
         </shape>
     </item>
-    <!-- Warm radial glow from top center — pulsating orb area -->
-    <item android:top="-100dp" android:left="-50dp" android:right="-50dp">
-        <shape android:shape="oval">
+    <!-- Warm radial glow from center — ambient -->
+    <item>
+        <shape android:shape="rectangle">
             <gradient
                 android:type="radial"
-                android:gradientRadius="400dp"
+                android:gradientRadius="500dp"
+                android:centerX="0.5"
+                android:centerY="0.35"
                 android:startColor="#0CEE5A24"
                 android:endColor="#00000000" />
-            <size android:width="500dp" android:height="400dp" />
         </shape>
     </item>
-    <!-- Subtle vignette — darker edges -->
+    <!-- Vignette — darker edges -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -57,7 +48,7 @@
                 android:centerX="0.5"
                 android:centerY="0.3"
                 android:startColor="#00000000"
-                android:endColor="#40000000" />
+                android:endColor="#50000000" />
         </shape>
     </item>
 </layer-list>

@@ -165,20 +165,30 @@ class MainActivity : AppCompatActivity() {
         sessionsPanel.background = android.graphics.drawable.LayerDrawable(arrayOf(panelBg, grille))
         loadSessions()
 
-        // Stats row → tap to expand and scroll to sessions
-        findViewById<View>(R.id.statsRow)?.setOnClickListener {
-            val header = findViewById<TextView>(R.id.headerSessions)
-            val content = findViewById<LinearLayout>(R.id.contentSessions)
-            if (content.visibility != View.VISIBLE) {
-                content.visibility = View.VISIBLE
-                updateCollapseArrow(header, true)
-                WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
-            }
-            header.post {
-                val sv = findScrollView(findViewById<ViewGroup>(android.R.id.content))
-                sv?.smoothScrollTo(0, header.top)
+        // Stats cells → tap to expand and scroll to relevant section
+        fun statClickExpand(statViewId: Int, headerId: Int, contentId: Int, sectionKey: String) {
+            findViewById<View>(statViewId)?.setOnClickListener {
+                val header = findViewById<TextView>(headerId) ?: return@setOnClickListener
+                val content = findViewById<View>(contentId) ?: return@setOnClickListener
+                if (content.visibility != View.VISIBLE) {
+                    content.visibility = View.VISIBLE
+                    updateCollapseArrow(header, true)
+                    WimApp.prefs.edit().putBoolean("section_$sectionKey", true).apply()
+                }
+                header.post {
+                    val sv = findScrollView(findViewById<ViewGroup>(android.R.id.content))
+                    sv?.smoothScrollTo(0, header.top)
+                }
             }
         }
+        // Sessions stat → Sessions
+        statClickExpand(R.id.statSessions, R.id.headerSessions, R.id.contentSessions, "sessions_section")
+        // WPM stat → Sessions (detailed view)
+        statClickExpand(R.id.statWpm, R.id.headerSessions, R.id.contentSessions, "sessions_section")
+        // Cleanup/Words stat → Layer
+        statClickExpand(R.id.statCleanup, R.id.headerLayer, R.id.contentLayer, "layer_section")
+        // 4th stat → Settings
+        statClickExpand(R.id.statFourth, R.id.headerSettings, R.id.contentSettings, "settings_section")
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {

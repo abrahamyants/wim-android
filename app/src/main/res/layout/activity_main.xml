@@ -321,7 +321,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentLayer"
@@ -460,7 +460,7 @@
             android:id="@+id/headerSessions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="SESSIONS"
             android:textColor="@color/copper_gold"
             android:textSize="14sp"
@@ -474,7 +474,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentSessions"
@@ -590,7 +590,7 @@
             android:id="@+id/headerSituation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="SITUATION"
             android:textColor="@color/copper_gold"
             android:textSize="14sp"
@@ -604,7 +604,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentSituation"
@@ -723,7 +723,7 @@
             android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="DAF"
             android:textColor="@color/copper_gold"
             android:textSize="14sp"
@@ -737,7 +737,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentDaf"
@@ -840,7 +840,7 @@
             android:id="@+id/headerPermissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="PERMISSIONS"
             android:textColor="@color/copper_gold"
             android:textSize="14sp"
@@ -854,7 +854,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentPermissions"
@@ -954,7 +954,7 @@
             android:id="@+id/headerSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="SETTINGS"
             android:textColor="@color/copper_gold"
             android:textSize="14sp"
@@ -968,7 +968,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="6dp" />
 
         <LinearLayout
             android:id="@+id/contentSettings"

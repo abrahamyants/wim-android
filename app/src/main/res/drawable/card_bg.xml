@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark glass card — semi-transparent to show grille pattern underneath -->
+<!-- Dark glass card — unified style across all categories -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#AA1E1E28" />
+    <solid android:color="#FF222230" />
     <corners android:radius="6dp" />
-    <stroke android:width="0.5dp" android:color="#15FFFFFF" />
+    <stroke android:width="0.5dp" android:color="#12FFFFFF" />
 </shape>
