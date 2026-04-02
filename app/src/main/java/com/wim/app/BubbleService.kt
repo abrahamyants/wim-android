@@ -236,6 +236,13 @@ class BubbleService : Service() {
     private fun showBubble() {
         if (bubbleView != null) return
 
+        // Guard: overlay permission must be granted before adding window
+        if (!android.provider.Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "Cannot show bubble — overlay permission not granted")
+            android.widget.Toast.makeText(this, "Grant overlay permission first", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
         Log.i(TAG, "Showing bubble")
         updateNotification("Voice dictation active")
         val inflater = LayoutInflater.from(this)
