@@ -60,6 +60,13 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
+        // Request notification permission (Android 13+) — keeps foreground service alive
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 200)
+            }
+        }
+
         // Ambient center glow — subtle radiating pulse
         findViewById<View>(R.id.ambientGlow)?.let { glow ->
             val dur = 4000L
@@ -168,7 +175,7 @@ class MainActivity : AppCompatActivity() {
                 WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
             }
             header.post {
-                val sv = findViewById<ViewGroup>(android.R.id.content)?.getChildAt(0) as? ScrollView
+                val sv = findScrollView(findViewById<ViewGroup>(android.R.id.content))
                 sv?.smoothScrollTo(0, header.top)
             }
         }
@@ -300,8 +307,8 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
 
         // ── Auto-collapse sections on scroll ──
-        val contentFrame = findViewById<ViewGroup>(android.R.id.content)
-        val scrollView = contentFrame?.getChildAt(0) as? ScrollView
+        // Find the ScrollView in our split layout (fixed top + scrollable bottom)
+        val scrollView = findScrollView(findViewById<ViewGroup>(android.R.id.content))
         scrollView?.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             val sections = listOf(
                 Triple(R.id.headerLayer, R.id.contentLayer, "layer_section"),
@@ -906,6 +913,17 @@ class MainActivity : AppCompatActivity() {
             updateCollapseArrow(header, !isVisible)
             WimApp.prefs.edit().putBoolean("section_$prefKey", !isVisible).apply()
         }
+    }
+
+    private fun findScrollView(view: android.view.View?): ScrollView? {
+        if (view is ScrollView) return view
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val found = findScrollView(view.getChildAt(i))
+                if (found != null) return found
+            }
+        }
+        return null
     }
 
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {

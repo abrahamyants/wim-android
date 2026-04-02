@@ -1,72 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Speaker cone — deeper shading and more depth like Лаврентий -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="300dp"
     android:height="300dp"
     android:viewportWidth="400"
     android:viewportHeight="400"
-    android:alpha="0.20">
+    android:alpha="0.30">
 
-    <!-- Outer frame ring -->
+    <!-- Outer frame ring — heavier -->
     <path
         android:pathData="M200,200m-196,0a196,196 0,1 1,392 0a196,196 0,1 1,-392 0"
-        android:strokeColor="#8A8A8A"
-        android:strokeWidth="8"
+        android:strokeColor="#606060"
+        android:strokeWidth="10"
         android:fillColor="@android:color/transparent" />
 
     <!-- Frame screws (8 around perimeter) -->
-    <path android:pathData="M200,8m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M336,56m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M392,200m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M336,344m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M200,392m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M64,344m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M8,200m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
-    <path android:pathData="M64,56m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"
-        android:fillColor="#999999" />
+    <path android:pathData="M200,8m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M336,56m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M392,200m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M336,344m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M200,392m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M64,344m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M8,200m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
+    <path android:pathData="M64,56m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" android:fillColor="#777777" />
 
-    <!-- Surround ring (rubber) -->
+    <!-- Surround ring (rubber) — thicker, darker -->
     <path
         android:pathData="M200,200m-172,0a172,172 0,1 1,344 0a172,172 0,1 1,-344 0"
-        android:strokeColor="#7A7A7A"
-        android:strokeWidth="32"
+        android:strokeColor="#555555"
+        android:strokeWidth="36"
         android:fillColor="@android:color/transparent" />
 
-    <!-- Inner ring edge -->
+    <!-- Inner ring edge — highlight -->
     <path
-        android:pathData="M200,200m-155,0a155,155 0,1 1,310 0a155,155 0,1 1,-310 0"
-        android:strokeColor="#707070"
-        android:strokeWidth="3"
+        android:pathData="M200,200m-153,0a153,153 0,1 1,306 0a153,153 0,1 1,-306 0"
+        android:strokeColor="#5A5A5A"
+        android:strokeWidth="4"
         android:fillColor="@android:color/transparent" />
 
-    <!-- Cone body -->
+    <!-- Cone body — darker for depth -->
     <path
-        android:pathData="M200,200m-152,0a152,152 0,1 1,304 0a152,152 0,1 1,-304 0"
-        android:fillColor="#889090" />
+        android:pathData="M200,200m-150,0a150,150 0,1 1,300 0a150,150 0,1 1,-300 0"
+        android:fillColor="#686868" />
 
-    <!-- Cone shading ring -->
+    <!-- Cone inner shadow ring -->
     <path
-        android:pathData="M200,200m-110,0a110,110 0,1 1,220 0a110,110 0,1 1,-220 0"
-        android:strokeColor="#808080"
+        android:pathData="M200,200m-120,0a120,120 0,1 1,240 0a120,120 0,1 1,-240 0"
+        android:strokeColor="#505050"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Cone shading — mid ring -->
+    <path
+        android:pathData="M200,200m-100,0a100,100 0,1 1,200 0a100,100 0,1 1,-200 0"
+        android:strokeColor="#585858"
         android:strokeWidth="1"
         android:fillColor="@android:color/transparent" />
 
-    <!-- Dust cap edge -->
+    <!-- Dust cap edge — more prominent -->
     <path
         android:pathData="M200,200m-52,0a52,52 0,1 1,104 0a52,52 0,1 1,-104 0"
-        android:strokeColor="#707070"
-        android:strokeWidth="3"
+        android:strokeColor="#505050"
+        android:strokeWidth="4"
         android:fillColor="@android:color/transparent" />
 
-    <!-- Dust cap -->
+    <!-- Dust cap — raised center -->
     <path
-        android:pathData="M200,200m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"
-        android:fillColor="#9A9A9A" />
+        android:pathData="M200,200m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0"
+        android:fillColor="#7A7A7A" />
+
+    <!-- Dust cap highlight -->
+    <path
+        android:pathData="M190,185m-20,0a20,18 0,1 1,40 0a20,18 0,1 1,-40 0"
+        android:fillColor="#10FFFFFF" />
 
 </vector>

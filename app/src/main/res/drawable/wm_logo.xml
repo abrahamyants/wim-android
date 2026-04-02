@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WM Limelight letterforms — the actual logo, extracted from launcher icon -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="34dp"
+    android:viewportWidth="3672"
+    android:viewportHeight="1534">
+
+    <!-- W letterform -->
+    <path
+        android:fillColor="#FFD4A574"
+        android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
+
+    <!-- M letterform -->
+    <path
+        android:fillColor="#FFD4A574"
+        android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
+</vector>
