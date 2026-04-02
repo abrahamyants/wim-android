@@ -4,14 +4,12 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_app">
 
-    <!-- Ambient glow — dead center of screen, behind everything -->
+    <!-- Ambient glow removed -->
     <View
         android:id="@+id/ambientGlow"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:layout_gravity="center"
-        android:background="@drawable/ambient_center_glow"
-        android:alpha="0.4" />
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
