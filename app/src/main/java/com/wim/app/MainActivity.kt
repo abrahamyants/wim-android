@@ -501,6 +501,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         accessibilityBtn.setOnClickListener {
+            // Enforce order: overlay must be granted before accessibility
+            if (!Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "Grant overlay permission first", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
 
