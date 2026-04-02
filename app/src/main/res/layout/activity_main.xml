@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/bg_app"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
-    android:paddingTop="24dp">
+    android:background="@drawable/bg_app">
 
-    <!-- ═══ FIXED TOP — brand plate + stats (frozen) ═══ -->
-    <FrameLayout
+    <!-- Ambient glow — dead center of screen, behind everything -->
+    <View
+        android:id="@+id/ambientGlow"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:background="@drawable/ambient_center_glow"
+        android:alpha="0.4" />
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="24dp">
 
-        <!-- Ambient glow behind brand plate -->
-        <View
-            android:id="@+id/ambientGlow"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
-            android:layout_gravity="center"
-            android:background="@drawable/ambient_center_glow"
-            android:alpha="0.4" />
-
+    <!-- ═══ FIXED TOP — brand plate only (frozen) ═══ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -144,6 +144,23 @@
 
         <!-- Status LED removed — now in brand plate -->
 
+    </LinearLayout>
+    <!-- ═══ END FIXED TOP ═══ -->
+
+    <!-- ═══ SCROLLABLE BOTTOM — categories + footer ═══ -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbarThumbVertical="@android:color/transparent"
+        android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="48dp">
+
         <!-- ═══════════════════════════════════════════ -->
         <!-- STATS ROW — Nixie tube readout cells -->
         <!-- ═══════════════════════════════════════════ -->
@@ -162,9 +179,9 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp"
-                android:layout_marginEnd="4dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp"
+                android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
                     android:id="@+id/statSessions"
@@ -172,7 +189,7 @@
                     android:layout_height="wrap_content"
                     android:text="14"
                     android:textColor="#CCC87840"
-                    android:textSize="26sp"
+                    android:textSize="20sp"
                     android:fontFamily="sans-serif-thin"
                     android:shadowColor="#60C87840"
                     android:shadowDx="0"
@@ -183,10 +200,10 @@
                     android:layout_height="wrap_content"
                     android:text="SESSIONS"
                     android:textColor="#88888890"
-                    android:textSize="7sp"
+                    android:textSize="6sp"
                     android:fontFamily="monospace"
-                    android:letterSpacing="0.2"
-                    android:layout_marginTop="2dp" />
+                    android:letterSpacing="0.15"
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
 
             <!-- WPM -->
@@ -197,8 +214,9 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp"
+                android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
                     android:id="@+id/statWpm"
@@ -206,7 +224,7 @@
                     android:layout_height="wrap_content"
                     android:text="23"
                     android:textColor="#CC38A848"
-                    android:textSize="26sp"
+                    android:textSize="20sp"
                     android:fontFamily="sans-serif-thin"
                     android:shadowColor="#6038A848"
                     android:shadowDx="0"
@@ -217,10 +235,10 @@
                     android:layout_height="wrap_content"
                     android:text="WPM"
                     android:textColor="#88888890"
-                    android:textSize="7sp"
+                    android:textSize="6sp"
                     android:fontFamily="monospace"
-                    android:letterSpacing="0.2"
-                    android:layout_marginTop="2dp" />
+                    android:letterSpacing="0.15"
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
 
             <!-- CLEANUP % -->
@@ -231,9 +249,9 @@
                 android:orientation="vertical"
                 android:background="@drawable/led_cell_bg"
                 android:gravity="center"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp"
-                android:layout_marginStart="4dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp"
+                android:layout_marginEnd="3dp"
                 android:elevation="3dp">
                 <TextView
                     android:id="@+id/statCleanup"
@@ -241,7 +259,7 @@
                     android:layout_height="wrap_content"
                     android:text="87%"
                     android:textColor="#CCC06030"
-                    android:textSize="26sp"
+                    android:textSize="20sp"
                     android:fontFamily="sans-serif-thin"
                     android:shadowColor="#60C06030"
                     android:shadowDx="0"
@@ -253,31 +271,48 @@
                     android:id="@+id/statThirdLabel"
                     android:text="CLEANUP"
                     android:textColor="#88888890"
-                    android:textSize="7sp"
+                    android:textSize="6sp"
                     android:fontFamily="monospace"
-                    android:letterSpacing="0.2"
-                    android:layout_marginTop="2dp" />
+                    android:letterSpacing="0.15"
+                    android:layout_marginTop="1dp" />
+            </LinearLayout>
+
+            <!-- 4th readout — placeholder -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/led_cell_bg"
+                android:gravity="center"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp"
+                android:elevation="3dp">
+                <TextView
+                    android:id="@+id/statFourth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="4.2"
+                    android:textColor="#CCB08050"
+                    android:textSize="20sp"
+                    android:fontFamily="sans-serif-thin"
+                    android:shadowColor="#60B08050"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="8" />
+                <TextView
+                    android:id="@+id/statFourthLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SCORE"
+                    android:textColor="#88888890"
+                    android:textSize="6sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15"
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
 
         </LinearLayout>
-
-    </LinearLayout>
-    </FrameLayout>
-    <!-- ═══ END FIXED TOP ═══ -->
-
-    <!-- ═══ SCROLLABLE BOTTOM — categories + footer ═══ -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:scrollbarThumbVertical="@android:color/transparent"
-        android:fillViewport="true">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="48dp">
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- LAYER -->
@@ -897,12 +932,6 @@
             android:paddingBottom="4dp"
             android:layout_marginBottom="12dp" />
 
-        <!-- Spacer pushes footer to bottom -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
         <LinearLayout
             android:id="@+id/contentSettings"
             android:layout_width="match_parent"
@@ -1429,6 +1458,12 @@
 
         </LinearLayout>
 
+        <!-- Spacer pushes profile/footer to bottom of screen -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <!-- ═══════════════════════════════════════════ -->
         <!-- PROFILE ACCESS STRIP -->
         <!-- ═══════════════════════════════════════════ -->
@@ -1627,4 +1662,5 @@
 
     </LinearLayout>
     </ScrollView>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

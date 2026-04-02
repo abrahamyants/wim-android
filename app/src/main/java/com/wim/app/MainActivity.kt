@@ -900,7 +900,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupCollapsible(headerId: Int, contentId: Int, prefKey: String, defaultExpanded: Boolean = true) {
         val header = findViewById<TextView>(headerId)
-        val content = findViewById<LinearLayout>(contentId)
+        val content = findViewById<View>(contentId)
 
         // Restore saved state
         val expanded = WimApp.prefs.getBoolean("section_$prefKey", defaultExpanded)
