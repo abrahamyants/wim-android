@@ -1275,6 +1275,20 @@ class BubbleService : Service() {
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
                 // Fallback: inject pre-cleaned text
                 WimAccessibilityService.instance?.injectText(preCleaned)
+                // Still record the session even on API failure
+                val totalMs = System.currentTimeMillis() - recordingStartTime
+                sessionHistory?.record(
+                    rawText = preCleaned,
+                    cleanText = preCleaned,
+                    tone = tone,
+                    layer = layer,
+                    situation = situation,
+                    asrMs = asrMs,
+                    reconMs = 0,
+                    totalMs = totalMs,
+                    falconApproved = false,
+                    riskFlags = listOf("reconstruction_failed")
+                )
                 setBubbleIdle()
             }
         }
