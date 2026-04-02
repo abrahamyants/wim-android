@@ -1,79 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sessions panel — maroon-tinted mesh with depth -->
+<!-- Лаврентий console-bg — #3a1a1a dark maroon -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base maroon-dark -->
+    <!-- Base maroon — Лаврентий console -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FF1E0E10"
-                android:centerColor="#FF2A1418"
-                android:endColor="#FF1A0C0E"
+                android:startColor="#FF3a1a1a"
+                android:centerColor="#FF2e1414"
+                android:endColor="#FF281010"
                 android:angle="270" />
-            <corners android:radius="10dp" />
+            <corners android:radius="8dp" />
         </shape>
     </item>
-    <!-- Maroon mesh tint overlay -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#20802020"
-                android:centerColor="#10601818"
-                android:endColor="#18701C1C"
-                android:angle="135" />
-            <corners android:radius="10dp" />
-        </shape>
-    </item>
-    <!-- Diagonal mesh line hint — direction 1 -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#06FFFFFF"
-                android:centerColor="#00FFFFFF"
-                android:endColor="#04FFFFFF"
-                android:angle="45" />
-            <corners android:radius="10dp" />
-        </shape>
-    </item>
-    <!-- Diagonal mesh line hint — direction 2 -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#04FFFFFF"
-                android:centerColor="#00FFFFFF"
-                android:endColor="#06FFFFFF"
-                android:angle="315" />
-            <corners android:radius="10dp" />
-        </shape>
-    </item>
-    <!-- Inset shadow — top edge recess -->
+    <!-- Inset shadow -->
     <item android:left="2dp" android:top="1dp" android:right="2dp" android:bottom="0dp">
         <shape android:shape="rectangle">
             <gradient
                 android:startColor="#40000000"
-                android:centerColor="#10000000"
-                android:endColor="#30000000"
+                android:endColor="#00000000"
                 android:angle="270" />
-            <corners android:radius="9dp" />
+            <corners android:radius="7dp" />
         </shape>
     </item>
-    <!-- Border — machined edge -->
+    <!-- Border -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
-            <corners android:radius="10dp" />
-            <stroke android:width="1dp" android:color="#15FFFFFF" />
-        </shape>
-    </item>
-    <!-- Center radial depth — speaker recess -->
-    <item android:left="40dp" android:top="40dp" android:right="40dp" android:bottom="40dp">
-        <shape android:shape="oval">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="120dp"
-                android:centerX="0.5"
-                android:centerY="0.5"
-                android:startColor="#20000000"
-                android:endColor="#00000000" />
+            <corners android:radius="8dp" />
+            <stroke android:width="0.5dp" android:color="#14FFFFFF" />
         </shape>
     </item>
 </layer-list>

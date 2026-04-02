@@ -818,9 +818,9 @@ class BubbleService : Service() {
             // Flash the checkmark, then cycle sparkle sequence
             label?.apply {
                 text = if (answer == true) "✓" else "✕"
-                setTextColor(if (answer == true) 0xFFD4A574.toInt() else 0xFFCC4444.toInt())
+                setTextColor(if (answer == true) 0xFFFFFFFF.toInt() else 0xFFCC4444.toInt())
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 24f)
-                setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80D4A574.toInt() else 0x80CC4444.toInt())
+                setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80FFFFFF.toInt() else 0x80CC4444.toInt())
             }
             // Quick scale-pulse animation on the bezel
             bezel?.let { v ->
@@ -834,11 +834,11 @@ class BubbleService : Service() {
             // Sparkle sequence: ✓ → ✦ → ✧ → idle
             timerHandler.postDelayed({
                 label?.text = "✦"
-                label?.setTextColor(0xFFD4A574.toInt()) // copper gold
+                label?.setTextColor(0xFFFFFFFF.toInt()) // copper gold
             }, 400)
             timerHandler.postDelayed({
                 label?.text = "✧"
-                label?.setTextColor(0x88D4A574.toInt())
+                label?.setTextColor(0x88FFFFFF.toInt())
             }, 650)
             timerHandler.postDelayed({
                 bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
@@ -941,7 +941,7 @@ class BubbleService : Service() {
         val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
         liveToggle.isChecked = liveEnabled
         // Gold thumb, light gray track
-        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
         liveToggle.trackTintList = android.content.res.ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())

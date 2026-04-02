@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base surfaces — Screen 1 dark premium -->
-    <color name="bg_base">#FF1A1A2E</color>
-    <color name="bg_surface">#FF20202E</color>
-    <color name="bg_surface_light">#FF252530</color>
-    <color name="bg_elevated">#FF2E2E3A</color>
-    <color name="bg_sunken">#FF151520</color>
+    <!-- Base surfaces — Лаврентий dark mode -->
+    <color name="bg_base">#FF1a1a1e</color>
+    <color name="bg_surface">#FF222226</color>
+    <color name="bg_surface_light">#FF2a2a2f</color>
+    <color name="bg_elevated">#FF333338</color>
+    <color name="bg_sunken">#FF18181c</color>
 
-    <!-- Primary accents -->
-    <color name="copper_gold">#FFD4A574</color>
+    <!-- Primary accents — white for now, easy to swap -->
+    <color name="copper_gold">#FFFFFFFF</color>
     <color name="orange_label">#FFEE5A24</color>
     <color name="section_header">#FFEE5A24</color>
 
@@ -20,35 +20,35 @@
 
     <!-- Data / labels -->
     <color name="yellow_gold">#FFCA8A04</color>
-    <color name="green_active">#FF44DD44</color>
+    <color name="green_active">#FF16a34a</color>
 
-    <!-- Text hierarchy — light on dark -->
-    <color name="text_primary">#FFE8E8EC</color>
-    <color name="text_bright">#FFFFFFFF</color>
-    <color name="text_secondary">#FF8A8A92</color>
-    <color name="text_dim">#FFB0B0BC</color>
+    <!-- Text hierarchy — Лаврентий dark mode -->
+    <color name="text_primary">#FFd4d4d8</color>
+    <color name="text_bright">#FFf0f0f4</color>
+    <color name="text_secondary">#FF8a8a92</color>
+    <color name="text_dim">#FFd4d4d8</color>
     <color name="text_white">#FFFFFFFF</color>
 
-    <!-- Metallic dial / bubble — unchanged for bubble -->
+    <!-- Metallic dial / bubble -->
     <color name="dial_body">#FFC0C0C5</color>
     <color name="dial_stroke">#FFAAAAAF</color>
     <color name="dial_inner">#FFB5B5BA</color>
 
-    <!-- Borders -->
+    <!-- Borders — Лаврентий -->
     <color name="border_subtle">#14FFFFFF</color>
-    <color name="border_accent">#FFD4A574</color>
+    <color name="border_accent">#FFFFFFFF</color>
 
     <!-- Cards and interactive -->
-    <color name="card_bg_base">#FF252530</color>
+    <color name="card_bg_base">#FF222226</color>
     <color name="active_bg">#FF3A2020</color>
     <color name="active_text">#FFFFD8D8</color>
     <color name="led_red">#FFFF5555</color>
 
     <!-- Brand -->
-    <color name="brand_dark">#FF1A1A2E</color>
-    <color name="brand_dark_top">#FF20202E</color>
+    <color name="brand_dark">#FF1a1a1e</color>
+    <color name="brand_dark_top">#FF222226</color>
     <color name="brand_subtitle">#88FFFFFF</color>
 
     <!-- App background -->
-    <color name="bg_app">#FF1A1A2E</color>
+    <color name="bg_app">#FF1a1a1e</color>
 </resources>

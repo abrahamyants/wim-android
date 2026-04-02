@@ -264,7 +264,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ── Gold SeekBars: gold thumb, gold filled track, gray unfilled track ──
-        val copperGold = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        val copperGold = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
         listOf(R.id.bubbleOpacitySeek, R.id.bubbleSizeSeek, R.id.seekDafDelay).forEach { id ->
             findViewById<SeekBar>(id)?.apply {
                 thumbTintList = copperGold
@@ -591,7 +591,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val header = TextView(this).apply {
                     text = label
-                    setTextColor(0xFFD4A574.toInt())
+                    setTextColor(0xFFFFFFFF.toInt())
                     textSize = 10f
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     letterSpacing = 0.1f
@@ -775,7 +775,7 @@ class MainActivity : AppCompatActivity() {
             text = "COPY"
             textSize = 9f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-            setTextColor(0xFFD4A574.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
             setPadding((8 * dp).toInt(), (4 * dp).toInt(), (8 * dp).toInt(), (4 * dp).toInt())
             setOnClickListener {
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -1069,7 +1069,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         // Close button
         content.addView(TextView(this).apply {
             text = "✕ Close"
-            setTextColor(0xFFD4A574.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
             textSize = 14f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             gravity = android.view.Gravity.END
@@ -1197,7 +1197,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     }
 
     private fun styleToggle(toggle: MaterialSwitch) {
-        toggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFD4A574.toInt())
+        toggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
         toggle.trackTintList = android.content.res.ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())

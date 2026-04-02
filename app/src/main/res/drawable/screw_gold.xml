@@ -17,7 +17,7 @@
                 android:centerX="0.4"
                 android:centerY="0.35"
                 android:startColor="#FFFFE0A0"
-                android:centerColor="#FFD4A574"
+                android:centerColor="#FFFFFFFF"
                 android:endColor="#FF8A6848" />
             <stroke android:width="0.5dp" android:color="#40000000" />
             <size android:width="12dp" android:height="12dp" />

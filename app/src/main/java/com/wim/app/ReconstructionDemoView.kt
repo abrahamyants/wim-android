@@ -40,7 +40,7 @@ class ReconstructionDemoView @JvmOverloads constructor(
         color = 0xFF66FF66.toInt(); textSize = 22f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD); isAntiAlias = true
     }
     private val labelPaint = Paint().apply {
-        color = 0xFFD4A574.toInt(); textSize = 24f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true; textAlign = Paint.Align.CENTER
+        color = 0xFFFFFFFF.toInt(); textSize = 24f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true; textAlign = Paint.Align.CENTER
     }
     private val dimPaint = Paint().apply {
         color = 0x88FFFFFF.toInt(); textSize = 18f; isAntiAlias = true; textAlign = Paint.Align.CENTER

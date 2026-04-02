@@ -13,7 +13,7 @@
     <item android:id="@android:id/progress" android:gravity="center_vertical">
         <clip>
             <shape android:shape="rectangle">
-                <solid android:color="#FFD4A574" />
+                <solid android:color="#FFFFFFFF" />
                 <corners android:radius="3dp" />
                 <size android:height="5dp" />
             </shape>
