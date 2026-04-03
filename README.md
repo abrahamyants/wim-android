@@ -344,12 +344,113 @@ c9171b2 Nixie tubes, timer, permissions, grille, brand plate, footer
 a7b6008 Unify category colors, clickable stats, spacing, background pattern
 ```
 
+## Session 4 — April 2, 2026
+
+### Design System Overhaul
+
+Applied Лаврентий desktop dashboard dark mode design system to WiM Android. Read the actual CSS from `dashboard.html` and extracted exact color values:
+- Background: `#1a1a1e`, Surface: `#222226`, Raised: `#2a2a2f`, Elevated: `#333338`
+- Borders: `rgba(255,255,255,0.08)`, Text: `#d4d4d8` primary, `#f0f0f4` bright
+- Stat cells: deep dark glass `#0c0c0e → #141418`, digits `#ff8c42` with multi-layer glow
+- Category labels: `#EE5A24` orange (not white, not gold)
+- Card rows: 3-stop top-lit gradient matching Лаврентий `.tone-btn` / `.layer-opt`
+- Sessions panel: `#3a1a1a` maroon (Лаврентий `--console-bg`)
+
+Also created full light mode theme (Лаврентий `:root` values):
+- Light bg: `#d8d8dc`, Surface: `#c8c8cc`, Raised: `#bfbfc4` (brushed aluminum)
+- Light text: `#2a2a30` primary, `#111116` bright
+- Drawables split: `drawable/` = light, `drawable-night/` = dark
+
+### Color Experiments
+
+Replaced all gold (`#D4A574`) with white — 65 occurrences across 22 files (XML + Kotlin). Then reverted category headers to orange `#EE5A24` after comparing with actual Lavrentiy screenshots. Screws also got white center color from the gold→white sweep.
+
+Captured actual Lavrentiy UI element screenshots using headless Playwright connecting to `localhost:7878`:
+- `lav_stat_cell.png`, `lav_sidebar.png`, `lav_section.png`, `lav_layer_opt.png`, `lav_tone_btn.png`, `lav_full_dark.png`
+
+### Critical Bug: 4-Month Silent Session Data Loss
+
+**Root cause:** `BubbleService.processText()` calls the reconstruction API (OpenAI GPT via backend). When the API fails (timeout, 403, network error), the `catch` block injects fallback pre-cleaned text BUT never calls `sessionHistory.record()`. Every failed API call = lost session.
+
+**The specific failure:** Backend returns `403: {"error": "Layer 4 requires Pro tier", "max_layer": 2, "tier": "Free"}`. George's Firestore user record has `tier: "Free"`. Every L4 call has been silently rejected for months. The catch block swallowed the error, injected raw text, and moved on. Zero sessions recorded.
+
+**Fix:** Added `sessionHistory.record()` to the catch block with `falconApproved=false` and `riskFlags=["reconstruction_failed"]`. Sessions are now recorded regardless of API success.
+
+**Secondary fix:** `syncFromFirestore()` was async but `loadSessions()` ran before sync completed. Added callback pattern: `WimApp.onSessionsSynced` fires after Firestore sync, triggers `loadSessions()` refresh.
+
+### Other Fixes
+- **Overlay permission crash guard:** `canDrawOverlays()` check before `windowManager.addView()`. Prevents `BadTokenException` when accessibility enabled before overlay.
+- **Permission order enforcement:** Accessibility button blocks with toast if overlay not granted first.
+- **Dark/light mode toggle:** Restored in Settings with `AppCompatDelegate` and SharedPreferences persistence.
+- **Ambient glow orb:** Removed from fixed top section (was causing 300dp gap), placed as centered overlay in root FrameLayout.
+
+### Commits — Session 4
+```
+990859f Apply Лаврентий dark mode design system to WiM
+aca1448 Add Лаврентий light mode theme alongside dark mode
+11a5e2a Replace all gold with white, orange labels, filament glow
+c722263 Restore dark/light mode toggle in Settings
+0bd132b Guard bubble overlay with canDrawOverlays check
+b7d7fea Enforce overlay-before-accessibility permission order
+3c28b2b Fix sessions not showing after sign-in on fresh install
+7b9cd39 Record session even when reconstruction API fails
+```
+
+### Design Limitations Documented
+
+Android XML drawables cannot replicate Лаврентий's CSS effects:
+- No multi-layer box-shadows (CSS stacks 5, Android gets 1 elevation)
+- No backdrop blur / glassmorphism (needs RenderEffect API 31+)
+- No repeating patterns (CSS `repeating-linear-gradient`, Android needs bitmap tiles)
+- No pseudo-elements (`::before`/`::after` for overlays)
+- No inset shadows (`box-shadow: inset`)
+- No multi-layer text-shadow (CSS stacks for glow, Android gets 1)
+
+**Solution path:** Jetpack Compose migration closes most gaps. Custom Canvas views for remaining effects. PNG slices as fallback for pixel-perfect elements.
+
+## Instructions for Next Model
+
+**READ THIS FIRST.** George iterates fast via voice (Wispr/Lavrentiy at 182 WPM). His messages are phonetic, messy, and context-dependent. Extract intent, not spelling.
+
+### Current State
+- App builds and installs via `./gradlew.bat assembleDebug` + ADB
+- Phone: Samsung `R5CWB08K38H`, connected via USB, ADB at `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`
+- ADB screenshots: `adb shell "screencap -p //sdcard//screen.png"` then `adb pull` (double-slash to prevent Git bash path mangling)
+- **Multi-display warning:** Always use `//sdcard//` not `/sdcard/`. The screencap warning about multiple displays is cosmetic — the screenshot still works.
+- Lavrentiy desktop: `C:\Users\georg\Documents\GitHub\lavrentiy\portable\START.bat` — uses `desktop.py` wrapper, NOT `lavrentiy.py` directly
+- Lavrentiy dashboard CSS: `C:\Users\georg\Documents\GitHub\lavrentiy\dashboard.html` — THE source of truth for design
+
+### Known Issues
+1. **Backend tier gate:** Cloud Function at `bakers-agent.cloudfunctions.net` rejects L4 calls with `403: Layer 4 requires Pro tier`. George's Firestore `tier` field is "Free". Fix: update Firestore document or bypass tier check.
+2. **Design mismatch:** Android XML cannot match Lavrentiy CSS depth/texture. Needs Jetpack Compose migration or custom Canvas views.
+3. **Kotlin hardcoded colors:** 23 occurrences of `0xFFEE5A24` that don't respond to theme switching. Need refactor to `getColor(R.color.copper_gold)`.
+4. **ProGuard strips logs:** `isMinifyEnabled = true` only on `release`, but verify debug builds have full logging.
+5. **Sticky Settings header:** One-directional (can go down, can't go up) — implemented via `translationY` in scroll listener but needs testing.
+6. **Lavrentiy F9 stuck recording:** Fixed with toggle safety + 3-second startup guard + 30-second timeout. Fix is in root `lavrentiy.py` but NOT in `portable/engine/lavrentiy.py` — needs to be copied.
+
+### Design Workflow (DO THIS)
+1. **Screenshot phone** → look at actual app
+2. **Screenshot Lavrentiy** → compare with phone
+3. **Identify specific differences** → list them
+4. **Fix in code** → build → install → verify
+5. **Do NOT create HTML mockups** — they diverge from the real app and cause confusion
+
+### George's Rules
+- Full filesystem access. No confirmation needed for reversible actions.
+- Commit after every meaningful change. Don't batch.
+- Push to main directly (no PRs for this repo).
+- Don't ask "what do you want to do next" — decide and do it.
+- Don't praise. Engage with the work.
+
 ## Still TODO
-- One-directional sticky Settings header (can go down, can't go up off screen)
-- Onboarding — quick vs full setup paths
-- TurboTax engagement animations during L4 processing
-- Background pattern — reference Лаврентий left panel texture more closely
-- Bluetooth mic support (AudioManager SCO for Buds/headsets)
-- Test suites for WiM Android (zero tests currently — Лаврентий desktop has 1,312)
+- **Backend tier fix** — update Firestore to allow L4 for George's account, or bypass tier check
+- One-directional sticky Settings header — verify/improve
+- Design: Jetpack Compose migration for proper Лаврентий visual parity
+- Design: custom Canvas views for nixie tube stat cells
+- Onboarding — quick vs full setup (code exists, needs testing)
+- TurboTax L4 engagement (code exists, needs testing with working L4)
+- Bluetooth mic SCO (code exists, needs testing)
+- Test suites for WiM Android
 - Play Store listing and screenshots
-- Port trigger_words, onset_weights, covert_profile detection from Лаврентий to Android
+- Port trigger_words, onset_weights, covert_profile from Лаврентий
+- Copy Lavrentiy F9 fix to `portable/engine/lavrentiy.py`

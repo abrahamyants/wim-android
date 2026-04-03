@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "design-preview",
+      "name": "wim-preview",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "."],
+      "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080
     }
   ]
