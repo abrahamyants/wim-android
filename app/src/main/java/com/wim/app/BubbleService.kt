@@ -537,8 +537,6 @@ class BubbleService : Service() {
                 // Partial = current segment only; combine with finalized segments
                 lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
                 updateLiveTranscript(lastRawText)
-                // Name vibration — buzz when user's name is spoken
-                checkNameMention(text)
             }
 
             override fun onFinalResult(text: String) {
@@ -667,18 +665,6 @@ class BubbleService : Service() {
         }
     }
 
-    private var lastNameMentionTime = 0L
-    private fun checkNameMention(text: String) {
-        val userName = WimApp.prefs.getString("user_name", null) ?: return
-        if (userName.isBlank()) return
-        if (text.lowercase().contains(userName.lowercase())) {
-            val now = System.currentTimeMillis()
-            if (now - lastNameMentionTime > 3000) { // debounce 3s
-                lastNameMentionTime = now
-                try { vibrator?.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 100, 50, 100), -1)) } catch (_: Exception) {}
-            }
-        }
-    }
 
     private val tips = listOf(
         Pair("Did you know?", "Tap the ? in the app for a quick guide to all features."),

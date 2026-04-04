@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
                 signedOutSection.visibility = View.GONE
                 signedInSection.visibility = View.VISIBLE
                 userEmail.text = user.email ?: user.uid.take(12)
-                userTier.text = "Free tier"
+                userTier.text = "Invite"
                 // Hide API key section — consumer doesn't need it
             } else {
                 signedOutSection.visibility = View.VISIBLE
@@ -323,6 +323,7 @@ class MainActivity : AppCompatActivity() {
         // Bubble section moved to Settings
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerTransparency, R.id.contentTransparency, "transparency_section", defaultExpanded = false)
         setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
 
         // ── Auto-collapse sections on scroll ──
@@ -371,13 +372,6 @@ class MainActivity : AppCompatActivity() {
         }
         secondaryLang?.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) WimApp.prefs.edit().putString("secondary_language", secondaryLang.text.toString().trim()).apply()
-        }
-
-        // ── Your name (for name vibration) ──
-        val nameInput = findViewById<EditText>(R.id.userNameInput)
-        nameInput?.setText(WimApp.prefs.getString("user_name", "") ?: "")
-        nameInput?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) WimApp.prefs.edit().putString("user_name", nameInput.text.toString().trim()).apply()
         }
 
         // ── Voice shortcuts ──
@@ -444,24 +438,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // ── Layer selector in Settings ──
-        val sLayerBtns = listOf(
-            findViewById<TextView>(R.id.settingsLayer1),
-            findViewById<TextView>(R.id.settingsLayer2),
-            findViewById<TextView>(R.id.settingsLayer3),
-            findViewById<TextView>(R.id.settingsLayer4)
-        )
-        val curLayer = WimApp.layer()
-        sLayerBtns.forEachIndexed { i, btn ->
-            val layerVal = i + 1
-            btn?.setTextColor(if (layerVal == curLayer) 0xFFEE5A24.toInt() else 0xFF888890.toInt())
-            btn?.setOnClickListener {
-                WimApp.prefs.edit().putInt("layer", layerVal).apply()
-                sLayerBtns.forEach { b -> b?.setTextColor(0xFF888890.toInt()) }
-                btn.setTextColor(0xFFEE5A24.toInt())
-                loadSessions()
-            }
-        }
 
 
         // ── Profile overlay (iron curtain) ───────────────

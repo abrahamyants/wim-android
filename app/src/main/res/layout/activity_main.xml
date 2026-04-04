@@ -17,7 +17,7 @@
         android:orientation="vertical"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
-        android:paddingTop="24dp">
+        android:fitsSystemWindows="true">
 
     <!-- ═══ FIXED TOP — brand plate only (frozen) ═══ -->
     <LinearLayout
@@ -950,6 +950,80 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
+        <!-- TRANSPARENCY (type-to-speak) -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerTransparency"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="TEXT TO SPEECH"
+            android:textColor="@color/copper_gold"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-light"
+            android:elevation="4dp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg_pressable"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:id="@+id/contentTransparency"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/grille_pattern_bg"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="10dp">
+
+            <!-- Type-to-speak -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="6dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <EditText
+                    android:id="@+id/ttsInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="Type to speak aloud..."
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/ttsSpeak"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:text="SPEAK"
+                    android:textColor="@color/section_header"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════ -->
         <!-- SETTINGS (collapsible, under Permissions) -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
@@ -1190,41 +1264,6 @@
                     android:checked="false" />
             </LinearLayout>
 
-            <!-- Your name (for name vibration) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Your name"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:layout_marginEnd="8dp" />
-
-                <EditText
-                    android:id="@+id/userNameInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="for name vibration"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:background="@android:color/transparent"
-                    android:inputType="textPersonName"
-                    android:maxLines="1" />
-            </LinearLayout>
-
             <!-- Voice shortcuts -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1256,45 +1295,6 @@
                     android:inputType="textMultiLine"
                     android:minLines="2"
                     android:maxLines="5" />
-            </LinearLayout>
-
-            <!-- Type-to-speak -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="6dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
-
-                <EditText
-                    android:id="@+id/ttsInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="Type to speak aloud..."
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:background="@android:color/transparent"
-                    android:inputType="text"
-                    android:maxLines="1" />
-
-                <TextView
-                    android:id="@+id/ttsSpeak"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:text="SPEAK"
-                    android:textColor="@color/section_header"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp" />
             </LinearLayout>
 
             <!-- Double-shake toggle -->
@@ -1426,72 +1426,6 @@
                     android:layout_marginStart="6dp"
                     android:minWidth="40dp"
                     android:gravity="end" />
-            </LinearLayout>
-
-            <!-- Layer selector -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Layer"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
-                    android:id="@+id/settingsLayer1"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:text="I"
-                    android:textSize="13sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:textColor="@color/text_dim" />
-                <TextView
-                    android:id="@+id/settingsLayer2"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:text="II"
-                    android:textSize="13sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:textColor="@color/text_dim" />
-                <TextView
-                    android:id="@+id/settingsLayer3"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:text="III"
-                    android:textSize="13sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:textColor="@color/text_dim" />
-                <TextView
-                    android:id="@+id/settingsLayer4"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:text="IV"
-                    android:textSize="13sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:textColor="@color/text_dim" />
             </LinearLayout>
 
             <!-- Dark / Light mode toggle -->

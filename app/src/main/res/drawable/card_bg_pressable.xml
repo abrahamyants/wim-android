@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Лаврентий light — pressable card -->
+<!-- Light mode — pressable card (white, darkens on press) -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FFdcdce0"
-                android:centerColor="#FFe4e4e8"
-                android:endColor="#FFececf0"
+                android:startColor="#FFF0F0F4"
+                android:centerColor="#FFE8E8EC"
+                android:endColor="#FFE4E4E8"
                 android:angle="270" />
             <corners android:radius="6dp" />
             <stroke android:width="1dp" android:color="#30000000" />
@@ -15,9 +15,9 @@
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FFe8e8ec"
-                android:centerColor="#FFf0f0f4"
-                android:endColor="#FFf4f4f8"
+                android:startColor="#FFFFFFFF"
+                android:centerColor="#FFF8F8FC"
+                android:endColor="#FFF0F0F4"
                 android:angle="270" />
             <corners android:radius="6dp" />
             <stroke android:width="0.5dp" android:color="#20000000" />
