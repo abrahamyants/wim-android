@@ -454,6 +454,7 @@ class MainActivity : AppCompatActivity() {
         val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
         val isDark = AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO
         darkToggle.isChecked = isDark
+        styleToggle(darkToggle)
         darkToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("dark_mode", checked).apply()
             AppCompatDelegate.setDefaultNightMode(
@@ -1003,7 +1004,7 @@ class MainActivity : AppCompatActivity() {
         val dimColor = getColor(R.color.text_dim)
 
         val sections = listOf(
-            Triple("How It Works", "What happens when you tap the bubble", """<b><font color="#C8B48A">1. You speak</font></b><br>Tap the bubble to start recording.<br><br><b><font color="#C8B48A">2. On-device transcription</font></b><br>Android's speech recognition converts your voice to text. Free, instant.<br><br><b><font color="#C8B48A">3. Quick cleanup</font></b><br>Disfluencies stripped automatically: repeated syllables, repeated words, fillers, false starts.<br><br><b><font color="#C8B48A">4. Depends on your Layer:</font></b><br>Layer I — Done. Cleaned text pasted. No AI.<br>Layer II — GPT rewrites with your tone.<br>Layer III — Plus your vocabulary and corrections.<br>Layer IV — Full stutter-aware engine.<br><br><b><font color="#C8B48A">5. Safety check</font></b><br>A second AI verifies meaning wasn't changed.<br><br><b><font color="#C8B48A">6. Paste</font></b><br>Final text injected into your text field."""),
+            Triple("How It Works", "What happens when you tap the bubble", """<b>1. You speak</b><br>Tap the bubble to start recording.<br><br><b>2. On-device transcription</b><br>Android's speech recognition converts your voice to text. Free, instant.<br><br><b>3. Quick cleanup</b><br>Disfluencies stripped automatically: repeated syllables, repeated words, fillers, false starts.<br><br><b>4. Depends on your Layer:</b><br>Layer I — Done. Cleaned text pasted. No AI.<br>Layer II — GPT rewrites with your tone.<br>Layer III — Plus your vocabulary and corrections.<br>Layer IV — Full stutter-aware engine.<br><br><b>5. Safety check</b><br>A second AI verifies meaning wasn't changed.<br><br><b>6. Paste</b><br>Final text injected into your text field."""),
             Triple("The Bubble", "Your floating control center", """<b>Tap</b> — Start recording. Tap again to stop.<br><br><b>Hold</b> — Record while held, release to process.<br><br><b>Double-tap</b> — Open settings menu.<br><br><b>Drag</b> — Move anywhere on screen.<br><br><b>Drag to bottom</b> — Hide the bubble.<br><br><b>Shake phone twice</b> — Show/hide the bubble.<br><br><b>Bezel tap (left/right)</b> — Toggle work/personal mode."""),
             Triple("Layers", "What each layer does", """<b>I. Transcribe</b> — On-device + disfluency filter. Free, instant.<br><br><b>II. Reconstruct</b> — GPT cleans grammar, applies tone. ~1-2s.<br><br><b>III. Profile</b> — Plus your vocabulary and corrections. Learns over time.<br><br><b>IV. Stutter</b> — Full clinical mode. Stronger prompts, phoneme map, avoidance detection."""),
             Triple("Smart Tone", "Automatic context detection", """WiM detects which app you're in:<br><br><b>Work apps</b> (Gmail, Slack, Teams) → Professional<br><b>Personal apps</b> (WhatsApp, Messenger) → Casual<br><br>Four tones: Casual, Professional, Friend, Formal."""),
@@ -1070,21 +1071,21 @@ class MainActivity : AppCompatActivity() {
 
         val sections = listOf(
             Triple("How It Works", "What happens when you tap the bubble", """
-<b><font color="#EE5A24">1. You speak</font></b><br>Tap the bubble to start recording. Your voice is captured through the microphone.<br><br>
-<b><font color="#EE5A24">2. On-device transcription</font></b><br>Android's built-in speech recognition converts your voice to text, right on your phone. No internet needed for this step, no cost.<br><br>
-<b><font color="#EE5A24">3. Quick cleanup</font></b><br>Obvious disfluencies are stripped automatically (instant, free):<br>
+<b><font color="#EE5A24">1. You speak</b><br>Tap the bubble to start recording. Your voice is captured through the microphone.<br><br>
+<b><font color="#EE5A24">2. On-device transcription</b><br>Android's built-in speech recognition converts your voice to text, right on your phone. No internet needed for this step, no cost.<br><br>
+<b><font color="#EE5A24">3. Quick cleanup</b><br>Obvious disfluencies are stripped automatically (instant, free):<br>
 &#8226; Repeated syllables: "p-p-pop" &#8594; "pop"<br>
 &#8226; Repeated words: "I I I want" &#8594; "I want"<br>
 &#8226; Fillers: "um", "uh", "like", "you know"<br>
 &#8226; False starts and prolongations<br>
 Natural phrases like "bye bye" are kept.<br><br>
-<b><font color="#EE5A24">4. Depends on your Layer:</font></b><br><br>
+<b><font color="#EE5A24">4. Depends on your Layer:</b><br><br>
 <b>Layer I</b> &#8212; Done. Cleaned text is pasted. No AI, no cost.<br><br>
 <b>Layer II</b> &#8212; GPT rewrites using your tone (casual, professional, etc). No personal data used.<br><br>
 <b>Layer III</b> &#8212; Same as II, plus GPT knows your preferred words and learned corrections.<br><br>
 <b>Layer IV</b> &#8212; Full stutter-aware engine. Stronger AI model, plus your personal phoneme map, avoidance patterns, and block detection.<br><br>
-<b><font color="#EE5A24">5. Safety check</font></b><br>A second AI verifies the meaning wasn't changed. If it was, your original text is used instead. Numbers and dollar amounts are double-checked.<br><br>
-<b><font color="#EE5A24">6. Paste</font></b><br>The final text is injected into whatever text field you're typing in.""".trimIndent()),
+<b><font color="#EE5A24">5. Safety check</b><br>A second AI verifies the meaning wasn't changed. If it was, your original text is used instead. Numbers and dollar amounts are double-checked.<br><br>
+<b><font color="#EE5A24">6. Paste</b><br>The final text is injected into whatever text field you're typing in.""".trimIndent()),
 
             Triple("The Bubble", "Your floating control center", """
 <b>Tap</b> &#8212; Start recording. Tap again to stop and process.<br><br>
@@ -1298,8 +1299,10 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         toggle.thumbTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.copper_gold))
         toggle.trackTintList = android.content.res.ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-            intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())
+            intArrayOf(0xFF3A3530.toInt(), 0xFF2A2A2F.toInt())
         )
+        toggle.scaleX = 0.75f
+        toggle.scaleY = 0.75f
     }
 
     private fun isAccessibilityEnabled(): Boolean {

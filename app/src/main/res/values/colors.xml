@@ -1,54 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base surfaces — Лаврентий light mode (brushed aluminum) -->
-    <color name="bg_base">#FFd8d8dc</color>
-    <color name="bg_surface">#FFc8c8cc</color>
-    <color name="bg_surface_light">#FFbfbfc4</color>
-    <color name="bg_elevated">#FFb5b5ba</color>
-    <color name="bg_sunken">#FFb8b8bc</color>
+    <!-- Light mode — warm vintage paper aesthetic, dark base -->
+    <color name="bg_base">#FFD4C8B0</color>
+    <color name="bg_surface">#FFE8DDC4</color>
+    <color name="bg_surface_light">#FFEDE4D0</color>
+    <color name="bg_elevated">#FFF0E8D8</color>
+    <color name="bg_sunken">#FFC4B898</color>
 
-    <!-- Primary accents -->
-    <color name="copper_gold">#FFEE5A24</color>
-    <color name="orange_label">#FFEE5A24</color>
-    <color name="section_header">#FFEE5A24</color>
+    <!-- Accent split: burnt umber headers, copper sub-labels, orange data -->
+    <color name="copper_gold">#FF8A5A2F</color>
+    <color name="orange_label">#FFC94A1F</color>
+    <color name="section_header">#FF5C3A1F</color>
 
-    <!-- Red accents -->
     <color name="red_primary">#FFB91C1C</color>
     <color name="red_bright">#FFDC2626</color>
     <color name="red_hot">#FFEF4444</color>
-    <color name="orange_amber">#FFFFA500</color>
+    <color name="orange_amber">#FFD97706</color>
 
-    <!-- Data / labels -->
     <color name="yellow_gold">#FFCA8A04</color>
     <color name="green_active">#FF16a34a</color>
 
-    <!-- Text hierarchy — Лаврентий light mode (dark text on light bg) -->
-    <color name="text_primary">#FF2a2a30</color>
-    <color name="text_bright">#FF111116</color>
-    <color name="text_secondary">#FF888890</color>
-    <color name="text_dim">#FF55555e</color>
-    <color name="text_white">#FF111116</color>
+    <!-- Text hierarchy — warm charcoal to taupe -->
+    <color name="text_primary">#FF2A2420</color>
+    <color name="text_bright">#FF1A1612</color>
+    <color name="text_secondary">#FF6B5D4A</color>
+    <color name="text_dim">#FF8A7D68</color>
+    <color name="text_white">#FF1A1612</color>
 
-    <!-- Metallic dial / bubble -->
     <color name="dial_body">#FFC0C0C5</color>
     <color name="dial_stroke">#FFAAAAAF</color>
     <color name="dial_inner">#FFB5B5BA</color>
 
-    <!-- Borders — Лаврентий light -->
-    <color name="border_subtle">#1A000000</color>
-    <color name="border_accent">#FFEE5A24</color>
+    <color name="border_subtle">#25000000</color>
+    <color name="border_accent">#FF8A5A2F</color>
 
-    <!-- Cards and interactive -->
-    <color name="card_bg_base">#FFe8e8ec</color>
-    <color name="active_bg">#FFe0c0c0</color>
-    <color name="active_text">#FF4a1010</color>
+    <color name="card_bg_base">#FFF5EEE0</color>
+    <color name="active_bg">#FFE8D4C0</color>
+    <color name="active_text">#FF4A2A10</color>
     <color name="led_red">#FFFF5555</color>
 
-    <!-- Brand — stays dark in both modes (identity element) -->
-    <color name="brand_dark">#FF1a1a1e</color>
+    <!-- Brand plate stays dark — identity element -->
+    <color name="brand_dark">#FF1A1A1E</color>
     <color name="brand_dark_top">#FF222226</color>
     <color name="brand_subtitle">#88FFFFFF</color>
 
-    <!-- App background -->
-    <color name="bg_app">#FFE0E0E4</color>
+    <color name="bg_app">#FFD4C8B0</color>
 </resources>

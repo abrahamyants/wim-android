@@ -23,41 +23,45 @@ class VuMeterView @JvmOverloads constructor(
     var label: String = ""
         set(v) { field = v; invalidate() }
 
-    // Colors from the mockup
+    // Theme detection — VU meter colors adapt to light/dark mode
+    private val isNight: Boolean
+        get() = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+    private val arcColor: Int get() = if (isNight) 0xFF3A3530.toInt() else 0xFF6B4423.toInt()
+    private val redZoneColor: Int get() = if (isNight) 0xFF5C2828.toInt() else 0xFF8B3A1F.toInt()
+    private val tickColor: Int get() = if (isNight) 0xFF6A5A48.toInt() else 0xFF4A3520.toInt()
+    private val needleColor: Int get() = if (isNight) 0xFFD4C5A9.toInt() else 0xFF2A2420.toInt()
+    private val pivotColor: Int get() = if (isNight) 0xFFC49A6C.toInt() else 0xFF8A5A2F.toInt()
+    private val valueColor: Int get() = if (isNight) 0xFFD4C5A9.toInt() else 0xFF2A2420.toInt()
+    private val labelColor: Int get() = if (isNight) 0xFF6A5A48.toInt() else 0xFF6B5D4A.toInt()
+
     private val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        color = 0xFF3A3530.toInt()
     }
     private val redZonePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        color = 0xFF5C2828.toInt()
     }
     private val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 1f
-        color = 0xFF6A5A48.toInt()
     }
     private val needlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 2f
-        color = 0xFFD4C5A9.toInt()
         strokeCap = Paint.Cap.ROUND
     }
     private val pivotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0xFFC49A6C.toInt()
     }
     private val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        color = 0xFFD4C5A9.toInt()
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
-        color = 0xFF6A5A48.toInt()
         letterSpacing = 0.15f
     }
 
@@ -66,6 +70,15 @@ class VuMeterView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
         if (w == 0f || h == 0f) return
+
+        // Refresh colors from theme on each draw
+        arcPaint.color = arcColor
+        redZonePaint.color = redZoneColor
+        tickPaint.color = tickColor
+        needlePaint.color = needleColor
+        pivotPaint.color = pivotColor
+        valuePaint.color = valueColor
+        labelPaint.color = labelColor
 
         val cx = w / 2f
         val gaugeBottom = h * 0.6f

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Light mode — category content area (slightly lighter than headers) -->
+<!-- Light mode — expanded content area, between bg and card -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FFC0C0C8" />
+            <solid android:color="#FFE8DDC4" />
             <corners android:radius="8dp" />
         </shape>
     </item>
@@ -21,7 +21,7 @@
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
             <corners android:radius="8dp" />
-            <stroke android:width="0.5dp" android:color="#20000000" />
+            <stroke android:width="0.5dp" android:color="#25000000" />
         </shape>
     </item>
 </layer-list>
