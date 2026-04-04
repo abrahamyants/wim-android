@@ -1,61 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher icon — identical to floating bubble -->
+<!--
+    Fresh design. The bezel circle extends beyond the safe zone so the
+    adaptive icon mask crops it — orange background peeks through only
+    as a thin ring at the edge, exactly like the floating bubble.
+    Dark well is wider for visibility at small size.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer bezel ring — bubble outer: #E0E0E4 → #B0B0B8 gradient, use lighter -->
+    <!-- BEZEL — fills most of the icon, mask crops the edge -->
     <path
-        android:fillColor="#FFE0E0E4"
-        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+        android:fillColor="#FFD0D0D6"
+        android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
 
-    <!-- Orange bezel stroke — bubble has 2dp on 72dp bezel, scale up for icon visibility -->
+    <!-- INNER BEZEL — slightly darker ring -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeWidth="3"
-        android:strokeColor="#FFEE5A24"
-        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+        android:fillColor="#FFC0C0C8"
+        android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0" />
 
-    <!-- Inner bezel — bubble inner circle: #CCCCD2 → #A0A0A8 -->
+    <!-- SHADOW WELL — wide dark ring, clearly visible -->
     <path
-        android:fillColor="#FFCCCCD2"
-        android:pathData="M54,54m-27,0a27,27 0,1 1,54 0a27,27 0,1 1,-54 0" />
+        android:fillColor="#FF3A3A44"
+        android:pathData="M54,54m-29,0a29,29 0,1 1,58 0a29,29 0,1 1,-58 0" />
 
-    <!-- Shadow well — dark gap where knob rises, bubble: #4A4A52 -->
-    <path
-        android:fillColor="#FF4A4A52"
-        android:pathData="M54,54m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
-
-    <!-- Knob rim — bubble: #BBBBC2 → #808088 -->
+    <!-- KNOB RIM -->
     <path
         android:fillColor="#FFBBBBC2"
-        android:strokeWidth="0.5"
-        android:strokeColor="#44000000"
-        android:pathData="M54,53m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+        android:pathData="M54,53m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
 
-    <!-- Knob top face — bubble: #CDCDD2 → #ADADB4 -->
+    <!-- KNOB FACE -->
     <path
         android:fillColor="#FFCDCDD2"
-        android:pathData="M54,51m-17,0a17,17 0,1 1,34 0a17,17 0,1 1,-34 0" />
+        android:pathData="M54,52m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
 
-    <!-- Concave dish — bubble inner knob recessed center -->
-    <path
-        android:fillColor="#FFADADB4"
-        android:pathData="M54,51m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
-
-    <!-- Orange tick mark at 12 o'clock — same as bubble -->
-    <path
-        android:fillColor="#FFEE5A24"
-        android:pathData="M53,32 L55,32 L55,37 L53,37Z" />
-
-    <!-- WM letterforms — orange, same as bubble accent color -->
+    <!-- WM LETTERFORMS — only orange element -->
     <group
-        android:translateX="38"
-        android:translateY="45"
-        android:scaleX="0.00874"
-        android:scaleY="0.00874">
+        android:translateX="36"
+        android:translateY="44"
+        android:scaleX="0.011"
+        android:scaleY="0.011">
         <path
             android:fillColor="#FFEE5A24"
             android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />

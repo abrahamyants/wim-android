@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { margin: 0; background: #2a2a2e; display: flex; align-items: center; justify-content: center; height: 100vh; }
+  .icon-wrap { text-align: center; color: #888; font-family: sans-serif; font-size: 11px; }
+  .icon-wrap span { display: block; margin-top: 6px; }
+
+  /* Every icon is same size, same squircle */
+  .app-icon {
+    width: 144px;
+    height: 144px;
+    border-radius: 28%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* WiM icon layers */
+  .wim-bg { width: 100%; height: 100%; background: #D0D0D6; }
+
+  .wim-bezel {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 88%; height: 88%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 38%, #E0E0E4, #B0B0B8);
+  }
+  .wim-track1 {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%; height: 85%;
+    border-radius: 50%;
+    border: 2px solid #EE5A24;
+    background: transparent;
+    box-sizing: border-box;
+  }
+  .wim-track2 {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%; height: 80%;
+    border-radius: 50%;
+    border: 2px solid #EE5A24;
+    background: transparent;
+    box-sizing: border-box;
+  }
+  .wim-inner {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75%; height: 75%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 40%, #CCCCD2, #A0A0A8);
+  }
+  /* 1. Shadow well — #4A4A52 solid */
+  .wim-well {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52%; height: 52%;
+    border-radius: 50%;
+    background: #4A4A52;
+  }
+  /* 2. Side wall — gradient #BBBBC2 → #808088, 0.5px stroke #44000000 */
+  .wim-rim {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%; height: 50%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #BBBBC2, #808088);
+    border: 0.5px solid rgba(0,0,0,0.27);
+  }
+  /* 3. Top face — gradient #CDCDD2 → #ADADB4 */
+  .wim-face {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44%; height: 44%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #CDCDD2, #ADADB4);
+  }
+  /* 4. Bottom shadow — #30000000 → transparent oval at bottom */
+  .wim-bottomshadow {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-46%, -30%);
+    width: 40%; height: 16%;
+    border-radius: 50%;
+    background: linear-gradient(to top, rgba(0,0,0,0.19), transparent);
+  }
+  .wim-wm {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -45%);
+    color: #EE5A24;
+    font-family: 'Limelight', serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Limelight&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div style="display:grid; grid-template-columns: repeat(4, 160px); gap: 40px;">
+
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#222;"></div>
+    <span>Phone</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#1a73e8;"></div>
+    <span>Chrome</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#25D366;"></div>
+    <span>WhatsApp</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon">
+      <div class="wim-bg"></div>
+      <div class="wim-bezel"></div>
+      <div class="wim-track1"></div>
+      <div class="wim-track2"></div>
+      <div class="wim-inner"></div>
+      <div class="wim-well"></div>
+      <div class="wim-rim"></div>
+      <div class="wim-face"></div>
+      <div class="wim-bottomshadow"></div>
+      <div class="wim-wm">WM</div>
+    </div>
+    <span style="color:#EE5A24;">What I Meant</span>
+  </div>
+
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#5865F2;"></div>
+    <span>Discord</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#FF4500;"></div>
+    <span>Reddit</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#c71610;"></div>
+    <span>Gmail</span>
+  </div>
+  <div class="icon-wrap">
+    <div class="app-icon" style="background:#333;"></div>
+    <span>Settings</span>
+  </div>
+</div>
+
+</body>
+</html>
