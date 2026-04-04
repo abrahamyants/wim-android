@@ -4,23 +4,23 @@
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FFb5b5ba"
-                android:centerColor="#FFbfbfc4"
-                android:endColor="#FFc8c8cc"
+                android:startColor="#FFd4d4d8"
+                android:centerColor="#FFdcdce0"
+                android:endColor="#FFe4e4e8"
                 android:angle="270" />
             <corners android:radius="6dp" />
-            <stroke android:width="1dp" android:color="#2A000000" />
+            <stroke android:width="1dp" android:color="#30000000" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FFbfbfc4"
-                android:centerColor="#FFc8c8cc"
-                android:endColor="#FFd0d0d4"
+                android:startColor="#FFdcdce0"
+                android:centerColor="#FFe4e4e8"
+                android:endColor="#FFececf0"
                 android:angle="270" />
             <corners android:radius="6dp" />
-            <stroke android:width="0.5dp" android:color="#1A000000" />
+            <stroke android:width="0.5dp" android:color="#20000000" />
         </shape>
     </item>
 </selector>

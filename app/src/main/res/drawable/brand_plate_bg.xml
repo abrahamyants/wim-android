@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Лаврентий light — brand plate -->
+<!-- Brand plate stays dark in both modes — identity element -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient
-        android:startColor="#FFc8c8cc"
-        android:endColor="#FFd8d8dc"
+        android:startColor="#FF222226"
+        android:endColor="#FF1a1a1e"
         android:angle="270" />
-    <stroke android:width="0.5dp" android:color="#1A000000" />
+    <stroke android:width="0.5dp" android:color="#14FFFFFF" />
     <corners android:radius="8dp" />
 </shape>

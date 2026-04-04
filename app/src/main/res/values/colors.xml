@@ -8,7 +8,7 @@
     <color name="bg_sunken">#FFb8b8bc</color>
 
     <!-- Primary accents -->
-    <color name="copper_gold">#FF2a2a30</color>
+    <color name="copper_gold">#FFEE5A24</color>
     <color name="orange_label">#FFEE5A24</color>
     <color name="section_header">#FFEE5A24</color>
 
@@ -36,19 +36,19 @@
 
     <!-- Borders — Лаврентий light -->
     <color name="border_subtle">#1A000000</color>
-    <color name="border_accent">#FF2a2a30</color>
+    <color name="border_accent">#FFEE5A24</color>
 
     <!-- Cards and interactive -->
-    <color name="card_bg_base">#FFc8c8cc</color>
+    <color name="card_bg_base">#FFe8e8ec</color>
     <color name="active_bg">#FFe0c0c0</color>
     <color name="active_text">#FF4a1010</color>
     <color name="led_red">#FFFF5555</color>
 
-    <!-- Brand -->
-    <color name="brand_dark">#FFd8d8dc</color>
-    <color name="brand_dark_top">#FFc8c8cc</color>
-    <color name="brand_subtitle">#66000000</color>
+    <!-- Brand — stays dark in both modes (identity element) -->
+    <color name="brand_dark">#FF1a1a1e</color>
+    <color name="brand_dark_top">#FF222226</color>
+    <color name="brand_subtitle">#88FFFFFF</color>
 
     <!-- App background -->
-    <color name="bg_app">#FFd8d8dc</color>
+    <color name="bg_app">#FFE0E0E4</color>
 </resources>

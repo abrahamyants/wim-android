@@ -194,6 +194,19 @@
         android:background="@drawable/section_divider"
         android:layout_marginBottom="4dp" />
 
+    <!-- Reset Timer -->
+    <TextView
+        android:id="@+id/menuResetTimer"
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:text="Reset Timer"
+        android:textColor="@color/text_dim"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:gravity="center" />
+
     <!-- Open Settings -->
     <TextView
         android:id="@+id/menuOpenSettings"

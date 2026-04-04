@@ -55,7 +55,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="WiM"
-                        android:textColor="@color/copper_gold"
+                        android:textColor="#FFFFFFFF"
                         android:textSize="26sp"
                         android:fontFamily="@font/limelight"
                         android:letterSpacing="0.08" />

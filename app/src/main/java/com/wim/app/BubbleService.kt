@@ -976,6 +976,12 @@ class BubbleService : Service() {
             }
         }
 
+        menuView!!.findViewById<TextView>(R.id.menuResetTimer).setOnClickListener {
+            sessionStartTime = System.currentTimeMillis()
+            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "0:00"
+            dismissMenu()
+        }
+
         menuView!!.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {
             dismissMenu()
             val intent = Intent(this, MainActivity::class.java).apply {
