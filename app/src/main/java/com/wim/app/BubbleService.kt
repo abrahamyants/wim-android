@@ -590,8 +590,11 @@ class BubbleService : Service() {
                     Log.i(TAG, "L4: Sending ${wavFile.length()} bytes to Whisper API")
                     scope.launch {
                         try {
-                            val whisperResult = WhisperClient.transcribe(wavFile)
+                            val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = true)
                             Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                            if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
+                                Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
+                            }
                             val finalText = whisperResult.text.ifBlank { onDeviceText }
                             if (finalText.isNotBlank()) {
                                 processText(finalText)
@@ -1004,7 +1007,7 @@ class BubbleService : Service() {
         if (liveTextView != null) return
 
         val tv = TextView(this).apply {
-            setBackgroundColor(0xDD1A1A2E.toInt())
+            setBackgroundColor(0xDD1A1A1E.toInt())
             setTextColor(0xFFEE5A24.toInt())
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
@@ -1042,7 +1045,7 @@ class BubbleService : Service() {
             // Force-show the transcript bar for pipeline display
             val bp = bubbleParams ?: return
             val tv = TextView(this).apply {
-                setBackgroundColor(0xDD1A1A2E.toInt())
+                setBackgroundColor(0xDD1A1A1E.toInt())
                 setTextColor(0xFFEE5A24.toInt())
                 textSize = 12f
                 typeface = android.graphics.Typeface.MONOSPACE
@@ -1150,19 +1153,40 @@ class BubbleService : Service() {
         val preCleaned = DisfluencyFilter.filter(expandedText, fillerWords)
         val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val stripped = rawWordCount - cleanWordCount
+        // Track filler count for VU meter — resets at 150
+        if (stripped > 0) {
+            val current = WimApp.prefs.getInt("filler_count", 0) + stripped
+            WimApp.prefs.edit().putInt("filler_count", if (current >= 150) 0 else current).apply()
+        }
         Log.i(TAG, "Pre-cleaned: $preCleaned")
 
         if (layer < 2) {
-            // L1: disfluency-filtered text IS the cleanup — inject directly
-            Log.i(TAG, "L1 mode, injecting pre-cleaned text")
-            if (stripped > 0) {
-                showPipelineStage("\u2713 Cleaned", "$stripped words stripped \u00B7 ${rawWordCount}w \u2192 ${cleanWordCount}w")
+            // L1: disfluency-filtered text + profile corrections (no GPT needed)
+            Log.i(TAG, "L1 mode, applying profile corrections then injecting")
+            val corrections = profile.getCorrections()
+            val sessionNum = sessionHistory?.count() ?: 0
+            var l1Text = preCleaned
+            for ((wrong, right) in corrections) {
+                val pattern = Regex("\\b${Regex.escape(wrong)}\\b", RegexOption.IGNORE_CASE)
+                if (pattern.containsMatchIn(l1Text)) {
+                    l1Text = pattern.replace(l1Text, right)
+                    profile.markCorrectionUsed(wrong, sessionNum)
+                    Log.i(TAG, "L1 correction: \"$wrong\" → \"$right\"")
+                }
             }
-            WimAccessibilityService.instance?.injectText(preCleaned)
+            // Decay sweep every 30 sessions
+            if (sessionNum > 0 && sessionNum % 30 == 0) {
+                profile.decayStaleCorrections(sessionNum)
+            }
+            if (stripped > 0 || l1Text != preCleaned) {
+                val corrCount = if (l1Text != preCleaned) " + corrections" else ""
+                showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
+            }
+            WimAccessibilityService.instance?.injectText(l1Text)
             val totalMs = System.currentTimeMillis() - recordingStartTime
             sessionHistory?.record(
                 rawText = rawText,
-                cleanText = preCleaned,
+                cleanText = l1Text,
                 tone = tone,
                 layer = 1,
                 situation = situation,

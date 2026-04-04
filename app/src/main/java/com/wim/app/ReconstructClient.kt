@@ -71,7 +71,7 @@ object ReconstructClient {
             return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
-        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections)
+        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights)
     }
 
     /**
@@ -147,7 +147,9 @@ object ReconstructClient {
      */
     private suspend fun reconstructDirect(
         rawText: String, tone: String, layer: Int, situation: String,
-        vocabulary: List<String>, corrections: Map<String, String>
+        vocabulary: List<String>, corrections: Map<String, String>,
+        triggerWords: List<String> = emptyList(),
+        onsetWeights: Map<String, Double> = emptyMap()
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -192,15 +194,116 @@ object ReconstructClient {
                     }
                 }
 
+                // L2-L3: ASR artifact guidance (ported from Лаврентий)
+                if (layer in 2..3) {
+                    append("\n\nThe input is a voice transcription and may contain ASR artifacts:")
+                    append("\n- Repeated words or phrases from natural speech hesitation")
+                    append("\n- Filler sounds transcribed as real words (e.g., 'um' → 'come')")
+                    append("\n- Phantom words inserted during pauses in speech")
+                    append("\n- Phonetically similar but semantically wrong words (misheard)")
+                    append("\n- Truncated or garbled words from unclear pronunciation")
+                    append("\nWhen a word is phonetically plausible but doesn't fit the context, prefer the contextually correct interpretation.")
+                    append("\n\nExamples:")
+                    append("\n  IN:  'So um I was going to uh the store to get some, some milk'")
+                    append("\n  OUT: 'I was going to the store to get some milk'")
+                    append("\n  IN:  'Can you send me the, the report by, by Friday'")
+                    append("\n  OUT: 'Can you send me the report by Friday'")
+                    append("\n  IN:  'I think we should, we should probably move the meeting'")
+                    append("\n  OUT: 'I think we should probably move the meeting'")
+                    append("\n  IN:  'The, uh, what's it called, the database needs updating'")
+                    append("\n  OUT: 'The database needs updating'")
+                }
+
+                // L4: Full clinical stutter prompt (ported from Лаврентий)
                 if (layer >= 4) {
                     append("\n\nThe speaker stutters. Raw transcription is evidence, not truth. ")
                     append("Reconstruct intended meaning, not literal word sequence.")
-                    append("\nOvert disfluencies — strip and reconstruct:")
-                    append("\n- Part-word repetitions: 'b-b-b-buy' -> 'buy'")
-                    append("\n- Whole-word repetitions: 'I I I want' -> 'I want'")
-                    append("\n- Prolongations: 'mmmmaybe' -> 'maybe'")
-                    append("\n- Blocks: silence or frozen onset before a word")
+
+                    append("\n\nOvert disfluencies — strip and reconstruct:")
+                    append("\n- Part-word repetitions: 'b-b-b-buy' → 'buy', 'Ca-ca-ca-can' → 'Can'")
+                    append("\n- Whole-word repetitions: 'I I I want' → 'I want'")
+                    append("\n- Prolongations: 'mmmmaybe' → 'maybe', 'Sssssscience' → 'Science'")
+                    append("\n- Schwa substitution: 'guh-guh-goat' → 'goat'")
+                    append("\n- Blocks: silence or frozen onset before a word (locked articulators)")
                     append("\n- False starts and restarts")
+
+                    append("\n\nCovert stuttering — recognize as avoidance, not content:")
+                    append("\n- Filler clusters before a content word = delay tactic, not hesitation")
+                    append("\n- Synonym substitution = avoiding a feared word")
+                    append("\n- Circumlocution = talking around a feared word")
+                    append("\n- Sentence abandonment = dropping thought before feared word")
+                    append("\n- Mazes/cluttering = rambling run-on filler adding no information")
+
+                    append("\n\nAnticipatory behavior (CRITICAL):")
+                    append("\n- A pause or silence BEFORE a content word is likely ANTICIPATORY FEAR, not thinking")
+                    append("\n- The speaker scans ahead, detects a feared word, and freezes")
+                    append("\n- Treat pre-word pauses on content words as blocks, not natural hesitation")
+
+                    append("\n\nWhisper ASR failure modes on stuttered speech:")
+                    append("\n- HALLUCINATION DURING BLOCKS: silence → Whisper invents words")
+                    append("\n- SYLLABLE DELETION: repeated syllables collapsed or dropped")
+                    append("\n- PHANTOM INSERTIONS: prolongations → Whisper hallucinates similar words")
+                    append("\n- SCHWA CORRUPTION: neutral vowel in repeated clusters → transcribed as real word")
+                    append("\n- PAUSE HALLUCINATION: long pauses → Whisper generates filler text")
+
+                    append("\n\n=== FEW-SHOT EXAMPLES ===")
+                    append("\n\nBLOCKS:")
+                    append("\n  IN:  'I need the... [silence]... computer from the office'")
+                    append("\n  OUT: 'I need the computer from the office'")
+                    append("\n  IN:  'Can you get me the, the, the uh come put her from IT'")
+                    append("\n  OUT: 'Can you get me the computer from IT'")
+
+                    append("\n\nSOUND/SYLLABLE REPETITIONS:")
+                    append("\n  IN:  'I was g-g-g-going to the st-store'")
+                    append("\n  OUT: 'I was going to the store'")
+                    append("\n  IN:  'Ca-ca-ca-can you p-p-please send the re-report'")
+                    append("\n  OUT: 'Can you please send the report'")
+
+                    append("\n\nWORD REPETITIONS:")
+                    append("\n  IN:  'I I I want to to to go to the the meeting'")
+                    append("\n  OUT: 'I want to go to the meeting'")
+
+                    append("\n\nPROLONGATIONS:")
+                    append("\n  IN:  'I was thinking about the sssssschedule for next week'")
+                    append("\n  OUT: 'I was thinking about the schedule for next week'")
+
+                    append("\n\nFILLER STACKING + POSTPONEMENT:")
+                    append("\n  IN:  'So um uh like basically uh the thing is we need more time'")
+                    append("\n  OUT: 'We need more time'")
+
+                    append("\n\nAVOIDANCE / CIRCUMLOCUTION:")
+                    append("\n  IN:  'I need the b-... the document from yesterday'")
+                    append("\n  OUT: 'I need the document from yesterday'")
+
+                    append("\n\nWHISPER ARTIFACTS:")
+                    append("\n  IN:  'I was trying to come put her the file' (block on 'computer')")
+                    append("\n  OUT: 'I was trying to get the computer file'")
+
+                    append("\n\n=== END EXAMPLES ===")
+                    append("\n\nDo not mistake disfluency for emphasis. Do not invent meaning beyond what was intended.")
+                    append("\nWhen uncertain, prefer conservative cleanup over aggressive rewriting.")
+
+                    // Personal phoneme difficulty map
+                    if (onsetWeights.isNotEmpty()) {
+                        val topOnsets = onsetWeights.entries
+                            .sortedByDescending { it.value }
+                            .take(5)
+                            .joinToString(", ") { "/${it.key}/ (${(it.value * 100).toInt()}%)" }
+                        append("\n\nTHIS SPEAKER'S HARDEST PHONEMES: $topOnsets")
+                        append("\nWhisper output near these onsets is unreliable — expect hallucinations, syllable drops, or phantom word insertions.")
+                    }
+
+                    // Known trigger words
+                    if (triggerWords.isNotEmpty()) {
+                        append("\n\nKnown trigger words: ${triggerWords.take(10).joinToString(", ")}")
+                    }
+
+                    // Predictive trigger flagging — score all words in this utterance
+                    val predicted = PhoneticRisk.predictTriggersInText(rawText, triggerWords, onsetWeights)
+                    if (predicted.isNotEmpty()) {
+                        val flagged = predicted.take(5).joinToString(", ") { "${it.first}(${it.second})" }
+                        append("\n\nPhonetically predicted high-risk words in this utterance: $flagged")
+                    }
                 }
             }
 
@@ -282,10 +385,16 @@ object ReconstructClient {
                 if (apiKey.isBlank()) return@withContext true // skip if no key
 
                 val prompt = if (layer >= 4) {
-                    "The speaker stutters. Disfluency removal and intent reconstruction are expected. " +
-                    "Rambling filler should be stripped. Does the reconstruction preserve intended meaning? " +
+                    "Speaker stutters. Repeated syllables, prolongations, and blocks are " +
+                    "disfluencies, not emphasis. Filler clusters before content words are " +
+                    "postponement tactics, not meaningful hesitation. Synonym substitutions " +
+                    "and circumlocutions are avoidance behaviors — the reconstruction should " +
+                    "recover the intended word. Rambling run-on filler (mazes) should be " +
+                    "stripped. Does the reconstruction preserve intended meaning? " +
                     "Answer ONLY 'yes' or 'no'."
                 } else {
+                    "The reconstruction cleans up a voice transcription: removing filler words " +
+                    "(um, uh, like, you know), fixing grammar, and improving clarity. " +
                     "Filler removal and grammar fixes are expected and acceptable. " +
                     "Does the reconstruction preserve the core content and intent? " +
                     "Answer ONLY 'yes' or 'no'."

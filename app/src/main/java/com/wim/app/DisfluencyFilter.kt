@@ -16,6 +16,18 @@ package com.wim.app
  */
 object DisfluencyFilter {
 
+    // Natural repeats — grammatically valid repeated words that should NOT be stripped
+    // Ported from Лаврентий NATURAL_REPEATS set
+    private val NATURAL_REPEATS = setOf(
+        "had had", "that that", "is is", "was was", "do do",
+        "can can", "no no", "bye bye", "so so", "very very",
+        "go go", "now now", "come come", "well well",
+        "out out", "boo boo", "ha ha", "ho ho",
+        "knock knock", "tsk tsk", "aye aye",
+        // Russian
+        "да да", "нет нет", "ну ну"
+    )
+
     // Step 1: Stutter fragments — "p- p- pop" -> "pop", "be- be- become" -> "become"
     private val STUTTER_FRAGMENT = Regex(
         """(\b\w+)-\s+(?:\1-\s+)*""",
@@ -64,8 +76,11 @@ object DisfluencyFilter {
         // Step 1: Remove stutter fragments
         var cleaned = STUTTER_FRAGMENT.replace(text, "")
 
-        // Step 2: Remove consecutive word repetitions
-        cleaned = WORD_REPEAT.replace(cleaned) { it.groupValues[1] }
+        // Step 2: Remove consecutive word repetitions (protect natural repeats)
+        cleaned = WORD_REPEAT.replace(cleaned) { match ->
+            val pair = "${match.groupValues[1].lowercase()} ${match.groupValues[1].lowercase()}"
+            if (pair in NATURAL_REPEATS) match.value else match.groupValues[1]
+        }
 
         // Step 3: Remove phrase repetitions
         cleaned = PHRASE_REPEAT.replace(cleaned) { it.groupValues[1] }

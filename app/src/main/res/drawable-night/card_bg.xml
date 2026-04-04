@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Лаврентий dark — raised surface card -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient
         android:startColor="#FF333338"
-        android:centerColor="#FF2a2a2f"
-        android:endColor="#FF24242a"
+        android:centerColor="#FF2A2A2F"
+        android:endColor="#FF24242A"
         android:angle="270" />
     <corners android:radius="6dp" />
     <stroke android:width="0.5dp" android:color="#14FFFFFF" />

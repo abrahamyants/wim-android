@@ -15,6 +15,12 @@ import java.util.concurrent.TimeUnit
  * Sends recorded audio to OpenAI Whisper API for transcription.
  * Used for L4 stutter pipeline — Whisper handles disfluent speech
  * better than on-device ASR which is trained for fluent speakers.
+ *
+ * Extracts confidence signals from verbose_json response:
+ * - avg_logprob: decoder confidence per segment (closer to 0 = confident)
+ * - no_speech_prob: probability segment is silence (high = possible block hallucination)
+ *
+ * Ported from Лаврентий _extract_low_confidence_segments()
  */
 object WhisperClient {
 
@@ -23,7 +29,12 @@ object WhisperClient {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    suspend fun transcribe(audioFile: File, language: String = "en"): TranscribeResult =
+    // Thresholds from Лаврентий
+    private const val LOGPROB_THRESHOLD = -0.7
+    private const val NO_SPEECH_THRESHOLD_DEFAULT = 0.15
+    private const val NO_SPEECH_THRESHOLD_PATIENCE = 0.6
+
+    suspend fun transcribe(audioFile: File, language: String = "en", patienceMode: Boolean = false): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
             if (apiKey.isBlank()) throw IllegalStateException("No API key for Whisper")
@@ -59,14 +70,49 @@ object WhisperClient {
             val json = JSONObject(responseBody)
             val asrMs = System.currentTimeMillis() - t0
 
+            // Extract confidence data from segments
+            val noSpeechThreshold = if (patienceMode) NO_SPEECH_THRESHOLD_PATIENCE else NO_SPEECH_THRESHOLD_DEFAULT
+            val lowConfidenceSegments = mutableListOf<LowConfidenceSegment>()
+            val segmentsArray = json.optJSONArray("segments")
+            if (segmentsArray != null) {
+                for (i in 0 until segmentsArray.length()) {
+                    val seg = segmentsArray.getJSONObject(i)
+                    val avgLogprob = seg.optDouble("avg_logprob", 0.0)
+                    val noSpeechProb = seg.optDouble("no_speech_prob", 0.0)
+                    val segText = seg.optString("text", "").trim()
+                    val blockSuspect = noSpeechProb > noSpeechThreshold
+                    val lowConf = avgLogprob < LOGPROB_THRESHOLD
+
+                    if (lowConf || blockSuspect) {
+                        lowConfidenceSegments.add(
+                            LowConfidenceSegment(
+                                text = segText,
+                                avgLogprob = avgLogprob,
+                                noSpeechProb = noSpeechProb,
+                                blockSuspect = blockSuspect
+                            )
+                        )
+                    }
+                }
+            }
+
             TranscribeResult(
                 text = json.optString("text", "").trim(),
-                asrMs = asrMs
+                asrMs = asrMs,
+                lowConfidenceSegments = lowConfidenceSegments
             )
         }
 
+    data class LowConfidenceSegment(
+        val text: String,
+        val avgLogprob: Double,
+        val noSpeechProb: Double,
+        val blockSuspect: Boolean
+    )
+
     data class TranscribeResult(
         val text: String,
-        val asrMs: Long
+        val asrMs: Long,
+        val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList()
     )
 }

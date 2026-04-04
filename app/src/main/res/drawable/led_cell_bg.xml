@@ -21,14 +21,27 @@
         </shape>
     </item>
     <!-- Warm orange inner glow — filament -->
+    <!-- Outer halo — wide, soft -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="4dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="40dp"
+                android:centerX="0.5"
+                android:centerY="0.45"
+                android:startColor="#30C49A6C"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    <!-- Inner filament glow — tighter, brighter -->
     <item android:left="6dp" android:top="4dp" android:right="6dp" android:bottom="8dp">
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
-                android:gradientRadius="30dp"
+                android:gradientRadius="24dp"
                 android:centerX="0.5"
                 android:centerY="0.4"
-                android:startColor="#10EE5A24"
+                android:startColor="#50C49A6C"
                 android:endColor="#00000000" />
         </shape>
     </item>

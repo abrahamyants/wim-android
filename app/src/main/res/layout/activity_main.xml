@@ -17,7 +17,7 @@
         android:orientation="vertical"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
-        android:fitsSystemWindows="true">
+        android:paddingTop="48dp">
 
     <!-- ═══ FIXED TOP — brand plate only (frozen) ═══ -->
     <LinearLayout
@@ -55,7 +55,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="WiM"
-                        android:textColor="#FFFFFFFF"
+                        android:textColor="#FFC8B48A"
                         android:textSize="26sp"
                         android:fontFamily="@font/limelight"
                         android:letterSpacing="0.08" />
@@ -156,150 +156,32 @@
             android:orientation="horizontal"
             android:layout_marginBottom="6dp">
 
-            <!-- Sessions -->
-            <LinearLayout
+            <com.wim.app.VuMeterView
+                android:id="@+id/vuSessions"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/led_cell_bg"
-                android:gravity="center"
-                android:paddingTop="6dp"
-                android:paddingBottom="4dp"
-                android:layout_marginEnd="3dp"
-                android:elevation="3dp">
-                <TextView
-                    android:id="@+id/statSessions"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="14"
-                    android:textColor="#FFff8c42"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-light"
-                    android:textStyle="bold"
-                    android:shadowColor="#E0EE5A24"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="14" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SESSIONS"
-                    android:textColor="#FF5a4a3a"
-                    android:textSize="6sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
-                    android:layout_marginTop="1dp" />
-            </LinearLayout>
+                android:layout_height="72dp"
+                android:layout_marginEnd="3dp" />
 
-            <!-- WPM -->
-            <LinearLayout
+            <com.wim.app.VuMeterView
+                android:id="@+id/vuWpm"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/led_cell_bg"
-                android:gravity="center"
-                android:paddingTop="6dp"
-                android:paddingBottom="4dp"
-                android:layout_marginEnd="3dp"
-                android:elevation="3dp">
-                <TextView
-                    android:id="@+id/statWpm"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="23"
-                    android:textColor="#FFff8c42"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-light"
-                    android:textStyle="bold"
-                    android:shadowColor="#E0EE5A24"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="14" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="WPM"
-                    android:textColor="#FF5a4a3a"
-                    android:textSize="6sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
-                    android:layout_marginTop="1dp" />
-            </LinearLayout>
+                android:layout_height="72dp"
+                android:layout_marginEnd="3dp" />
 
-            <!-- CLEANUP % -->
-            <LinearLayout
+            <com.wim.app.VuMeterView
+                android:id="@+id/vuCleanup"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/led_cell_bg"
-                android:gravity="center"
-                android:paddingTop="6dp"
-                android:paddingBottom="4dp"
-                android:layout_marginEnd="3dp"
-                android:elevation="3dp">
-                <TextView
-                    android:id="@+id/statCleanup"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="87%"
-                    android:textColor="#FFff8c42"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-light"
-                    android:textStyle="bold"
-                    android:shadowColor="#E0EE5A24"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="14" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/statThirdLabel"
-                    android:text="CLEANUP"
-                    android:textColor="#FF5a4a3a"
-                    android:textSize="6sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
-                    android:layout_marginTop="1dp" />
-            </LinearLayout>
+                android:layout_height="72dp"
+                android:layout_marginEnd="3dp" />
 
-            <!-- 4th readout — placeholder -->
-            <LinearLayout
+            <com.wim.app.VuMeterView
+                android:id="@+id/vuScore"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/led_cell_bg"
-                android:gravity="center"
-                android:paddingTop="6dp"
-                android:paddingBottom="4dp"
-                android:elevation="3dp">
-                <TextView
-                    android:id="@+id/statFourth"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="4.2"
-                    android:textColor="#FFff8c42"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-light"
-                    android:textStyle="bold"
-                    android:shadowColor="#E0EE5A24"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="14" />
-                <TextView
-                    android:id="@+id/statFourthLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SCORE"
-                    android:textColor="#FF5a4a3a"
-                    android:textSize="6sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15"
-                    android:layout_marginTop="1dp" />
-            </LinearLayout>
+                android:layout_height="72dp" />
 
         </LinearLayout>
 
@@ -311,7 +193,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="LAYER"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -321,9 +203,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentLayer"
@@ -462,9 +344,8 @@
             android:id="@+id/headerSessions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="SESSIONS"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -474,9 +355,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentSessions"
@@ -592,9 +473,8 @@
             android:id="@+id/headerSituation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="SITUATION"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -604,9 +484,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentSituation"
@@ -725,9 +605,8 @@
             android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="DAF"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -737,9 +616,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentDaf"
@@ -842,9 +721,8 @@
             android:id="@+id/headerPermissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="PERMISSIONS"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -854,9 +732,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentPermissions"
@@ -956,9 +834,8 @@
             android:id="@+id/headerTransparency"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="TEXT TO SPEECH"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:fontFamily="sans-serif-light"
             android:elevation="4dp"
@@ -968,9 +845,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentTransparency"
@@ -1030,9 +907,8 @@
             android:id="@+id/headerSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:text="SETTINGS"
-            android:textColor="@color/copper_gold"
+            android:textColor="@color/section_header"
             android:textSize="14sp"
             android:fontFamily="sans-serif-light"
             android:elevation="4dp"
@@ -1042,9 +918,9 @@
             android:background="@drawable/glass_panel_bg_pressable"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="6dp" />
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/contentSettings"
@@ -1457,6 +1333,38 @@
 
         </LinearLayout>
 
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- GUIDE (collapsible, after Settings) -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerGuide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GUIDE"
+            android:textColor="@color/section_header"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-light"
+            android:elevation="4dp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg_pressable"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/contentGuide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/grille_pattern_bg"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="10dp" />
+
         <!-- Spacer pushes profile/footer to bottom of screen -->
         <View
             android:layout_width="match_parent"
@@ -1491,8 +1399,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="▶"
-                android:textColor="@color/orange_label"
-                android:textSize="11sp"
+                android:textColor="@color/section_header"
+                android:textSize="22sp"
                 android:fontFamily="monospace" />
         </LinearLayout>
 
@@ -1616,21 +1524,6 @@
 
             </LinearLayout>
 
-            <!-- Guide button — operations manual -->
-            <TextView
-                android:id="@+id/guideBtn"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="start|center_vertical"
-                android:layout_marginStart="18dp"
-                android:gravity="center"
-                android:text="?"
-                android:textColor="@color/copper_gold"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:fontFamily="serif"
-                android:background="@drawable/guide_btn_bg"
-                android:contentDescription="Operations manual" />
 
             <!-- Footer screws — small Phillips -->
             <View

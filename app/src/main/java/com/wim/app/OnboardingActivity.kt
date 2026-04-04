@@ -29,7 +29,7 @@ class OnboardingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        container = FrameLayout(this).apply { setBackgroundColor(0xFF1A1A2E.toInt()) }
+        container = FrameLayout(this).apply { setBackgroundColor(0xFF1A1A1E.toInt()) }
         setContentView(container)
         showScreen(0)
     }
@@ -162,7 +162,7 @@ class OnboardingActivity : AppCompatActivity() {
                 topMargin = dp(32)
                 bottomMargin = dp(32)
             }
-            setBackgroundColor(0xFFEE5A24.toInt())
+            setBackgroundColor(0xFFC49A6C.toInt())
         }
         layout.addView(divider)
         fadeSlideIn(divider, 700)
@@ -277,7 +277,7 @@ class OnboardingActivity : AppCompatActivity() {
             textCol.addView(TextView(this).apply {
                 text = title2
                 textSize = 16f
-                setTextColor(0xFFEE5A24.toInt())
+                setTextColor(0xFFC8B48A.toInt())
                 typeface = Typeface.DEFAULT_BOLD
                 letterSpacing = 0.1f
             })
@@ -401,7 +401,7 @@ class OnboardingActivity : AppCompatActivity() {
             col.addView(TextView(this).apply {
                 text = perm.name
                 textSize = 14f
-                setTextColor(0xFFEE5A24.toInt())
+                setTextColor(0xFFC8B48A.toInt())
                 typeface = Typeface.DEFAULT_BOLD
             })
             col.addView(TextView(this).apply {
@@ -430,7 +430,7 @@ class OnboardingActivity : AppCompatActivity() {
             val samsung = TextView(this).apply {
                 text = "📱 Samsung: Also add WiM to\nSettings → Battery → Never sleeping apps"
                 textSize = 11f
-                setTextColor(0xFFEE5A24.toInt())
+                setTextColor(0xFFC49A6C.toInt())
                 gravity = Gravity.CENTER
                 setPadding(0, dp(16), 0, 0)
                 setLineSpacing(0f, 1.3f)
@@ -573,7 +573,7 @@ class OnboardingActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = "You're All Set"
             textSize = 28f
-            setTextColor(0xFFEE5A24.toInt())
+            setTextColor(0xFFC8B48A.toInt())
             gravity = Gravity.CENTER
             typeface = Typeface.create("serif", Typeface.BOLD)
             setPadding(0, dp(16), 0, 0)
@@ -587,7 +587,7 @@ class OnboardingActivity : AppCompatActivity() {
                 topMargin = dp(24)
                 bottomMargin = dp(24)
             }
-            setBackgroundColor(0xFFEE5A24.toInt())
+            setBackgroundColor(0xFFC49A6C.toInt())
         }
         layout.addView(divider)
         fadeSlideIn(divider, 700)
@@ -622,7 +622,7 @@ class OnboardingActivity : AppCompatActivity() {
     private fun makeScreenTitle(text: String): TextView = TextView(this).apply {
         this.text = text
         textSize = 26f
-        setTextColor(0xFFEE5A24.toInt())
+        setTextColor(0xFFC8B48A.toInt())
         gravity = Gravity.CENTER
         typeface = Typeface.create("serif", Typeface.BOLD)
         letterSpacing = 0.04f
@@ -643,7 +643,7 @@ class OnboardingActivity : AppCompatActivity() {
         frame.addView(TextView(this).apply {
             this.text = text
             textSize = 15f
-            setTextColor(0xFF1A1A2E.toInt())
+            setTextColor(0xFF1A1A1E.toInt())
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             letterSpacing = 0.08f

@@ -190,14 +190,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        // Sessions stat → Sessions
-        statClickExpand(R.id.statSessions, R.id.headerSessions, R.id.contentSessions, "sessions_section")
-        // WPM stat → Sessions (detailed view)
-        statClickExpand(R.id.statWpm, R.id.headerSessions, R.id.contentSessions, "sessions_section")
-        // Cleanup/Words stat → Layer
-        statClickExpand(R.id.statCleanup, R.id.headerLayer, R.id.contentLayer, "layer_section")
-        // 4th stat → Settings
-        statClickExpand(R.id.statFourth, R.id.headerSettings, R.id.contentSettings, "settings_section")
+        // Double-tap any gauge to reset it
+        setupVuDoubleTapReset(R.id.vuSessions, "stat_sessions_reset")
+        setupVuDoubleTapReset(R.id.vuWpm, "stat_wpm_reset")
+        setupVuDoubleTapReset(R.id.vuCleanup, "stat_cleanup_reset")
+        setupVuDoubleTapReset(R.id.vuScore, "filler_count")
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
@@ -325,6 +322,8 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
         setupCollapsible(R.id.headerTransparency, R.id.contentTransparency, "transparency_section", defaultExpanded = false)
         setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
+        setupCollapsible(R.id.headerGuide, R.id.contentGuide, "guide_section", defaultExpanded = false)
+        buildGuideContent()
 
         // ── Auto-collapse sections on scroll ──
         // Find the ScrollView in our split layout (fixed top + scrollable bottom)
@@ -451,9 +450,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // ── Guide button — opens operations manual overlay ──
-        findViewById<View>(R.id.guideBtn)?.setOnClickListener { showGuide() }
-
         // ── Dark/light mode toggle (in Settings) ──
         val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
         val isDark = AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO
@@ -545,17 +541,39 @@ class MainActivity : AppCompatActivity() {
             total / sessions.size
         } else 0
 
-        findViewById<TextView>(R.id.statSessions)?.text = totalSessions.toString()
-        findViewById<TextView>(R.id.statWpm)?.text = wpm.toString()
-
-        // Third stat: layer-dependent
+        // VU meter gauges
+        findViewById<VuMeterView>(R.id.vuSessions)?.apply {
+            maxValue = 500f
+            value = totalSessions.toFloat()
+            displayText = totalSessions.toString()
+            label = "SESSIONS"
+        }
+        findViewById<VuMeterView>(R.id.vuWpm)?.apply {
+            maxValue = 200f
+            value = wpm.toFloat()
+            displayText = wpm.toString()
+            label = "WPM"
+        }
         val currentLayer = WimApp.layer()
-        if (currentLayer >= 2) {
-            findViewById<TextView>(R.id.statCleanup)?.text = "${avgCleanup}%"
-            findViewById<TextView>(R.id.statThirdLabel)?.text = "CLEANUP"
-        } else {
-            findViewById<TextView>(R.id.statCleanup)?.text = "%,d".format(totalWords)
-            findViewById<TextView>(R.id.statThirdLabel)?.text = "WORDS"
+        findViewById<VuMeterView>(R.id.vuCleanup)?.apply {
+            if (currentLayer >= 2) {
+                maxValue = 100f
+                value = avgCleanup.toFloat()
+                displayText = "${avgCleanup}%"
+                label = "CLEANUP"
+            } else {
+                maxValue = 10000f
+                value = totalWords.toFloat()
+                displayText = "%,d".format(totalWords)
+                label = "WORDS"
+            }
+        }
+        val fillerCount = WimApp.prefs.getInt("filler_count", 0)
+        findViewById<VuMeterView>(R.id.vuScore)?.apply {
+            maxValue = 150f
+            value = fillerCount.toFloat()
+            displayText = fillerCount.toString()
+            label = "FILLERS"
         }
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val dpScale = resources.displayMetrics.density
@@ -894,6 +912,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupVuDoubleTapReset(vuId: Int, prefKey: String) {
+        val vu = findViewById<VuMeterView>(vuId) ?: return
+        val detector = android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
+                WimApp.prefs.edit().putInt(prefKey, 0).apply()
+                vu.value = 0f
+                vu.displayText = "0"
+                android.widget.Toast.makeText(this@MainActivity, "${vu.label} reset", android.widget.Toast.LENGTH_SHORT).show()
+                return true
+            }
+        })
+        vu.setOnTouchListener { v, event ->
+            detector.onTouchEvent(event)
+            v.performClick()
+            true
+        }
+    }
+
     private fun setLayoutSelected(container: ViewGroup, label: TextView, selected: Boolean) {
         if (selected) {
             container.setBackgroundResource(R.drawable.card_bg_selected)
@@ -943,7 +979,7 @@ class MainActivity : AppCompatActivity() {
         val symbol = if (expanded) "\u2212" else "+"
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             textSize = header.textSize * 1.1f
-            color = getColor(R.color.orange_label)
+            color = getColor(R.color.section_header)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
         val w = paint.measureText(symbol).toInt() + 4
@@ -956,12 +992,77 @@ class MainActivity : AppCompatActivity() {
         header.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, drawable, null)
     }
 
-    // ── Operations Manual (Лаврентий-style guide overlay) ──────────
+    // ── Guide — inline collapsible section ──────────
+
+    private fun buildGuideContent() {
+        val container = findViewById<LinearLayout>(R.id.contentGuide) ?: return
+        val dp = resources.displayMetrics.density
+        val creamColor = 0xFFC8B48A.toInt()
+        val copperColor = 0xFFC49A6C.toInt()
+        val bodyColor = getColor(R.color.text_primary)
+        val dimColor = getColor(R.color.text_dim)
+
+        val sections = listOf(
+            Triple("How It Works", "What happens when you tap the bubble", """<b><font color="#C8B48A">1. You speak</font></b><br>Tap the bubble to start recording.<br><br><b><font color="#C8B48A">2. On-device transcription</font></b><br>Android's speech recognition converts your voice to text. Free, instant.<br><br><b><font color="#C8B48A">3. Quick cleanup</font></b><br>Disfluencies stripped automatically: repeated syllables, repeated words, fillers, false starts.<br><br><b><font color="#C8B48A">4. Depends on your Layer:</font></b><br>Layer I — Done. Cleaned text pasted. No AI.<br>Layer II — GPT rewrites with your tone.<br>Layer III — Plus your vocabulary and corrections.<br>Layer IV — Full stutter-aware engine.<br><br><b><font color="#C8B48A">5. Safety check</font></b><br>A second AI verifies meaning wasn't changed.<br><br><b><font color="#C8B48A">6. Paste</font></b><br>Final text injected into your text field."""),
+            Triple("The Bubble", "Your floating control center", """<b>Tap</b> — Start recording. Tap again to stop.<br><br><b>Hold</b> — Record while held, release to process.<br><br><b>Double-tap</b> — Open settings menu.<br><br><b>Drag</b> — Move anywhere on screen.<br><br><b>Drag to bottom</b> — Hide the bubble.<br><br><b>Shake phone twice</b> — Show/hide the bubble.<br><br><b>Bezel tap (left/right)</b> — Toggle work/personal mode."""),
+            Triple("Layers", "What each layer does", """<b>I. Transcribe</b> — On-device + disfluency filter. Free, instant.<br><br><b>II. Reconstruct</b> — GPT cleans grammar, applies tone. ~1-2s.<br><br><b>III. Profile</b> — Plus your vocabulary and corrections. Learns over time.<br><br><b>IV. Stutter</b> — Full clinical mode. Stronger prompts, phoneme map, avoidance detection."""),
+            Triple("Smart Tone", "Automatic context detection", """WiM detects which app you're in:<br><br><b>Work apps</b> (Gmail, Slack, Teams) → Professional<br><b>Personal apps</b> (WhatsApp, Messenger) → Casual<br><br>Four tones: Casual, Professional, Friend, Formal."""),
+            Triple("Situations", "Context-aware adjustments", """<b>Default</b> — Everyday use. Balanced cleanup.<br><b>High Stress</b> — Calls, presentations. Aggressive cleanup.<br><b>Reading</b> — Reading aloud. Light touch."""),
+            Triple("DAF", "Delayed Auditory Feedback", """Plays your voice back with a delay (30-300ms). A well-known fluency technique — hearing yourself on a delay can reduce stuttering severity."""),
+            Triple("Having Trouble?", "If the bubble disappears", """<b>Bubble gone?</b> Open the app — it restarts automatically.<br><br><b>Keeps disappearing?</b> Your phone is killing WiM. Fix:<br>Settings → Battery → Never sleeping apps → add What I Meant.<br><br><b>Text not pasting?</b> Make sure a text field is active before you speak.""")
+        )
+
+        for ((title, subtitle, body) in sections) {
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundResource(R.drawable.card_bg)
+                setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), (10 * dp).toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = (4 * dp).toInt() }
+            }
+
+            val headerRow = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            headerRow.addView(TextView(this).apply {
+                text = title
+                setTextColor(creamColor)
+                textSize = 13f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            })
+            headerRow.addView(TextView(this).apply {
+                text = subtitle
+                setTextColor(dimColor)
+                textSize = 10f
+            })
+            card.addView(headerRow)
+
+            val bodyView = TextView(this).apply {
+                text = android.text.Html.fromHtml(body, android.text.Html.FROM_HTML_MODE_COMPACT)
+                setTextColor(bodyColor)
+                textSize = 11f
+                setLineSpacing(0f, 1.3f)
+                setPadding(0, (8 * dp).toInt(), 0, 0)
+                visibility = android.view.View.GONE
+            }
+            card.addView(bodyView)
+
+            card.setOnClickListener {
+                bodyView.visibility = if (bodyView.visibility == android.view.View.GONE) android.view.View.VISIBLE else android.view.View.GONE
+            }
+
+            container.addView(card)
+        }
+    }
+
+    // ── Operations Manual (old overlay — kept for reference) ──────────
 
     private fun showGuide() {
         val dp = resources.displayMetrics.density
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val bgColor = if (isNight) 0xFF1a1a2e.toInt() else 0xFFe8e8ec.toInt()
+        val bgColor = if (isNight) 0xFF1A1A1E.toInt() else 0xFFe8e8ec.toInt()
         val cardColor = if (isNight) 0xFF252530.toInt() else 0xFFd8d8dc.toInt()
         val textColor = if (isNight) 0xFFe0e0e4.toInt() else 0xFF2a2a30.toInt()
         val dimColor = if (isNight) 0xFF8a8a92.toInt() else 0xFF666670.toInt()

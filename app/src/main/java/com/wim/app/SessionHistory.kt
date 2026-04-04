@@ -100,6 +100,17 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         }
     }
 
+    /** Total count of sessions in history. */
+    fun count(): Int {
+        return try {
+            val db = readableDatabase
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE", null)
+            cursor.use {
+                if (it.moveToFirst()) it.getInt(0) else 0
+            }
+        } catch (_: Exception) { 0 }
+    }
+
     /** Word Error Rate: how much the pipeline changed the text. 0.0 = identical, 1.0 = completely different */
     fun computeWer(raw: String, clean: String): Float {
             val rawWords = raw.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }

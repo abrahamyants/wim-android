@@ -48,6 +48,9 @@ class ProfileManager(private val prefs: SharedPreferences) {
     /** Tracks how many times reconstruction changed a given word, for auto-learning. */
     private var correctionCounts: MutableMap<String, Int> = mutableMapOf()
 
+    /** Tracks session number when correction was last used (for decay). */
+    private var correctionLastUsed: MutableMap<String, Int> = mutableMapOf()
+
     init {
         loadProfile()
     }
@@ -78,6 +81,11 @@ class ProfileManager(private val prefs: SharedPreferences) {
                     counts.keys().forEach { key -> map[key] = counts.getInt(key) }
                 }
 
+                correctionLastUsed = mutableMapOf<String, Int>().also { map ->
+                    val lastUsed = obj.optJSONObject("correction_last_used") ?: JSONObject()
+                    lastUsed.keys().forEach { key -> map[key] = lastUsed.getInt(key) }
+                }
+
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers")
             } catch (e: Exception) {
                 Log.e(TAG, "Profile parse error, resetting to defaults: ${e.message}")
@@ -94,9 +102,39 @@ class ProfileManager(private val prefs: SharedPreferences) {
             put("corrections", JSONObject(corrections as Map<*, *>))
             put("filler_words", JSONArray(fillerWords))
             put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
+            put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
         }
         prefs.edit().putString(PREF_KEY, obj.toString()).apply()
         Log.i(TAG, "Profile saved")
+    }
+
+    /**
+     * Mark a correction as used (updates its last-used session number).
+     * Called from L1 pipeline when a correction is applied.
+     */
+    fun markCorrectionUsed(wrong: String, sessionNum: Int) {
+        correctionLastUsed[wrong.lowercase()] = sessionNum
+    }
+
+    /**
+     * Decay sweep — remove corrections unused for 100+ sessions.
+     * Runs every 30 sessions (DECAY_EVERY from Лаврентий).
+     * Protects corrections that have been used recently.
+     */
+    fun decayStaleCorrections(currentSession: Int) {
+        val staleThreshold = 100
+        val toRemove = corrections.keys.filter { key ->
+            val lastUsed = correctionLastUsed[key] ?: 0
+            currentSession - lastUsed > staleThreshold
+        }
+        if (toRemove.isNotEmpty()) {
+            toRemove.forEach {
+                corrections.remove(it)
+                correctionLastUsed.remove(it)
+            }
+            Log.i(TAG, "Decayed ${toRemove.size} stale corrections: $toRemove")
+            saveProfile()
+        }
     }
 
     fun addCorrection(from: String, to: String) {

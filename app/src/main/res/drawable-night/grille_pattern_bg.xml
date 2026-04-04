@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Лаврентий sidebar-section — perforated metal with horizontal divider -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base surface -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="#FF222226" />
             <corners android:radius="8dp" />
         </shape>
     </item>
-    <!-- Perforated dot texture approximation -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -19,7 +16,6 @@
             <corners android:radius="8dp" />
         </shape>
     </item>
-    <!-- Bottom border — section divider -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
