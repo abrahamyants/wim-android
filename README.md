@@ -40,6 +40,28 @@ WiM captures your voice, transcribes it on-device, and optionally reconstructs i
 - **OCD redo detection** — Warns on 3+ consecutive similar recordings
 - **Session history** — SQLite storage of all recordings with metrics
 - **Firebase Auth** — Google Sign-In with backend proxy (no API key needed for consumers)
+- **Twist mode** — Voice-triggered knob rotation gesture to adjust size/opacity
+- **Command mode** — Drag bubble over highlighted text, speak a transform command, GPT rewrites selection
+- **Sound-wave logo bars** — 14 animated bars (7 per side) flank the WiM logo, react to recording state
+- **Bubble theme variants** — 3 metal palettes (bronze/aluminum/gunmetal) available as drawable sets
+- **Timer cap** — Session timer caps at 99:59 to prevent 3-digit overflow; resets on session reset
+
+## Voice Commands
+
+Speak these as the **first words** into the bubble. They're detected by strict prefix match in `BubbleService.processText()` — trigger phrases bypass all normal paste logic.
+
+| Command | Action |
+|---------|--------|
+| `settings size` / `knob size` | Enter size twist mode |
+| `settings opacity` / `knob opacity` | Enter opacity twist mode (DIM) |
+
+**In twist mode**: bubble enlarges to max, tick mark rotates to show current value. Touch + twist along the 9→12→3 o'clock arc (180°) to adjust. Release = green ✓ checkmark on knob. Tap checkmark to commit, tap outside or wait 5s to revert.
+
+- **12 o'clock (0°)** = midpoint (size 110%, opacity 60%)
+- **9 o'clock (-90°)** = min (size 70%, opacity 20%)
+- **3 o'clock (+90°)** = max (size 150%, opacity 100%)
+
+Twist commands are self-contained on the bubble — no text field or target app required. Works from home screen.
 
 ## Two API Paths
 
@@ -475,6 +497,157 @@ Android XML drawables cannot replicate Лаврентий's CSS effects:
 
 **Solution path:** Jetpack Compose migration closes most gaps. Custom Canvas views for remaining effects. PNG slices as fallback for pixel-perfect elements.
 
+## Session 6 — April 4-5, 2026
+
+### What We Did
+
+**Palette continuation from Session 5's warm dark overhaul.** Previous session shipped the warm dark backgrounds and 3-tier accent hierarchy (cream / copper / orange). This session took the decisions deeper into the UI.
+
+### Chip Row Redesign
+
+Replaced the 4-chip row (`MODE`/`LAYER`/`SITUATION`/`TONE`) with 3 purposeful chips:
+
+| Chip | Label | Values | Purpose |
+|------|-------|--------|---------|
+| 1 | `OUTPUT` | `INSTANT` / `STANDARD` | Pipeline bypass toggle |
+| 2 | `BUBBLE` | `SUMMON` | Tap to `startForegroundService(action="SHOW")` on BubbleService — revives bubble if hidden |
+| 3 | `FAST MODE` | `ON` / `OFF` | Skip Falcon validation |
+
+- `OUTPUT` replaced `MODE` because "fast mode" is also a mode — the label was ambiguous
+- `BUBBLE` is cream-colored (matches logo color `#C8B48A`), distinct from maroon toggle chips — it's an action, not a state
+- Active-state background `chip_bg_active.xml` (maroon fill `#40B55050`) when non-default value selected
+
+### Header Badges (LAYER / TONE / SITUATION)
+
+Category headers now show current state inline using `SpannableString`:
+- `LAYER     ·   transcribe`
+- `TONE      ·   professional`
+- `SITUATION ·   default (everyday)`
+
+Implementation: `setHeaderWithBadge()` in MainActivity uses:
+- `\t` separator + `TabStopSpan.Standard(110dp)` for pixel-precise badge alignment across all 3 categories (works regardless of base name length)
+- `TypefaceSpan("monospace")` on badge portion only — base name stays `sans-serif-light`
+- `ForegroundColorSpan(0xFFB55050)` + `RelativeSizeSpan(0.75f)` for maroon, smaller badge
+- Each category's values space-padded to the longest one's length for consistent widths within the category
+
+Roman numerals (`Ⅰ`/`I̲̅`) attempted but abandoned — Unicode forms render as plain letters in most fonts, combining overlines/underlines look crooked. Settled on descriptive text only (`transcribe` / `reconstruct` / `profile` / `stutter`).
+
+### Sound-Wave Logo Bars
+
+`LogoBarsView` — custom `LinearLayout` subclass flanking the WiM logo in the brand plate. 7 bars per side, 14 total.
+
+**Animation:**
+- `ObjectAnimator.ofPropertyValuesHolder` + `Keyframe.ofFloat` (5-point sequence) on `scaleY` per bar
+- 7 unique keyframe patterns + 7 unique durations (750-1300ms)
+- Staggered `currentPlayTime` offsets = **phase-shift trick** (bars start mid-loop, not synchronized from frame 1)
+- Right side mirrored (heights array reversed) so tallest bars face logo on both sides
+- 400ms offset on mirrored side = left/right desync
+
+**Heights (mobile-scaled from desktop spec 10→56px):** `5, 10, 17, 24, 28, 21, 13` dp — peak at index 4, tapering
+
+**Gradient:** orange `#EE5A24` → maroon `#B55050` (vertical), 2dp wide bars, rounded corners
+
+**Recording reactivity via RecordingStateBus:**
+- New `RecordingStateBus` singleton (subscribe/emit pattern, thread-safe via synchronized listeners)
+- `BubbleService.isRecording` wrapped in setter that emits on every transition (4 call sites auto-emit via property setter)
+- `LogoBarsView.onAttachedToWindow()` subscribes, brightens to 0.95 alpha + ×0.55 speed multiplier on `active=true`
+- `onDetachedFromWindow()` unsubscribes — self-managing lifecycle, no MainActivity wiring needed
+
+### Bubble Color Themes
+
+Three metal palettes exist as drawable variants:
+
+| Theme | Active? | Bezel file | Knob file |
+|-------|---------|-----------|-----------|
+| Bronze | ✓ active | `bubble_bg_idle.xml` | `bubble_inner_knob.xml` |
+| Aluminum | variant | `bubble_bezel_aluminum.xml` | `bubble_knob_aluminum.xml` |
+| Gunmetal | variant | `bubble_bezel_gunmetal.xml` | `bubble_knob_gunmetal.xml` |
+
+**Bronze palette** (warm brushed copper, matches tube amp aesthetic):
+- Bezel outer: `#E6D4B0 → #9A7C54`, stroke: maroon `#B55050`
+- Bezel inner: `#CCAD83 → #7A5C3C`
+- Knob shadow: `#2A1E14`, side: `#A6875C → #6F5030`, top: `#C4A574 → #8E6E48`
+
+**Aluminum palette** (original, cool silver): unchanged from prior design, preserved for user choice.
+
+**Gunmetal palette** (new, dark brushed steel):
+- Bezel: `#7A7C85 → #2E2E36` (outer), `#555560 → #1E1E24` (inner)
+- Knob: shadow `#0A0A0E`, side `#4A4A54 → #26262C`, top `#5A5A64 → #38383E`
+
+All 3 share: maroon stroke, maroon tick, identical structure & dimensions. **Selector UI not yet built** — swap requires editing drawable references or runtime `setBackgroundResource()` based on preference.
+
+### Timer Refinements
+
+- Color: `#B55050 → #9A4040` — same hue, ~15% darker, visually distinct from bezel stroke
+- Weight: removed `android:textStyle="bold"`, now normal monospace
+- **Cap at 99:59** — `timerRunnable` checks `elapsed >= 5999`, displays `"99:59"` and **stops re-posting itself** (no more timerHandler.postDelayed). User must reset session (which resets `sessionStartTime`) to resume counting from zero.
+
+### Twist Mode — Voice-Triggered Knob Rotation
+
+**Concept:** The bubble already *looks* like a volume knob. Now it *acts* like one.
+
+**Voice triggers** (strict prefix match on transcript's first words):
+- `settings size` / `knob size` → SIZE mode
+- `settings opacity` / `knob opacity` → OPACITY mode (label: `DIM`)
+
+**Detection path:** `detectTwistTrigger(rawText)` called at the very top of `processText()`, before COMMAND mode, before INSTANT mode, before the paste logic. If triggered, `enterTwistMode(mode)` fires and the transcript is **never pasted**.
+
+**Flow:**
+1. Save `preTwistSize` + `preTwistOpacity` for revert
+2. Bubble enlarges to clarifier size (150% + 100% opacity) for ergonomic twisting
+3. Swap label: `SIZE` or `DIM` in cream
+4. Hide timer
+5. Rotate tick to match current value's angle
+6. Start 6-second timeout (canceled on any touch)
+7. Touch handler routed to `handleTwistTouch()` while `twistMode != NONE`
+
+**Angle math:**
+```kotlin
+val angleRad = atan2(dx.toDouble(), (-dy).toDouble())
+val angleDeg = Math.toDegrees(angleRad).toFloat().coerceIn(-90f, 90f)
+// 0° = 12 o'clock, -90° = 9 o'clock, +90° = 3 o'clock
+val normalized = (angleDeg + 90f) / 180f
+val value = (min + normalized * (max - min)).toInt()
+```
+
+**Arc constraint:** 9→12→3 (180° total, clamped — finger can't physically twist through 6 o'clock while holding phone).
+
+**Tick rotation:** `rotateTick(degrees)` sets `pivotX = tick.width/2`, `pivotY = tick.height/2 + 16*dp` (16dp = distance from tick's vertical center to knob's center). The tick rotates around the knob's center, not its own.
+
+**Confirm UX on release:**
+- Green ✓ checkmark appears on knob (`twistConfirmCheck` TextView, 22sp, `#4CAF50`, `match_parent` gravity center)
+- Tick hidden, label hidden during confirm
+- Tap on knob (within ~20% of view width radius) = **commit** (prefs already saved during twist, just exit)
+- Tap outside knob = **revert** to `preTwistSize`/`preTwistOpacity`
+- 5s timeout = revert
+
+**Exit cleanup:** `exitTwistMode(commit)` restores visibility of tick/label/timer, resets tick rotation to 0°, calls `setBubbleIdle()`.
+
+### Noted But Deferred
+
+- **Twist mode: layer** — would need 4-position snap (labels at 12/3/6/9 o'clock). Deferred per George's suggestion ("may be too much").
+- **Press+twist without voice** — alternative entry for accessibility or voice-shy environments
+- **Numeric feedback on knob during twist** — user's finger covers it anyway
+
+### Architectural Insight Saved
+
+`project_wim_bubble_is_the_app.md` memory — the WiM bubble is the only always-visible UI during real dictation (user is in Messenger/Gmail, MainActivity is backgrounded). Recording-reactive UI (like LogoBarsView's active state) is mostly invisible in production; that work belongs on the bubble overlay itself.
+
+### What Worked
+- TabStopSpan for badge alignment was pixel-perfect and font-independent — zero fiddling
+- Phase-shift animation via `currentPlayTime` eliminated startup jank on 14 simultaneous animators
+- Property-setter-based event emission (RecordingStateBus hooks into `isRecording` setter, no per-call-site edits)
+- Voice trigger detection at `processText()` entry point caught all 3 ASR paths in one check
+
+### What Didn't Work
+- **Unicode Roman numerals (`Ⅰ` U+2160)** — Android fonts render them as plain letters, no bars
+- **Combining diacritics for Roman numeral bars (`I\u0305\u0332`)** — uneven, crooked rendering
+- **Ephemeral conclusion:** Roman numerals with proper bars need custom Canvas drawing or vector drawables, neither is justified for the visual payoff
+
+### Commits — Session 6
+
+_Not yet committed — all work in working tree. George has not called for a commit._
+
 ## Instructions for Next Model
 
 **READ THIS FIRST.** George iterates fast via voice (Wispr/Lavrentiy at 182 WPM). His messages are phonetic, messy, and context-dependent. Extract intent, not spelling.
@@ -510,10 +683,20 @@ Android XML drawables cannot replicate Лаврентий's CSS effects:
 - Don't praise. Engage with the work.
 
 ## Still TODO
+
+### From Session 6
+- **Bubble theme selector UI** — user-facing control to switch between bronze/aluminum/gunmetal. Drawables exist, swap mechanic not wired. Candidates: long-press bubble menu, a row in SETTINGS, or dedicated chip.
+- **Twist mode: layer support** — snap-to-4-quadrants at 12/3/6/9 o'clock with I/II/III/IV labels. Deferred until twist feel is validated.
+- **Twist mode: press+twist without voice** — alternative entry for accessibility (long-press → twist without needing voice trigger)
+- **Twist mode: real-world testing** — verify trigger phrases work at 182 WPM, in ambient noise, with various accents. Refine prefix list if false triggers/misses.
+- **Press+twist confirmation tuning** — 5s timeout may be too short or too long, verify with use
+- **Commit Session 6 work** — all drawable theme variants, twist mode, chip redesign, logo bars, timer fixes, header badges uncommitted
+
+### Carried Forward
 - **Backend tier fix** — update Firestore to allow L4 for George's account, or bypass tier check
 - One-directional sticky Settings header — verify/improve
 - Design: Jetpack Compose migration for proper Лаврентий visual parity
-- Design: custom Canvas views for nixie tube stat cells
+- Design: custom Canvas views for nixie tube stat cells (or keep VU meters which replaced them)
 - Onboarding — quick vs full setup (code exists, needs testing)
 - TurboTax L4 engagement (code exists, needs testing with working L4)
 - Bluetooth mic SCO (code exists, needs testing)
@@ -521,3 +704,5 @@ Android XML drawables cannot replicate Лаврентий's CSS effects:
 - Play Store listing and screenshots
 - Port trigger_words, onset_weights, covert_profile from Лаврентий
 - Copy Lavrentiy F9 fix to `portable/engine/lavrentiy.py`
+- Voice Profile Insights dashboard (Wispr Flow-inspired concept, location TBD)
+- Gamification features in GUIDE category

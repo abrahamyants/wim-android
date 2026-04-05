@@ -306,6 +306,11 @@ class BubbleService : Service() {
         updateBezelLabels()
 
         bubbleView?.setOnTouchListener { v, event ->
+            // TWIST mode — route all touch events to twist handler, bypass normal gestures
+            if (twistMode != TwistMode.NONE) {
+                return@setOnTouchListener handleTwistTouch(event, v)
+            }
+
             // Accept touches on the bezel area (up to 50% radius) — covers both knob and bezel ring
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val cx = v.width / 2f
@@ -793,6 +798,14 @@ class BubbleService : Service() {
     private var pendingClarifierQuestion = ""
     private var pendingClarifierCallback: ((Boolean?) -> Unit)? = null
 
+    // Twist mode — voice-triggered knob rotation to adjust size or opacity
+    private enum class TwistMode { NONE, SIZE, OPACITY }
+    private var twistMode: TwistMode = TwistMode.NONE
+    private var preTwistSize = -1
+    private var preTwistOpacity = -1
+    private var twistConfirmShown = false
+    private val twistTimeoutRunnable = Runnable { if (twistMode != TwistMode.NONE) exitTwistMode(commit = false) }
+
     /**
      * Check if the bubble was dropped on a focused text field with highlighted text.
      * If yes, pick up the selection for Command Mode.
@@ -990,6 +1003,191 @@ class BubbleService : Service() {
         // Fire callback
         clarifierCallback?.invoke(answer)
         clarifierCallback = null
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TWIST MODE — voice-triggered knob rotation for size/opacity
+    // ═══════════════════════════════════════════════════════════
+
+    private fun detectTwistTrigger(rawText: String): TwistMode? {
+        val lower = rawText.trim().lowercase().trimEnd('.', '!', '?', ',')
+        // Strict prefix match — must start with trigger phrase to avoid false positives
+        if (lower.startsWith("settings size") ||
+            lower.startsWith("knob size")) {
+            return TwistMode.SIZE
+        }
+        if (lower.startsWith("settings opacity") ||
+            lower.startsWith("knob opacity")) {
+            return TwistMode.OPACITY
+        }
+        return null
+    }
+
+    private fun enterTwistMode(mode: TwistMode) {
+        twistMode = mode
+        twistConfirmShown = false
+
+        // Save current size/opacity for revert
+        preTwistSize = WimApp.bubbleSize()
+        preTwistOpacity = WimApp.bubbleOpacity()
+
+        // Enlarge bubble to max (clarifier size) so twist gesture is ergonomic
+        WimApp.prefs.edit().putInt("bubble_size", 150).putInt("bubble_opacity", 100).apply()
+        updateBubbleAppearance()
+
+        // Swap label to mode indicator
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = if (mode == TwistMode.SIZE) "SIZE" else "DIM"
+            setTextColor(0xFFC8B48A.toInt())  // cream, matches logo
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
+        }
+
+        // Hide timer during twist
+        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
+        // Ensure tick is visible (might've been hidden by confirm state)
+        bubbleView?.findViewById<View>(R.id.bubbleTick)?.visibility = View.VISIBLE
+
+        // Rotate tick to match current value
+        val currentValue = if (mode == TwistMode.SIZE) preTwistSize else preTwistOpacity
+        val min = if (mode == TwistMode.SIZE) 70 else 20
+        val max = if (mode == TwistMode.SIZE) 150 else 100
+        val normalized = (currentValue - min).toFloat() / (max - min).toFloat()
+        val angle = -90f + normalized.coerceIn(0f, 1f) * 180f
+        rotateTick(angle)
+
+        // Timeout: 6s of no touch interaction cancels
+        timerHandler.removeCallbacks(twistTimeoutRunnable)
+        timerHandler.postDelayed(twistTimeoutRunnable, 6000)
+
+        Log.i(TAG, "Entered twist mode: $mode, from=$currentValue")
+    }
+
+    private fun exitTwistMode(commit: Boolean) {
+        if (twistMode == TwistMode.NONE) return
+        val mode = twistMode
+
+        timerHandler.removeCallbacks(twistTimeoutRunnable)
+
+        if (!commit) {
+            // Revert to pre-twist values
+            WimApp.prefs.edit()
+                .putInt("bubble_size", preTwistSize)
+                .putInt("bubble_opacity", preTwistOpacity)
+                .apply()
+            updateBubbleAppearance()
+        }
+        // If commit: current prefs already hold the new twisted value
+
+        // Hide checkmark, reset tick
+        bubbleView?.findViewById<TextView>(R.id.twistConfirmCheck)?.visibility = View.GONE
+        bubbleView?.findViewById<View>(R.id.bubbleTick)?.visibility = View.VISIBLE
+        bubbleView?.findViewById<View>(R.id.bubbleTick)?.rotation = 0f
+
+        // Restore timer
+        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
+
+        twistMode = TwistMode.NONE
+        twistConfirmShown = false
+        preTwistSize = -1
+        preTwistOpacity = -1
+
+        Log.i(TAG, "Exited twist mode: $mode, commit=$commit")
+        setBubbleIdle()
+    }
+
+    private fun rotateTick(degrees: Float) {
+        val tick = bubbleView?.findViewById<View>(R.id.bubbleTick) ?: return
+        tick.post {
+            // Pivot is 20dp below the tick's top edge — that's the knob's center
+            // (tick is 8dp tall with 2dp marginTop from 44dp knob top → knob center at 22dp)
+            val dp = resources.displayMetrics.density
+            tick.pivotX = tick.width / 2f
+            tick.pivotY = (tick.height / 2f) + (16f * dp)
+            tick.rotation = degrees
+        }
+    }
+
+    /**
+     * Called from the bubble's onTouchListener when twistMode is active.
+     * Returns true if the event was consumed (skip normal touch handling).
+     */
+    private fun handleTwistTouch(event: MotionEvent, view: View): Boolean {
+        if (twistMode == TwistMode.NONE) return false
+
+        if (twistConfirmShown) {
+            return handleTwistConfirmTouch(event, view)
+        }
+
+        val cx = view.width / 2f
+        val cy = view.height / 2f
+        val dx = event.x - cx
+        val dy = event.y - cy
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                // Reset timeout while finger is interacting
+                timerHandler.removeCallbacks(twistTimeoutRunnable)
+                timerHandler.postDelayed(twistTimeoutRunnable, 6000)
+
+                // atan2(dx, -dy): 0° = 12 o'clock, -90° = 9 o'clock, +90° = 3 o'clock
+                val angleRad = kotlin.math.atan2(dx.toDouble(), (-dy).toDouble())
+                val angleDeg = Math.toDegrees(angleRad).toFloat().coerceIn(-90f, 90f)
+
+                rotateTick(angleDeg)
+
+                // Map to value
+                val normalized = (angleDeg + 90f) / 180f
+                val min = if (twistMode == TwistMode.SIZE) 70 else 20
+                val max = if (twistMode == TwistMode.SIZE) 150 else 100
+                val value = (min + normalized * (max - min)).toInt()
+
+                val prefKey = if (twistMode == TwistMode.SIZE) "bubble_size" else "bubble_opacity"
+                WimApp.prefs.edit().putInt(prefKey, value).apply()
+                updateBubbleAppearance()
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                showTwistConfirm()
+                return true
+            }
+        }
+        return true  // always consume during twist mode
+    }
+
+    private fun showTwistConfirm() {
+        twistConfirmShown = true
+        bubbleView?.findViewById<TextView>(R.id.twistConfirmCheck)?.apply {
+            visibility = View.VISIBLE
+        }
+        // Hide tick so the checkmark is clearly the only action
+        bubbleView?.findViewById<View>(R.id.bubbleTick)?.visibility = View.INVISIBLE
+        // Also hide the SIZE/DIM label while confirm is shown
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.visibility = View.GONE
+
+        timerHandler.removeCallbacks(twistTimeoutRunnable)
+        timerHandler.postDelayed(twistTimeoutRunnable, 5000)
+    }
+
+    private fun handleTwistConfirmTouch(event: MotionEvent, view: View): Boolean {
+        if (event.action != MotionEvent.ACTION_UP) return true  // consume DOWN/MOVE
+
+        val cx = view.width / 2f
+        val cy = view.height / 2f
+        val dx = event.x - cx
+        val dy = event.y - cy
+        val dist = kotlin.math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+        // Inner knob is ~44dp on 120dp view = 36% width, radius ~18% of view width
+        val knobRadius = view.width * 0.20f
+
+        // Restore label visibility (exit path resets everything)
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.visibility = View.VISIBLE
+
+        if (dist <= knobRadius) {
+            exitTwistMode(commit = true)
+        } else {
+            exitTwistMode(commit = false)
+        }
+        return true
     }
 
     fun updateBubbleAppearance() {
@@ -1356,6 +1554,14 @@ class BubbleService : Service() {
         Log.i(TAG, "Processing (asr=${asrMs}ms): $rawText")
         checkRedo(rawText)
         setBubbleProcessing()
+
+        // TWIST mode voice triggers — the transcript is a knob control command, not text
+        val triggered = detectTwistTrigger(rawText)
+        if (triggered != null) {
+            Log.i(TAG, "Twist trigger detected: $triggered")
+            enterTwistMode(triggered)
+            return
+        }
 
         // COMMAND mode: the voice is a transform command, not text to dictate
         if (commandModeArmed) {

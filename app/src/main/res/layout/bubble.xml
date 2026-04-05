@@ -142,6 +142,21 @@
                     android:letterSpacing="0.1" />
 
             </LinearLayout>
+
+            <!-- Twist mode confirm checkmark — shown on knob after user releases twist gesture -->
+            <TextView
+                android:id="@+id/twistConfirmCheck"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="✓"
+                android:textColor="#FF4CAF50"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:visibility="gone"
+                android:clickable="false"
+                android:focusable="false" />
         </FrameLayout>
     </FrameLayout>
 </FrameLayout>
