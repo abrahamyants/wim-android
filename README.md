@@ -644,9 +644,64 @@ val value = (min + normalized * (max - min)).toInt()
 - **Combining diacritics for Roman numeral bars (`I\u0305\u0332`)** — uneven, crooked rendering
 - **Ephemeral conclusion:** Roman numerals with proper bars need custom Canvas drawing or vector drawables, neither is justified for the visual payoff
 
+### API Routing Overhaul (Late Session 6)
+
+**Transcription model swap.** `whisper-1` → `gpt-4o-transcribe` in `WhisperClient.kt`. One-line change on the `/v1/audio/transcriptions` model field. gpt-4o-transcribe is a **separate purpose-built audio model** (not a flavor of gpt-4o) with better WER on disfluent speech.
+
+**Lesson:** Multiple AI sessions (this one + desktop Claude) all assumed gpt-4o-transcribe was "gpt-4o that happens to transcribe" based on similar naming. It's actually a separate model with different endpoint (`/v1/audio/transcriptions` vs `/v1/chat/completions`), different architecture. Verify model facts via WebSearch for anything with version suffixes — don't infer from name.
+
+**Gemini 2.5 Pro as L2/L3 reconstruction engine.** George has Gemini credits sitting idle from marketing work (switched to Sonnet 4.6 for that). Repurposing for WiM:
+
+```
+L2/L3:  audio → gpt-4o-transcribe → GEMINI 2.5 PRO → gpt-4o Falcon → paste
+L4:     audio → gpt-4o-transcribe → gpt-4o           → gpt-4o Falcon → paste
+```
+
+**Why Gemini for L2/L3:**
+- Input tokens ~50% cheaper than gpt-4o
+- Extended reasoning benefits general text cleanup
+- Cross-provider validation bonus (Gemini writes, GPT grades → different biases)
+- Bypasses backend tier gate (your own account, your own key)
+
+**Why NOT Gemini elsewhere:**
+- **L4** stays gpt-4o — research-validated for clinical stutter work
+- **Falcon** stays gpt-4o — fresh-context validation works better than same-provider self-grading; 5-token yes/no is cheap anyway
+
+**Implementation (Android):**
+- `WimApp.kt` — added `geminiApiKey()` prefs getter
+- `ReconstructClient.kt` — new `callGemini()` private function, hits `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent` with `x-goog-api-key` header
+- `ReconstructClient.reconstructDirect()` — routing branch at top: if `layer in {2,3}` and Gemini key exists, try Gemini → Falcon → return; on Gemini failure, graceful fallback to existing OpenAI path
+- Gemini API key injected into `SharedPreferences` via `adb shell run-as sed` (no Settings UI field yet)
+
+**Gotcha:** Gemini branch lives in `reconstructDirect`, which only runs on the **direct API path** (signed-out / local key). Signed-in users go through backend Cloud Function, bypassing Gemini entirely. To cover both paths, also add Gemini branch to `lavrentiy/wim/api/main.py`.
+
+### Backend Tier Gate Discovered
+
+Cloud Function at `bakers-agent.cloudfunctions.net/wim-reconstruct` has a 3-tier system:
+```python
+TIERS = {
+    "invite": {"max_layer": 2, "daily_limit": 30,      "name": "Free"},
+    "basic":  {"max_layer": 2, "daily_limit": 200,     "name": "Basic ($5.99)"},
+    "pro":    {"max_layer": 4, "daily_limit": 999999,  "name": "Pro ($14.99)"},
+}
+```
+
+New users default to `invite` tier (shown as "Free") — L4 blocked. George's own Firestore `users/{uid}` doc has `tier: "invite"`, which is why his L4 calls via the backend path have been 403'd. Not legacy code — it's his real monetization design. Fix is to upgrade his own doc to `"pro"` via Firebase console or gcloud CLI.
+
+### Desktop Parity (Лаврентий)
+
+Same 3 changes needed in Python engine:
+1. NEW: `gemini_client.py` with `call_gemini(system_prompt, user_text, temperature, api_key)` function
+2. EDIT: `reconstruct_intent()` gets layer-based branch routing L2/L3 to Gemini with try/except fallback
+3. EDIT: Add `GEMINI_API_KEY` alongside `OPENAI_API_KEY` in env/config
+4. EDIT: Add model name to status line logging — e.g. `[gemini-2.5-pro] recon:791ms` vs `[gpt-4o] recon:1203ms`
+
+Desktop Claude appears to have already done some of this — a George test at 03:54 showed `recon:791ms` which is consistent with Gemini timing (gpt-4o typically 1200-2500ms for similar input).
+
 ### Commits — Session 6
 
-_Not yet committed — all work in working tree. George has not called for a commit._
+`74ba23f` — Voice-triggered twist mode + timer cap + Session 6 log (earlier)
+`(uncommitted)` — gpt-4o-transcribe swap + Gemini L2/L3 routing + README updates
 
 ## Instructions for Next Model
 
@@ -690,7 +745,10 @@ _Not yet committed — all work in working tree. George has not called for a com
 - **Twist mode: press+twist without voice** — alternative entry for accessibility (long-press → twist without needing voice trigger)
 - **Twist mode: real-world testing** — verify trigger phrases work at 182 WPM, in ambient noise, with various accents. Refine prefix list if false triggers/misses.
 - **Press+twist confirmation tuning** — 5s timeout may be too short or too long, verify with use
-- **Commit Session 6 work** — all drawable theme variants, twist mode, chip redesign, logo bars, timer fixes, header badges uncommitted
+- **Gemini in backend Cloud Function** — direct path is done; signed-in users still get gpt-4o via backend. Port the L2/L3 Gemini branch to `lavrentiy/wim/api/main.py` so both paths use Gemini.
+- **Model-name logging (Android)** — desktop shows `[gemini-2.5-pro]` in status line; add equivalent log line to Android's `ReconstructClient` so path is unambiguous
+- **Gemini API key UI field** — currently injected via adb. Add parallel field next to OpenAI key input.
+- **George's own Firestore doc upgrade** — change `users/{uid}.tier` from `"invite"` to `"pro"` so L4 via backend stops 403'ing
 
 ### Carried Forward
 - **Backend tier fix** — update Firestore to allow L4 for George's account, or bypass tier check

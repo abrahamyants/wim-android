@@ -97,7 +97,7 @@ object WhisperClient {
 
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("model", "whisper-1")
+                .addFormDataPart("model", "gpt-4o-transcribe")
                 .addFormDataPart("language", language)
                 .addFormDataPart("temperature", "0")
                 .addFormDataPart("response_format", "verbose_json")

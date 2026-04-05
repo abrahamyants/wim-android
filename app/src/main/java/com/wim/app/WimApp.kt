@@ -19,6 +19,7 @@ class WimApp : Application() {
         var onSessionsSynced: (() -> Unit)? = null
 
         fun apiKey(): String = prefs.getString("api_key", "") ?: ""
+        fun geminiApiKey(): String = prefs.getString("gemini_api_key", "") ?: ""
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
         fun layer(): Int = prefs.getInt("layer", 2)
         fun situation(): String = prefs.getString("situation", "default") ?: "default"

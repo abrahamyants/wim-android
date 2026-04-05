@@ -333,6 +333,39 @@ object ReconstructClient {
                 }
             }
 
+            // Route L2/L3 reconstruction through Gemini 2.5 Pro when available.
+            // L4 stays on gpt-4o (research-validated clinical). Falcon still runs on gpt-4o.
+            if ((layer == 2 || layer == 3) && WimApp.geminiApiKey().isNotBlank()) {
+                try {
+                    val geminiText = callGemini(systemPrompt, rawText, temperature)
+                    val riskFlagsG = computeRiskFlags(rawText, geminiText)
+                    val fastModeG = com.wim.app.WimApp.prefs.getBoolean("fast_mode", false)
+                    val falconOkG = if (fastModeG) {
+                        true
+                    } else if (riskFlagsG.contains("critical_token_lost")) {
+                        false
+                    } else {
+                        falconValidate(rawText, geminiText, layer, tone)
+                    }
+                    val reconMsG = System.currentTimeMillis() - t0
+                    val finalTextG = if (falconOkG) geminiText else rawText
+                    if (!falconOkG) {
+                        Log.w("WiM", "Falcon rejected Gemini reconstruction. Flags: $riskFlagsG")
+                    } else {
+                        Log.i("WiM", "Gemini L$layer reconstruction (${reconMsG}ms) approved")
+                    }
+                    return@withContext ReconstructResult(
+                        cleanText = finalTextG,
+                        reconMs = reconMsG,
+                        riskFlags = riskFlagsG,
+                        falconApproved = falconOkG
+                    )
+                } catch (e: Exception) {
+                    Log.w("WiM", "Gemini L$layer failed, falling back to gpt-4o: ${e.message}")
+                    // fall through to OpenAI path below
+                }
+            }
+
             val model = if (layer >= 4) "gpt-4o" else "gpt-4o"
 
             val messages = JSONArray().apply {
@@ -472,6 +505,55 @@ object ReconstructClient {
                 Log.e("WiM", "Falcon validation error: ${e.message}")
                 true // on error, trust the reconstruction
             }
+        }
+
+    /**
+     * Call Gemini 2.5 Pro for text reconstruction.
+     * Used for L2/L3 main engine (not Falcon, not L4).
+     * System prompt carries tone/layer/situation instructions — same as what OpenAI gets.
+     */
+    private suspend fun callGemini(systemPrompt: String, userText: String, temperature: Double): String =
+        withContext(Dispatchers.IO) {
+            val key = WimApp.geminiApiKey()
+            if (key.isBlank()) throw IllegalStateException("No Gemini API key configured")
+
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent"
+            val body = JSONObject().apply {
+                put("systemInstruction", JSONObject().put(
+                    "parts", JSONArray().put(JSONObject().put("text", systemPrompt))
+                ))
+                put("contents", JSONArray().put(
+                    JSONObject().put("parts", JSONArray().put(JSONObject().put("text", userText)))
+                ))
+                put("generationConfig", JSONObject()
+                    .put("temperature", temperature)
+                    .put("maxOutputTokens", 1024))
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("x-goog-api-key", key)
+                .addHeader("Content-Type", "application/json")
+                .post(body.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+
+            val response = http.newCall(request).execute()
+            val responseBody = response.body?.string()
+                ?: throw RuntimeException("Empty response from Gemini API")
+            if (!response.isSuccessful) {
+                throw RuntimeException("Gemini API error ${response.code}: $responseBody")
+            }
+
+            val json = JSONObject(responseBody)
+            // Gemini response shape: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+            val text = json.getJSONArray("candidates")
+                .getJSONObject(0)
+                .getJSONObject("content")
+                .getJSONArray("parts")
+                .getJSONObject(0)
+                .getString("text")
+                .trim()
+            text
         }
 
     /** Compute risk flags for a reconstruction result. */
