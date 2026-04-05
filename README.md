@@ -396,6 +396,73 @@ b7d7fea Enforce overlay-before-accessibility permission order
 7b9cd39 Record session even when reconstruction API fails
 ```
 
+## Session 5 — April 4, 2026
+
+### Pipeline Overhauls (Лаврентий Parity)
+
+**L2-L3 now use Whisper API.** Previously only L4 used Whisper; L1-L3 used Android's native SpeechRecognizer. Paid tiers deserve better input quality. L1 stays on-device (free/offline differentiator). L2+ send audio to Whisper → GPT.
+
+**Pre-roll audio buffer.** When bubble is visible + L2+ + API key available, AudioRecorder primes a 500ms circular buffer via continuous mic capture. When user taps to record, the buffer is prepended to the recording file — first words no longer cut off by startup latency.
+
+**Whisper confidence signals wired through.** `avg_logprob`, `no_speech_prob`, and `block_suspect` per segment extracted from verbose_json and passed to the backend reconstruction call at all paid layers (matching Лаврентий behavior).
+
+**Whisper hallucination stripper.** 22 known patterns ("Transcribed by otter.ai", "Thanks for watching", etc.) auto-removed from every Whisper response. Prevents YouTube-training-data leakage into transcripts during silent moments.
+
+**L1 profile corrections.** Learned word replacements now apply at Layer 1 client-side without GPT. Matches Лаврентий's `apply_profile_corrections()`. Also applied at L2+ before GPT sees text.
+
+**Profile decay.** Corrections unused for 100+ sessions auto-removed every 30 sessions. Tracks `correction_last_used` per entry.
+
+**Brown's phonetic risk prediction.** New `PhoneticRisk.kt` — Brown's 4-feature model (onset, content-word, length, position) predicts per-word difficulty. Injected into L4 prompt alongside personal onset weights.
+
+**Clinical L4 prompt expanded.** Direct path now includes ~80 lines of Лаврентий's few-shot examples (blocks, syllable reps, prolongations, filler stacking, avoidance, Whisper artifacts). Previously the direct path was a fraction of what backend got.
+
+**L2-L3 ASR artifact guidance.** 8 artifact types + 4 examples added to direct-path prompt.
+
+**NATURAL_REPEATS protection.** 22 entries ("had had", "bye bye", "ну ну") no longer stripped by DisfluencyFilter.
+
+**Stutter-aware Falcon prompt.** Full Лаврентий version for L4 validation. Also now tone-aware — formal/professional/casual/friend each get appropriate rewrite-latitude notes.
+
+### Shared Bug Fixes (Both Apps Had These)
+
+- **#9: DisfluencyFilter runs before L4.** Fixed — L4 now skips pre-filtering so GPT sees raw disfluencies to reason about.
+- **#10: Falcon ignores tone.** Fixed — Falcon now accepts tone parameter, includes tone-appropriate rewrite latitude.
+- **#7: strip_block_hallucinations L1-only.** Fixed — now runs at all layers via `DisfluencyFilter.stripBlockHallucinations()`.
+- **#8: profile corrections L3+ only.** Fixed — client-side corrections at L2+ before GPT.
+
+### New Features
+
+**Command Mode.** Drag bubble over highlighted text → bubble picks up selection → clarifier "?" with ✓/✕ → ✓ arms listening → user speaks freeform command ("formal", "shorter", "translate to Russian") → GPT transforms → `ACTION_SET_TEXT` replaces original selection. No new permissions required (uses existing accessibility service).
+
+**INSTANT mode.** New status chip (first position). When ON, bypasses everything — pastes raw ASR text directly, no DisfluencyFilter, no GPT, no Falcon, no session logging. For speed-over-quality moments.
+
+**Quiet Mode.** Audio modifier toggle under LAYER. Applies +18dB gain + 80Hz high-pass + soft clipping to mic audio before Whisper upload. For whispered/soft speech in public spaces.
+
+**Status chip row.** 4 tappable chips under VU meters (MODE/LAYER/SITUATION/TONE). Tap cycles through values, shows current state. Replaces DAF chip with MODE (Standard/Instant). Full-width, maroon value text on transparent pill backgrounds.
+
+**VU meter gauges.** Replaced nixie tube stat cells with custom Canvas VuMeterView — semi-circular arc with tick marks, needle, seamless two-tone transition to maroon red zone. Startup sweep animation on launch. Double-tap to reset. Theme-aware colors (cream/charcoal for dark/light).
+
+**Password field safety.** AccessibilityService detects `node.isPassword`. Bubble refuses to record when password field focused, shows toast + brief flash.
+
+**GDPR/CCPA data rights.** Export/Delete buttons in Profile overlay (signed-in only). Export serializes Firestore doc via Android share sheet. Delete calls backend `delete_data` endpoint (hard delete, immediate), signs user out, reloads.
+
+**Inline Guide.** Moved from `?` button overlay to collapsible GUIDE category after SETTINGS. 7 accordion sections inside: How It Works, Bubble, Layers, Smart Tone, Situations, DAF, Having Trouble. Matches category pattern.
+
+### Design Overhaul
+
+**Warm dark palette (dark mode).** Navy blue backgrounds reverted to Лаврентий's warm dark (`#1A1A1E` family). Cream `#C8B48A` for category headers. Muted copper `#C49A6C` for sub-labels. Orange `#EE5A24` reserved for data/active states only. All previous orange headers/labels swapped out.
+
+**Light mode vintage paper.** Darker tan background `#D4C8B0` (leather desk), cream raised cards, burnt umber text `#5C3A1F`, dark copper sub-labels. Inverted hierarchy from dark mode.
+
+**Toggle refinements.** All MaterialSwitch toggles scaled 0.75x, copper thumb, warm dark track. Dark mode toggle styled to match. Includes bubble menu's Live Transcribe toggle.
+
+**Icon redesign.** Launcher icon now matches floating bubble — flat aluminum knob with orange WM, no shadow artifacts.
+
+### Commits — Session 5
+```
+e99f3a5 Warm dark mode overhaul + Лаврентий intelligence port
+c11767e Light mode vintage paper aesthetic + toggle refinements
+```
+
 ### Design Limitations Documented
 
 Android XML drawables cannot replicate Лаврентий's CSS effects:

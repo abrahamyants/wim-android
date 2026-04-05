@@ -27,6 +27,8 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.materialswitch.MaterialSwitch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +52,12 @@ class BubbleService : Service() {
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
+
+    // Command Mode state — when armed, the next recording is a GPT transform command
+    private var commandModeArmed: Boolean = false
+    private var commandSourceText: String = ""
+    private var commandSelectionStart: Int = -1
+    private var commandSelectionEnd: Int = -1
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
@@ -372,6 +380,9 @@ class BubbleService : Service() {
                         if (params.y > hideZone) {
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
+                        } else if (checkCommandModePickup()) {
+                            // Bubble dropped on highlighted text — command mode
+                            return@setOnTouchListener true
                         } else if (params.y > almostZone) {
                             // Close but not enough — coach the user
                             val nudges = listOf(
@@ -490,6 +501,20 @@ class BubbleService : Service() {
 
     private fun startListening() {
         if (isRecording) return
+
+        // Safety: refuse to record into password/sensitive fields
+        if (WimAccessibilityService.isPasswordField) {
+            Toast.makeText(this, "Password field — dictation blocked", Toast.LENGTH_SHORT).show()
+            Log.i(TAG, "Blocked: password field focused")
+            // Brief visual flash on bubble
+            bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.apply {
+                animate().alpha(0.4f).setDuration(100).withEndAction {
+                    animate().alpha(1f).setDuration(200).start()
+                }.start()
+            }
+            return
+        }
+
         isRecording = true
         lastRawText = ""
         finalizedSegments = ""
@@ -746,6 +771,92 @@ class BubbleService : Service() {
     private var pendingClarifierQuestion = ""
     private var pendingClarifierCallback: ((Boolean?) -> Unit)? = null
 
+    /**
+     * Check if the bubble was dropped on a focused text field with highlighted text.
+     * If yes, pick up the selection for Command Mode.
+     */
+    private fun checkCommandModePickup(): Boolean {
+        val node = WimAccessibilityService.activeTextField ?: return false
+        try {
+            if (!node.refresh()) return false
+        } catch (_: Exception) { return false }
+
+        val start = node.textSelectionStart
+        val end = node.textSelectionEnd
+        if (start < 0 || end <= start) return false
+
+        val fullText = node.text?.toString() ?: return false
+        if (fullText.isEmpty() || end > fullText.length) return false
+
+        val selectedText = fullText.substring(start.coerceAtLeast(0), end.coerceAtMost(fullText.length))
+        if (selectedText.isBlank()) return false
+
+        // Check bubble center is over the field's bounds
+        val fieldRect = android.graphics.Rect()
+        node.getBoundsInScreen(fieldRect)
+        val params = bubbleParams ?: return false
+        val bubbleCenterX = params.x + (bubbleView?.width ?: 0) / 2
+        val bubbleCenterY = params.y + (bubbleView?.height ?: 0) / 2
+        if (!fieldRect.contains(bubbleCenterX, bubbleCenterY)) return false
+
+        // Pickup! Store selection and show in live transcript, then clarify
+        commandSourceText = selectedText
+        commandSelectionStart = start
+        commandSelectionEnd = end
+
+        // Show picked-up text (truncated to 3 lines ~= ~120 chars)
+        val preview = if (selectedText.length > 120) selectedText.substring(0, 117) + "..." else selectedText
+        showPipelineStage("📋 Picked up", preview)
+
+        // Ask user to confirm
+        showClarifier("?", "Rewrite this text?") { answer ->
+            if (answer == true) {
+                armCommandMode()
+            } else {
+                clearCommandPickup()
+            }
+        }
+        return true
+    }
+
+    private fun armCommandMode() {
+        commandModeArmed = true
+        showPipelineStage("🎤 Say the command", "formal · professional · casual · friend · shorter · fix · translate")
+        // Start listening immediately after clarifier dismisses
+        timerHandler.postDelayed({
+            if (commandModeArmed && !isRecording) startListening()
+        }, 600)
+    }
+
+    private fun clearCommandPickup() {
+        commandModeArmed = false
+        commandSourceText = ""
+        commandSelectionStart = -1
+        commandSelectionEnd = -1
+        hideLiveTranscript()
+    }
+
+    /**
+     * Replace the stored selection in the active text field with new text.
+     */
+    private fun replaceSelection(newText: String): Boolean {
+        val node = WimAccessibilityService.activeTextField ?: return false
+        try {
+            if (!node.refresh()) return false
+        } catch (_: Exception) { return false }
+
+        val fullText = node.text?.toString() ?: return false
+        val start = commandSelectionStart
+        val end = commandSelectionEnd
+        if (start < 0 || end < start || end > fullText.length) return false
+
+        val replaced = fullText.substring(0, start) + newText + fullText.substring(end)
+        val args = android.os.Bundle().apply {
+            putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, replaced)
+        }
+        return node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+    }
+
     fun showClarifier(questionWord: String, contextQuestion: String = "", onAnswer: (Boolean?) -> Unit) {
         isClarifierActive = true
         clarifierCallback = { answer -> onAnswer(answer) }
@@ -945,12 +1056,14 @@ class BubbleService : Service() {
 
         val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
         liveToggle.isChecked = liveEnabled
-        // Gold thumb, light gray track
-        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFEE5A24.toInt())
+        // Match WiM app toggles: copper thumb, warm dark track, 0.75 scale
+        liveToggle.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFC49A6C.toInt())
         liveToggle.trackTintList = android.content.res.ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-            intArrayOf(0xFFB8B8C0.toInt(), 0xFF555560.toInt())
+            intArrayOf(0xFF3A3530.toInt(), 0xFF2A2A2F.toInt())
         )
+        liveToggle.scaleX = 0.75f
+        liveToggle.scaleY = 0.75f
         liveToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
         }
@@ -1126,12 +1239,115 @@ class BubbleService : Service() {
         if (recentTexts.size > 5) recentTexts.removeAt(0)
     }
 
+    /**
+     * Process Command Mode voice input: send source text + command to GPT,
+     * replace the original selection with the result.
+     */
+    private fun processCommand(command: String) {
+        val source = commandSourceText
+        Log.i(TAG, "CMD: transform '$source' with command: '$command'")
+        showPipelineStage("⟳ Transforming...", command)
+
+        scope.launch {
+            try {
+                val systemPrompt = "You are a text transformation assistant. The user highlighted some text and spoke a command to modify it. Apply the command and return ONLY the transformed text, nothing else. Preserve the meaning. Do not add explanations, quotes, or prefixes."
+                val userContent = "TEXT:\n$source\n\nCOMMAND: $command"
+
+                val apiKey = WimApp.apiKey()
+                val idToken = AuthManager.getIdToken()
+
+                val result: String? = if (idToken != null) {
+                    // Use backend proxy — we'll repurpose reconstruct endpoint with raw=source, a synthetic layer
+                    // Simpler: go direct through OpenAI with the user's key, or build a proper cmd endpoint later
+                    if (apiKey.isNotBlank()) callOpenAiTransform(apiKey, systemPrompt, userContent) else null
+                } else {
+                    if (apiKey.isNotBlank()) callOpenAiTransform(apiKey, systemPrompt, userContent) else null
+                }
+
+                if (result.isNullOrBlank()) {
+                    Log.e(TAG, "CMD: transform failed")
+                    showPipelineStage("✕ Failed", "Try again")
+                    timerHandler.postDelayed({ setBubbleIdle() }, 2000)
+                    clearCommandPickup()
+                    return@launch
+                }
+
+                val replaced = replaceSelection(result)
+                if (replaced) {
+                    Log.i(TAG, "CMD: replaced selection with '$result'")
+                    val wordCount = result.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                    showPipelineStage("✓ Rewrote $wordCount words", result.take(80))
+                } else {
+                    Log.e(TAG, "CMD: replaceSelection failed, copying to clipboard")
+                    val clip = android.content.ClipData.newPlainText("wim", result)
+                    (getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
+                    showPipelineStage("✓ Copied", "Paste manually")
+                }
+                timerHandler.postDelayed({ setBubbleIdle() }, 1800)
+            } catch (e: Exception) {
+                Log.e(TAG, "CMD: exception: ${e.message}")
+                showPipelineStage("✕ Error", e.message ?: "")
+                timerHandler.postDelayed({ setBubbleIdle() }, 2000)
+            } finally {
+                clearCommandPickup()
+            }
+        }
+    }
+
+    private suspend fun callOpenAiTransform(apiKey: String, systemPrompt: String, userContent: String): String? {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val http = okhttp3.OkHttpClient.Builder().readTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build()
+                val messages = org.json.JSONArray().apply {
+                    put(org.json.JSONObject().put("role", "system").put("content", systemPrompt))
+                    put(org.json.JSONObject().put("role", "user").put("content", userContent))
+                }
+                val body = org.json.JSONObject().apply {
+                    put("model", "gpt-4o")
+                    put("messages", messages)
+                    put("temperature", 0.3)
+                }
+                val req = okhttp3.Request.Builder()
+                    .url("https://api.openai.com/v1/chat/completions")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                val resp = http.newCall(req).execute()
+                val respBody = resp.body?.string() ?: return@withContext null
+                if (!resp.isSuccessful) return@withContext null
+                org.json.JSONObject(respBody)
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+                    .trim()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
     private fun processText(rawText: String) {
         val pipelineStart = System.currentTimeMillis()
         val asrMs = pipelineStart - recordingStartTime
         Log.i(TAG, "Processing (asr=${asrMs}ms): $rawText")
         checkRedo(rawText)
         setBubbleProcessing()
+
+        // COMMAND mode: the voice is a transform command, not text to dictate
+        if (commandModeArmed) {
+            processCommand(rawText)
+            return
+        }
+
+        // INSTANT mode: bypass everything, paste raw ASR text directly
+        if (WimApp.prefs.getBoolean("instant_mode", false)) {
+            Log.i(TAG, "INSTANT mode: pasting raw text, no processing")
+            WimAccessibilityService.instance?.injectText(rawText)
+            setBubbleIdle()
+            return
+        }
 
         val layer = WimApp.layer()
         val tone = WimApp.tone()

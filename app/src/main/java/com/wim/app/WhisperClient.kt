@@ -34,6 +34,48 @@ object WhisperClient {
     private const val NO_SPEECH_THRESHOLD_DEFAULT = 0.15
     private const val NO_SPEECH_THRESHOLD_PATIENCE = 0.6
 
+    /**
+     * Known Whisper hallucinations — phrases Whisper injects when audio is silent/muffled/quiet.
+     * These come from YouTube training data (auto-generated captions from silent video endings).
+     * Strip them from any Whisper output regardless of confidence.
+     */
+    private val HALLUCINATION_PATTERNS = listOf(
+        "transcribed by https://otter.ai",
+        "transcribed by otter.ai",
+        "transcription by otter.ai",
+        "thanks for watching",
+        "thank you for watching",
+        "don't forget to subscribe",
+        "please subscribe",
+        "like and subscribe",
+        "like, comment, and subscribe",
+        "see you in the next video",
+        "see you next time",
+        "see you next video",
+        "subscribe to my channel",
+        "subscribe to the channel",
+        "thanks to patreon",
+        "thanks for listening",
+        "subtitles by the amara.org community",
+        "captions by",
+        "♪♪♪",
+        "♪ ♪ ♪",
+        "[music]",
+        "[applause]"
+    ).map { it.lowercase() }
+
+    private fun stripHallucinations(text: String): String {
+        if (text.isBlank()) return text
+        var result = text
+        for (pattern in HALLUCINATION_PATTERNS) {
+            // Case-insensitive replacement with optional trailing punctuation
+            val regex = Regex("(?i)\\b${Regex.escape(pattern)}[.!?]?", RegexOption.IGNORE_CASE)
+            result = regex.replace(result, "")
+        }
+        // Collapse multiple spaces
+        return result.replace(Regex("\\s{2,}"), " ").trim()
+    }
+
     suspend fun transcribe(audioFile: File, language: String = "en", patienceMode: Boolean = false): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -96,8 +138,14 @@ object WhisperClient {
                 }
             }
 
+            val rawText = json.optString("text", "").trim()
+            val cleanText = stripHallucinations(rawText)
+            if (rawText != cleanText) {
+                android.util.Log.i("WiM", "Whisper hallucination stripped: '${rawText.take(80)}' → '${cleanText.take(80)}'")
+            }
+
             TranscribeResult(
-                text = json.optString("text", "").trim(),
+                text = cleanText,
                 asrMs = asrMs,
                 lowConfidenceSegments = lowConfidenceSegments
             )

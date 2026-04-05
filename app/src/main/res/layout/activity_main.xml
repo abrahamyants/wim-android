@@ -186,13 +186,47 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- STATUS CHIPS — Layer / Situation / Tone / DAF -->
+        <!-- STATUS CHIPS — Instant / Layer / Situation / Tone -->
         <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
+            android:layout_marginTop="-4dp"
+            android:layout_marginBottom="6dp">
+
+            <LinearLayout
+                android:id="@+id/chipInstant"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/chip_bg"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
+                android:layout_marginEnd="3dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MODE"
+                    android:textColor="@color/text_dim"
+                    android:textSize="8sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.15" />
+                <TextView
+                    android:id="@+id/chipInstantValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="STANDARD"
+                    android:textColor="@color/chip_value"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:layout_marginTop="1dp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/chipLayer"
@@ -202,8 +236,10 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
                 android:layout_marginEnd="3dp">
                 <TextView
                     android:layout_width="wrap_content"
@@ -219,10 +255,10 @@
                     android:layout_height="wrap_content"
                     android:text="II"
                     android:textColor="@color/chip_value"
-                    android:textSize="16sp"
+                    android:textSize="10sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -233,8 +269,10 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
                 android:layout_marginEnd="3dp">
                 <TextView
                     android:layout_width="wrap_content"
@@ -248,12 +286,12 @@
                     android:id="@+id/chipSituationValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DEF"
+                    android:text="DEFAULT"
                     android:textColor="@color/chip_value"
-                    android:textSize="16sp"
+                    android:textSize="10sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -264,9 +302,10 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginEnd="3dp">
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -279,42 +318,12 @@
                     android:id="@+id/chipToneValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="CAS"
+                    android:text="CASUAL"
                     android:textColor="@color/chip_value"
-                    android:textSize="16sp"
+                    android:textSize="10sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/chipDaf"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/chip_bg"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="DAF"
-                    android:textColor="@color/text_dim"
-                    android:textSize="8sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15" />
-                <TextView
-                    android:id="@+id/chipDafValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="OFF"
-                    android:textColor="@color/chip_value"
-                    android:textSize="16sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="1dp" />
             </LinearLayout>
         </LinearLayout>
 

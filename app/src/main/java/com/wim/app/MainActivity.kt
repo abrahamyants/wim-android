@@ -928,18 +928,23 @@ class MainActivity : AppCompatActivity() {
     private fun setupStatusChips() {
         val layerValues = listOf("I", "II", "III", "IV")
         val situationKeys = listOf("default", "high_stress", "reading")
-        val situationLabels = mapOf("default" to "DEF", "high_stress" to "HSTR", "reading" to "READ")
+        val situationLabels = mapOf("default" to "DEFAULT", "high_stress" to "HIGH STRESS", "reading" to "READING")
         val toneKeys = listOf("casual", "professional", "friend", "formal")
-        val toneLabels = mapOf("casual" to "CAS", "professional" to "PRO", "friend" to "FRD", "formal" to "FRM")
+        val toneLabels = mapOf("casual" to "CASUAL", "professional" to "PROFESSIONAL", "friend" to "FRIEND", "formal" to "FORMAL")
 
         fun refresh() {
+            findViewById<TextView>(R.id.chipInstantValue)?.text = if (WimApp.prefs.getBoolean("instant_mode", false)) "INSTANT" else "STANDARD"
             findViewById<TextView>(R.id.chipLayerValue)?.text = layerValues[(WimApp.layer() - 1).coerceIn(0, 3)]
             findViewById<TextView>(R.id.chipSituationValue)?.text = situationLabels[WimApp.situation()] ?: "DEF"
             findViewById<TextView>(R.id.chipToneValue)?.text = toneLabels[WimApp.tone()] ?: "CAS"
-            findViewById<TextView>(R.id.chipDafValue)?.text = if (WimApp.dafEnabled()) "ON" else "OFF"
         }
         refresh()
 
+        findViewById<View>(R.id.chipInstant)?.setOnClickListener {
+            val cur = WimApp.prefs.getBoolean("instant_mode", false)
+            WimApp.prefs.edit().putBoolean("instant_mode", !cur).apply()
+            refresh()
+        }
         findViewById<View>(R.id.chipLayer)?.setOnClickListener {
             val cur = WimApp.layer()
             val next = if (cur >= 4) 1 else cur + 1
@@ -959,11 +964,6 @@ class MainActivity : AppCompatActivity() {
             val idx = toneKeys.indexOf(cur).let { if (it < 0) 0 else it }
             val next = toneKeys[(idx + 1) % toneKeys.size]
             WimApp.prefs.edit().putString("tone", next).apply()
-            refresh()
-        }
-        findViewById<View>(R.id.chipDaf)?.setOnClickListener {
-            val cur = WimApp.dafEnabled()
-            WimApp.prefs.edit().putBoolean("daf_enabled", !cur).apply()
             refresh()
         }
     }

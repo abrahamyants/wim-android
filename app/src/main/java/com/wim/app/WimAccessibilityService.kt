@@ -17,6 +17,9 @@ class WimAccessibilityService : AccessibilityService() {
             private set
         var activeTextField: AccessibilityNodeInfo? = null
             private set
+        /** True if the currently focused text field is a password/sensitive field. */
+        var isPasswordField: Boolean = false
+            private set
     }
 
     override fun onServiceConnected() {
@@ -47,17 +50,37 @@ class WimAccessibilityService : AccessibilityService() {
                 val source = event.source ?: return
                 if (source.isEditable) {
                     activeTextField = source
+                    isPasswordField = detectPasswordField(source)
+                    if (isPasswordField) Log.i("WiM", "Password field focused — dictation disabled")
+                } else {
+                    isPasswordField = false
                 }
             }
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val source = event.source
                 if (source != null && source.isEditable) {
                     activeTextField = source
+                    isPasswordField = detectPasswordField(source)
+                } else {
+                    isPasswordField = false
                 }
                 // Auto-detect context and switch tone
                 val pkg = event.packageName?.toString() ?: return
                 autoSwitchTone(pkg)
             }
+        }
+    }
+
+    /**
+     * Detect if a node is a password/sensitive field.
+     * Checks the .isPassword flag (set by TYPE_TEXT_VARIATION_PASSWORD,
+     * TYPE_NUMBER_VARIATION_PASSWORD, and TYPE_TEXT_VARIATION_VISIBLE_PASSWORD).
+     */
+    private fun detectPasswordField(node: AccessibilityNodeInfo): Boolean {
+        return try {
+            node.isPassword
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -81,11 +104,13 @@ class WimAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         activeTextField = null
+        isPasswordField = false
     }
 
     override fun onDestroy() {
         instance = null
         activeTextField = null
+        isPasswordField = false
         super.onDestroy()
     }
 

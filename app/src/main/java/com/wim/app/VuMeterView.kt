@@ -192,8 +192,9 @@ class VuMeterView @JvmOverloads constructor(
         valuePaint.textSize = radius * 0.45f
         canvas.drawText(displayText, cx, gaugeBottom - radius * 0.25f, valuePaint)
 
-        // Label text — below the arc
-        labelPaint.textSize = radius * 0.2f
+        // Label text — below the arc, matches status chip label style (8sp monospace)
+        val density = resources.displayMetrics.density
+        labelPaint.textSize = 8f * density
         canvas.drawText(label, cx, gaugeBottom + radius * 0.4f, labelPaint)
     }
 }
