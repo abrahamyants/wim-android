@@ -1,27 +1,95 @@
 package com.wim.app
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import kotlin.math.*
 
 /**
  * VU meter gauge — draws an arc with needle, value, and label.
  * Replaces nixie tube stat cells.
+ *
+ * Needle sweeps smoothly to new values like a real tachometer.
  */
 class VuMeterView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
+    private var displayedFraction: Float = 0f  // what we actually draw (animated)
+    private var targetFraction: Float = 0f     // what we're animating toward
+    private var needleAnimator: ValueAnimator? = null
+    private var hasRunStartupSweep = false
+
     var value: Float = 0f
-        set(v) { field = v; invalidate() }
+        set(v) {
+            field = v
+            val frac = (v / maxValue).coerceIn(0f, 1f)
+            targetFraction = frac
+            if (hasRunStartupSweep) animateNeedleTo(frac)
+        }
     var maxValue: Float = 100f
-        set(v) { field = v; invalidate() }
+        set(v) {
+            field = v
+            val frac = (value / v).coerceIn(0f, 1f)
+            targetFraction = frac
+            if (hasRunStartupSweep) animateNeedleTo(frac)
+        }
     var displayText: String = "0"
         set(v) { field = v; invalidate() }
     var label: String = ""
         set(v) { field = v; invalidate() }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Dashboard power-on sweep: 0 → redline → settle at target
+        postDelayed({ runStartupSweep() }, 200)
+    }
+
+    private fun runStartupSweep() {
+        if (hasRunStartupSweep) return
+        hasRunStartupSweep = true
+        needleAnimator?.cancel()
+        // Sweep to redline
+        needleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 700
+            interpolator = DecelerateInterpolator(1.4f)
+            addUpdateListener { anim ->
+                displayedFraction = anim.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+        // After hitting redline, settle to target
+        postDelayed({
+            needleAnimator?.cancel()
+            needleAnimator = ValueAnimator.ofFloat(1f, targetFraction).apply {
+                duration = 900
+                interpolator = DecelerateInterpolator(1.8f)
+                addUpdateListener { anim ->
+                    displayedFraction = anim.animatedValue as Float
+                    invalidate()
+                }
+                start()
+            }
+        }, 800)
+    }
+
+    private fun animateNeedleTo(newFraction: Float) {
+        if (abs(newFraction - displayedFraction) < 0.001f) return
+        needleAnimator?.cancel()
+        needleAnimator = ValueAnimator.ofFloat(displayedFraction, newFraction).apply {
+            duration = 600
+            interpolator = DecelerateInterpolator(1.8f)
+            addUpdateListener { anim ->
+                displayedFraction = anim.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
 
     // Theme detection — VU meter colors adapt to light/dark mode
     private val isNight: Boolean
@@ -82,13 +150,12 @@ class VuMeterView @JvmOverloads constructor(
 
         val cx = w / 2f
         val gaugeBottom = h * 0.6f
+        // Radius constrained by both dimensions — prevents landscape blowup
         val radius = min(w * 0.42f, gaugeBottom * 0.75f)
 
         // Arc bounds
         val arcRect = RectF(cx - radius, gaugeBottom - radius, cx + radius, gaugeBottom + radius)
 
-        // Main arc (180° to 360° = bottom semicircle, but we want top)
-        // Draw from 200° to 340° (leaving gaps at sides)
         val startAngle = 200f
         val sweepAngle = 140f
         val redStart = 305f // red zone starts at ~75% of sweep
@@ -111,23 +178,22 @@ class VuMeterView @JvmOverloads constructor(
             canvas.drawLine(x1, y1, x2, y2, tickPaint)
         }
 
-        // Needle — maps value to angle
-        val fraction = (value / maxValue).coerceIn(0f, 1f)
-        val needleAngle = Math.toRadians((startAngle + fraction * sweepAngle).toDouble())
+        // Needle — uses animated displayedFraction for smooth sweep
+        val needleAngle = Math.toRadians((startAngle + displayedFraction * sweepAngle).toDouble())
         val needleLen = radius * 0.78f
         val nx = cx + needleLen * cos(needleAngle).toFloat()
         val ny = gaugeBottom + needleLen * sin(needleAngle).toFloat()
         canvas.drawLine(cx, gaugeBottom, nx, ny, needlePaint)
 
-        // Pivot dot
-        canvas.drawCircle(cx, gaugeBottom, w * 0.035f, pivotPaint)
+        // Pivot dot — sized relative to radius (scales with gauge, not width)
+        canvas.drawCircle(cx, gaugeBottom, radius * 0.08f, pivotPaint)
 
         // Value text — inside the arc
-        valuePaint.textSize = h * 0.22f
+        valuePaint.textSize = radius * 0.45f
         canvas.drawText(displayText, cx, gaugeBottom - radius * 0.25f, valuePaint)
 
         // Label text — below the arc
-        labelPaint.textSize = h * 0.1f
-        canvas.drawText(label, cx, gaugeBottom + h * 0.18f, labelPaint)
+        labelPaint.textSize = radius * 0.2f
+        canvas.drawText(label, cx, gaugeBottom + radius * 0.4f, labelPaint)
     }
 }

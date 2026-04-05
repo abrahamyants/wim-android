@@ -23,6 +23,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.lifecycleScope
 import androidx.core.app.ActivityCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -195,6 +196,9 @@ class MainActivity : AppCompatActivity() {
         setupVuDoubleTapReset(R.id.vuWpm, "stat_wpm_reset")
         setupVuDoubleTapReset(R.id.vuCleanup, "stat_cleanup_reset")
         setupVuDoubleTapReset(R.id.vuScore, "filler_count")
+
+        // Status chips — tap to cycle
+        setupStatusChips()
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
@@ -387,6 +391,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.ttsSpeak)?.setOnClickListener {
             val text = findViewById<EditText>(R.id.ttsInput)?.text?.toString()?.trim() ?: return@setOnClickListener
             if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
+        }
+
+        // ── Quiet Mode toggle ──
+        val quietToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.quietModeToggle)
+        quietToggle?.isChecked = WimApp.prefs.getBoolean("quiet_mode", false)
+        styleToggle(quietToggle!!)
+        quietToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("quiet_mode", checked).apply()
         }
 
         // ── Double-shake toggle ──
@@ -913,6 +925,49 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupStatusChips() {
+        val layerValues = listOf("I", "II", "III", "IV")
+        val situationKeys = listOf("default", "high_stress", "reading")
+        val situationLabels = mapOf("default" to "DEF", "high_stress" to "HSTR", "reading" to "READ")
+        val toneKeys = listOf("casual", "professional", "friend", "formal")
+        val toneLabels = mapOf("casual" to "CAS", "professional" to "PRO", "friend" to "FRD", "formal" to "FRM")
+
+        fun refresh() {
+            findViewById<TextView>(R.id.chipLayerValue)?.text = layerValues[(WimApp.layer() - 1).coerceIn(0, 3)]
+            findViewById<TextView>(R.id.chipSituationValue)?.text = situationLabels[WimApp.situation()] ?: "DEF"
+            findViewById<TextView>(R.id.chipToneValue)?.text = toneLabels[WimApp.tone()] ?: "CAS"
+            findViewById<TextView>(R.id.chipDafValue)?.text = if (WimApp.dafEnabled()) "ON" else "OFF"
+        }
+        refresh()
+
+        findViewById<View>(R.id.chipLayer)?.setOnClickListener {
+            val cur = WimApp.layer()
+            val next = if (cur >= 4) 1 else cur + 1
+            WimApp.prefs.edit().putInt("layer", next).apply()
+            refresh()
+            loadSessions()
+        }
+        findViewById<View>(R.id.chipSituation)?.setOnClickListener {
+            val cur = WimApp.situation()
+            val idx = situationKeys.indexOf(cur).let { if (it < 0) 0 else it }
+            val next = situationKeys[(idx + 1) % situationKeys.size]
+            WimApp.prefs.edit().putString("situation", next).apply()
+            refresh()
+        }
+        findViewById<View>(R.id.chipTone)?.setOnClickListener {
+            val cur = WimApp.tone()
+            val idx = toneKeys.indexOf(cur).let { if (it < 0) 0 else it }
+            val next = toneKeys[(idx + 1) % toneKeys.size]
+            WimApp.prefs.edit().putString("tone", next).apply()
+            refresh()
+        }
+        findViewById<View>(R.id.chipDaf)?.setOnClickListener {
+            val cur = WimApp.dafEnabled()
+            WimApp.prefs.edit().putBoolean("daf_enabled", !cur).apply()
+            refresh()
+        }
+    }
+
     private fun setupVuDoubleTapReset(vuId: Int, prefKey: String) {
         val vu = findViewById<VuMeterView>(vuId) ?: return
         val detector = android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
@@ -1004,7 +1059,7 @@ class MainActivity : AppCompatActivity() {
         val dimColor = getColor(R.color.text_dim)
 
         val sections = listOf(
-            Triple("How It Works", "What happens when you tap the bubble", """<b>1. You speak</b><br>Tap the bubble to start recording.<br><br><b>2. On-device transcription</b><br>Android's speech recognition converts your voice to text. Free, instant.<br><br><b>3. Quick cleanup</b><br>Disfluencies stripped automatically: repeated syllables, repeated words, fillers, false starts.<br><br><b>4. Depends on your Layer:</b><br>Layer I — Done. Cleaned text pasted. No AI.<br>Layer II — GPT rewrites with your tone.<br>Layer III — Plus your vocabulary and corrections.<br>Layer IV — Full stutter-aware engine.<br><br><b>5. Safety check</b><br>A second AI verifies meaning wasn't changed.<br><br><b>6. Paste</b><br>Final text injected into your text field."""),
+            Triple("How It Works", "The full pipeline, start to finish", """<b>1. You tap the bubble and speak.</b><br>Android's built-in speech recognition runs on your phone. No audio leaves the device. No network required for this step. Free.<br><br><b>2. Voice shortcuts expand.</b><br>If you set up shortcuts (e.g. "my email" → your full address), they're swapped in before anything else happens.<br><br><b>3. Rule-based cleanup (no AI).</b><br>A filter strips obvious disfluencies:<br>• Repeated syllables: "p-p-p-pop" → "pop"<br>• Repeated words: "I I I want" → "I want" (but "had had", "bye bye" are kept)<br>• Fillers: um, uh, like, you know<br>• False starts and prolongations<br>This happens instantly on-device.<br><br><b>4. What happens next depends on your Layer:</b><br><br><b>Layer I</b> — Cleaned text + your learned corrections (words WiM has previously fixed for you) are pasted directly. No GPT, no network, no cost.<br><br><b>Layer II</b> — GPT rewrites with your tone setting (casual/professional/friend/formal) and situation context (default/high-stress/reading). Takes ~1-2 seconds. Uses the backend if signed in, otherwise your API key.<br><br><b>Layer III</b> — Everything in II, plus your personal vocabulary and correction history are fed to GPT so it uses words you prefer.<br><br><b>Layer IV</b> — Full stutter-aware engine. If you have an API key, your audio is also sent to Whisper (better than on-device ASR for disfluent speech). GPT gets a clinical prompt with disfluency taxonomy, your personal phoneme difficulty map, and avoidance patterns.<br><br><b>5. Safety check (L2+).</b><br>A second GPT call verifies the reconstruction preserves your meaning. Numbers and dollar amounts are double-checked. If anything looks wrong, the original cleaned text is used instead.<br><br><b>6. Text is pasted.</b><br>The final text is injected into whatever app you're typing in via Android's accessibility service.<br><br><b>7. WiM learns (L3+).</b><br>After 3 times of seeing the same word get replaced, WiM auto-adds it to your corrections. Over time, Layer I and III get smarter for you specifically. Corrections you stop using get cleaned out automatically."""),
             Triple("The Bubble", "Your floating control center", """<b>Tap</b> — Start recording. Tap again to stop.<br><br><b>Hold</b> — Record while held, release to process.<br><br><b>Double-tap</b> — Open settings menu.<br><br><b>Drag</b> — Move anywhere on screen.<br><br><b>Drag to bottom</b> — Hide the bubble.<br><br><b>Shake phone twice</b> — Show/hide the bubble.<br><br><b>Bezel tap (left/right)</b> — Toggle work/personal mode."""),
             Triple("Layers", "What each layer does", """<b>I. Transcribe</b> — On-device + disfluency filter. Free, instant.<br><br><b>II. Reconstruct</b> — GPT cleans grammar, applies tone. ~1-2s.<br><br><b>III. Profile</b> — Plus your vocabulary and corrections. Learns over time.<br><br><b>IV. Stutter</b> — Full clinical mode. Stronger prompts, phoneme map, avoidance detection."""),
             Triple("Smart Tone", "Automatic context detection", """WiM detects which app you're in:<br><br><b>Work apps</b> (Gmail, Slack, Teams) → Professional<br><b>Personal apps</b> (WhatsApp, Messenger) → Casual<br><br>Four tones: Casual, Professional, Friend, Formal."""),
@@ -1380,6 +1435,57 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
 
         // Load saved profile values and set up tap handlers
         setupProfileSelections(overlay)
+
+        // Data rights — export/delete (only when signed in)
+        setupDataRights(overlay)
+    }
+
+    private fun setupDataRights(overlay: View) {
+        val section = overlay.findViewById<View>(R.id.dataRightsSection) ?: return
+        if (!AuthManager.isSignedIn) {
+            section.visibility = View.GONE
+            return
+        }
+        section.visibility = View.VISIBLE
+
+        overlay.findViewById<TextView>(R.id.exportDataBtn)?.setOnClickListener {
+            lifecycleScope.launch {
+                val data = UserDataClient.exportData()
+                if (data == null) {
+                    android.widget.Toast.makeText(this@MainActivity, "Export failed — check your connection", android.widget.Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                // Share the JSON via Android's share sheet
+                val jsonText = data.toString(2)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "WiM profile data")
+                    putExtra(Intent.EXTRA_TEXT, jsonText)
+                }
+                startActivity(Intent.createChooser(intent, "Export WiM data"))
+            }
+        }
+
+        overlay.findViewById<TextView>(R.id.deleteDataBtn)?.setOnClickListener {
+            android.app.AlertDialog.Builder(this@MainActivity)
+                .setTitle("Delete all cloud data?")
+                .setMessage("This permanently deletes your synced profile from our servers. It cannot be undone. Your local data stays on this device until you uninstall. You will be signed out.")
+                .setPositiveButton("Delete") { _, _ ->
+                    lifecycleScope.launch {
+                        val ok = UserDataClient.deleteData()
+                        if (ok) {
+                            AuthManager.signOut()
+                            android.widget.Toast.makeText(this@MainActivity, "Cloud data deleted. Signed out.", android.widget.Toast.LENGTH_LONG).show()
+                            dismissProfileOverlay()
+                            recreate()
+                        } else {
+                            android.widget.Toast.makeText(this@MainActivity, "Delete failed — try again", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
     }
 
     private fun dismissProfileOverlay() {

@@ -12,6 +12,7 @@
     <color name="orange_label">#FFC94A1F</color>
     <color name="section_header">#FF5C3A1F</color>
 
+    <color name="chip_value">#FF6C2A2A</color>
     <color name="red_primary">#FFB91C1C</color>
     <color name="red_bright">#FFDC2626</color>
     <color name="red_hot">#FFEF4444</color>

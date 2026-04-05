@@ -58,31 +58,25 @@
     border-radius: 50%;
     background: #4A4A52;
   }
-  /* 2. Side wall — gradient #BBBBC2 → #808088, 0.5px stroke #44000000 */
+  /* 2. Side wall — original gradient */
   .wim-rim {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 50%; height: 50%;
     border-radius: 50%;
-    background: linear-gradient(to bottom, #BBBBC2, #808088);
+    background: radial-gradient(circle at 50% 50%, #BBBBC2, #909098);
     border: 0.5px solid rgba(0,0,0,0.27);
   }
-  /* 3. Top face — gradient #CDCDD2 → #ADADB4 */
+  /* 3. Top face — original gradient */
   .wim-face {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 44%; height: 44%;
     border-radius: 50%;
-    background: linear-gradient(to bottom, #CDCDD2, #ADADB4);
+    background: radial-gradient(circle at 50% 50%, #CDCDD2, #B8B8BE);
   }
-  /* 4. Bottom shadow — #30000000 → transparent oval at bottom */
-  .wim-bottomshadow {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-46%, -30%);
-    width: 40%; height: 16%;
-    border-radius: 50%;
-    background: linear-gradient(to top, rgba(0,0,0,0.19), transparent);
-  }
+  /* Bottom shadow removed — caused "smile" artifact at small size */
+  .wim-bottomshadow { display: none; }
   .wim-wm {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -45%);

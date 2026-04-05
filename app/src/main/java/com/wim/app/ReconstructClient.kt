@@ -63,12 +63,15 @@ object ReconstructClient {
         fillerWords: List<String> = emptyList(),
         triggerWords: List<String> = emptyList(),
         onsetWeights: Map<String, Double> = emptyMap(),
-        covertProfile: Map<String, String> = emptyMap()
+        covertProfile: Map<String, String> = emptyMap(),
+        whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
+        whisperDisagreements: List<String> = emptyList(),
+        speechSeverityMod: Double = 0.0
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
         return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights)
@@ -83,7 +86,10 @@ object ReconstructClient {
         vocabulary: List<String>, corrections: Map<String, String>,
         fillerWords: List<String>, triggerWords: List<String>,
         onsetWeights: Map<String, Double>, covertProfile: Map<String, String>,
-        idToken: String
+        idToken: String,
+        whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
+        whisperDisagreements: List<String> = emptyList(),
+        speechSeverityMod: Double = 0.0
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -105,6 +111,26 @@ object ReconstructClient {
             profile.put("onset_weights", JSONObject(onsetWeights as Map<*, *>))
             profile.put("covert_profile", JSONObject(covertProfile as Map<*, *>))
             if (profile.length() > 0) put("profile", profile)
+
+            // Whisper confidence signals (match Lavrentiy behavior at all paid layers)
+            if (whisperLowConf.isNotEmpty()) {
+                val lowConfArr = JSONArray()
+                for (seg in whisperLowConf) {
+                    lowConfArr.put(JSONObject().apply {
+                        put("text", seg.text)
+                        put("avg_logprob", seg.avgLogprob)
+                        put("no_speech_prob", seg.noSpeechProb)
+                        put("block_suspect", seg.blockSuspect)
+                    })
+                }
+                put("whisper_low_conf", lowConfArr)
+            }
+            if (whisperDisagreements.isNotEmpty()) {
+                put("whisper_disagreements", JSONArray(whisperDisagreements))
+            }
+            if (speechSeverityMod != 0.0) {
+                put("speech_severity_mod", speechSeverityMod)
+            }
         }
 
         val request = Request.Builder()
@@ -351,7 +377,7 @@ object ReconstructClient {
             } else if (riskFlags.contains("critical_token_lost")) {
                 false
             } else {
-                falconValidate(rawText, cleanText, layer)
+                falconValidate(rawText, cleanText, layer, tone)
             }
 
             val reconMs = System.currentTimeMillis() - t0
@@ -378,11 +404,20 @@ object ReconstructClient {
     }
 
     /** Falcon validation: binary meaning-preservation check via GPT. */
-    private suspend fun falconValidate(rawText: String, cleanText: String, layer: Int): Boolean =
+    private suspend fun falconValidate(rawText: String, cleanText: String, layer: Int, tone: String = "casual"): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 val apiKey = WimApp.apiKey()
                 if (apiKey.isBlank()) return@withContext true // skip if no key
+
+                // Tone-aware rewrite latitude — more permissive tones allow bigger restructuring
+                val toneNote = when (tone) {
+                    "formal" -> "Target tone is FORMAL — reconstruction should be conservative. Structural rewrites that change sentence formality are concerning."
+                    "professional" -> "Target tone is PROFESSIONAL — minor rephrasing for clarity is acceptable but not paraphrasing."
+                    "casual" -> "Target tone is CASUAL — contractions, colloquialisms, and minor restructuring for natural speech rhythm are expected and acceptable."
+                    "friend" -> "Target tone is FRIEND — fragments, informal phrasing, and free restructuring for conversational feel are expected."
+                    else -> ""
+                }
 
                 val prompt = if (layer >= 4) {
                     "Speaker stutters. Repeated syllables, prolongations, and blocks are " +
@@ -390,13 +425,13 @@ object ReconstructClient {
                     "postponement tactics, not meaningful hesitation. Synonym substitutions " +
                     "and circumlocutions are avoidance behaviors — the reconstruction should " +
                     "recover the intended word. Rambling run-on filler (mazes) should be " +
-                    "stripped. Does the reconstruction preserve intended meaning? " +
+                    "stripped. $toneNote Does the reconstruction preserve intended meaning? " +
                     "Answer ONLY 'yes' or 'no'."
                 } else {
                     "The reconstruction cleans up a voice transcription: removing filler words " +
                     "(um, uh, like, you know), fixing grammar, and improving clarity. " +
                     "Filler removal and grammar fixes are expected and acceptable. " +
-                    "Does the reconstruction preserve the core content and intent? " +
+                    "$toneNote Does the reconstruction preserve the core content and intent? " +
                     "Answer ONLY 'yes' or 'no'."
                 }
 

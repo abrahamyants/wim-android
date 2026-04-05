@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Limelight&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; display: flex; justify-content: center; gap: 40px; padding: 30px; font-family: 'Source Sans 3', sans-serif; }
+
+  .phone {
+    width: 375px;
+    height: 820px;
+    border-radius: 32px;
+    overflow: hidden;
+    border: 2px solid #333;
+  }
+  .phone-label {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 10px;
+    font-family: monospace;
+    letter-spacing: 2px;
+  }
+
+  /* ═══ PROPOSED (warm dark + selective orange) ═══ */
+  .proposed {
+    --bg: #1A1A1E;
+    --surface: #222226;
+    --card: #2A2A2F;
+    --card-border: #3A3530;
+    --header-text: #C8B48A;
+    --label-text: #C49A6C;
+    --body-text: #D4D0C8;
+    --dim-text: #A09888;
+    --accent: #C49A6C;
+    --active: #D4A574;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    padding: 48px 16px 0px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Brand plate */
+  .brand-plate {
+    background: linear-gradient(to bottom, var(--surface), var(--bg));
+    border-radius: 8px;
+    padding: 8px 16px;
+    text-align: center;
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .brand-plate .logo {
+    font-family: 'Limelight', serif;
+    font-size: 24px;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+  .brand-plate .sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 3px;
+  }
+
+  /* VU Meter row */
+  .vu-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .vu-cell {
+    flex: 1;
+    background: transparent;
+    padding: 4px 4px 4px;
+    text-align: center;
+    position: relative;
+  }
+  .vu-gauge {
+    position: relative;
+    width: 100%;
+    height: 36px;
+    margin-bottom: 2px;
+  }
+  .vu-gauge svg {
+    width: 100%;
+    height: 100%;
+  }
+  .vu-val {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #D4C5A9;
+    text-shadow: 0 0 6px rgba(196,154,108,0.4), 0 0 12px rgba(196,154,108,0.2);
+    position: relative;
+  }
+  .vu-label {
+    font-size: 7px;
+    color: #6A5A48;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+  }
+
+  /* Category headers */
+  .cat-header {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .cat-header .name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--header-text);
+  }
+  .cat-header .toggle {
+    font-size: 14px;
+    color: var(--dim-text);
+  }
+
+  /* Expanded content area */
+  .cat-content {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(255,255,255,0.05);
+  }
+
+  /* Card rows inside expanded sections */
+  .card-row {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-row .label {
+    font-size: 12px;
+    color: var(--body-text);
+  }
+  .card-row .desc {
+    font-size: 10px;
+    color: var(--label-text);
+  }
+  .card-row .value {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Layer cards — selected has accent bar */
+  .layer-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .layer-card.selected {
+    border-left: 3px solid var(--accent);
+  }
+  .layer-card .layer-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--body-text);
+  }
+  .layer-card .layer-desc {
+    font-size: 10px;
+    color: var(--label-text);
+    margin-left: 8px;
+  }
+  .layer-card .layer-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .layer-card .layer-dot.off {
+    background: #444;
+  }
+
+  /* Situation cards */
+  .sit-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sit-card.selected {
+    border-left: 3px solid var(--accent);
+  }
+  .sit-card .sit-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--body-text);
+  }
+  .sit-card .sit-desc {
+    font-size: 10px;
+    color: var(--label-text);
+    margin-left: 8px;
+  }
+
+  /* Permission rows */
+  .perm-row {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .perm-row .perm-name {
+    font-size: 12px;
+    color: var(--body-text);
+  }
+  .perm-row .perm-desc {
+    font-size: 10px;
+    color: var(--label-text);
+  }
+  .perm-row .perm-check {
+    margin-left: auto;
+    color: #44DD44;
+    font-size: 14px;
+  }
+
+  /* Toggle switch */
+  .toggle-switch {
+    width: 36px;
+    height: 20px;
+    background: #444;
+    border-radius: 10px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    top: 2px; right: 2px;
+  }
+
+  /* Seek bar */
+  .seek-bar {
+    flex: 1;
+    height: 4px;
+    background: #444;
+    border-radius: 2px;
+    position: relative;
+  }
+  .seek-bar::after {
+    content: '';
+    position: absolute;
+    width: 40%;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* Profile / footer */
+  .profile-strip {
+    padding: 10px 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 12px;
+  }
+  .profile-strip .email {
+    font-size: 11px;
+    color: var(--dim-text);
+  }
+  .footer {
+    text-align: center;
+    padding: 8px;
+  }
+  .footer .wm {
+    font-family: 'Limelight', serif;
+    font-size: 18px;
+    color: var(--dim-text);
+    letter-spacing: 2px;
+  }
+  .footer .privacy {
+    font-size: 9px;
+    color: var(--dim-text);
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ CURRENT — cold navy + orange everything ═══ -->
+<div>
+  <div class="phone-label">CURRENT</div>
+  <div class="phone">
+    <div class="screen" style="--bg:#0F1525; --surface:#182035; --card:#252530; --card-border:#2A3452; --header-text:#EE5A24; --label-text:#EE5A24; --body-text:#d4d4d8; --dim-text:#8a8a92; --accent:#EE5A24; background:var(--bg); padding:48px 16px 20px; overflow-y:auto;">
+      <div class="brand-plate">
+        <div class="logo">WiM</div>
+        <div class="sub">What I Meant</div>
+      </div>
+
+      <!-- Nixie tubes (current) -->
+      <div style="display:flex; gap:6px; margin-bottom:14px;">
+        <div style="flex:1; background:linear-gradient(to bottom,#0c0c0e,#141418); border:1px solid #3C3228; border-radius:6px; padding:6px 4px; text-align:center; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:30%; left:25%; width:50%; height:40%; background:radial-gradient(circle,rgba(238,90,36,0.25),transparent); border-radius:50%;"></div>
+          <div style="font-family:monospace; font-size:16px; font-weight:bold; color:#EE5A24; text-shadow:0 0 8px rgba(238,90,36,0.6),0 0 16px rgba(238,90,36,0.3); position:relative;">8</div>
+          <div style="font-size:7px; color:#5a4a3a; letter-spacing:1px; text-transform:uppercase; position:relative;">sessions</div>
+        </div>
+        <div style="flex:1; background:linear-gradient(to bottom,#0c0c0e,#141418); border:1px solid #3C3228; border-radius:6px; padding:6px 4px; text-align:center; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:30%; left:25%; width:50%; height:40%; background:radial-gradient(circle,rgba(238,90,36,0.25),transparent); border-radius:50%;"></div>
+          <div style="font-family:monospace; font-size:16px; font-weight:bold; color:#EE5A24; text-shadow:0 0 8px rgba(238,90,36,0.6),0 0 16px rgba(238,90,36,0.3); position:relative;">92</div>
+          <div style="font-size:7px; color:#5a4a3a; letter-spacing:1px; text-transform:uppercase; position:relative;">wpm</div>
+        </div>
+        <div style="flex:1; background:linear-gradient(to bottom,#0c0c0e,#141418); border:1px solid #3C3228; border-radius:6px; padding:6px 4px; text-align:center; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:30%; left:25%; width:50%; height:40%; background:radial-gradient(circle,rgba(238,90,36,0.25),transparent); border-radius:50%;"></div>
+          <div style="font-family:monospace; font-size:16px; font-weight:bold; color:#EE5A24; text-shadow:0 0 8px rgba(238,90,36,0.6),0 0 16px rgba(238,90,36,0.3); position:relative;">97</div>
+          <div style="font-size:7px; color:#5a4a3a; letter-spacing:1px; text-transform:uppercase; position:relative;">clean</div>
+        </div>
+        <div style="flex:1; background:linear-gradient(to bottom,#0c0c0e,#141418); border:1px solid #3C3228; border-radius:6px; padding:6px 4px; text-align:center; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:30%; left:25%; width:50%; height:40%; background:radial-gradient(circle,rgba(238,90,36,0.25),transparent); border-radius:50%;"></div>
+          <div style="font-family:monospace; font-size:16px; font-weight:bold; color:#EE5A24; text-shadow:0 0 8px rgba(238,90,36,0.6),0 0 16px rgba(238,90,36,0.3); position:relative;">4.2</div>
+          <div style="font-size:7px; color:#5a4a3a; letter-spacing:1px; text-transform:uppercase; position:relative;">score</div>
+        </div>
+      </div>
+
+      <div class="cat-header"><span class="name">Layer</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Sessions</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Situation</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Permissions</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Text to Speech</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Settings</span><span class="toggle">+</span></div>
+
+      <div style="background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; color:var(--body-text);">Your profile</span>
+        <span style="font-size:14px; color:var(--dim-text);">▸</span>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:8px 14px; margin-bottom:8px; display:flex; align-items:center; gap:10px;">
+        <div style="width:20px; height:20px; border-radius:50%; background:conic-gradient(#4285F4 0deg 90deg, #EA4335 90deg 180deg, #FBBC05 180deg 270deg, #34A853 270deg 360deg);"></div>
+        <span style="font-size:11px; color:var(--body-text); flex:1;">gugosf@gmail.com</span>
+        <span style="font-size:10px; color:var(--dim-text);">Sign out</span>
+      </div>
+      <div style="text-align:center; padding:12px 0 8px; display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <span style="font-family:'Limelight',serif; font-size:20px; color:var(--dim-text); letter-spacing:2px;">WM</span>
+        <span style="font-size:9px; color:var(--dim-text); opacity:0.6;">Privacy Policy</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PROPOSED ═══ -->
+<div>
+  <div class="phone-label">PROPOSED</div>
+  <div class="phone">
+    <div class="screen proposed">
+      <div class="brand-plate">
+        <div class="logo">WiM</div>
+        <div class="sub">What I Meant</div>
+      </div>
+
+      <div class="vu-row">
+        <div class="vu-cell">
+          <div class="vu-gauge">
+            <svg viewBox="0 0 80 44">
+              <!-- Arc scale — main section -->
+              <path d="M 10 38 A 30 30 0 0 1 56 20" fill="none" stroke="#3A3530" stroke-width="1.5"/>
+              <!-- Arc scale — red zone, continues seamlessly -->
+              <path d="M 56 20 A 30 30 0 0 1 70 38" fill="none" stroke="#5C2828" stroke-width="1.5"/>
+              <!-- Scale ticks -->
+              <line x1="14" y1="30" x2="16" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="24" y1="18" x2="26" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="40" y1="12" x2="40" y2="15" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="56" y1="18" x2="54" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="66" y1="30" x2="64" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <!-- Needle — 8 out of ~500, so far left -->
+              <line x1="40" y1="38" x2="16" y2="28" stroke="#D4C5A9" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="40" cy="38" r="2" fill="#C49A6C"/>
+            </svg>
+          </div>
+          <div class="vu-val">8</div>
+          <div class="vu-label">sessions</div>
+        </div>
+
+        <div class="vu-cell">
+          <div class="vu-gauge">
+            <svg viewBox="0 0 80 44">
+              <path d="M 10 38 A 30 30 0 0 1 56 20" fill="none" stroke="#3A3530" stroke-width="1.5"/>
+              <path d="M 56 20 A 30 30 0 0 1 70 38" fill="none" stroke="#5C2828" stroke-width="1.5"/>
+              <line x1="14" y1="30" x2="16" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="24" y1="18" x2="26" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="40" y1="12" x2="40" y2="15" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="56" y1="18" x2="54" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="66" y1="30" x2="64" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <!-- Needle — 92 WPM, high, past center-right -->
+              <line x1="40" y1="38" x2="60" y2="22" stroke="#D4C5A9" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="40" cy="38" r="2" fill="#C49A6C"/>
+            </svg>
+          </div>
+          <div class="vu-val">92</div>
+          <div class="vu-label">wpm</div>
+        </div>
+
+        <div class="vu-cell">
+          <div class="vu-gauge">
+            <svg viewBox="0 0 80 44">
+              <path d="M 10 38 A 30 30 0 0 1 56 20" fill="none" stroke="#3A3530" stroke-width="1.5"/>
+              <path d="M 56 20 A 30 30 0 0 1 70 38" fill="none" stroke="#5C2828" stroke-width="1.5"/>
+              <line x1="14" y1="30" x2="16" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="24" y1="18" x2="26" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="40" y1="12" x2="40" y2="15" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="56" y1="18" x2="54" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="66" y1="30" x2="64" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <!-- Needle — 97% clean, nearly pegged right -->
+              <line x1="40" y1="38" x2="65" y2="30" stroke="#D4C5A9" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="40" cy="38" r="2" fill="#C49A6C"/>
+            </svg>
+          </div>
+          <div class="vu-val">97</div>
+          <div class="vu-label">clean</div>
+        </div>
+
+        <div class="vu-cell">
+          <div class="vu-gauge">
+            <svg viewBox="0 0 80 44">
+              <path d="M 10 38 A 30 30 0 0 1 56 20" fill="none" stroke="#3A3530" stroke-width="1.5"/>
+              <path d="M 56 20 A 30 30 0 0 1 70 38" fill="none" stroke="#5C2828" stroke-width="1.5"/>
+              <line x1="14" y1="30" x2="16" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="24" y1="18" x2="26" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="40" y1="12" x2="40" y2="15" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="56" y1="18" x2="54" y2="20" stroke="#6A5A48" stroke-width="0.5"/>
+              <line x1="66" y1="30" x2="64" y2="32" stroke="#6A5A48" stroke-width="0.5"/>
+              <!-- Needle — 4.2 score, roughly middle -->
+              <line x1="40" y1="38" x2="44" y2="14" stroke="#D4C5A9" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="40" cy="38" r="2" fill="#C49A6C"/>
+            </svg>
+          </div>
+          <div class="vu-val">4.2</div>
+          <div class="vu-label">score</div>
+        </div>
+      </div>
+
+      <!-- All collapsed -->
+      <div class="cat-header"><span class="name">Layer</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Sessions</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Situation</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Permissions</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Text to Speech</span><span class="toggle">+</span></div>
+      <div class="cat-header"><span class="name">Settings</span><span class="toggle">+</span></div>
+
+      <!-- spacer to push bottom tiles down -->
+      <div style="flex:1;"></div>
+
+      <!-- Your Profile — flat strip, border-top separator -->
+      <div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; color:var(--body-text);">Your profile</span>
+        <span style="font-size:12px; color:#C49A6C;">▸</span>
+      </div>
+
+      <!-- Google Sign-in — flat strip -->
+      <div style="padding:8px 14px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.04);">
+        <div style="width:18px; height:18px; border-radius:50%; background:conic-gradient(#4285F4 0deg 90deg, #EA4335 90deg 180deg, #FBBC05 180deg 270deg, #34A853 270deg 360deg); flex-shrink:0;"></div>
+        <span style="font-size:11px; color:var(--body-text); flex:1;">gugosf@gmail.com</span>
+        <span style="font-size:10px; color:var(--dim-text);">Sign out</span>
+      </div>
+
+      <!-- WM Footer — guide button left, WM center, privacy below -->
+      <div style="padding:10px 14px 16px; display:flex; align-items:center; position:relative; border-top:1px solid rgba(255,255,255,0.04);">
+        <div style="width:22px; height:22px; border-radius:50%; border:1px solid var(--dim-text); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim-text);">?</div>
+        <div style="flex:1; text-align:center;">
+          <div style="font-family:'Limelight',serif; font-size:18px; color:var(--dim-text); letter-spacing:2px;">WM</div>
+          <div style="font-size:8px; color:var(--dim-text); opacity:0.5;">Privacy Policy</div>
+        </div>
+        <div style="width:22px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

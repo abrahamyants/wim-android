@@ -346,6 +346,58 @@
                     android:maxLines="5"
                     android:layout_marginBottom="20dp" />
 
+                <!-- YOUR DATA (GDPR/CCPA rights) — only shown when signed in -->
+                <LinearLayout
+                    android:id="@+id/dataRightsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="YOUR DATA"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.15"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Everything above is synced to your account when signed in."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/exportDataBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Export my data"
+                        android:textColor="@color/text_bright"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg_pressable"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/deleteDataBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:gravity="center"
+                        android:text="Delete all my cloud data"
+                        android:textColor="@color/red_hot"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg_pressable" />
+                </LinearLayout>
+
             </LinearLayout>
         </ScrollView>
     </LinearLayout>

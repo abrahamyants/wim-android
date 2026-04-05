@@ -49,6 +49,7 @@ class BubbleService : Service() {
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
+    private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
@@ -469,6 +470,12 @@ class BubbleService : Service() {
 
         // Start session timer (always running, shows total session time)
         timerHandler.post(timerRunnable)
+
+        // Prime the pre-roll audio buffer so first words aren't lost on tap
+        if (WimApp.apiKey().isNotBlank() && WimApp.layer() >= 2) {
+            if (audioRecorder == null) audioRecorder = AudioRecorder(this)
+            audioRecorder?.primeBuffer()
+        }
     }
 
     private fun hideBubble() {
@@ -513,12 +520,12 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
-        // L4: also record audio for Whisper API transcription
-        if (WimApp.layer() >= 4 && WimApp.apiKey().isNotBlank()) {
+        // L2+: record audio for Whisper API transcription (better quality than on-device ASR)
+        if (WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()) {
             try {
-                audioRecorder = AudioRecorder(this)
-                audioRecorder?.start()
-                Log.i(TAG, "L4: AudioRecorder started for Whisper pipeline")
+                if (audioRecorder == null) audioRecorder = AudioRecorder(this)
+                audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
+                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for Whisper pipeline")
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -587,11 +594,12 @@ class BubbleService : Service() {
 
                 // L4 with recorded audio: use Whisper API for better stutter transcription
                 if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
-                    Log.i(TAG, "L4: Sending ${wavFile.length()} bytes to Whisper API")
+                    Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
                     scope.launch {
                         try {
-                            val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = true)
+                            val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
                             Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                            lastWhisperLowConf = whisperResult.lowConfidenceSegments
                             if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                                 Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                             }
@@ -613,7 +621,8 @@ class BubbleService : Service() {
                         }
                     }
                 } else {
-                    // L1-3 or no audio: use on-device result
+                    // L1 or no audio: use on-device result
+                    lastWhisperLowConf = emptyList()
                     Log.i(TAG, "Final text after delay: $onDeviceText")
                     if (onDeviceText.isNotBlank()) {
                         processText(onDeviceText)
@@ -1146,11 +1155,19 @@ class BubbleService : Service() {
             }
         }
 
-        // Pre-clean: strip disfluencies from raw ASR text before any further processing
-        val rawWordCount = expandedText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+        // Strip Whisper block hallucinations — applies to ALL layers
+        val deHallucinated = DisfluencyFilter.stripBlockHallucinations(expandedText, lastWhisperLowConf)
+        if (deHallucinated != expandedText) {
+            Log.i(TAG, "Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars")
+        }
+
+        // Pre-clean: strip disfluencies from raw ASR text before GPT sees it.
+        // L4 stutter-aware path needs to SEE the disfluencies to reason about them,
+        // so we skip the pre-filter at L4 and let the clinical prompt handle it.
+        val rawWordCount = deHallucinated.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val fillerWords = profile.getFillerWords()
         showPipelineStage("\u29BB Cleaning up...", "Removing disfluencies & fillers")
-        val preCleaned = DisfluencyFilter.filter(expandedText, fillerWords)
+        val preCleaned = if (layer >= 4) deHallucinated else DisfluencyFilter.filter(deHallucinated, fillerWords)
         val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val stripped = rawWordCount - cleanWordCount
         // Track filler count for VU meter — resets at 150
@@ -1205,6 +1222,20 @@ class BubbleService : Service() {
             showPipelineStage("\u2713 $stripped disfluencies removed", "${rawWordCount}w \u2192 ${cleanWordCount}w")
         }
 
+        // Apply profile corrections at L2+ client-side BEFORE GPT sees the text.
+        // Fixes the Lavrentiy bug where corrections were only applied at L3+.
+        val allCorrections = profile.getCorrections()
+        var correctedText = preCleaned
+        val sessionNum = sessionHistory?.count() ?: 0
+        for ((wrong, right) in allCorrections) {
+            val pattern = Regex("\\b${Regex.escape(wrong)}\\b", RegexOption.IGNORE_CASE)
+            if (pattern.containsMatchIn(correctedText)) {
+                correctedText = pattern.replace(correctedText, right)
+                profile.markCorrectionUsed(wrong, sessionNum)
+                Log.i(TAG, "L$layer correction: \"$wrong\" → \"$right\"")
+            }
+        }
+
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
         val corrections = if (layer >= 3) profile.getCorrections() else emptyMap()
@@ -1238,7 +1269,7 @@ class BubbleService : Service() {
 
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
                 val reconResult = ReconstructClient.reconstruct(
-                    rawText = preCleaned,
+                    rawText = correctedText,
                     tone = tone,
                     layer = layer,
                     situation = situation,
@@ -1247,7 +1278,10 @@ class BubbleService : Service() {
                     fillerWords = fillerWords,
                     triggerWords = profile.getTriggerWords(),
                     onsetWeights = profile.getOnsetWeights(),
-                    covertProfile = profile.getCovertProfile()
+                    covertProfile = profile.getCovertProfile(),
+                    whisperLowConf = lastWhisperLowConf,
+                    whisperDisagreements = emptyList(),
+                    speechSeverityMod = 0.0
                 )
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
@@ -1350,7 +1384,7 @@ class BubbleService : Service() {
         hideLiveTranscript()
         dafPlayer?.stop()
         dafPlayer = null
-        audioRecorder?.stop()
+        audioRecorder?.release()
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()

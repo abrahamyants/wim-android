@@ -64,6 +64,38 @@ object DisfluencyFilter {
     private val MULTI_SPACE = Regex("""\s{2,}""")
 
     /**
+     * Strip short hallucinated filler phrases from segments Whisper flagged
+     * as block suspects (high no_speech_prob). These are usually words like
+     * "thank you", "okay", "so" that Whisper fabricates during silent blocks.
+     *
+     * Ported from Лаврентий strip_block_hallucinations(). Apply at ALL layers
+     * when Whisper confidence data is available.
+     *
+     * @param text full transcription
+     * @param lowConfSegments from WhisperClient — segments with avgLogprob, noSpeechProb, blockSuspect
+     * @return text with block-suspect hallucinated phrases removed
+     */
+    fun stripBlockHallucinations(text: String, lowConfSegments: List<WhisperClient.LowConfidenceSegment>): String {
+        if (text.isBlank() || lowConfSegments.isEmpty()) return text
+        var result = text
+        for (seg in lowConfSegments) {
+            if (!seg.blockSuspect) continue
+            val segText = seg.text.trim()
+            // Only strip short hallucinations (< 5 words) — longer segments are probably real
+            val wordCount = segText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+            if (wordCount >= 5) continue
+            if (segText.isBlank()) continue
+            // Escape for regex and strip this segment's text
+            val pattern = Regex("\\b${Regex.escape(segText)}\\b", RegexOption.IGNORE_CASE)
+            if (pattern.containsMatchIn(result)) {
+                result = pattern.replace(result, "")
+            }
+        }
+        // Collapse multiple spaces left by removals
+        return MULTI_SPACE.replace(result, " ").trim()
+    }
+
+    /**
      * Strip disfluencies from raw ASR text.
      *
      * @param text raw speech-to-text output
