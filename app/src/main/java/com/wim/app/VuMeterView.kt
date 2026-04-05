@@ -105,19 +105,19 @@ class VuMeterView @JvmOverloads constructor(
 
     private val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = 6f
     }
     private val redZonePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = 6f
     }
     private val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 1f
+        strokeWidth = 2f
     }
     private val needlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2f
+        strokeWidth = 3f
         strokeCap = Paint.Cap.ROUND
     }
     private val pivotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -188,8 +188,8 @@ class VuMeterView @JvmOverloads constructor(
         // Pivot dot — sized relative to radius (scales with gauge, not width)
         canvas.drawCircle(cx, gaugeBottom, radius * 0.08f, pivotPaint)
 
-        // Value text — inside the arc
-        valuePaint.textSize = radius * 0.45f
+        // Value text — inside the arc (+5%, already bold)
+        valuePaint.textSize = radius * 0.47f
         canvas.drawText(displayText, cx, gaugeBottom - radius * 0.25f, valuePaint)
 
         // Label text — below the arc, matches status chip label style (8sp monospace)

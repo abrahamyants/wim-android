@@ -40,11 +40,19 @@ object WhisperClient {
      * Strip them from any Whisper output regardless of confidence.
      */
     private val HALLUCINATION_PATTERNS = listOf(
+        // otter.ai variants (the big one)
         "transcribed by https://otter.ai",
         "transcribed by otter.ai",
         "transcription by otter.ai",
+        "transcribed by https://otter.ai[^.]*",
+        "\\[no output due to lack of context[^\\]]*\\]",
+        "\\[no meaningful content[^\\]]*\\]",
+        "\\[no output[^\\]]*\\]",
+        "\\[no content[^\\]]*\\]",
+        // YouTube endings
         "thanks for watching",
         "thank you for watching",
+        "thanks for listening",
         "don't forget to subscribe",
         "please subscribe",
         "like and subscribe",
@@ -55,21 +63,25 @@ object WhisperClient {
         "subscribe to my channel",
         "subscribe to the channel",
         "thanks to patreon",
-        "thanks for listening",
+        // Captions
         "subtitles by the amara.org community",
         "captions by",
+        "transcript by",
+        // Music/applause artifacts
         "♪♪♪",
         "♪ ♪ ♪",
-        "[music]",
-        "[applause]"
-    ).map { it.lowercase() }
+        "\\[music\\]",
+        "\\[applause\\]",
+        "\\[silence\\]",
+        "\\[no audio\\]"
+    )
 
     private fun stripHallucinations(text: String): String {
         if (text.isBlank()) return text
         var result = text
         for (pattern in HALLUCINATION_PATTERNS) {
-            // Case-insensitive replacement with optional trailing punctuation
-            val regex = Regex("(?i)\\b${Regex.escape(pattern)}[.!?]?", RegexOption.IGNORE_CASE)
+            // These patterns are already regex-safe (either literal with escaped chars or proper regex)
+            val regex = Regex("(?i)$pattern[.!?]?", RegexOption.IGNORE_CASE)
             result = regex.replace(result, "")
         }
         // Collapse multiple spaces
@@ -140,14 +152,20 @@ object WhisperClient {
 
             val rawText = json.optString("text", "").trim()
             val cleanText = stripHallucinations(rawText)
+            val wasFullyHallucinated = rawText.isNotBlank() && cleanText.isBlank()
             if (rawText != cleanText) {
-                android.util.Log.i("WiM", "Whisper hallucination stripped: '${rawText.take(80)}' → '${cleanText.take(80)}'")
+                if (wasFullyHallucinated) {
+                    android.util.Log.w("WiM", "Whisper FULLY hallucinated (bailing): '${rawText.take(120)}'")
+                } else {
+                    android.util.Log.i("WiM", "Whisper hallucination stripped: '${rawText.take(80)}' → '${cleanText.take(80)}'")
+                }
             }
 
             TranscribeResult(
                 text = cleanText,
                 asrMs = asrMs,
-                lowConfidenceSegments = lowConfidenceSegments
+                lowConfidenceSegments = lowConfidenceSegments,
+                wasFullyHallucinated = wasFullyHallucinated
             )
         }
 
@@ -161,6 +179,7 @@ object WhisperClient {
     data class TranscribeResult(
         val text: String,
         val asrMs: Long,
-        val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList()
+        val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList(),
+        val wasFullyHallucinated: Boolean = false
     )
 }

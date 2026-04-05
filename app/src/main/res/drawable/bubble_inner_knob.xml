@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Floating Veyron — raised matte brushed aluminum knob, no shine -->
+<!-- Floating Veyron — raised matte brushed bronze knob, warm tube-amp tone -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Shadow well — dark gap where the knob rises from the bezel -->
+    <!-- Shadow well — warm dark gap where the knob rises from the bezel -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="#FF4A4A52" />
+            <solid android:color="#FF2A1E14" />
             <size android:width="44dp" android:height="44dp" />
         </shape>
     </item>
-    <!-- Knob side wall — visible rim/edge -->
+    <!-- Knob side wall — visible rim/edge, bronze -->
     <item android:left="1dp" android:top="0dp" android:right="1dp" android:bottom="2dp">
         <shape android:shape="oval">
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#FFBBBBC2"
-                android:endColor="#FF808088" />
+                android:startColor="#FFA6875C"
+                android:endColor="#FF6F5030" />
             <stroke android:width="0.5dp" android:color="#44000000" />
             <size android:width="42dp" android:height="42dp" />
         </shape>
     </item>
-    <!-- Knob top face — matte, subtle gradient only -->
+    <!-- Knob top face — matte brushed bronze -->
     <item android:left="3dp" android:top="2dp" android:right="3dp" android:bottom="4dp">
         <shape android:shape="oval">
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#FFCDCDD2"
-                android:endColor="#FFADADB4" />
+                android:startColor="#FFC4A574"
+                android:endColor="#FF8E6E48" />
             <size android:width="38dp" android:height="38dp" />
         </shape>
     </item>

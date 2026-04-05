@@ -199,6 +199,10 @@ class MainActivity : AppCompatActivity() {
 
         // Status chips — tap to cycle
         setupStatusChips()
+        refreshHeaderBadges()
+
+        // Mirror right-side sound bars so tallest bars face the logo on both sides
+        findViewById<LogoBarsView>(R.id.logoBarsRight)?.mirror = true
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
@@ -231,8 +235,11 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // ── Tone selection (TextViews) ───────────────────────
-        // Tone auto-detected — no manual selection needed
+        // ── Tone selection (4 cards: Casual/Professional/Friend/Formal) ──
+        val toneIds = listOf(R.id.toneCasual, R.id.toneProfessional, R.id.toneFriend, R.id.toneFormal)
+        val toneLabelIds = listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel, R.id.toneFriendLabel, R.id.toneFormalLabel)
+        val toneValues = listOf("casual", "professional", "friend", "formal")
+        setupLayoutGroup(toneIds, toneLabelIds, toneValues, "tone", WimApp.tone())
 
         // ── Layer selection (LinearLayouts with label child) ─
         val currentLayer = WimApp.layer()
@@ -320,6 +327,7 @@ class MainActivity : AppCompatActivity() {
         // ── Collapsible sections ─────────────────────────────
         // Tone section removed — auto-detected by app context
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = false)
         setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
         // Bubble section moved to Settings
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
@@ -872,6 +880,7 @@ class MainActivity : AppCompatActivity() {
                     WimApp.prefs.edit().putInt("layer", 4).putBoolean("daf_enabled", true).apply()
                     loadSessions() // refresh stats for new layer
                 }
+                refreshHeaderBadges()
             }
         }
     }
@@ -890,6 +899,7 @@ class MainActivity : AppCompatActivity() {
                 setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
                 WimApp.prefs.edit().putInt(prefKey, values[i]).apply()
                 loadSessions() // refresh stats — third cell changes per layer
+                refreshHeaderBadges()
             }
         }
     }
@@ -925,18 +935,92 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupStatusChips() {
-        val layerValues = listOf("I", "II", "III", "IV")
-        val situationKeys = listOf("default", "high_stress", "reading")
-        val situationLabels = mapOf("default" to "DEFAULT", "high_stress" to "HIGH STRESS", "reading" to "READING")
-        val toneKeys = listOf("casual", "professional", "friend", "formal")
-        val toneLabels = mapOf("casual" to "CASUAL", "professional" to "PROFESSIONAL", "friend" to "FRIEND", "formal" to "FORMAL")
+    /**
+     * Set a category header's text with a maroon state badge appended.
+     * Format: "LAYER   [tab]   badge" — tab stop aligns badges across categories.
+     */
+    private fun setHeaderWithBadge(headerId: Int, baseName: String, badgeValue: String) {
+        val header = findViewById<TextView>(headerId) ?: return
+        val separator = "\t"
+        val full = baseName + separator + badgeValue
+        val sb = android.text.SpannableString(full)
+        val badgeStart = baseName.length + separator.length
+        val badgeEnd = full.length
+        val maroonColor = 0xFFB55050.toInt()
 
+        // Tab stop at 110dp — past longest base name ("SITUATION") in any font
+        val tabStopPx = (110 * resources.displayMetrics.density).toInt()
+        sb.setSpan(
+            android.text.style.TabStopSpan.Standard(tabStopPx),
+            0, full.length,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        sb.setSpan(
+            android.text.style.ForegroundColorSpan(maroonColor),
+            badgeStart, badgeEnd,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        sb.setSpan(
+            android.text.style.RelativeSizeSpan(0.75f),
+            badgeStart, badgeEnd,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        // Monospace so within-category padded values stay uniform
+        sb.setSpan(
+            android.text.style.TypefaceSpan("monospace"),
+            badgeStart, badgeEnd,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        header.text = sb
+    }
+
+    /**
+     * Refresh all category header badges with their current state values.
+     * Combining overline (U+0305) + combining low line (U+0332) on I/V
+     * renders Roman numerals with top/bottom bars in any font.
+     * Each category's values are space-padded to the longest one for visual alignment.
+     */
+    private fun refreshHeaderBadges() {
+        // Layer: padded to 11 visual chars ("reconstruct" is longest)
+        val layerNames = mapOf(
+            1 to "transcribe ",
+            2 to "reconstruct",
+            3 to "profile    ",
+            4 to "stutter    "
+        )
+        // Tone: padded to 12 visual chars ("professional" is longest)
+        val toneNames = mapOf(
+            "casual"       to "casual      ",
+            "professional" to "professional",
+            "friend"       to "friend      ",
+            "formal"       to "formal      "
+        )
+        // Situation: padded to 20 visual chars ("high stress (assist)" is longest)
+        val situationNames = mapOf(
+            "default"     to "default (everyday)  ",
+            "high_stress" to "high stress (assist)",
+            "reading"     to "reading (fluent)    "
+        )
+        setHeaderWithBadge(R.id.headerLayer, "LAYER", layerNames[WimApp.layer()] ?: layerNames[1]!!)
+        setHeaderWithBadge(R.id.headerTone, "TONE", toneNames[WimApp.tone()] ?: toneNames["casual"]!!)
+        setHeaderWithBadge(R.id.headerSituation, "SITUATION", situationNames[WimApp.situation()] ?: situationNames["default"]!!)
+    }
+
+    private fun setupStatusChips() {
         fun refresh() {
-            findViewById<TextView>(R.id.chipInstantValue)?.text = if (WimApp.prefs.getBoolean("instant_mode", false)) "INSTANT" else "STANDARD"
-            findViewById<TextView>(R.id.chipLayerValue)?.text = layerValues[(WimApp.layer() - 1).coerceIn(0, 3)]
-            findViewById<TextView>(R.id.chipSituationValue)?.text = situationLabels[WimApp.situation()] ?: "DEF"
-            findViewById<TextView>(R.id.chipToneValue)?.text = toneLabels[WimApp.tone()] ?: "CAS"
+            val instantOn = WimApp.prefs.getBoolean("instant_mode", false)
+            val fastOn = WimApp.prefs.getBoolean("fast_mode", false)
+
+            findViewById<TextView>(R.id.chipInstantValue)?.text = if (instantOn) "INSTANT" else "STANDARD"
+            findViewById<TextView>(R.id.chipFastValue)?.text = if (fastOn) "ON" else "OFF"
+
+            // Active state visual — maroon-filled chip when non-default value is set
+            findViewById<View>(R.id.chipInstant)?.setBackgroundResource(
+                if (instantOn) R.drawable.chip_bg_active else R.drawable.chip_bg
+            )
+            findViewById<View>(R.id.chipFast)?.setBackgroundResource(
+                if (fastOn) R.drawable.chip_bg_active else R.drawable.chip_bg
+            )
         }
         refresh()
 
@@ -945,25 +1029,15 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("instant_mode", !cur).apply()
             refresh()
         }
-        findViewById<View>(R.id.chipLayer)?.setOnClickListener {
-            val cur = WimApp.layer()
-            val next = if (cur >= 4) 1 else cur + 1
-            WimApp.prefs.edit().putInt("layer", next).apply()
-            refresh()
-            loadSessions()
+        // where's my bubble? — summons the bubble if it disappears
+        findViewById<View>(R.id.chipFindBubble)?.setOnClickListener {
+            val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
+            startForegroundService(intent)
+            Toast.makeText(this, "Bubble summoned", Toast.LENGTH_SHORT).show()
         }
-        findViewById<View>(R.id.chipSituation)?.setOnClickListener {
-            val cur = WimApp.situation()
-            val idx = situationKeys.indexOf(cur).let { if (it < 0) 0 else it }
-            val next = situationKeys[(idx + 1) % situationKeys.size]
-            WimApp.prefs.edit().putString("situation", next).apply()
-            refresh()
-        }
-        findViewById<View>(R.id.chipTone)?.setOnClickListener {
-            val cur = WimApp.tone()
-            val idx = toneKeys.indexOf(cur).let { if (it < 0) 0 else it }
-            val next = toneKeys[(idx + 1) % toneKeys.size]
-            WimApp.prefs.edit().putString("tone", next).apply()
+        findViewById<View>(R.id.chipFast)?.setOnClickListener {
+            val cur = WimApp.prefs.getBoolean("fast_mode", false)
+            WimApp.prefs.edit().putBoolean("fast_mode", !cur).apply()
             refresh()
         }
     }
@@ -1025,12 +1099,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCollapseArrow(header: TextView, expanded: Boolean) {
-        val title = header.text.toString()
-            .replace("  \u25BC", "").replace("  \u25B6", "")
-            .replace("  \u25BE", "").replace("  \u25B8", "")
-            .replace("  +", "").replace("  \u2212", "")
-            .trim()
-        header.text = title
         // Pin +/− toggle to right edge using drawableEnd
         val symbol = if (expanded) "\u2212" else "+"
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {

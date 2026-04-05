@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Option 2: Cool aluminum — original brushed silver bezel -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="32dp"
+                android:centerX="0.42"
+                android:centerY="0.38"
+                android:startColor="#FFE0E0E4"
+                android:endColor="#FFB0B0B8" />
+            <stroke android:width="2dp" android:color="#FFB55050" />
+            <size android:width="60dp" android:height="60dp" />
+        </shape>
+    </item>
+    <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="26dp"
+                android:centerX="0.45"
+                android:centerY="0.40"
+                android:startColor="#FFCCCCD2"
+                android:endColor="#FFA0A0A8" />
+            <size android:width="50dp" android:height="50dp" />
+        </shape>
+    </item>
+    <item android:left="10dp" android:top="2dp" android:right="10dp" android:bottom="36dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#28FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <size android:width="40dp" android:height="22dp" />
+        </shape>
+    </item>
+</layer-list>

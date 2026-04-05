@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Outer ring — brushed aluminum with stronger depth -->
+    <!-- Outer ring — brushed bronze, warm tube-amp metal -->
     <item>
         <shape android:shape="oval">
             <gradient
@@ -8,13 +8,13 @@
                 android:gradientRadius="32dp"
                 android:centerX="0.42"
                 android:centerY="0.38"
-                android:startColor="#FFE0E0E4"
-                android:endColor="#FFB0B0B8" />
-            <stroke android:width="2dp" android:color="#FFEE5A24" />
+                android:startColor="#FFE6D4B0"
+                android:endColor="#FF9A7C54" />
+            <stroke android:width="2dp" android:color="#FFB55050" />
             <size android:width="60dp" android:height="60dp" />
         </shape>
     </item>
-    <!-- Inner circle — darker centre creating depth illusion -->
+    <!-- Inner circle — deeper bronze, creating depth -->
     <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
         <shape android:shape="oval">
             <gradient
@@ -22,19 +22,19 @@
                 android:gradientRadius="26dp"
                 android:centerX="0.45"
                 android:centerY="0.40"
-                android:startColor="#FFCCCCD2"
-                android:endColor="#FFA0A0A8" />
+                android:startColor="#FFCCAD83"
+                android:endColor="#FF7A5C3C" />
             <size android:width="50dp" android:height="50dp" />
         </shape>
     </item>
-    <!-- Top highlight shimmer on bezel -->
+    <!-- Top highlight shimmer on bezel — warm -->
     <item android:left="10dp" android:top="2dp" android:right="10dp" android:bottom="36dp">
         <shape android:shape="oval">
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#28FFFFFF"
-                android:endColor="#00FFFFFF" />
+                android:startColor="#40FFE6C8"
+                android:endColor="#00FFE6C8" />
             <size android:width="40dp" android:height="22dp" />
         </shape>
     </item>

@@ -136,11 +136,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0:00"
-                    android:textColor="#FFEE5A24"
+                    android:textColor="#FF9A4040"
                     android:textSize="8sp"
                     android:fontFamily="monospace"
-                    android:letterSpacing="0.1"
-                    android:textStyle="bold" />
+                    android:letterSpacing="0.1" />
 
             </LinearLayout>
         </FrameLayout>

@@ -46,6 +46,12 @@ class BubbleService : Service() {
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var isRecording = false
+        set(value) {
+            if (field != value) {
+                field = value
+                RecordingStateBus.emit(value)
+            }
+        }
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
     private var sessionHistory: SessionHistory? = null
@@ -93,12 +99,18 @@ class BubbleService : Service() {
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
-            // Timer tracks full session duration, not individual recording
+            // Timer tracks full session duration; caps at 99:59 to prevent 3-digit overflow
             val elapsed = (System.currentTimeMillis() - sessionStartTime) / 1000
-            val min = elapsed / 60
-            val sec = elapsed % 60
-            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "$min:${"%02d".format(sec)}"
-            timerHandler.postDelayed(this, 1000)
+            val timeView = bubbleView?.findViewById<TextView>(R.id.bubbleTime)
+            if (elapsed >= 5999) {
+                timeView?.text = "99:59"
+                // Stop re-posting — user must reset session to resume counting
+            } else {
+                val min = elapsed / 60
+                val sec = elapsed % 60
+                timeView?.text = "$min:${"%02d".format(sec)}"
+                timerHandler.postDelayed(this, 1000)
+            }
         }
     }
 
@@ -628,11 +640,19 @@ class BubbleService : Service() {
                             if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                                 Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                             }
-                            val finalText = whisperResult.text.ifBlank { onDeviceText }
-                            if (finalText.isNotBlank()) {
-                                processText(finalText)
+                            // If Whisper was 100% hallucination, don't fall back — bail.
+                            // On-device ASR during silence is garbage too, and pasting garbage is worse than pasting nothing.
+                            if (whisperResult.wasFullyHallucinated) {
+                                Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
+                                showPipelineStage("∅ Silence", "Nothing to transcribe")
+                                timerHandler.postDelayed({ setBubbleIdle() }, 1500)
                             } else {
-                                setBubbleIdle()
+                                val finalText = whisperResult.text.ifBlank { onDeviceText }
+                                if (finalText.isNotBlank()) {
+                                    processText(finalText)
+                                } else {
+                                    setBubbleIdle()
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Whisper failed, falling back to on-device: ${e.message}")
@@ -729,7 +749,6 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleIdle() {
-        timerHandler.removeCallbacks(timerRunnable)
         stopPulseRings()
         hideLiveTranscript()
         maybeShowTip()
@@ -743,10 +762,13 @@ class BubbleService : Service() {
             text = "IDLE"
             setTextColor(0xFF555560.toInt())
         }
-        // Keep session timer — don't reset to 0:00
+        // Keep session timer ticking in idle (maroon)
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            setTextColor(0xFFEE5A24.toInt())
+            setTextColor(0xFF9A4040.toInt())
         }
+        // Re-post timer if it was stopped (restart case)
+        timerHandler.removeCallbacks(timerRunnable)
+        timerHandler.post(timerRunnable)
     }
 
     fun updateIdleDisplay() {

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Option 3: Gunmetal — dark brushed steel knob -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow well — near-black -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FF0A0A0E" />
+            <size android:width="44dp" android:height="44dp" />
+        </shape>
+    </item>
+    <!-- Knob side wall — dark gunmetal rim -->
+    <item android:left="1dp" android:top="0dp" android:right="1dp" android:bottom="2dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#FF4A4A54"
+                android:endColor="#FF26262C" />
+            <stroke android:width="0.5dp" android:color="#66000000" />
+            <size android:width="42dp" android:height="42dp" />
+        </shape>
+    </item>
+    <!-- Knob top face — matte dark steel -->
+    <item android:left="3dp" android:top="2dp" android:right="3dp" android:bottom="4dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#FF5A5A64"
+                android:endColor="#FF38383E" />
+            <size android:width="38dp" android:height="38dp" />
+        </shape>
+    </item>
+    <!-- Bottom shadow on face -->
+    <item android:left="5dp" android:top="28dp" android:right="5dp" android:bottom="4dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="linear"
+                android:angle="90"
+                android:startColor="#40000000"
+                android:endColor="#00000000" />
+            <size android:width="34dp" android:height="12dp" />
+        </shape>
+    </item>
+</layer-list>

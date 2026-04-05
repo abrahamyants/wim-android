@@ -51,14 +51,34 @@
                     android:gravity="center_horizontal"
                     android:layout_gravity="center">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WiM"
-                        android:textColor="#FFC8B48A"
-                        android:textSize="26sp"
-                        android:fontFamily="@font/limelight"
-                        android:letterSpacing="0.08" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.wim.app.LogoBarsView
+                            android:id="@+id/logoBarsLeft"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WiM"
+                            android:textColor="#FFC8B48A"
+                            android:textSize="26sp"
+                            android:fontFamily="@font/limelight"
+                            android:letterSpacing="0.08" />
+
+                        <com.wim.app.LogoBarsView
+                            android:id="@+id/logoBarsRight"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp" />
+
+                    </LinearLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -186,7 +206,7 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- STATUS CHIPS — Instant / Layer / Situation / Tone -->
+        <!-- STATUS CHIPS — Mode / Theme / Fast -->
         <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -203,17 +223,17 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:layout_marginEnd="3dp">
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginEnd="4dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MODE"
+                    android:text="OUTPUT"
                     android:textColor="@color/text_dim"
-                    android:textSize="8sp"
+                    android:textSize="9sp"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.15" />
                 <TextView
@@ -222,108 +242,75 @@
                     android:layout_height="wrap_content"
                     android:text="STANDARD"
                     android:textColor="@color/chip_value"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="1dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/chipLayer"
+                android:id="@+id/chipFindBubble"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:layout_marginEnd="3dp">
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginEnd="4dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="LAYER"
+                    android:text="BUBBLE"
                     android:textColor="@color/text_dim"
-                    android:textSize="8sp"
+                    android:textSize="9sp"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.15" />
                 <TextView
-                    android:id="@+id/chipLayerValue"
+                    android:id="@+id/chipFindBubbleValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="II"
-                    android:textColor="@color/chip_value"
-                    android:textSize="10sp"
+                    android:text="SUMMON"
+                    android:textColor="@color/section_header"
+                    android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="1dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/chipSituation"
+                android:id="@+id/chipFast"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/chip_bg"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:layout_marginEnd="3dp">
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="SITUATION"
+                    android:text="FAST MODE"
                     android:textColor="@color/text_dim"
-                    android:textSize="8sp"
+                    android:textSize="9sp"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.15" />
                 <TextView
-                    android:id="@+id/chipSituationValue"
+                    android:id="@+id/chipFastValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DEFAULT"
+                    android:text="OFF"
                     android:textColor="@color/chip_value"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
-                    android:layout_marginTop="1dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/chipTone"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="TONE"
-                    android:textColor="@color/text_dim"
-                    android:textSize="8sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15" />
-                <TextView
-                    android:id="@+id/chipToneValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="CASUAL"
-                    android:textColor="@color/chip_value"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:layout_marginTop="1dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -512,13 +499,13 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- SESSIONS -->
+        <!-- TONE -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
-            android:id="@+id/headerSessions"
+            android:id="@+id/headerTone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SESSIONS"
+            android:text="TONE"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
@@ -534,7 +521,7 @@
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
-            android:id="@+id/contentSessions"
+            android:id="@+id/contentTone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -542,103 +529,114 @@
             android:padding="4dp">
 
             <LinearLayout
+                android:id="@+id/toneCasual"
                 android:layout_width="match_parent"
                 android:layout_height="34dp"
                 android:orientation="horizontal"
-                android:layout_marginBottom="6dp">
-
-            <EditText
-                android:id="@+id/sessionSearch"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="34dp"
-                android:hint="Search sessions..."
-                android:textColor="@color/text_bright"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:inputType="text"
-                android:imeOptions="actionSearch"
-                android:maxLines="1" />
-
-            <TextView
-                android:id="@+id/exportBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:text="EXPORT"
-                android:textColor="@color/section_header"
-                android:textSize="9sp"
-                android:fontFamily="monospace"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:background="@drawable/card_bg" />
-
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/toneCasualLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Casual"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  natural rhythm"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
-            <FrameLayout
-                android:id="@+id/sessionsPanel"
+            <LinearLayout
+                android:id="@+id/toneProfessional"
                 android:layout_width="match_parent"
-                android:layout_height="280dp"
-                android:layout_marginBottom="16dp"
-                android:clipChildren="true"
-                android:background="@drawable/sessions_mesh_bg">
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/toneProfessionalLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Professional"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  business clarity"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
 
-                <!-- WM logo — centered behind session cards, subtle outline -->
-                <ImageView
-                    android:layout_width="315dp"
-                    android:layout_height="140dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/wm_logo"
-                    android:alpha="0.12"
-                    android:importantForAccessibility="no" />
+            <LinearLayout
+                android:id="@+id/toneFriend"
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/toneFriendLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Friend"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  conversational"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
 
-                <!-- Scrollable session cards overlay -->
-                <ScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scrollbarThumbVertical="@android:color/transparent"
-                    android:fillViewport="true"
-                    android:nestedScrollingEnabled="true">
-
-                    <LinearLayout
-                        android:id="@+id/sessionsContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="8dp" />
-                </ScrollView>
-
-                <!-- WM logo on square dark tile — bottom-left -->
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="bottom|start"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginBottom="8dp"
-                    android:background="@drawable/brand_plate_bg"
-                    android:padding="6dp">
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:src="@drawable/wm_logo"
-                        android:scaleType="fitCenter"
-                        android:importantForAccessibility="no" />
-                </FrameLayout>
-
-            </FrameLayout>
+            <LinearLayout
+                android:id="@+id/toneFormal"
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/card_bg"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/toneFormalLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Formal"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  precise wording"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
 
         </LinearLayout>
-
-        <!-- spacer -->
-
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- TONE -->
-        <!-- Tone section removed — auto-detected by app context -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- SITUATION -->
@@ -764,7 +762,128 @@
 
         </LinearLayout>
 
-        <!-- spacer -->
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- SESSIONS -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerSessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SESSIONS"
+            android:textColor="@color/section_header"
+            android:textSize="14sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-light"
+            android:elevation="4dp"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg_pressable"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/contentSessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/grille_pattern_bg"
+            android:padding="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+            <EditText
+                android:id="@+id/sessionSearch"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="34dp"
+                android:hint="Search sessions..."
+                android:textColor="@color/text_bright"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/exportBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="EXPORT"
+                android:textColor="@color/section_header"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:background="@drawable/card_bg" />
+
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/sessionsPanel"
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                android:layout_marginBottom="16dp"
+                android:clipChildren="true"
+                android:background="@drawable/sessions_mesh_bg">
+
+                <!-- WM logo — centered behind session cards, subtle outline -->
+                <ImageView
+                    android:layout_width="315dp"
+                    android:layout_height="140dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/wm_logo"
+                    android:alpha="0.12"
+                    android:importantForAccessibility="no" />
+
+                <!-- Scrollable session cards overlay -->
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scrollbarThumbVertical="@android:color/transparent"
+                    android:fillViewport="true"
+                    android:nestedScrollingEnabled="true">
+
+                    <LinearLayout
+                        android:id="@+id/sessionsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="8dp" />
+                </ScrollView>
+
+                <!-- WM logo on square dark tile — bottom-left -->
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="bottom|start"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/brand_plate_bg"
+                    android:padding="6dp">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/wm_logo"
+                        android:scaleType="fitCenter"
+                        android:importantForAccessibility="no" />
+                </FrameLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- BUBBLE -->
