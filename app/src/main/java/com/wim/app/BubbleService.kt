@@ -130,6 +130,64 @@ class BubbleService : Service() {
     fun dismissMenuPublic() = dismissMenu()
     fun hideLiveTranscriptPublic() = hideLiveTranscript()
 
+    // ── Test automation entry points (WimTestReceiver) ─────────────────────
+
+    /**
+     * Feed raw text directly into the pipeline, bypassing mic/ASR.
+     * Runs the full chain: voice shortcuts → block hallucination strip →
+     * disfluency filter → reconstruction → Falcon → inject → session record.
+     *
+     * Result written to WimTestReceiver.lastResult when complete.
+     */
+    fun processTextForTest(rawText: String) {
+        if (!BuildConfig.DEBUG) return
+        lastWhisperLowConf = emptyList()
+        recordingStartTime = System.currentTimeMillis()
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            processText(rawText)
+        }
+    }
+
+    /**
+     * Feed a WAV file into the Whisper → pipeline chain, bypassing mic.
+     * Runs: Whisper transcription → disfluency filter → reconstruction → inject.
+     *
+     * Result written to WimTestReceiver.lastResult when complete.
+     */
+    fun processAudioForTest(wavFile: java.io.File) {
+        if (!BuildConfig.DEBUG) return
+        recordingStartTime = System.currentTimeMillis()
+        scope.launch {
+            try {
+                val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
+                Log.i("WiM", "Test audio Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                lastWhisperLowConf = whisperResult.lowConfidenceSegments
+                if (whisperResult.wasFullyHallucinated) {
+                    WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                        put("status", "hallucinated")
+                        put("note", "Whisper fully hallucinated — no real speech detected")
+                    }
+                    return@launch
+                }
+                val finalText = whisperResult.text
+                if (finalText.isNotBlank()) {
+                    processText(finalText)
+                } else {
+                    WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                        put("status", "empty")
+                        put("note", "Whisper returned empty transcription")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WiM", "Test audio processing failed: ${e.message}", e)
+                WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                    put("status", "error")
+                    put("error", e.message)
+                }
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     private var audioManager: android.media.AudioManager? = null
@@ -1657,6 +1715,23 @@ class BubbleService : Service() {
                 falconApproved = true,
                 riskFlags = emptyList()
             )
+            // Test automation: capture result
+            if (BuildConfig.DEBUG) {
+                WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                    put("status", "ok")
+                    put("raw_text", rawText)
+                    put("clean_text", l1Text)
+                    put("tone", tone)
+                    put("layer", 1)
+                    put("situation", situation)
+                    put("asr_ms", asrMs)
+                    put("recon_ms", 0)
+                    put("total_ms", totalMs)
+                    put("falcon_approved", true)
+                    put("risk_flags", org.json.JSONArray())
+                    put("wer", sessionHistory?.computeWer(rawText, l1Text) ?: 0f)
+                }
+            }
             setBubbleIdle()
             return
         }
@@ -1805,6 +1880,27 @@ class BubbleService : Service() {
                     riskFlags = reconResult.riskFlags
                 )
 
+                // Test automation: capture result
+                if (BuildConfig.DEBUG) {
+                    WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                        put("status", "ok")
+                        put("raw_text", rawText)
+                        put("pre_cleaned", preCleaned)
+                        put("clean_text", outputText)
+                        put("tone", tone)
+                        put("layer", layer)
+                        put("situation", situation)
+                        put("asr_ms", asrMs)
+                        put("recon_ms", reconResult.reconMs)
+                        put("total_ms", totalMs)
+                        put("falcon_approved", reconResult.falconApproved)
+                        put("leak_filtered", leakDetected)
+                        put("risk_flags", org.json.JSONArray(reconResult.riskFlags))
+                        put("wer", sessionHistory?.computeWer(rawText, outputText) ?: 0f)
+                        put("disfluencies_stripped", stripped)
+                    }
+                }
+
                 setBubbleIdle()
             } catch (e: Exception) {
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
@@ -1824,6 +1920,22 @@ class BubbleService : Service() {
                     falconApproved = false,
                     riskFlags = listOf("reconstruction_failed")
                 )
+                // Test automation: capture error
+                if (BuildConfig.DEBUG) {
+                    WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                        put("status", "error")
+                        put("error", e.message)
+                        put("raw_text", rawText)
+                        put("pre_cleaned", preCleaned)
+                        put("clean_text", preCleaned)
+                        put("tone", tone)
+                        put("layer", layer)
+                        put("situation", situation)
+                        put("total_ms", totalMs)
+                        put("falcon_approved", false)
+                        put("risk_flags", org.json.JSONArray(listOf("reconstruction_failed")))
+                    }
+                }
                 setBubbleIdle()
             }
         }
