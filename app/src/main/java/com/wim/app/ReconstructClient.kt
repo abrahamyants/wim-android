@@ -441,7 +441,7 @@ object ReconstructClient {
                 val messages = JSONArray().apply {
                     put(JSONObject().put("role", "system").put("content", prompt))
                     put(JSONObject().put("role", "user").put("content",
-                        "Raw: $rawText\nReconstructed: $cleanText"))
+                        "Original: $rawText\nReconstruction: $cleanText"))
                 }
 
                 val body = JSONObject().apply {

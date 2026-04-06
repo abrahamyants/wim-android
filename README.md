@@ -14,7 +14,7 @@ WiM captures your voice, transcribes it on-device, and optionally reconstructs i
 ## Architecture
 
 - **On-device ASR** — Android SpeechRecognizer, zero cost, zero latency, continuous listening
-- **GPT reconstruction** — OpenAI API (gpt-4o-mini for L2-3, gpt-4o for L4)
+- **GPT reconstruction** — OpenAI API (gpt-4o for all layers, Gemini removed)
 - **Falcon validation** — Meaning-preservation check after reconstruction
 - **Accessibility injection** — Clipboard + ACTION_PASTE into any text field
 - **Floating bubble** — TYPE_APPLICATION_OVERLAY foreground service with pulse ring animations
@@ -703,6 +703,102 @@ Desktop Claude appears to have already done some of this — a George test at 03
 `74ba23f` — Voice-triggered twist mode + timer cap + Session 6 log (earlier)
 `(uncommitted)` — gpt-4o-transcribe swap + Gemini L2/L3 routing + README updates
 
+## Session 7 — April 6, 2026
+
+### Desktop Session Sync
+
+George ran a marathon 12-hour desktop session on Лаврентий that produced 28 changes. This session reviewed all 28, identified which applied to WiM Android, and ported the 4 that did.
+
+### Changes Ported from Desktop (4 items)
+
+**1. Removed Gemini 2.5 Pro from L2/L3 reconstruction.**
+Gemini was leaking chatbot responses ("I'm sorry, I can't assist", "Could you clarify") into reconstruction output. All reconstruction now routes through gpt-4o only.
+- Deleted `callGemini()` method from `ReconstructClient.kt`
+- Deleted Gemini routing branch in `reconstructDirect()` (was lines 339-370)
+- Deleted `geminiApiKey()` from `WimApp.kt`
+- Zero Gemini references remain in codebase
+
+**2. Added post-reconstruction LLM leak filter.**
+19-pattern filter catches GPT chatbot responses and meta-commentary that occasionally leak through reconstruction. Patterns include: "i'm sorry", "i apologize", "as an ai", "as a language model", "please clarify", "i'd be happy to help", "no transcription", "unable to transcribe", bracketed hallucination markers, etc. If any pattern matches, output falls back to pre-cleaned raw text. Also skips profile learning on leak detection to avoid poisoning corrections.
+- Added to `BubbleService.processText()` between `ReconstructClient.reconstruct()` return and `injectText()`
+- Patterns ported 1:1 from Лаврентий's `_LLM_LEAK_PATTERNS` list
+
+**3. Added length explosion guard.**
+If reconstruction output is >2.5x longer than input (word count), GPT fabricated content instead of cleaning speech. Falls back to raw text. Same 2.5x threshold as desktop. The "hallucination of the millennium" on desktop was a full fabricated paragraph about GitHub/Whisper/README from a 5-word input — this guard catches that class of failure.
+- Added to `BubbleService.processText()` alongside the leak filter
+- Only fires when input is 3+ words (avoids false positives on very short utterances)
+
+**4. Hardened DafPlayer.stop() with thread join.**
+Desktop had a bug where `daf_stop()` could return before Windows audio devices were fully released, causing the next `daf_start()` to fail or produce echo artifacts. Same bug class exists on Android: `stop()` set `running=false` and nulled the thread, but the thread's `finally` block (which calls `recorder.release()` and `track.release()`) might still be executing.
+- `stop()` now captures thread reference, nulls the field, then calls `interrupt()` + `join(200)` 
+- 200ms ceiling prevents blocking the UI thread if cleanup hangs
+- Android's `AudioTrack.stop()` is synchronous (~50ms), so 200ms is generous
+
+### Already Done (confirmed in code)
+
+- **Expanded Whisper hallucination patterns (45+)** — `WhisperClient.kt:42-101` ✓
+- **Anti-censorship instruction** — `ReconstructClient.kt:196-199` ✓  
+- **gpt-4o-transcribe for L1** — `WhisperClient.kt:124` ✓
+
+### Not Applicable to WiM (21 items)
+
+Desktop-only: Inno Setup installer, VBS launcher, splash.html tic-tac-toe, portable folder deletion, GitHub release cleanup, release notes, dashboard startup grace period, tic-tac-toe game, X close button, multi-temp Whisper (conditional + parallelized), SileroVAD pre-filter (log-only), DAF auto-start removal from high_stress (WiM never had it), CDP helpers, Jana's laptop setup, Gmail drafts, Inno Setup installation, competitor analysis docs, academic papers, 72-test pipeline suite PDF.
+
+### Bug Fix: Falcon Prompt Label Mismatch
+
+`CLAUDE.md` spec says Falcon labels should be `"Original:"` / `"Reconstruction:"` but `ReconstructClient.kt` was using `"Raw:"` / `"Reconstructed:"`. Fixed to match desktop canonical labels.
+
+### Onboarding Analysis
+
+Current onboarding (`OnboardingActivity.kt`) is disabled (`MainActivity.kt:65`) and has 6 structural problems:
+1. No `ScrollView` — permissions screen overflows on phones smaller than Pixel 7
+2. Sign-in hint renders above permission rows (layout order bug)
+3. All 5 permissions required before proceeding (hard gate)
+4. `BubbleDemoScript` is 50+ seconds (11 acts) and silently fails if overlay permission not granted
+5. No back navigation — hardware back exits activity
+6. All programmatic Views, no XML layouts
+
+**Decision:** Don't fix the existing onboarding. Redesign as 3-screen flow: Welcome → Permissions (step-by-step, one at a time) → Go. No demo script. Bubble teaches itself through use.
+
+### Competitor Research
+
+Researched Wispr Flow, SuperWhisper, Otter.ai websites. Key finding: the highest-rated competitor (SuperWhisper 4.9/5) has the least onboarding — download and press a key combo. Wispr Flow (2.7/5) has the most friction. **Note:** website research only — George confirmed Wispr Flow has an animated in-app onboarding that the website doesn't show. Need to screenshot the actual Android app via Android-MCP.
+
+### Android-MCP Setup
+
+Added `android-mcp` (CursorTouch) to Claude Code MCP settings. George's Samsung `R5CWB08K38H` connected via USB, ADB verified working. ADB path: `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`.
+
+Purpose: (1) screenshot competitor onboarding flows on George's phone, (2) automated testing of WiM onboarding during rebuild, (3) full pipeline testing via custom intents once WimTestReceiver is built.
+
+### Android LLM Control Capability Map
+
+Claude Desktop produced a comprehensive capability map covering the full ceiling of LLM-to-Android control:
+- **ADB channel** (~200-2000ms/action): input injection, app lifecycle, screenshots, UI hierarchy dump, file system access via `run-as`, logcat streaming, audio/sensor control
+- **Accessibility channel** (~50ms/action): element discovery by ID/text, click/scroll/set-text (including Unicode), gesture injection via `dispatchGesture()`, global actions, window enumeration
+- **Intent channel** (~10ms/action): 12 custom intents to be added (SET_TONE, SET_LAYER, INJECT_RAW, INJECT_AUDIO, GET_STATE, GET_LAST_RESULT, RESET_PROFILE, EXPORT_SESSIONS, TOGGLE_DAF, TRIGGER_BUBBLE, SIMULATE_ONBOARDING)
+
+Key insight: `INJECT_RAW` enables testing all 26 DisfluencyFilter patterns × 4 layers × 4 tones × 3 situations = 1,248 test cases without audio hardware. `pm clear` + `am start .OnboardingActivity` enables clean-slate onboarding testing.
+
+Hard limits: can't inject mic audio via ADB (need app-level mock), `uiautomator dump` is slow (800ms-2s) and can't see inside custom Views, `input text` can't handle Unicode (need Accessibility `ACTION_SET_TEXT`).
+
+### WiM MCP Server (Claude Desktop — parallel session)
+
+Claude Desktop built an MCP server (`mcp-server/`) that extracts WiM's pure-logic algorithms as 7 callable tools:
+1. `reconstruct` — raw text → clean text via backend or direct OpenAI (LLM)
+2. `disfluency_filter` — strip stutter fragments, repeats, fillers (no LLM)
+3. `block_hallucination_filter` — remove Whisper hallucinations (no LLM)
+4. `phonetic_risk` — Brown's 4-feature score for one word (no LLM)
+5. `predict_triggers` — score all words in text, flag high-risk (no LLM)
+6. `compute_risk_flags` — check reconstruction quality (no LLM)
+7. `compute_wer` — Word Error Rate (no LLM)
+
+Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and math). Architecture: device stays capture layer, MCP server becomes the brain's API. Any MCP client (Claude Desktop, Claude Code, therapist tools, Android Studio Gemini) can call these.
+
+### Commits — Session 7
+```
+6073c2b Remove Gemini routing, add LLM leak filter + length guard, harden DAF stop
+```
+
 ## Instructions for Next Model
 
 **READ THIS FIRST.** George iterates fast via voice (Wispr/Lavrentiy at 182 WPM). His messages are phonetic, messy, and context-dependent. Extract intent, not spelling.
@@ -712,11 +808,12 @@ Desktop Claude appears to have already done some of this — a George test at 03
 - Phone: Samsung `R5CWB08K38H`, connected via USB, ADB at `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`
 - ADB screenshots: `adb shell "screencap -p //sdcard//screen.png"` then `adb pull` (double-slash to prevent Git bash path mangling)
 - **Multi-display warning:** Always use `//sdcard//` not `/sdcard/`. The screencap warning about multiple displays is cosmetic — the screenshot still works.
-- Lavrentiy desktop: `C:\Users\georg\Documents\GitHub\lavrentiy\portable\START.bat` — uses `desktop.py` wrapper, NOT `lavrentiy.py` directly
+- Android-MCP: configured in `~/.claude/settings.json`, requires USB connection + USB debugging
+- Lavrentiy desktop: now uses Inno Setup installer (`Lavrentiy-Setup-v1.1.0.exe`), VBS launcher, Edge --app mode. Portable folder deleted.
 - Lavrentiy dashboard CSS: `C:\Users\georg\Documents\GitHub\lavrentiy\dashboard.html` — THE source of truth for design
 
 ### Known Issues
-1. **Backend tier gate:** Cloud Function at `bakers-agent.cloudfunctions.net` rejects L4 calls with `403: Layer 4 requires Pro tier`. George's Firestore `tier` field is "Free". Fix: update Firestore document or bypass tier check.
+1. ~~**Backend tier gate:**~~ **FIXED** (Session 7 desktop) — George's Firestore `tier` changed from "free" to "pro". L4 via backend no longer 403s.
 2. **Design mismatch:** Android XML cannot match Lavrentiy CSS depth/texture. Needs Jetpack Compose migration or custom Canvas views.
 3. **Kotlin hardcoded colors:** 23 occurrences of `0xFFEE5A24` that don't respond to theme switching. Need refactor to `getColor(R.color.copper_gold)`.
 4. **ProGuard strips logs:** `isMinifyEnabled = true` only on `release`, but verify debug builds have full logging.
@@ -739,26 +836,29 @@ Desktop Claude appears to have already done some of this — a George test at 03
 
 ## Still TODO
 
-### From Session 6
-- **Bubble theme selector UI** — user-facing control to switch between bronze/aluminum/gunmetal. Drawables exist, swap mechanic not wired. Candidates: long-press bubble menu, a row in SETTINGS, or dedicated chip.
+### From Session 6 (updated Session 7)
+- ~~Gemini in backend Cloud Function~~ — **REMOVED**: Gemini removed from all paths (Session 7). Chatbot responses were leaking through.
+- ~~Gemini API key UI field~~ — **REMOVED**: no longer needed.
+- ~~Model-name logging~~ — **REMOVED**: single model (gpt-4o) everywhere, no routing ambiguity.
+- ~~George's own Firestore doc upgrade~~ — **DONE** (Session 7 desktop): tier changed from "free" to "pro".
+- **Bubble theme selector UI** — user-facing control to switch between bronze/aluminum/gunmetal. Drawables exist, swap mechanic not wired.
 - **Twist mode: layer support** — snap-to-4-quadrants at 12/3/6/9 o'clock with I/II/III/IV labels. Deferred until twist feel is validated.
-- **Twist mode: press+twist without voice** — alternative entry for accessibility (long-press → twist without needing voice trigger)
-- **Twist mode: real-world testing** — verify trigger phrases work at 182 WPM, in ambient noise, with various accents. Refine prefix list if false triggers/misses.
-- **Press+twist confirmation tuning** — 5s timeout may be too short or too long, verify with use
-- **Gemini in backend Cloud Function** — direct path is done; signed-in users still get gpt-4o via backend. Port the L2/L3 Gemini branch to `lavrentiy/wim/api/main.py` so both paths use Gemini.
-- **Model-name logging (Android)** — desktop shows `[gemini-2.5-pro]` in status line; add equivalent log line to Android's `ReconstructClient` so path is unambiguous
-- **Gemini API key UI field** — currently injected via adb. Add parallel field next to OpenAI key input.
-- **George's own Firestore doc upgrade** — change `users/{uid}.tier` from `"invite"` to `"pro"` so L4 via backend stops 403'ing
+- **Twist mode: press+twist without voice** — alternative entry for accessibility
+- **Twist mode: real-world testing** — verify trigger phrases at 182 WPM, ambient noise, various accents
+
+### From Session 7
+- **Onboarding rebuild** — current 6-screen flow is disabled and broken (see Session 7 log). Redesigning as 3-screen flow: Welcome → Permissions (step-by-step) → Go.
+- **WimTestReceiver** — broadcast receiver for 12 custom intents (SET_TONE, SET_LAYER, INJECT_RAW, GET_LAST_RESULT, TRIGGER_BUBBLE, etc.). Being built by parallel Claude Desktop session. Enables full LLM-driven pipeline testing.
+- **Android-MCP integration** — MCP server added to Claude Code settings. Enables LLM-controlled device interaction (screenshots, taps, UI hierarchy, logcat) for automated onboarding testing and competitor app analysis.
+- **Falcon prompt label fix** — verify desktop uses "Original:"/"Reconstruction:" consistently (WiM now matches)
 
 ### Carried Forward
-- **Backend tier fix** — update Firestore to allow L4 for George's account, or bypass tier check
 - One-directional sticky Settings header — verify/improve
 - Design: Jetpack Compose migration for proper Лаврентий visual parity
 - Design: custom Canvas views for nixie tube stat cells (or keep VU meters which replaced them)
-- Onboarding — quick vs full setup (code exists, needs testing)
 - TurboTax L4 engagement (code exists, needs testing with working L4)
 - Bluetooth mic SCO (code exists, needs testing)
-- Test suites for WiM Android
+- Test suites for WiM Android (WimTestReceiver will enable this)
 - Play Store listing and screenshots
 - Port trigger_words, onset_weights, covert_profile from Лаврентий
 - Copy Lavrentiy F9 fix to `portable/engine/lavrentiy.py`
