@@ -1730,30 +1730,71 @@ class BubbleService : Service() {
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
 
-                val finalWordCount = reconResult.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                val falconLabel = if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
+                // Post-reconstruction LLM leak filter (ported from Лаврентий)
+                // Catches chatbot responses / meta-commentary that GPT sometimes emits
+                var outputText = reconResult.cleanText
+                var leakDetected = false
+                val reconLower = outputText.trim().lowercase()
+                val llmLeakPatterns = listOf(
+                    "i'm sorry", "i apologize", "i didn't catch that",
+                    "could you please clarify", "could you please repeat",
+                    "could you say that again", "i'm not sure what you meant",
+                    "please clarify", "please provide more context",
+                    "i cannot assist", "i can't assist", "i can't help",
+                    "as an ai", "as a language model",
+                    "please ensure that you", "ensure that you construct",
+                    "i'd be happy to help",
+                    "no output", "identified as hallucinated", "hallucinated filler",
+                    "no transcription", "unable to transcribe", "no speech detected",
+                    "[no output", "[hallucin", "[unable to"
+                )
+                for (pattern in llmLeakPatterns) {
+                    if (reconLower.startsWith(pattern) || pattern in reconLower) {
+                        Log.w(TAG, "LLM leak detected: \"${outputText.take(80)}\" — using raw")
+                        leakDetected = true
+                        break
+                    }
+                }
+
+                // Length explosion guard: if reconstruction is >2.5x longer than input,
+                // GPT fabricated content instead of cleaning speech
+                if (!leakDetected && cleanWordCount >= 3) {
+                    val reconWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                    val lenRatio = reconWordCount.toFloat() / cleanWordCount.toFloat()
+                    if (lenRatio > 2.5f) {
+                        Log.w(TAG, "LLM length explosion: ${cleanWordCount}w → ${reconWordCount}w (${lenRatio}x) — using raw")
+                        leakDetected = true
+                    }
+                }
+
+                if (leakDetected) {
+                    outputText = correctedText
+                }
+
+                val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                val falconLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
                 showPipelineStage(falconLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
 
                 // Brief pause so user can see the final stage
                 kotlinx.coroutines.delay(800)
 
                 if (WimAccessibilityService.instance != null) {
-                    WimAccessibilityService.instance!!.injectText(reconResult.cleanText)
+                    WimAccessibilityService.instance!!.injectText(outputText)
                 } else {
                     Log.e(TAG, "No accessibility service instance!")
                     Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 }
 
-                // L3+: learn from reconstruction results
-                if (layer >= 3) {
-                    profile.learnFromReconstruction(preCleaned, reconResult.cleanText)
+                // L3+: learn from reconstruction results (skip if leak was filtered)
+                if (layer >= 3 && !leakDetected) {
+                    profile.learnFromReconstruction(preCleaned, outputText)
                 }
 
                 // Record session
                 val totalMs = System.currentTimeMillis() - recordingStartTime
                 sessionHistory?.record(
                     rawText = preCleaned,
-                    cleanText = reconResult.cleanText,
+                    cleanText = outputText,
                     tone = tone,
                     layer = layer,
                     situation = situation,

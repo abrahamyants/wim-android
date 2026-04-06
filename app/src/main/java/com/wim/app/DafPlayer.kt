@@ -46,8 +46,10 @@ class DafPlayer {
 
     fun stop() {
         running = false
-        thread?.interrupt()
+        val t = thread
         thread = null
+        t?.interrupt()
+        try { t?.join(200) } catch (_: InterruptedException) {}
     }
 
     // ── internals ──────────────────────────────────────────
