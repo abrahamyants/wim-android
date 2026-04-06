@@ -194,6 +194,9 @@ object ReconstructClient {
                 append(toneRule)
                 append(" Strip filler words (including non-English fillers like \u044d, \u043d\u0443, \u044d\u044d).")
                 append(" Preserve FULL meaning. Do not summarize or add information.")
+                append(" Do NOT censor, sanitize, or soften the speaker's language. Profanity, slang, harsh words, and strong language must be preserved EXACTLY as spoken.")
+                append(" If the speaker said 'fuck', output 'fuck'. If the speaker said 'steal', output 'steal'. Do not substitute softer synonyms.")
+                append(" Your job is to clean up SPEECH ARTIFACTS, not to edit the speaker's word choices.")
                 append(" Output ONLY the reconstructed text, nothing else.")
 
                 // Situation severity context (ported from lavrentiy.py aggression_note logic)

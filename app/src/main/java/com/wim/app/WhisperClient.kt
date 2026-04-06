@@ -40,40 +40,64 @@ object WhisperClient {
      * Strip them from any Whisper output regardless of confidence.
      */
     private val HALLUCINATION_PATTERNS = listOf(
-        // otter.ai variants (the big one)
+        // otter.ai / transcription service credits
         "transcribed by https://otter.ai",
         "transcribed by otter.ai",
         "transcription by otter.ai",
         "transcribed by https://otter.ai[^.]*",
+        "subtitles by the amara.org community",
+        "captions by[^.]{0,30}",
+        "transcript by[^.]{0,30}",
+        // Brackets
         "\\[no output due to lack of context[^\\]]*\\]",
         "\\[no meaningful content[^\\]]*\\]",
         "\\[no output[^\\]]*\\]",
         "\\[no content[^\\]]*\\]",
+        "\\[music\\]",
+        "\\[applause\\]",
+        "\\[silence\\]",
+        "\\[no audio\\]",
+        "\\[laughter\\]",
         // YouTube endings
         "thanks for watching",
         "thank you for watching",
         "thanks for listening",
         "don't forget to subscribe",
+        "don't forget to like",
         "please subscribe",
         "like and subscribe",
         "like, comment, and subscribe",
         "see you in the next video",
         "see you next time",
         "see you next video",
+        "see you next episode",
         "subscribe to my channel",
         "subscribe to the channel",
         "thanks to patreon",
-        // Captions
-        "subtitles by the amara.org community",
-        "captions by",
-        "transcript by",
-        // Music/applause artifacts
+        "hit the bell",
+        "hit the notification",
+        "leave a comment below",
+        "check out our website",
+        "check out my website",
+        "follow us on",
+        "follow me on",
+        // Legal / disclaimer boilerplate
+        "please see the complete disclaimer",
+        "for more information,? ?visit",
+        "all rights reserved",
+        "terms and conditions apply",
+        "terms of service",
+        "visit us at",
+        "powered by[^.]{0,30}",
+        // Podcast / sponsor credits
+        "sponsored by[^.]{0,40}",
+        "brought to you by[^.]{0,40}",
+        "this episode is",
+        "this video is",
+        "available on all platforms",
+        // Music markers
         "♪♪♪",
-        "♪ ♪ ♪",
-        "\\[music\\]",
-        "\\[applause\\]",
-        "\\[silence\\]",
-        "\\[no audio\\]"
+        "♪ ♪ ♪"
     )
 
     private fun stripHallucinations(text: String): String {
