@@ -22,10 +22,20 @@ class WimAccessibilityService : AccessibilityService() {
             private set
     }
 
+    private var recordingUnsub: (() -> Unit)? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         showBubble()
+        // Start agent socket server (debug builds only, loopback, port 9222)
+        com.wim.app.agent.AgentSocketServer.start(this)
+        // Bridge recording state changes to agent event stream
+        recordingUnsub = RecordingStateBus.subscribe { recording ->
+            com.wim.app.agent.AgentSocketServer.instance
+                ?.getEventBridge()
+                ?.onRecordingStateChanged(recording)
+        }
     }
 
     // App category → tone mapping
@@ -43,6 +53,11 @@ class WimAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+        // Forward to agent event bridge (filters internally based on subscription)
+        com.wim.app.agent.AgentSocketServer.instance
+            ?.getEventBridge()
+            ?.onAccessibilityEvent(event)
+
         if (event.packageName == packageName) return
 
         when (event.eventType) {
@@ -108,6 +123,9 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        com.wim.app.agent.AgentSocketServer.stop()
+        recordingUnsub?.invoke()
+        recordingUnsub = null
         instance = null
         activeTextField = null
         isPasswordField = false
