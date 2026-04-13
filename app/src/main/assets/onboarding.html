@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Nixie+One&family=Limelight&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* WiM Android dark mode — exact values from values-night/colors.xml */
+:root {
+  --bg: #1A1A1E;           /* bg_base */
+  --surface: #222226;       /* bg_surface / card_bg_base */
+  --raised: #2A2A2F;        /* bg_surface_light */
+  --raised-hi: #333338;     /* bg_elevated */
+  --sunken: #18181C;        /* bg_sunken */
+  --border: rgba(255,255,255,0.08); /* border_subtle */
+  --border-accent: #C49A6C; /* border_accent / copper_gold */
+  --text: #D4D0C8;          /* text_primary */
+  --text-bright: #F0ECE4;   /* text_bright */
+  --text-dim: #A09888;       /* text_dim */
+  --text-muted: #8A8078;    /* text_secondary */
+  --orange: #EE5A24;        /* orange_label — active/data ONLY */
+  --copper: #C49A6C;        /* copper_gold — sub-labels */
+  --cream: #C8B48A;         /* section_header — headers */
+  --green: #16A34A;         /* green_active */
+  --red: #B91C1C;           /* red_primary */
+  --maroon: #B55050;        /* chip_value */
+  --active-bg: #3A2020;     /* active_bg */
+  --console-bg: #3A1A1A;
+  --font: 'Outfit', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html, body {
+  height: 100%; margin: 0; overflow: hidden;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+}
+
+/* Brushed metal background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.015) 1px, rgba(0,0,0,0.02) 2px, transparent 3px, transparent 5px);
+  pointer-events: none; z-index: 0;
+}
+
+/* ═══ SLIDER CONTAINER ═══ */
+.slider {
+  display: flex;
+  width: 600vw; /* 6 tiles */
+  height: 100vh;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative; z-index: 1;
+}
+
+.tile {
+  width: 100vw; height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 28px;
+  position: relative;
+  overflow-y: auto;
+}
+
+/* ═══ PROGRESS DOTS ═══ */
+.dots {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 100;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--elevated);
+  transition: all 0.3s;
+}
+.dot.active {
+  background: var(--orange);
+  box-shadow: 0 0 8px rgba(238,90,36,0.6);
+  width: 24px; border-radius: 4px;
+}
+
+/* ═══ SHARED COMPONENTS ═══ */
+.tile-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--cream);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.tile-sub {
+  font-size: 13px; color: var(--text-dim);
+  text-align: center; line-height: 1.5;
+  margin-bottom: 24px;
+  max-width: 300px;
+}
+.divider {
+  width: 50px; height: 2px;
+  background: var(--copper);
+  margin: 16px auto;
+}
+.action-btn {
+  display: block; width: 100%; max-width: 300px;
+  padding: 16px; margin-top: 20px;
+  background: var(--orange);
+  color: var(--bg); font-weight: 700;
+  font-size: 15px; letter-spacing: 0.08em;
+  text-align: center; border: none; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(238,90,36,0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.action-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(238,90,36,0.2);
+}
+.skip-btn {
+  margin-top: 12px; padding: 8px;
+  font-size: 12px; color: var(--orange);
+  background: none; border: none; cursor: pointer;
+  font-weight: 600;
+}
+
+/* ═══ TILE 1: WELCOME + DEMO ═══ */
+.logo { font-size: 52px; color: var(--orange); font-family: 'Limelight', cursive; font-weight: 400; }
+.logo-sub { font-size: 12px; color: var(--text-muted); letter-spacing: 4px; margin-top: 2px; text-transform: uppercase; }
+
+/* Dashboard frame — miniature version of the real Лаврентий console */
+.dash-frame {
+  width: 100%; max-width: 340px; margin-top: 20px;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.015) 1px, rgba(0,0,0,0.02) 2px, transparent 3px, transparent 5px),
+    linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+.dash-titlebar {
+  display: flex; align-items: center; padding: 8px 12px;
+  background: linear-gradient(180deg, var(--raised-hi), var(--raised));
+  border-bottom: 1px solid var(--border);
+}
+.dash-titlebar-logo {
+  font-family: 'Limelight', cursive; font-size: 14px;
+  color: var(--orange); margin-right: 8px;
+}
+.dash-titlebar-text { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.dash-titlebar-dot {
+  width: 6px; height: 6px; border-radius: 50%; margin-left: auto;
+  background: var(--green);
+  box-shadow: 0 0 4px rgba(68,221,68,0.6);
+}
+.dash-console {
+  padding: 12px 14px;
+  background: var(--console-bg);
+  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  min-height: 120px;
+  position: relative;
+}
+.dash-stats {
+  display: flex; padding: 6px 8px; gap: 4px;
+  border-top: 1px solid rgba(185,28,28,0.15);
+}
+.dash-stat {
+  flex: 1; text-align: center; padding: 4px 2px;
+  border-radius: 4px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(238,90,36,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #0c0c0e 0%, #111115 70%, #0a0a0e 100%);
+  border: 1px solid rgba(60,50,40,0.4);
+}
+.dash-stat .sv { font-family: 'Nixie One', var(--mono); font-size: 13px; color: #ff8c42;
+  text-shadow: 0 0 6px rgba(238,90,36,0.8), 0 0 14px rgba(238,90,36,0.4); }
+.dash-stat .sl { font-size: 7px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+.demo-label { font-size: 9px; color: var(--copper); letter-spacing: 1px; padding: 8px 14px 0; }
+.demo-arrow {
+  text-align: center; font-size: 14px; color: var(--orange);
+  padding: 2px 0; opacity: 0; transition: opacity 0.3s;
+}
+.demo-clean-wrap {
+  padding: 0 14px 10px; opacity: 0; transform: translateY(8px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+.demo-clean-wrap.show { opacity: 1; transform: translateY(0); }
+.demo-clean-text { color: #4ade80; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.demo-tone {
+  text-align: right; font-size: 9px; color: var(--copper);
+  letter-spacing: 1px; padding: 0 14px 8px;
+  opacity: 0; transition: opacity 0.4s;
+}
+
+.junk { color: var(--orange); text-decoration: line-through; opacity: 0.6; font-size: 11px; }
+.con-line { margin-bottom: 1px; }
+.cursor-blink { display: inline-block; width: 2px; height: 1em; background: var(--orange); animation: blink 0.6s infinite; vertical-align: text-bottom; margin-left: 1px; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ═══ TILE 2: ANY APP ═══ */
+.phone-mock {
+  width: 220px; padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #2a2a30 0%, #1e1e24 100%);
+  border: 2px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative;
+}
+.msg-row { display: flex; margin-bottom: 8px; }
+.msg-row.them { justify-content: flex-start; }
+.msg-row.you { justify-content: flex-end; }
+.msg-bubble {
+  max-width: 75%; padding: 8px 12px;
+  border-radius: 14px; font-size: 12px; line-height: 1.4;
+}
+.msg-row.them .msg-bubble { background: var(--raised-hi); color: var(--text); border-bottom-left-radius: 4px; }
+.msg-row.you .msg-bubble { background: #2a4a2a; color: var(--green); border-bottom-right-radius: 4px; }
+.wim-bubble {
+  position: absolute; bottom: -10px; right: -10px;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #C4A574, #6F5030);
+  border: 2px solid var(--maroon);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: var(--bg);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* ═══ TILE 3: LAYERS — dashboard fragment ═══ */
+.layers-panel {
+  width: 100%; max-width: 300px;
+  background: linear-gradient(180deg, var(--raised-hi) 0%, var(--raised) 50%, #24242a 100%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.layer-row {
+  display: flex; align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.layer-row:last-child { border-bottom: none; }
+.layer-row.active { background: rgba(238,90,36,0.12); }
+.layer-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 800;
+  color: var(--orange); width: 36px;
+  text-shadow: 0 0 8px rgba(238,90,36,0.4);
+}
+.layer-row.active .layer-num { text-shadow: 0 0 12px rgba(238,90,36,0.8); }
+.layer-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
+.layer-desc { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+.layer-free { font-size: 9px; color: var(--green); font-weight: 600; letter-spacing: 1px; margin-left: auto; }
+
+/* ═══ TILE 4: TONES — dashboard fragment ═══ */
+.tones-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; width: 100%; max-width: 300px;
+}
+.tone-card {
+  padding: 16px 14px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--raised-hi) 0%, var(--raised) 50%, #24242a 100%);
+  border: 1px solid var(--border);
+  border-bottom: 1px solid rgba(0,0,0,0.4);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  text-align: center; cursor: pointer;
+  transition: all 0.2s;
+}
+.tone-card.active {
+  border-color: var(--orange);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 16px rgba(238,90,36,0.2);
+}
+.tone-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
+.tone-example { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; font-style: italic; }
+
+/* ═══ TILE 5: LEARNS — nixie stat cells ═══ */
+.stats-row {
+  display: flex; gap: 6px; width: 100%; max-width: 320px;
+  margin-bottom: 16px;
+}
+.stat-cell {
+  flex: 1; padding: 8px 4px; text-align: center;
+  border-radius: 6px; position: relative; overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(238,90,36,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #0c0c0e 0%, #141418 30%, #111115 70%, #0a0a0e 100%);
+  border: 1px solid rgba(60,50,40,0.6);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.9), inset 0 0 16px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08);
+}
+.stat-cell::before {
+  content: ''; position: absolute; inset: 1px; border-radius: 5px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.06) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.02) 100%);
+  pointer-events: none;
+}
+.sv {
+  font-family: 'Nixie One', var(--mono);
+  font-size: 20px; color: #ff8c42; line-height: 1;
+  text-shadow: 0 0 6px rgba(238,90,36,0.9), 0 0 14px rgba(238,90,36,0.5), 0 0 30px rgba(238,90,36,0.25);
+}
+.sl { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 4px; }
+
+.console-mock {
+  width: 100%; max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--console-bg);
+  font-family: var(--mono); font-size: 11px;
+  line-height: 1.7; color: var(--text-dim);
+  border: 1px solid rgba(185,28,28,0.2);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+}
+.con-green { color: #4ade80; }
+.con-orange { color: #ff8c42; }
+.con-dim { color: var(--text-muted); }
+
+/* ═══ TILE 6: PERMISSIONS ═══ */
+.perm-list { width: 100%; max-width: 320px; }
+.perm-row {
+  display: flex; align-items: center;
+  padding: 12px 14px; margin-bottom: 6px;
+  border-radius: 8px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.perm-row.granted { background: #1e2e1e; border-color: rgba(68,221,68,0.15); }
+.perm-icon { font-size: 18px; width: 32px; text-align: center; }
+.perm-info { flex: 1; margin-left: 8px; }
+.perm-name { font-size: 13px; font-weight: 600; color: var(--cream); }
+.perm-row.granted .perm-name { color: var(--green); }
+.perm-why { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+.perm-status { font-size: 12px; font-weight: 700; min-width: 36px; text-align: center; }
+.perm-status.done { color: var(--green); }
+.perm-status.tap { color: var(--orange); }
+
+/* ═══ ANIMATIONS ═══ */
+.fade-up {
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.6s, transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+.pulse-in {
+  opacity: 0; transform: scale(0.5);
+  transition: opacity 0.6s, transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.27);
+}
+.pulse-in.visible { opacity: 1; transform: scale(1); }
+
+@keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="slider" id="slider">
+
+  <!-- ══ TILE 1: WELCOME + ANIMATED DEMO ══ -->
+  <div class="tile" id="tile-0">
+    <div class="logo pulse-in">WiM</div>
+    <div class="logo-sub fade-up">WHAT I MEANT</div>
+    <div class="divider fade-up"></div>
+
+    <div class="dash-frame fade-up">
+      <div class="dash-titlebar">
+        <div class="dash-titlebar-logo">WiM</div>
+        <div class="dash-titlebar-text">VOICE RECONSTRUCTION</div>
+        <div class="dash-titlebar-dot"></div>
+      </div>
+      <div class="demo-label">INPUT</div>
+      <div class="dash-console" id="demo-messy"></div>
+      <div class="demo-arrow" id="demo-arrow">&#x2193;</div>
+      <div class="demo-label" id="wim-label" style="opacity:0">OUTPUT</div>
+      <div class="demo-clean-wrap" id="demo-clean-wrap">
+        <div class="demo-clean-text" id="demo-clean"></div>
+      </div>
+      <div class="demo-tone" id="demo-tone"></div>
+      <div class="dash-stats">
+        <div class="dash-stat"><div class="sv">156</div><div class="sl">WPM</div></div>
+        <div class="dash-stat"><div class="sv">1.2s</div><div class="sl">Recon</div></div>
+        <div class="dash-stat"><div class="sv">&#10003;</div><div class="sl">Falcon</div></div>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="action-btn fade-up" onclick="goTo(1)">Get Started</button>
+  </div>
+
+  <!-- ══ TILE 2: ANY APP ══ -->
+  <div class="tile" id="tile-1">
+    <div class="tile-title fade-up">Your voice, any app</div>
+    <div class="tile-sub fade-up">A floating bubble lives on top of everything. Tap it in Gmail, WhatsApp, Notes — anywhere you type.</div>
+
+    <div class="phone-mock fade-up">
+      <div class="msg-row them"><div class="msg-bubble">Hey, can you send the report?</div></div>
+      <div class="msg-row you"><div class="msg-bubble" id="typed-msg"></div></div>
+      <div class="msg-row them"><div class="msg-bubble">Perfect, thanks!</div></div>
+      <div class="wim-bubble">WM</div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="action-btn fade-up" onclick="goTo(2)">Next</button>
+  </div>
+
+  <!-- ══ TILE 3: LAYERS ══ -->
+  <div class="tile" id="tile-2">
+    <div class="tile-title fade-up">4 layers of intelligence</div>
+    <div class="tile-sub fade-up">Start free. Go deeper when you need it.</div>
+
+    <div class="layers-panel fade-up">
+      <div class="layer-row active" id="layer-1">
+        <div class="layer-num">I</div>
+        <div><div class="layer-name">Transcribe</div><div class="layer-desc">On-device cleanup, instant</div></div>
+        <div class="layer-free">FREE</div>
+      </div>
+      <div class="layer-row" id="layer-2">
+        <div class="layer-num">II</div>
+        <div><div class="layer-name">Reconstruct</div><div class="layer-desc">AI rewrites with your tone</div></div>
+      </div>
+      <div class="layer-row" id="layer-3">
+        <div class="layer-num">III</div>
+        <div><div class="layer-name">Profile</div><div class="layer-desc">Learns your vocabulary</div></div>
+      </div>
+      <div class="layer-row" id="layer-4">
+        <div class="layer-num">IV</div>
+        <div><div class="layer-name">Stutter</div><div class="layer-desc">Clinical reconstruction</div></div>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="action-btn fade-up" onclick="goTo(3)">Next</button>
+  </div>
+
+  <!-- ══ TILE 4: TONES ══ -->
+  <div class="tile" id="tile-3">
+    <div class="tile-title fade-up">Your tone, your rules</div>
+    <div class="tile-sub fade-up">Same words, different delivery. WiM adapts to who you're talking to.</div>
+
+    <div class="tones-grid fade-up">
+      <div class="tone-card active">
+        <div class="tone-name">Casual</div>
+        <div class="tone-example">"Yeah the project's done"</div>
+      </div>
+      <div class="tone-card">
+        <div class="tone-name">Professional</div>
+        <div class="tone-example">"The project has been completed"</div>
+      </div>
+      <div class="tone-card">
+        <div class="tone-name">Friend</div>
+        <div class="tone-example">"lol yeah project's done finally"</div>
+      </div>
+      <div class="tone-card">
+        <div class="tone-name">Formal</div>
+        <div class="tone-example">"I am pleased to confirm the project is complete."</div>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="action-btn fade-up" onclick="goTo(4)">Next</button>
+  </div>
+
+  <!-- ══ TILE 5: IT LEARNS ══ -->
+  <div class="tile" id="tile-4">
+    <div class="tile-title fade-up">It learns you</div>
+    <div class="tile-sub fade-up">Every session teaches WiM your vocabulary, your corrections, your patterns.</div>
+
+    <div class="stats-row fade-up">
+      <div class="stat-cell"><div class="sv" id="anim-words">0</div><div class="sl">Words</div></div>
+      <div class="stat-cell"><div class="sv" id="anim-sessions">0</div><div class="sl">Sessions</div></div>
+      <div class="stat-cell"><div class="sv" id="anim-wpm">0</div><div class="sl">WPM</div></div>
+      <div class="stat-cell"><div class="sv" id="anim-score">--</div><div class="sl">Score</div></div>
+    </div>
+
+    <div class="console-mock fade-up">
+      <div><span class="con-green">+</span> learned: <span class="con-orange">"kubernetes"</span> <span class="con-dim">→ vocabulary</span></div>
+      <div><span class="con-green">+</span> correction: <span class="con-orange">"kuberneets"</span> → <span class="con-green">"kubernetes"</span></div>
+      <div><span class="con-green">+</span> onset /k/: <span class="con-orange">0.72 → 0.78</span></div>
+      <div><span class="con-green">&#10003;</span> Falcon: <span class="con-green">approved</span> <span class="con-dim">234ms</span></div>
+      <div><span class="con-dim">L3 · professional · 1.2s</span></div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="action-btn fade-up" onclick="goTo(5)">Next</button>
+  </div>
+
+  <!-- ══ TILE 6: PERMISSIONS + GO ══ -->
+  <div class="tile" id="tile-5">
+    <div class="tile-title fade-up">Almost there</div>
+    <div class="tile-sub fade-up">WiM needs a few permissions to work its magic.</div>
+
+    <div class="perm-list fade-up" id="perm-list">
+      <!-- Populated by JS based on Android callback -->
+    </div>
+
+    <div style="flex:1"></div>
+    <div style="text-align:center;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--text-dim)" id="perm-progress"></span>
+    </div>
+    <button class="action-btn" id="go-btn" onclick="finish()">Let's Go</button>
+    <button class="skip-btn" onclick="finish()">Skip for now</button>
+  </div>
+
+</div>
+
+<!-- Progress dots -->
+<div class="dots" id="dots">
+  <div class="dot active"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+</div>
+
+<script>
+// ═══ NAVIGATION ═══
+let current = 0;
+const slider = document.getElementById('slider');
+const dots = document.querySelectorAll('.dot');
+
+function goTo(n) {
+  current = n;
+  slider.style.transform = `translateX(-${n * 100}vw)`;
+  dots.forEach((d,i) => d.classList.toggle('active', i === n));
+  animateTile(n);
+}
+
+// Swipe support
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    if (dx < 0 && current < 5) goTo(current + 1);
+    else if (dx > 0 && current > 0) goTo(current - 1);
+  }
+});
+
+// ═══ ANIMATE ELEMENTS ON ENTER ═══
+function animateTile(n) {
+  const tile = document.getElementById('tile-' + n);
+  if (!tile) return;
+  const els = tile.querySelectorAll('.fade-up, .pulse-in');
+  els.forEach((el, i) => {
+    setTimeout(() => el.classList.add('visible'), i * 150);
+  });
+
+  if (n === 0) startDemo();
+  if (n === 1) typeMessage();
+  if (n === 2) animateLayers();
+  if (n === 4) animateStats();
+}
+
+// Start tile 0 animations
+setTimeout(() => animateTile(0), 300);
+
+// ═══ TILE 1: TYPEWRITER DEMO ═══
+const examples = [
+  { messy: "So um I I was trying to to tell him the the project is done",
+    clean: "I was trying to tell him the project is done.",
+    junk: ["so","um"],
+    repeats: [[3,4],[6,7],[10,11]],  // index pairs of repeated words
+    tone: "casual" },
+  { messy: "Can you uh send me the the report by by Friday please",
+    clean: "Can you send me the report by Friday?",
+    junk: ["uh"],
+    repeats: [[5,6],[8,9]],
+    tone: "professional" },
+  { messy: "I think we should we should probably like move the meeting",
+    clean: "I think we should move the meeting.",
+    junk: ["like"],
+    repeats: [[3,4,5,6]],
+    tone: "formal" }
+];
+let demoIdx = 0, demoTimer = null;
+
+function startDemo() {
+  clearTimeout(demoTimer);
+  runExample(examples[demoIdx % examples.length]);
+}
+
+function runExample(ex) {
+  const messy = document.getElementById('demo-messy');
+  const clean = document.getElementById('demo-clean');
+  const arrow = document.getElementById('demo-arrow');
+  const tone = document.getElementById('demo-tone');
+  const wimLabel = document.getElementById('wim-label');
+
+  messy.innerHTML = ''; clean.textContent = '';
+  arrow.style.opacity = '0'; tone.style.opacity = '0';
+  wimLabel.style.opacity = '0';
+
+  // Phase 1: typewriter
+  const chars = ex.messy;
+  let i = 0;
+  const cursor = '<span class="cursor-blink"></span>';
+
+  function type() {
+    if (i <= chars.length) {
+      messy.innerHTML = chars.substring(0, i) + cursor;
+      i++;
+      demoTimer = setTimeout(type, 30 + Math.random() * 20);
+    } else {
+      // Remove cursor, highlight junk
+      demoTimer = setTimeout(() => highlightJunk(messy, ex, clean, arrow, tone, wimLabel), 600);
+    }
+  }
+  type();
+}
+
+function highlightJunk(messy, ex, clean, arrow, tone, wimLabel) {
+  const words = ex.messy.split(' ');
+  const junkSet = new Set(ex.junk.map(w => w.toLowerCase()));
+  const repeatIndices = new Set();
+  ex.repeats.forEach(group => {
+    for (let i = 0; i < group.length - 1; i++) repeatIndices.add(group[i]);
+  });
+
+  let html = words.map((w, i) => {
+    if (junkSet.has(w.toLowerCase()) || repeatIndices.has(i)) {
+      return `<span class="junk">${w}</span>`;
+    }
+    return w;
+  }).join(' ');
+  messy.innerHTML = html;
+
+  // Show arrow + clean inside dashboard frame
+  const cleanWrap = document.getElementById('demo-clean-wrap');
+  setTimeout(() => {
+    arrow.style.opacity = '1';
+    wimLabel.style.opacity = '1';
+  }, 400);
+  setTimeout(() => {
+    clean.textContent = ex.clean;
+    cleanWrap.classList.add('show');
+    tone.textContent = `tone: ${ex.tone}`;
+    tone.style.opacity = '1';
+  }, 800);
+
+  // Cycle
+  demoTimer = setTimeout(() => {
+    const cleanWrap = document.getElementById('demo-clean-wrap');
+    cleanWrap.classList.remove('show');
+    demoIdx++;
+    if (current === 0) runExample(examples[demoIdx % examples.length]);
+  }, 4000);
+}
+
+// ═══ TILE 2: TYPED MESSAGE ═══
+function typeMessage() {
+  const el = document.getElementById('typed-msg');
+  const msg = "Sure, I'll send it right over.";
+  el.textContent = '';
+  let i = 0;
+  function t() {
+    if (i <= msg.length) {
+      el.textContent = msg.substring(0, i);
+      i++;
+      setTimeout(t, 40);
+    }
+  }
+  setTimeout(t, 800);
+}
+
+// ═══ TILE 3: LAYER HIGHLIGHT CYCLE ═══
+function animateLayers() {
+  const rows = document.querySelectorAll('.layer-row');
+  let idx = 0;
+  function cycle() {
+    if (current !== 2) return;
+    rows.forEach(r => r.classList.remove('active'));
+    rows[idx % 4].classList.add('active');
+    idx++;
+    setTimeout(cycle, 1500);
+  }
+  setTimeout(cycle, 600);
+}
+
+// ═══ TILE 5: COUNTING STATS ═══
+function animateStats() {
+  animateCount('anim-words', 0, 12847, 1500);
+  animateCount('anim-sessions', 0, 342, 1200);
+  animateCount('anim-wpm', 0, 156, 1000);
+  setTimeout(() => { document.getElementById('anim-score').textContent = '94'; }, 1800);
+}
+
+function animateCount(id, from, to, duration) {
+  const el = document.getElementById(id);
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3); // ease out cubic
+    el.textContent = Math.floor(from + (to - from) * ease).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ═══ TILE 6: PERMISSIONS ═══
+// Called from Android via WebView.evaluateJavascript
+function setPermissions(perms) {
+  const list = document.getElementById('perm-list');
+  list.innerHTML = '';
+  let granted = 0;
+  perms.forEach(p => {
+    if (p.granted) granted++;
+    const row = document.createElement('div');
+    row.className = 'perm-row' + (p.granted ? ' granted' : '');
+    row.innerHTML = `
+      <div class="perm-icon">${p.granted ? '&#10003;' : '!'}</div>
+      <div class="perm-info">
+        <div class="perm-name">${p.name}</div>
+        <div class="perm-why">${p.why}</div>
+      </div>
+      <div class="perm-status ${p.granted ? 'done' : 'tap'}">${p.granted ? '&#10003;' : 'TAP'}</div>
+    `;
+    if (!p.granted) row.onclick = () => Android.requestPermission(p.id);
+    list.appendChild(row);
+  });
+  document.getElementById('perm-progress').textContent = `${granted} of ${perms.length} granted`;
+}
+
+function finish() {
+  if (typeof Android !== 'undefined') Android.onboardingComplete();
+}
+
+// Fallback: if no Android bridge, show static permissions
+if (typeof Android === 'undefined') {
+  setPermissions([
+    { id: 'overlay', name: 'Display Over Apps', why: 'Floating bubble on top of other apps', granted: false },
+    { id: 'mic', name: 'Microphone', why: 'WiM needs to hear your voice', granted: false },
+    { id: 'accessibility', name: 'Accessibility', why: 'Detects text fields, pastes clean text', granted: false },
+    { id: 'battery', name: 'Battery Optimization', why: 'Keeps bubble alive in background', granted: false },
+    { id: 'notifications', name: 'Notifications', why: 'Required for foreground service', granted: false }
+  ]);
+}
+</script>
+</body>
+</html>

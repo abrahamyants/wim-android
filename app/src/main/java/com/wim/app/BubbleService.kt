@@ -1715,6 +1715,7 @@ class BubbleService : Service() {
                 falconApproved = true,
                 riskFlags = emptyList()
             )
+            SessionUpdateBus.emit()
             // Test automation: capture result
             if (BuildConfig.DEBUG) {
                 WimTestReceiver.lastResult = org.json.JSONObject().apply {
@@ -1729,7 +1730,7 @@ class BubbleService : Service() {
                     put("total_ms", totalMs)
                     put("falcon_approved", true)
                     put("risk_flags", org.json.JSONArray())
-                    put("wer", sessionHistory?.computeWer(rawText, l1Text) ?: 0f)
+                    put("wer", (sessionHistory?.computeWer(rawText, l1Text) ?: 0f).toDouble())
                 }
             }
             setBubbleIdle()
@@ -1879,6 +1880,7 @@ class BubbleService : Service() {
                     falconApproved = reconResult.falconApproved,
                     riskFlags = reconResult.riskFlags
                 )
+                SessionUpdateBus.emit()
 
                 // Test automation: capture result
                 if (BuildConfig.DEBUG) {
@@ -1896,7 +1898,7 @@ class BubbleService : Service() {
                         put("falcon_approved", reconResult.falconApproved)
                         put("leak_filtered", leakDetected)
                         put("risk_flags", org.json.JSONArray(reconResult.riskFlags))
-                        put("wer", sessionHistory?.computeWer(rawText, outputText) ?: 0f)
+                        put("wer", (sessionHistory?.computeWer(rawText, outputText) ?: 0f).toDouble())
                         put("disfluencies_stripped", stripped)
                     }
                 }
@@ -1920,6 +1922,7 @@ class BubbleService : Service() {
                     falconApproved = false,
                     riskFlags = listOf("reconstruction_failed")
                 )
+                SessionUpdateBus.emit()
                 // Test automation: capture error
                 if (BuildConfig.DEBUG) {
                     WimTestReceiver.lastResult = org.json.JSONObject().apply {

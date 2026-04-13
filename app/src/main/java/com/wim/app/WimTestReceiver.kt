@@ -306,7 +306,7 @@ class WimTestReceiver : BroadcastReceiver() {
                 put("total_ms", s.totalMs)
                 put("falcon_approved", s.falconApproved)
                 put("risk_flags", s.riskFlags)
-                put("wer", history.computeWer(s.rawText, s.cleanText))
+                put("wer", history.computeWer(s.rawText, s.cleanText).toDouble())
             })
         }
 

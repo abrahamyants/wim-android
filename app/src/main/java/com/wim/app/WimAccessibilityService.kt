@@ -145,7 +145,21 @@ class WimAccessibilityService : AccessibilityService() {
             android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        val clip = android.content.ClipData.newPlainText("wim", text)
+        // Smart spacing: prepend a space if the character before the cursor
+        // isn't already a space or newline, so consecutive dictations don't
+        // smash together (matches Wispr Flow / Dragon behavior).
+        var finalText = text
+        val existing = node.text?.toString()
+        if (!existing.isNullOrEmpty()) {
+            val cursorEnd = if (node.textSelectionEnd >= 0) node.textSelectionEnd else existing.length
+            if (cursorEnd > 0) {
+                val charBefore = existing[cursorEnd - 1]
+                if (charBefore != ' ' && charBefore != '\n' && charBefore != '\t') {
+                    finalText = " $text"
+                }
+            }
+        }
+        val clip = android.content.ClipData.newPlainText("wim", finalText)
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
         clipboard.setPrimaryClip(clip)
         node.performAction(AccessibilityNodeInfo.ACTION_PASTE)

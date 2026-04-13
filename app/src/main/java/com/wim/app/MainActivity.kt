@@ -44,6 +44,8 @@ import java.util.Locale
  */
 class MainActivity : AppCompatActivity() {
 
+    private var sessionUpdateUnsub: (() -> Unit)? = null
+
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
@@ -62,8 +64,12 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Onboarding disabled — rebuilding
-        // WimApp.prefs.edit().putBoolean("onboarding_complete", true).apply()
+        // Route to onboarding if first run
+        if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
 
         setContentView(R.layout.activity_main)
 
@@ -174,6 +180,9 @@ class MainActivity : AppCompatActivity() {
 
         // Refresh sessions UI after Firestore sync completes (e.g. after sign-in on fresh install)
         WimApp.onSessionsSynced = { loadSessions() }
+
+        // Refresh sessions UI in real time when BubbleService records a new session
+        sessionUpdateUnsub = SessionUpdateBus.subscribe { runOnUiThread { loadSessions() } }
 
         // Stats cells → tap to expand and scroll to relevant section
         fun statClickExpand(statViewId: Int, headerId: Int, contentId: Int, sectionKey: String) {
@@ -537,6 +546,11 @@ class MainActivity : AppCompatActivity() {
             ensureBubbleRunning()
             loadSessions()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        sessionUpdateUnsub?.invoke()
     }
 
     private fun loadSessions(query: String? = null) {
