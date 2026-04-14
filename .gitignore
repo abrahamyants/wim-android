@@ -17,3 +17,10 @@ local.properties
 # Test screenshots
 wim_screen.png
 wim_sessions.png
+
+# Dev screenshots
+app_*.png
+onboard*.png
+toggle*.png
+tap_*.png
+wim_check*.png

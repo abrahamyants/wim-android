@@ -831,6 +831,60 @@
 
             </LinearLayout>
 
+            <!-- Console / Sessions toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="28dp"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:id="@+id/tabConsole"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="CONSOLE"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/card_bg" />
+
+                <TextView
+                    android:id="@+id/tabSessions"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="SESSIONS"
+                    android:textColor="@color/section_header"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/card_bg" />
+
+            </LinearLayout>
+
+            <!-- Console view (hidden by default) -->
+            <ScrollView
+                android:id="@+id/consoleScroll"
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/sessions_mesh_bg"
+                android:visibility="gone"
+                android:fillViewport="true"
+                android:nestedScrollingEnabled="true">
+
+                <LinearLayout
+                    android:id="@+id/consoleContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp" />
+            </ScrollView>
+
             <FrameLayout
                 android:id="@+id/sessionsPanel"
                 android:layout_width="match_parent"

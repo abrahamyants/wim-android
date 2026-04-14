@@ -594,6 +594,7 @@ class BubbleService : Service() {
         lastRawText = ""
         finalizedSegments = ""
         processed = false
+        ConsoleLog.log("Recording...", "rec")
 
         Log.i(TAG, "Starting on-device recognition")
         dismissMenu()
@@ -1638,6 +1639,7 @@ class BubbleService : Service() {
         val layer = WimApp.layer()
         val tone = WimApp.tone()
         val situation = WimApp.situation()
+        ConsoleLog.log("Processing... [L$layer ${tone.uppercase()} $situation]", "info")
         val profile = WimApp.profile()
 
         // Voice shortcuts — expand triggers before processing
@@ -1661,6 +1663,7 @@ class BubbleService : Service() {
         val deHallucinated = DisfluencyFilter.stripBlockHallucinations(expandedText, lastWhisperLowConf)
         if (deHallucinated != expandedText) {
             Log.i(TAG, "Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars")
+            ConsoleLog.log("Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars", "warn")
         }
 
         // Pre-clean: strip disfluencies from raw ASR text before GPT sees it.
@@ -1678,6 +1681,10 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putInt("filler_count", if (current >= 150) 0 else current).apply()
         }
         Log.i(TAG, "Pre-cleaned: $preCleaned")
+        ConsoleLog.log("Raw: \"${rawText.take(80)}${if (rawText.length > 80) "..." else ""}\"", "raw")
+        if (stripped > 0) {
+            ConsoleLog.log("Disfluency filter: $stripped removed (${rawWordCount}w -> ${cleanWordCount}w)", "info")
+        }
 
         if (layer < 2) {
             // L1: disfluency-filtered text + profile corrections (no GPT needed)
@@ -1701,8 +1708,10 @@ class BubbleService : Service() {
                 val corrCount = if (l1Text != preCleaned) " + corrections" else ""
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
             }
+            ConsoleLog.log("-> \"${l1Text.take(80)}${if (l1Text.length > 80) "..." else ""}\"  [${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w]", "out")
             WimAccessibilityService.instance?.injectText(l1Text)
             val totalMs = System.currentTimeMillis() - recordingStartTime
+            ConsoleLog.log("[L1] paste_clean | ${totalMs}ms (asr:${asrMs})", "info")
             sessionHistory?.record(
                 rawText = rawText,
                 cleanText = l1Text,
@@ -1787,6 +1796,7 @@ class BubbleService : Service() {
                     }
                 } else null
 
+                ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
@@ -1805,6 +1815,7 @@ class BubbleService : Service() {
                 )
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
+                ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")
 
                 // Post-reconstruction LLM leak filter (ported from Лаврентий)
                 // Catches chatbot responses / meta-commentary that GPT sometimes emits
@@ -1827,6 +1838,7 @@ class BubbleService : Service() {
                 for (pattern in llmLeakPatterns) {
                     if (reconLower.startsWith(pattern) || pattern in reconLower) {
                         Log.w(TAG, "LLM leak detected: \"${outputText.take(80)}\" — using raw")
+                        ConsoleLog.log("LLM leak detected — using raw", "error")
                         leakDetected = true
                         break
                     }
@@ -1839,6 +1851,7 @@ class BubbleService : Service() {
                     val lenRatio = reconWordCount.toFloat() / cleanWordCount.toFloat()
                     if (lenRatio > 2.5f) {
                         Log.w(TAG, "LLM length explosion: ${cleanWordCount}w → ${reconWordCount}w (${lenRatio}x) — using raw")
+                        ConsoleLog.log("Length explosion: ${cleanWordCount}w -> ${reconWordCount}w (${lenRatio}x) — using raw", "error")
                         leakDetected = true
                     }
                 }
@@ -1866,6 +1879,8 @@ class BubbleService : Service() {
                     profile.learnFromReconstruction(preCleaned, outputText)
                 }
 
+                val outWords = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+                ConsoleLog.log("-> \"${outputText.take(80)}${if (outputText.length > 80) "..." else ""}\"  [${outWords}w]", "out")
                 // Record session
                 val totalMs = System.currentTimeMillis() - recordingStartTime
                 sessionHistory?.record(
@@ -1881,6 +1896,8 @@ class BubbleService : Service() {
                     riskFlags = reconResult.riskFlags
                 )
                 SessionUpdateBus.emit()
+                val flagStr = if (reconResult.riskFlags.isNotEmpty()) " flags:[${reconResult.riskFlags.joinToString(",")}]" else ""
+                ConsoleLog.log("[L$layer] paste_clean | ${totalMs}ms (asr:${asrMs} recon:${reconResult.reconMs})$flagStr", "info")
 
                 // Test automation: capture result
                 if (BuildConfig.DEBUG) {
@@ -1906,6 +1923,7 @@ class BubbleService : Service() {
                 setBubbleIdle()
             } catch (e: Exception) {
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
+                ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
                 // Fallback: inject pre-cleaned text
                 WimAccessibilityService.instance?.injectText(preCleaned)
                 // Still record the session even on API failure

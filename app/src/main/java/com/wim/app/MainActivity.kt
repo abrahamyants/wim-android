@@ -45,6 +45,8 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private var sessionUpdateUnsub: (() -> Unit)? = null
+    private var consoleUnsub: (() -> Unit)? = null
+    private var showingConsole = false
 
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
@@ -183,6 +185,33 @@ class MainActivity : AppCompatActivity() {
 
         // Refresh sessions UI in real time when BubbleService records a new session
         sessionUpdateUnsub = SessionUpdateBus.subscribe { runOnUiThread { loadSessions() } }
+
+        // Console / Sessions toggle
+        val tabConsole = findViewById<TextView>(R.id.tabConsole)
+        val tabSessions = findViewById<TextView>(R.id.tabSessions)
+        val consoleScroll = findViewById<View>(R.id.consoleScroll)
+        val sessionsPanelView = findViewById<View>(R.id.sessionsPanel)
+
+        fun switchToConsole() {
+            showingConsole = true
+            consoleScroll.visibility = View.VISIBLE
+            sessionsPanelView.visibility = View.GONE
+            tabConsole.setTextColor(getColor(R.color.section_header))
+            tabSessions.setTextColor(getColor(R.color.text_secondary))
+            loadConsole()
+        }
+        fun switchToSessions() {
+            showingConsole = false
+            consoleScroll.visibility = View.GONE
+            sessionsPanelView.visibility = View.VISIBLE
+            tabSessions.setTextColor(getColor(R.color.section_header))
+            tabConsole.setTextColor(getColor(R.color.text_secondary))
+        }
+        tabConsole.setOnClickListener { switchToConsole() }
+        tabSessions.setOnClickListener { switchToSessions() }
+
+        // Live console updates
+        consoleUnsub = ConsoleLog.subscribe { runOnUiThread { if (showingConsole) loadConsole() } }
 
         // Stats cells → tap to expand and scroll to relevant section
         fun statClickExpand(statViewId: Int, headerId: Int, contentId: Int, sectionKey: String) {
@@ -551,6 +580,42 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         sessionUpdateUnsub?.invoke()
+        consoleUnsub?.invoke()
+    }
+
+    private fun loadConsole() {
+        val container = findViewById<LinearLayout>(R.id.consoleContainer) ?: return
+        container.removeAllViews()
+        val entries = ConsoleLog.entries.take(100)
+        val sdf = java.text.SimpleDateFormat("HH:mm:ss", Locale.US)
+        for (entry in entries) {
+            val tv = TextView(this).apply {
+                val timeStr = sdf.format(Date(entry.timestamp))
+                text = "$timeStr  ${entry.text}"
+                textSize = 10f
+                typeface = android.graphics.Typeface.MONOSPACE
+                setPadding(8, 2, 8, 2)
+                setTextColor(when (entry.kind) {
+                    "rec" -> 0xFFFF6B6B.toInt()   // red — recording
+                    "raw" -> 0xFFFFFFFF.toInt()    // white — raw transcription
+                    "out" -> 0xFF4CAF50.toInt()    // green — final output
+                    "warn" -> 0xFFFFB74D.toInt()   // orange — warnings
+                    "error" -> 0xFFFF5252.toInt()  // bright red — errors
+                    else -> 0xFFB0B0B0.toInt()     // gray — info
+                })
+            }
+            container.addView(tv)
+        }
+        if (entries.isEmpty()) {
+            val tv = TextView(this).apply {
+                text = "No log entries yet. Record something."
+                textSize = 10f
+                typeface = android.graphics.Typeface.MONOSPACE
+                setTextColor(0xFF666666.toInt())
+                setPadding(8, 16, 8, 16)
+            }
+            container.addView(tv)
+        }
     }
 
     private fun loadSessions(query: String? = null) {
