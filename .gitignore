@@ -10,3 +10,10 @@
 local.properties
 /app/build
 .kotlin/
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Test screenshots
+wim_screen.png
+wim_sessions.png
