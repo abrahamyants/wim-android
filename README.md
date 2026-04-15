@@ -87,10 +87,12 @@ WiM is the consumer mobile face of the [Lavrentiy voice reconstruction engine](h
 
 - Kotlin, Android SDK 35 (min SDK 26)
 - Firebase Auth + Google Identity
+- Firebase Crashlytics, Analytics, Performance Monitoring, Remote Config
 - OpenAI API (Whisper + GPT)
 - OkHttp for networking
 - SQLite for session history
 - SharedPreferences for profile and settings
+- GitHub Actions CI (build + test on push/PR to main)
 
 ## Permissions
 
@@ -291,6 +293,8 @@ fcdeda2 Fix 6 critical Лаврентий parity issues
 ## Testing
 
 7 test files, 126 assertions. Run with `./gradlew.bat testDebugUnitTest`.
+
+**CI Pipeline:** GitHub Actions (`.github/workflows/ci.yml`) runs on every push/PR to main — checkout, JDK 17 setup, Gradle cache, `assembleDebug`, `testDebugUnitTest`, uploads debug APK as artifact on push.
 
 | File | Tests | What it covers |
 |------|-------|---------------|
@@ -799,18 +803,70 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 6073c2b Remove Gemini routing, add LLM leak filter + length guard, harden DAF stop
 ```
 
+## Session 8 — April 13, 2026
+
+### Critical Fixes
+
+**JSONObject.put(Float) crash.** Android's `JSONObject` has no `put(String, Float)` method. The Float autoboxes to Object but crashes at runtime. Fixed with `.toDouble()` at 3 call sites: `BubbleService.kt` (2 sites) and `WimTestReceiver.kt` (1 site). Was crashing every recording.
+
+**SessionUpdateBus — live session refresh.** Sessions appeared in the database but not in the UI because `loadSessions()` only ran on `onResume`/`onWindowFocusChanged`. New `SessionUpdateBus.kt` pub/sub singleton: `BubbleService` emits after all 3 `sessionHistory.record()` calls, `MainActivity` subscribes for real-time UI refresh.
+
+**Smart paste spacing.** Consecutive dictations ran words together because the accessibility injector pasted text without leading whitespace. Fixed in `WimAccessibilityService`: reads `node.text` and `node.textSelectionEnd`, prepends a space if the character before the cursor isn't whitespace.
+
+### New Infrastructure
+
+**Firebase Crashlytics/Analytics/Performance/RemoteConfig.** Added all 4 Firebase services to both `build.gradle.kts` files and the app module plugins. Automatic crash reporting, usage analytics, performance traces, and remote feature flags now active.
+
+**GitHub Actions CI pipeline.** `.github/workflows/ci.yml` — runs on push/PR to main. Steps: checkout, JDK 17 (temurin), Gradle cache by `*.gradle.kts` hash, `assembleDebug`, `testDebugUnitTest`, uploads debug APK artifact on push.
+
+**ConsoleLog.** New `ConsoleLog.kt` — in-memory pipeline log (max 200 entries) with typed entries: `rec`, `info`, `raw`, `out`, `warn`, `error`. `BubbleService` emits at every pipeline stage (recording start, processing, raw text, disfluency filter, reconstruction, falcon check, leak filter, length explosion, output, errors). `MainActivity` subscribes and renders color-coded entries in a new CONSOLE/SESSIONS tab toggle.
+
+### Onboarding Overhaul
+
+**WebView rewrite.** Onboarding is now a 6-tile `onboarding.html` loaded in a WebView (`OnboardingActivity.kt`). Swipe between tiles with Samsung edge-conflict avoidance (40px edge zones ignored, 80px minimum swipe, vertical gestures ignored).
+
+**Font fix.** Replaced Google Fonts CDN with local `@font-face` for Limelight (`assets/limelight.ttf`). System fallbacks: Roboto for body, Roboto Mono for monospace.
+
+**Stuttered speech demo.** Tile 1 now shows a stuttered example first in the demo rotation: "I I I w-want to c-c-call my my d-doctor about the the appointment" — establishing L4 value immediately.
+
+**Color corrections.** Onboarding was saturated with orange (buttons, progress dots, highlights, skip button, layer numbers, active rows, permission indicators, demo arrow/cursor). The actual app uses orange minimally (logo, sound bars, nixie glow only). Fixed: buttons → dark card with maroon border + cream text, progress dots → maroon, skip → copper, all highlights/accents → maroon or copper. Tile 5 simplified: removed fake animated stats, replaced with real correction examples (Duncan→Dankeschön, Web3Forms→WordPress).
+
+### Lavrentiy Fixes (Parallel)
+
+**BoH hallucination filter removed.** 1,270 patterns from the Barański et al. 2025 "Bag of Hallucinations" dataset included common English words ('the', 'you', 'so', 'I', 'a'). Whisper correctly transcribed speech, then the filter destroyed it. Example: "Yeah, but I'm not stuttering." → ", but 'm t stuttrng." Root cause: BoH dataset imported April 7, patterns not anchored (matched substrings within correct transcriptions). 47 custom regex patterns kept. The filter caused 6 days of transcription destruction.
+
+**Gemini 2.5 Pro removed.** Gemini routing was still in `lavrentiy.py` despite being "removed" in WiM Session 7. API key was revoked (403). All Gemini code removed — single model (GPT-4o) everywhere now.
+
+**Smart paste spacing.** Changed `pyperclip.copy(text + " ")` to `pyperclip.copy(" " + text + " ")` in paste function.
+
+### Key Discoveries
+
+- **Google Eloquent** launched April 7, 2026 — free offline dictation, threatens L2/L3 generic market
+- **L4 (stuttering) is the product.** Zero competitors. 80M people stutter worldwide. L2/L3 generic dictation is the front door, L4 clinical stutter reconstruction is the moat.
+- **Whisper is swappable "ears"** — can swap to Deepgram/AssemblyAI for better accuracy without touching the reconstruction pipeline
+- **Drew Lynch pipeline test** — 3 segments (near-fluent, heavy stuttering, emotional) through WiM L4 via ADB `WimTestReceiver`. All passed: Falcon approved, correct reconstruction, zero crashes.
+
+### Commits — Session 8
+```
+91beaf7 Fix crash, add live session refresh, smart paste spacing, onboarding rewrite
+9a40d02 Add Firebase Crashlytics/Analytics/Performance/RemoteConfig, CI pipeline, console view, onboarding fixes
+```
+
 ## Instructions for Next Model
 
 **READ THIS FIRST.** George iterates fast via voice (Wispr/Lavrentiy at 182 WPM). His messages are phonetic, messy, and context-dependent. Extract intent, not spelling.
 
 ### Current State
 - App builds and installs via `./gradlew.bat assembleDebug` + ADB
+- **CI:** GitHub Actions runs `assembleDebug` + `testDebugUnitTest` on every push/PR to main
+- **Firebase:** Crashlytics, Analytics, Performance, RemoteConfig all wired up
 - Phone: Samsung `R5CWB08K38H`, connected via USB, ADB at `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`
 - ADB screenshots: `adb shell "screencap -p //sdcard//screen.png"` then `adb pull` (double-slash to prevent Git bash path mangling)
 - **Multi-display warning:** Always use `//sdcard//` not `/sdcard/`. The screencap warning about multiple displays is cosmetic — the screenshot still works.
 - Android-MCP: configured in `~/.claude/settings.json`, requires USB connection + USB debugging
 - Lavrentiy desktop: now uses Inno Setup installer (`Lavrentiy-Setup-v1.1.0.exe`), VBS launcher, Edge --app mode. Portable folder deleted.
 - Lavrentiy dashboard CSS: `C:\Users\georg\Documents\GitHub\lavrentiy\dashboard.html` — THE source of truth for design
+- **Product strategy:** L4 stuttering is the product (zero competitors, 80M TAM). L2/L3 generic dictation is the front door. Google Eloquent (April 7, 2026) threatens generic market but can't touch L4.
 
 ### Known Issues
 1. ~~**Backend tier gate:**~~ **FIXED** (Session 7 desktop) — George's Firestore `tier` changed from "free" to "pro". L4 via backend no longer 403s.
@@ -847,10 +903,18 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 - **Twist mode: real-world testing** — verify trigger phrases at 182 WPM, ambient noise, various accents
 
 ### From Session 7
-- **Onboarding rebuild** — current 6-screen flow is disabled and broken (see Session 7 log). Redesigning as 3-screen flow: Welcome → Permissions (step-by-step) → Go.
-- **WimTestReceiver** — broadcast receiver for 12 custom intents (SET_TONE, SET_LAYER, INJECT_RAW, GET_LAST_RESULT, TRIGGER_BUBBLE, etc.). Being built by parallel Claude Desktop session. Enables full LLM-driven pipeline testing.
-- **Android-MCP integration** — MCP server added to Claude Code settings. Enables LLM-controlled device interaction (screenshots, taps, UI hierarchy, logcat) for automated onboarding testing and competitor app analysis.
+- ~~**Onboarding rebuild**~~ — **DONE** (Session 8): WebView-based 6-tile flow with swipe navigation. Font/color/demo fixes applied. Still needs end-to-end testing on device (tiles 5-6 unverified).
+- ~~**WimTestReceiver**~~ — **DONE** (Session 7): 16-action broadcast receiver, tested with Drew Lynch segments in Session 8.
+- **Android-MCP integration** — MCP server added to Claude Code settings. Enables LLM-controlled device interaction.
 - **Falcon prompt label fix** — verify desktop uses "Original:"/"Reconstruction:" consistently (WiM now matches)
+
+### From Session 8
+- **Onboarding color verification** — CSS changed but never verified on device (Samsung lock screen issues). George not satisfied with orange usage audit.
+- **Onboarding end-to-end test** — all 6 tiles, especially tile 5 (simplified stats) and tile 6 (permissions) need on-device verification
+- **Google Sign-In fix** — "no credentials available" error, likely SHA-1 fingerprint mismatch
+- **BoH filter re-implementation** — bring back with proper anchoring (match only when entire transcription is a hallucination phrase, not substrings)
+- **Hardcoded colors in Kotlin** — 23 occurrences of `0xFFEE5A24` that don't respond to theme switching, need refactor to `getColor(R.color.*)`
+- **Ears upgrade evaluation** — test Deepgram/AssemblyAI as Whisper alternatives for better accuracy
 
 ### Carried Forward
 - One-directional sticky Settings header — verify/improve
