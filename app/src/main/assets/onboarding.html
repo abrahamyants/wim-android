@@ -73,20 +73,29 @@ body::before {
   overflow-y: auto;
 }
 
-/* ═══ PROGRESS DOTS ═══ */
+/* ═══ PROGRESS INDICATOR ═══ */
+.progress {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; z-index: 100;
+}
 .dots {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 8px; z-index: 100;
+  display: flex; gap: 8px;
 }
 .dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--elevated);
+  background: var(--raised-hi);
   transition: all 0.3s;
 }
 .dot.active {
   background: var(--maroon);
   box-shadow: 0 0 8px rgba(181,80,80,0.6);
   width: 24px; border-radius: 4px;
+}
+.tile-counter {
+  font-family: var(--mono);
+  font-size: 12px; color: var(--text-muted);
+  letter-spacing: 1px;
+  min-width: 32px;
 }
 
 /* ═══ SHARED COMPONENTS ═══ */
@@ -286,25 +295,7 @@ body::before {
 .tone-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
 .tone-example { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; font-style: italic; }
 
-/* ═══ TILE 5: LEARNS — nixie stat cells ═══ */
-.stats-row {
-  display: flex; gap: 6px; width: 100%; max-width: 320px;
-  margin-bottom: 16px;
-}
-.stat-cell {
-  flex: 1; padding: 8px 4px; text-align: center;
-  border-radius: 6px; position: relative; overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 40%, rgba(200,180,138,0.06) 0%, transparent 60%),
-    linear-gradient(180deg, #0c0c0e 0%, #141418 30%, #111115 70%, #0a0a0e 100%);
-  border: 1px solid rgba(60,50,40,0.6);
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.9), inset 0 0 16px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08);
-}
-.stat-cell::before {
-  content: ''; position: absolute; inset: 1px; border-radius: 5px;
-  background: linear-gradient(165deg, rgba(255,255,255,0.06) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.02) 100%);
-  pointer-events: none;
-}
+/* ═══ TILE 5: LEARNS ═══ */
 .sv {
   font-family: var(--mono);
   font-size: 20px; color: #D4C5A9; line-height: 1;
@@ -507,14 +498,17 @@ body::before {
 
 </div>
 
-<!-- Progress dots -->
-<div class="dots" id="dots">
-  <div class="dot active"></div>
-  <div class="dot"></div>
-  <div class="dot"></div>
-  <div class="dot"></div>
-  <div class="dot"></div>
-  <div class="dot"></div>
+<!-- Progress -->
+<div class="progress">
+  <div class="tile-counter" id="tile-counter">1 / 6</div>
+  <div class="dots" id="dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
 </div>
 
 <script>
@@ -527,6 +521,7 @@ function goTo(n) {
   current = n;
   slider.style.transform = `translateX(-${n * 100}vw)`;
   dots.forEach((d,i) => d.classList.toggle('active', i === n));
+  document.getElementById('tile-counter').textContent = `${n + 1} / 6`;
   animateTile(n);
 }
 
@@ -561,7 +556,6 @@ function animateTile(n) {
   if (n === 0) startDemo();
   if (n === 1) typeMessage();
   if (n === 2) animateLayers();
-  // tile 4 no longer has animated stats
 }
 
 // Start tile 0 animations
@@ -692,26 +686,6 @@ function animateLayers() {
     setTimeout(cycle, 1500);
   }
   setTimeout(cycle, 600);
-}
-
-// ═══ TILE 5: COUNTING STATS ═══
-function animateStats() {
-  animateCount('anim-words', 0, 12847, 1500);
-  animateCount('anim-sessions', 0, 342, 1200);
-  animateCount('anim-wpm', 0, 156, 1000);
-  setTimeout(() => { document.getElementById('anim-score').textContent = '94'; }, 1800);
-}
-
-function animateCount(id, from, to, duration) {
-  const el = document.getElementById(id);
-  const start = performance.now();
-  function step(now) {
-    const p = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - p, 3); // ease out cubic
-    el.textContent = Math.floor(from + (to - from) * ease).toLocaleString();
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
 }
 
 // ═══ TILE 6: PERMISSIONS ═══
