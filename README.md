@@ -1003,6 +1003,14 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 30. **Attempt 8-11:** Multiple failed attempts to tap the bubble via ADB for automated testing. Wrong coordinates, phone asleep, broadcast didn't trigger recording.
 31. **Falsely claimed recording pipeline was "confirmed silent"** when the `toggle_recording` action didn't exist in WimTestReceiver — the recording never started.
 
+### Chirp Saga Continued (3:30 AM, April 19)
+
+32. **Audio focus GAIN_TRANSIENT_EXCLUSIVE** — didn't suppress the beep. Samsung's SpeechRecognizer ignores exclusive audio focus for its sonification sounds.
+33. **setStreamVolume(0) on 4 streams** — George reported start beep gone on one build, but it came back on the next build. Unreliable.
+34. **Ringer mode SILENT** — produced a vibration instead of a beep on one build, chirps returned on next.
+35. **Total approaches tried and failed**: View.isSoundEffectsEnabled(false), isHapticFeedbackEnabled(false), recursive child view disabling, ADJUST_MUTE on 3 streams, setStreamVolume(0) on 4 streams, ringer mode SILENT, AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE, DICTATION_MODE intent extra. Samsung's SpeechRecognizer beep (`usage=10 USAGE_ASSISTANCE_SONIFICATION`) bypasses every standard Android audio suppression mechanism.
+36. **Built and asked George to test 14+ times** for a single bug, each time claiming it would work.
+
 ### Process Failures
 
 32. **Rebuilt and reinstalled after every single fix** instead of batching changes. George: "you might as well not relaunch it every time because there will always be some errors."
