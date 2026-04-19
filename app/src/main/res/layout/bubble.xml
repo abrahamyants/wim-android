@@ -4,7 +4,8 @@
     android:layout_height="120dp"
     android:id="@+id/bubbleRoot"
     android:clipChildren="false"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:soundEffectsEnabled="false">
 
     <!-- Pulse rings (behind bezel, animate outward) -->
     <View

@@ -66,9 +66,9 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Route to onboarding if first run
+        // Route to bouncer if first run
         if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
+            startActivity(Intent(this, BouncerActivity::class.java))
             finish()
             return
         }
@@ -274,9 +274,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ── Tone selection (4 cards: Casual/Professional/Friend/Formal) ──
-        val toneIds = listOf(R.id.toneCasual, R.id.toneProfessional, R.id.toneFriend, R.id.toneFormal)
-        val toneLabelIds = listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel, R.id.toneFriendLabel, R.id.toneFormalLabel)
-        val toneValues = listOf("casual", "professional", "friend", "formal")
+        val toneIds = listOf(R.id.toneCasual, R.id.toneProfessional)
+        val toneLabelIds = listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel)
+        val toneValues = listOf("casual", "professional")
         setupLayoutGroup(toneIds, toneLabelIds, toneValues, "tone", WimApp.tone())
 
         // ── Layer selection (LinearLayouts with label child) ─
@@ -318,12 +318,11 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // ── Gold SeekBars: gold thumb, gold filled track, gray unfilled track ──
+        // ── Gold SeekBars ──
         val copperGold = android.content.res.ColorStateList.valueOf(getColor(R.color.copper_gold))
         listOf(R.id.bubbleOpacitySeek, R.id.bubbleSizeSeek, R.id.seekDafDelay).forEach { id ->
             findViewById<SeekBar>(id)?.apply {
                 thumbTintList = copperGold
-                // Force-reload XML drawable to bypass Material theme tinting
                 progressDrawable = resources.getDrawable(R.drawable.daf_seekbar_track, theme)
             }
         }
@@ -363,11 +362,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ── Collapsible sections ─────────────────────────────
-        // Tone section removed — auto-detected by app context
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
         setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = false)
         setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
-        // Bubble section moved to Settings
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
         setupCollapsible(R.id.headerTransparency, R.id.contentTransparency, "transparency_section", defaultExpanded = false)
@@ -403,14 +400,6 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("tips_enabled", checked).apply()
         }
 
-        // ── FAST mode toggle ──
-        val fastToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.fastModeToggle)
-        fastToggle.isChecked = WimApp.prefs.getBoolean("fast_mode", false)
-        styleToggle(fastToggle)
-        fastToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("fast_mode", checked).apply()
-        }
-
         // ── Languages ──
         val primaryLang = findViewById<EditText>(R.id.primaryLangInput)
         val secondaryLang = findViewById<EditText>(R.id.secondaryLangInput)
@@ -439,28 +428,12 @@ class MainActivity : AppCompatActivity() {
             if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
         }
 
-        // ── Quiet Mode toggle ──
-        val quietToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.quietModeToggle)
-        quietToggle?.isChecked = WimApp.prefs.getBoolean("quiet_mode", false)
-        styleToggle(quietToggle!!)
-        quietToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("quiet_mode", checked).apply()
-        }
-
         // ── Double-shake toggle ──
         val shakeToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.shakeToggle)
         shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", true)
         styleToggle(shakeToggle!!)
         shakeToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()
-        }
-
-        // ── Auto-tone toggle ──
-        val autoToneToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.autoToneToggle)
-        autoToneToggle?.isChecked = WimApp.prefs.getBoolean("auto_tone", true)
-        styleToggle(autoToneToggle!!)
-        autoToneToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("auto_tone", checked).apply()
         }
 
         // ── Cloud backup toggle ──
@@ -494,8 +467,6 @@ class MainActivity : AppCompatActivity() {
                 WimApp.prefs.edit().putInt("daf_delay", ms).apply()
             }
         })
-
-
 
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
@@ -1086,38 +1057,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupStatusChips() {
-        fun refresh() {
-            val instantOn = WimApp.prefs.getBoolean("instant_mode", false)
-            val fastOn = WimApp.prefs.getBoolean("fast_mode", false)
-
-            findViewById<TextView>(R.id.chipInstantValue)?.text = if (instantOn) "INSTANT" else "STANDARD"
-            findViewById<TextView>(R.id.chipFastValue)?.text = if (fastOn) "ON" else "OFF"
-
-            // Active state visual — maroon-filled chip when non-default value is set
-            findViewById<View>(R.id.chipInstant)?.setBackgroundResource(
-                if (instantOn) R.drawable.chip_bg_active else R.drawable.chip_bg
-            )
-            findViewById<View>(R.id.chipFast)?.setBackgroundResource(
-                if (fastOn) R.drawable.chip_bg_active else R.drawable.chip_bg
-            )
-        }
-        refresh()
-
-        findViewById<View>(R.id.chipInstant)?.setOnClickListener {
-            val cur = WimApp.prefs.getBoolean("instant_mode", false)
-            WimApp.prefs.edit().putBoolean("instant_mode", !cur).apply()
-            refresh()
-        }
-        // where's my bubble? — summons the bubble if it disappears
+        // Bubble summon chip — only chip remaining
         findViewById<View>(R.id.chipFindBubble)?.setOnClickListener {
             val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
             startForegroundService(intent)
             Toast.makeText(this, "Bubble summoned", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.chipFast)?.setOnClickListener {
-            val cur = WimApp.prefs.getBoolean("fast_mode", false)
-            WimApp.prefs.edit().putBoolean("fast_mode", !cur).apply()
-            refresh()
         }
     }
 

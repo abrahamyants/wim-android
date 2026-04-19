@@ -39,9 +39,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WhatIMeant">
 
-        <!-- Onboarding (first run) -->
+        <!-- Onboarding (first run) — legacy WebView flow -->
         <activity
             android:name=".OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.WhatIMeant" />
+
+        <!-- Bouncer (new first run) — permission gate -->
+        <activity
+            android:name=".BouncerActivity"
             android:exported="false"
             android:theme="@style/Theme.WhatIMeant" />
 

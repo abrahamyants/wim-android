@@ -201,6 +201,19 @@ class BubbleService : Service() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
         audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+
+        // Audio playback monitor — logs ANY sound played on the device so we can detect chirps
+        audioManager?.registerAudioPlaybackCallback(object : android.media.AudioManager.AudioPlaybackCallback() {
+            override fun onPlaybackConfigChanged(configs: MutableList<android.media.AudioPlaybackConfiguration>) {
+                if (configs.isNotEmpty()) {
+                    Log.w(TAG, "CHIRP_MONITOR: ${configs.size} playback(s) detected")
+                    for (c in configs) {
+                        Log.w(TAG, "CHIRP_MONITOR: usage=${c.audioAttributes.usage} content=${c.audioAttributes.contentType}")
+                    }
+                }
+            }
+        }, null)
+
         onDeviceRecognizer = OnDeviceRecognizer(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
@@ -308,8 +321,54 @@ class BubbleService : Service() {
                     Log.i(TAG, "Clarifier answer: $answer")
                 }
             }
+            "ONBOARDING" -> {
+                showOnboardingOverlay()
+                showBubble()
+                // Run the bubble's live demo script — the bubble introduces itself
+                timerHandler.postDelayed({
+                    BubbleDemoScript {
+                        // Demo complete — remove overlay, bubble is idle
+                        removeOnboardingOverlay()
+                        showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
+                        timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
+                    }.start()
+                }, 800)
+            }
         }
         return START_STICKY
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ONBOARDING OVERLAY — dark background behind bubble demo
+    // ═══════════════════════════════════════════════════════════
+
+    private var onboardingOverlay: View? = null
+
+    private fun showOnboardingOverlay() {
+        if (onboardingOverlay != null) return
+        val overlay = View(this).apply {
+            setBackgroundColor(0xF01A1A1E.toInt())
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+        try {
+            windowManager?.addView(overlay, params)
+            onboardingOverlay = overlay
+        } catch (_: Exception) {}
+    }
+
+    private fun removeOnboardingOverlay() {
+        onboardingOverlay?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            onboardingOverlay = null
+        }
     }
 
     private fun showBubble() {
@@ -326,6 +385,15 @@ class BubbleService : Service() {
         updateNotification("Voice dictation active")
         val inflater = LayoutInflater.from(this)
         bubbleView = inflater.inflate(R.layout.bubble, null)
+        // Kill touch sounds on every view in the bubble hierarchy
+        fun disableSounds(v: View) {
+            v.isSoundEffectsEnabled = false
+            v.isHapticFeedbackEnabled = false
+            if (v is android.view.ViewGroup) {
+                for (i in 0 until v.childCount) disableSounds(v.getChildAt(i))
+            }
+        }
+        bubbleView?.let { disableSounds(it) }
 
         val params = bubbleParams ?: WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -596,6 +664,18 @@ class BubbleService : Service() {
         processed = false
         ConsoleLog.log("Recording...", "rec")
 
+        // Suppress SpeechRecognizer beep — grab exclusive audio focus
+        val focusRequest = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            .setAudioAttributes(android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build())
+            .build()
+        audioManager?.requestAudioFocus(focusRequest)
+        timerHandler.postDelayed({
+            audioManager?.abandonAudioFocusRequest(focusRequest)
+        }, 600)
+
         Log.i(TAG, "Starting on-device recognition")
         dismissMenu()
         showLiveTranscript()
@@ -686,6 +766,18 @@ class BubbleService : Service() {
 
         // Delay stopping the recognizer — let it finish processing the last audio buffer
         timerHandler.postDelayed({
+            // Suppress SpeechRecognizer stop beep — grab exclusive audio focus
+            val stopFocusRequest = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                .build()
+            audioManager?.requestAudioFocus(stopFocusRequest)
+            timerHandler.postDelayed({
+                audioManager?.abandonAudioFocusRequest(stopFocusRequest)
+            }, 600)
+
             val textBeforeStop = lastRawText
             onDeviceRecognizer?.stop()
 
@@ -1408,12 +1500,12 @@ class BubbleService : Service() {
         if (liveTextView != null) return
 
         val tv = TextView(this).apply {
-            setBackgroundColor(0xDD1A1A1E.toInt())
-            setTextColor(0xFFEE5A24.toInt())
+            setBackgroundColor(0xFF222226.toInt())
+            setTextColor(0xFFD4D0C8.toInt())
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
-            setPadding(20, 10, 20, 10)
-            maxLines = 2
+            setPadding(20, 12, 20, 12)
+            maxLines = 3
             ellipsize = android.text.TextUtils.TruncateAt.END
             text = "..."
         }
@@ -1446,12 +1538,12 @@ class BubbleService : Service() {
             // Force-show the transcript bar for pipeline display
             val bp = bubbleParams ?: return
             val tv = TextView(this).apply {
-                setBackgroundColor(0xDD1A1A1E.toInt())
-                setTextColor(0xFFEE5A24.toInt())
+                setBackgroundColor(0xFF222226.toInt())
+                setTextColor(0xFFD4D0C8.toInt())
                 textSize = 12f
                 typeface = android.graphics.Typeface.MONOSPACE
-                setPadding(20, 10, 20, 10)
-                maxLines = 2
+                setPadding(20, 12, 20, 12)
+                maxLines = 3
                 ellipsize = android.text.TextUtils.TruncateAt.END
             }
             liveTextView = tv
@@ -1471,7 +1563,7 @@ class BubbleService : Service() {
             try { windowManager?.addView(tv, ltParams) } catch (_: Exception) {}
         }
         val styled = android.text.SpannableStringBuilder()
-        styled.append(stage, android.text.style.ForegroundColorSpan(0xFFEE5A24.toInt()), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        styled.append(stage, android.text.style.ForegroundColorSpan(0xFFC8B48A.toInt()), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         styled.append("\n")
         styled.append(detail)
         liveTextView?.text = styled

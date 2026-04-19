@@ -159,10 +159,20 @@ class WimAccessibilityService : AccessibilityService() {
                 }
             }
         }
-        val clip = android.content.ClipData.newPlainText("wim", finalText)
-        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(clip)
-        node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        // Use ACTION_SET_TEXT to avoid clipboard sound on Android 13+
+        val currentText = node.text?.toString() ?: ""
+        val insertPos = if (node.textSelectionEnd >= 0) node.textSelectionEnd else currentText.length
+        val newText = currentText.substring(0, insertPos) + finalText + currentText.substring(insertPos)
+        val args = android.os.Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)
+        }
+        if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
+            // Fallback to clipboard if ACTION_SET_TEXT fails
+            val clip = android.content.ClipData.newPlainText("wim", finalText)
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(clip)
+            node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        }
     }
 
     private fun showBubble() {

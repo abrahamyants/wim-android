@@ -71,6 +71,13 @@ class WimTestReceiver : BroadcastReceiver() {
                 "get_state"         -> handleGetState(context)
                 "get_last_result"   -> handleGetLastResult(context)
                 "trigger_bubble"    -> handleTriggerBubble(context, intent)
+                "test_chirp"        -> handleTestChirp()
+                "toggle_recording"  -> {
+                    val toggleIntent = android.content.Intent(context, BubbleService::class.java)
+                    toggleIntent.setAction("TOGGLE_RECORDING")
+                    context.startForegroundService(toggleIntent)
+                    Log.i(TAG, "toggle_recording: sent TOGGLE_RECORDING intent")
+                }
                 "reset_profile"     -> handleResetProfile(context)
                 "export_sessions"   -> handleExportSessions(context, intent)
                 "set_pref"          -> handleSetPref(context, intent)
@@ -450,5 +457,25 @@ class WimTestReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write result: ${e.message}")
         }
+    }
+
+    private fun handleTestChirp() {
+        val bubble = BubbleService.instance
+        if (bubble == null) {
+            Log.w(TAG, "test_chirp: BubbleService not running")
+            return
+        }
+        val view = bubble.bubbleView
+        if (view == null) {
+            Log.w(TAG, "test_chirp: bubble view not inflated")
+            return
+        }
+        Log.i(TAG, "test_chirp: calling playSoundEffect on bubble view")
+        view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+        Log.i(TAG, "test_chirp: calling playSoundEffect on bezel")
+        view.findViewById<android.view.View>(R.id.bubbleBezel)?.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+        Log.i(TAG, "test_chirp: calling playSoundEffect on inner knob")
+        view.findViewById<android.view.View>(R.id.bubbleInner)?.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+        Log.i(TAG, "test_chirp: done — check CHIRP_MONITOR logs for audio playback")
     }
 }

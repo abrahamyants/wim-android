@@ -206,7 +206,7 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- STATUS CHIPS — Mode / Theme / Fast -->
+        <!-- BUBBLE SUMMON -->
         <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -216,42 +216,8 @@
             android:layout_marginBottom="6dp">
 
             <LinearLayout
-                android:id="@+id/chipInstant"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginEnd="4dp">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="OUTPUT"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15" />
-                <TextView
-                    android:id="@+id/chipInstantValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="STANDARD"
-                    android:textColor="@color/chip_value"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <LinearLayout
                 android:id="@+id/chipFindBubble"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
@@ -259,8 +225,7 @@
                 android:paddingStart="6dp"
                 android:paddingEnd="6dp"
                 android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginEnd="4dp">
+                android:paddingBottom="6dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -275,38 +240,6 @@
                     android:layout_height="wrap_content"
                     android:text="SUMMON"
                     android:textColor="@color/section_header"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/chipFast"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="FAST MODE"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15" />
-                <TextView
-                    android:id="@+id/chipFastValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="OFF"
-                    android:textColor="@color/chip_value"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:textStyle="bold"
@@ -463,37 +396,7 @@
                     android:fontFamily="monospace" />
             </LinearLayout>
 
-            <!-- Quiet Mode — sub-layer modifier, applies to any layer -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginTop="6dp">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="Quiet mode"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="whisper / soft  "
-                    android:textColor="@color/copper_gold"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/quietModeToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="false" />
-            </LinearLayout>
+            <!-- Quiet Mode hidden — auto-detect planned -->
         </LinearLayout>
 
         </LinearLayout>
@@ -582,59 +485,7 @@
                     android:fontFamily="monospace" />
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/toneFriend"
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/toneFriendLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Friend"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="  conversational"
-                    android:textColor="@color/copper_gold"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/toneFormal"
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:background="@drawable/card_bg"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/toneFormalLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Formal"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="  precise wording"
-                    android:textColor="@color/copper_gold"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-            </LinearLayout>
+            <!-- Friend and Formal removed — 2 tones only -->
 
         </LinearLayout>
 
@@ -1460,33 +1311,6 @@
                     android:maxLines="1" />
             </LinearLayout>
 
-            <!-- FAST mode toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="FAST mode (skip validation)"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/fastModeToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="false" />
-            </LinearLayout>
-
             <!-- Voice shortcuts -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1542,33 +1366,6 @@
 
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/shakeToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <!-- Auto-tone toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="Auto-detect tone by app"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/autoToneToggle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true" />

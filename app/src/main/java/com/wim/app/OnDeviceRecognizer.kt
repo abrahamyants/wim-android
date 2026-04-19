@@ -118,6 +118,8 @@ class OnDeviceRecognizer(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, primaryLang)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra("android.speech.extra.DICTATION_MODE", true)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 60000L)
             // If secondary language set, allow both
             if (!secondaryLang.isNullOrBlank()) {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, primaryLang)

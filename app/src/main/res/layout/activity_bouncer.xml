@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_app">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="28dp"
+            android:paddingEnd="28dp"
+            android:paddingTop="80dp"
+            android:paddingBottom="40dp">
+
+            <!-- ═══ PAGE 1: PERMISSIONS ═══ -->
+            <LinearLayout
+                android:id="@+id/pagePermissions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <!-- WiM logo — Limelight font set programmatically -->
+                <TextView
+                    android:id="@+id/bouncerLogo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WiM"
+                    android:textColor="@color/section_header"
+                    android:textSize="48sp"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WHAT I MEANT"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.3"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- Copper divider -->
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="24dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Before the bubble can launch, WiM needs a few permissions."
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:layout_marginBottom="24dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+
+                <!-- Permission rows — match activity_main.xml styling -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/grille_pattern_bg"
+                    android:padding="4dp">
+
+                    <!-- Overlay -->
+                    <LinearLayout
+                        android:id="@+id/permOverlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:id="@+id/permOverlayCheck"
+                            android:layout_width="20dp"
+                            android:layout_height="wrap_content"
+                            android:text="!"
+                            android:textColor="@color/chip_value"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Overlay"
+                            android:textColor="@color/text_dim"
+                            android:textSize="13sp"
+                            android:letterSpacing="0.04" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="  draw over apps"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                        <TextView
+                            android:id="@+id/permOverlayTap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TAP"
+                            android:textColor="@color/chip_value"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Accessibility -->
+                    <LinearLayout
+                        android:id="@+id/permAccessibility"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:id="@+id/permAccessibilityCheck"
+                            android:layout_width="20dp"
+                            android:layout_height="wrap_content"
+                            android:text="!"
+                            android:textColor="@color/chip_value"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Accessibility"
+                                android:textColor="@color/text_dim"
+                                android:textSize="13sp"
+                                android:letterSpacing="0.04" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Installed Apps → What I Meant → Allow"
+                                android:textColor="@color/copper_gold"
+                                android:textSize="9sp"
+                                android:fontFamily="monospace" />
+                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/permAccessibilityTap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TAP"
+                            android:textColor="@color/chip_value"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Microphone -->
+                    <LinearLayout
+                        android:id="@+id/permMic"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:id="@+id/permMicCheck"
+                            android:layout_width="20dp"
+                            android:layout_height="wrap_content"
+                            android:text="!"
+                            android:textColor="@color/chip_value"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Microphone"
+                            android:textColor="@color/text_dim"
+                            android:textSize="13sp"
+                            android:letterSpacing="0.04" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="  voice recording"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                        <TextView
+                            android:id="@+id/permMicTap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TAP"
+                            android:textColor="@color/chip_value"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Battery -->
+                    <LinearLayout
+                        android:id="@+id/permBattery"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:id="@+id/permBatteryCheck"
+                            android:layout_width="20dp"
+                            android:layout_height="wrap_content"
+                            android:text="!"
+                            android:textColor="@color/chip_value"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Battery"
+                            android:textColor="@color/text_dim"
+                            android:textSize="13sp"
+                            android:letterSpacing="0.04" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="  stay alive"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                        <TextView
+                            android:id="@+id/permBatteryTap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TAP"
+                            android:textColor="@color/chip_value"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Notifications -->
+                    <LinearLayout
+                        android:id="@+id/permNotifications"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg">
+                        <TextView
+                            android:id="@+id/permNotificationsCheck"
+                            android:layout_width="20dp"
+                            android:layout_height="wrap_content"
+                            android:text="!"
+                            android:textColor="@color/chip_value"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Notifications"
+                            android:textColor="@color/text_dim"
+                            android:textSize="13sp"
+                            android:letterSpacing="0.04" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="  foreground service"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                        <TextView
+                            android:id="@+id/permNotificationsTap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TAP"
+                            android:textColor="@color/chip_value"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Page indicator -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginTop="28dp">
+                    <TextView
+                        android:id="@+id/bouncerPageIndicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="slide 1 / 6"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.1" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ onboarding exercise"
+                        android:textColor="@color/text_dim"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE 2: FREE OR UPGRADE ═══ -->
+            <LinearLayout
+                android:id="@+id/pageTier"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Choose your setup"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- Free option -->
+                <LinearLayout
+                    android:id="@+id/optionFree"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg_pressable"
+                    android:padding="18dp"
+                    android:layout_marginBottom="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Free"
+                        android:textColor="@color/section_header"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="On-device transcription. Cleans up fillers and disfluencies. Always free, works offline."
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+                <!-- Upgrade option -->
+                <LinearLayout
+                    android:id="@+id/optionUpgrade"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg_pressable"
+                    android:padding="18dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Upgrade"
+                        android:textColor="@color/section_header"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI reconstruction rewrites your speech with the right tone. Learns your vocabulary. Full speech disfluency support."
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginTop="28dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="slide 2 / 6"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.1" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ onboarding exercise"
+                        android:textColor="@color/text_dim"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE 3: WORK OR PERSONAL (upgrade only) ═══ -->
+            <LinearLayout
+                android:id="@+id/pageTone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="How will you use WiM most?"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- Work option -->
+                <LinearLayout
+                    android:id="@+id/optionWork"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg_pressable"
+                    android:padding="18dp"
+                    android:layout_marginBottom="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Work"
+                        android:textColor="@color/section_header"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Professional tone. Business clarity. Emails, Slack, meetings."
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+                <!-- Personal option -->
+                <LinearLayout
+                    android:id="@+id/optionPersonal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg_pressable"
+                    android:padding="18dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Personal"
+                        android:textColor="@color/section_header"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Casual tone. Natural rhythm. Texts, social, everyday."
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+                <!-- Both option -->
+                <LinearLayout
+                    android:id="@+id/optionBoth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg_pressable"
+                    android:padding="18dp"
+                    android:layout_marginTop="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Both"
+                        android:textColor="@color/section_header"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WiM adapts automatically. Professional for work apps, casual everywhere else."
+                        android:textColor="@color/text_dim"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginTop="28dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="slide 3 / 6"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.1" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="next: meet the bubble"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE 4: MEET THE BUBBLE ═══ -->
+            <LinearLayout
+                android:id="@+id/pageBubble"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Meet the bubble"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="20dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="The floating knob lives on top of every app. It's your voice assistant — always one tap away."
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:layout_marginBottom="20dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+
+                <!-- Gesture list -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/grille_pattern_bg"
+                    android:padding="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Tap"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="record / stop"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Hold"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="record while held"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Double-tap"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="settings menu"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Drag"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="move anywhere"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginBottom="2dp">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Fling to bottom"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="dismiss"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg">
+                        <TextView
+                            android:layout_width="110dp"
+                            android:layout_height="wrap_content"
+                            android:text="Shake phone 2x"
+                            android:textColor="@color/text_dim"
+                            android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="bring it back"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layout_marginTop="24dp">
+                    <LinearLayout
+                        android:id="@+id/btnNextToBubbleDemo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/card_bg_pressable"
+                        android:gravity="center"
+                        android:padding="16dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Next"
+                            android:textColor="@color/section_header"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="slide 4 / 6"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:layout_marginTop="16dp" />
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE 5: WHAT RECONSTRUCTION DOES ═══ -->
+            <LinearLayout
+                android:id="@+id/pageRecon"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="What you say vs. what arrives"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- Before -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:padding="14dp"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="You say:"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="yeah so um can you like send me the report I need it for uh the meeting tomorrow I think"
+                        android:textColor="@color/chip_value"
+                        android:textSize="13sp"
+                        android:fontFamily="monospace"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↓"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- After -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:padding="14dp"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="What arrives:"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Could you please send me the report? I need it for tomorrow's meeting."
+                        android:textColor="@color/green_active"
+                        android:textSize="13sp"
+                        android:fontFamily="monospace"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Speech disfluencies reconstructed. Tone applied. Text lands in whatever app you're typing in."
+                    android:textColor="@color/text_dim"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:layout_marginTop="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layout_marginTop="24dp">
+                    <LinearLayout
+                        android:id="@+id/btnNextToFinal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/card_bg_pressable"
+                        android:gravity="center"
+                        android:padding="16dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Next"
+                            android:textColor="@color/section_header"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="slide 5 / 6"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:layout_marginTop="16dp" />
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE 6: YOU'RE SET ═══ -->
+            <LinearLayout
+                android:id="@+id/pageFinal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/finalLogo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WiM"
+                    android:textColor="@color/section_header"
+                    android:textSize="48sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="24dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="You're all set."
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="WiM is ready to go.\n\nThe floating bubble will appear on your screen. Open any app, tap the bubble, and speak."
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="5dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:layout_marginBottom="32dp" />
+
+                <LinearLayout
+                    android:id="@+id/btnLaunchBubble"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg_pressable"
+                    android:gravity="center"
+                    android:padding="18dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Launch the app"
+                        android:textColor="@color/section_header"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="slide 6 / 6"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:layout_marginTop="16dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>
