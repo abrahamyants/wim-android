@@ -1,5 +1,6 @@
 package com.wim.app
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -36,7 +37,7 @@ class OnDeviceRecognizer(private val context: Context) {
         partialText = ""
         keepListening = true
 
-        recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        recognizer = createGoogleOrDefaultRecognizer()
         recognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 Log.d(TAG, "SpeechRecognizer ready")
@@ -139,5 +140,30 @@ class OnDeviceRecognizer(private val context: Context) {
         recognizer?.destroy()
         recognizer = null
         listener = null
+    }
+
+    // Pin Google's RecognitionService so Samsung's OEM recognizer never runs —
+    // Samsung's chirp is a USAGE_ASSISTANCE_SONIFICATION beep that no AudioFocus
+    // or stream-volume trick suppresses. Google's recognizer doesn't play it.
+    private fun createGoogleOrDefaultRecognizer(): SpeechRecognizer {
+        val googleComponent = ComponentName(
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.voicesearch.serviceapi.GoogleRecognitionService"
+        )
+        val probeIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            component = googleComponent
+        }
+        return try {
+            if (context.packageManager.resolveService(probeIntent, 0) != null) {
+                Log.i(TAG, "Using Google recognizer (Samsung chirp bypass)")
+                SpeechRecognizer.createSpeechRecognizer(context, googleComponent)
+            } else {
+                Log.w(TAG, "Google recognizer unavailable, using default")
+                SpeechRecognizer.createSpeechRecognizer(context)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Google recognizer bind failed: ${e.message}, using default")
+            SpeechRecognizer.createSpeechRecognizer(context)
+        }
     }
 }
