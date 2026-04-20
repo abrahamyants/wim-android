@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <android/log.h>
+#include <unistd.h>
+#include <algorithm>
 #include "whisper.h"
 
 #define TAG "wim_whisper_jni"
@@ -35,13 +37,15 @@ Java_com_wim_app_LocalWhisperClient_nativeInit(JNIEnv *env, jobject thiz, jstrin
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_wim_app_LocalWhisperClient_nativeTranscribe(JNIEnv *env, jobject thiz, jfloatArray audioData, jint length) {
+Java_com_wim_app_LocalWhisperClient_nativeTranscribe(JNIEnv *env, jobject thiz, jfloatArray audioData, jint length, jstring languageCode) {
     if (ctx == nullptr) {
         LOGE("Context is null, call init first");
         return env->NewStringUTF("");
     }
 
     jfloat *pcm = env->GetFloatArrayElements(audioData, 0);
+
+    const char *lang = env->GetStringUTFChars(languageCode, 0);
 
     struct whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     wparams.print_progress   = false;
@@ -52,14 +56,15 @@ Java_com_wim_app_LocalWhisperClient_nativeTranscribe(JNIEnv *env, jobject thiz, 
     wparams.no_context       = true;
     wparams.single_segment   = true;
     wparams.max_tokens       = 0;
-    wparams.language         = "en";
-    wparams.n_threads        = 4;
+    wparams.language         = lang;
+    wparams.n_threads        = std::max(1, (int)sysconf(_SC_NPROCESSORS_ONLN) - 1);
 
     LOGI("Starting transcription with %d samples...", length);
     
     if (whisper_full(ctx, wparams, pcm, length) != 0) {
         LOGE("Failed to process audio");
         env->ReleaseFloatArrayElements(audioData, pcm, 0);
+        env->ReleaseStringUTFChars(languageCode, lang);
         return env->NewStringUTF("");
     }
 
@@ -73,6 +78,7 @@ Java_com_wim_app_LocalWhisperClient_nativeTranscribe(JNIEnv *env, jobject thiz, 
     }
 
     env->ReleaseFloatArrayElements(audioData, pcm, 0);
+    env->ReleaseStringUTFChars(languageCode, lang);
     
     LOGI("Transcription complete: %s", result.c_str());
     return env->NewStringUTF(result.c_str());

@@ -20,7 +20,7 @@ object LocalWhisperClient {
     }
 
     private external fun nativeInit(modelPath: String): Boolean
-    private external fun nativeTranscribe(audioData: FloatArray, length: Int): String
+    private external fun nativeTranscribe(audioData: FloatArray, length: Int, languageCode: String): String
     private external fun nativeRelease()
 
     @Volatile
@@ -50,7 +50,7 @@ object LocalWhisperClient {
     /**
      * Transcribes 16kHz mono 16-bit PCM WAV file using the local model.
      */
-    suspend fun transcribe(wavFile: File): String = withContext(Dispatchers.IO) {
+    suspend fun transcribe(wavFile: File, languageCode: String = "en"): String = withContext(Dispatchers.IO) {
         synchronized(lock) {
             if (!isInitialized) {
                 Log.e(TAG, "Cannot transcribe, model is not initialized")
@@ -84,7 +84,7 @@ object LocalWhisperClient {
             }
 
             val t0 = System.currentTimeMillis()
-            val text = nativeTranscribe(floatData, numSamples)
+            val text = nativeTranscribe(floatData, numSamples, languageCode)
             val t1 = System.currentTimeMillis()
             
             Log.i(TAG, "Local transcription took ${t1 - t0}ms: $text")
