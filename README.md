@@ -1097,3 +1097,72 @@ All three collapse to one project: **replace `SpeechRecognizer` with in-process 
 - MEMO-Y6 Onboarding tiles 5-6 → device verification
 - MEMO-B1 Bubble theme selector UI → drawables for aluminum + gunmetal exist, no swap mechanic (`bubble.xml:41,102` hard-code default gold)
 - MEMO-B3–B14 — see full memo set in session log
+
+## Session 10 continuation — April 20, 2026
+
+*Same session arc as above, but an order-of-magnitude expansion: three ears engines scaffolded on parallel branches, Wear OS companion scaffold, APK size fix, Play Store asset package generated. Multi-agent orchestration (Claude main + 2 Claude shells + Gemini CLI + gemini.com Deep Research + Sonnet 4.6 extended) ran in parallel for most of the day.*
+
+### What shipped — WiM Android (`748d7a1..ba1c4e3`, 14 commits)
+
+1. **`748d7a1` Session 10 log + Known Issues cleanup** — committed the README entry for the early Session 10 work before branching out.
+2. **`1e1385c` Scaffold Vosk backup ASR** — compiles, not wired into bubble path yet.
+3. **`87b874a` Vosk phase 2** — downloader + settings UI toggle + engine selector.
+4. **`aabbc97` whisper.cpp integration scaffolding** — builds clean on the `test-whispercpp` branch.
+5. **`c36ffa5` Scope wake locks to active-recording-only + tagged per Play 2026 policy** — gets us safe before March 1 2026 wake-lock enforcement.
+6. **`e12129d` Language param + CPU-count `n_threads` for whisper.cpp** — JNI bridge takes `languageCode`, native threads sized by `sysconf(_SC_NPROCESSORS_ONLN)`.
+7. **`4e46539` Phase-2 wiring: whisper.cpp as post-stop accuracy path** — settings UI toggle + `WhisperModelDownloader` (swapped to `ggml-base.en-q5_1.bin`, ~60 MB, auto-deletes legacy fp16 file).
+8. **`5ee1a4a` Qwen3-ASR integration via sherpa-onnx** — 52-language scaffolding on `add-qwen3-asr` branch. **Not device-tested.**
+9. **`ededf00` APK size fix** — ABI filter arm64+armv7, splits enabled, x86 dropped. Was exceeding Play limit before this.
+10. **`eebe02e` MERGE_PLAN.md** — roadmap for collapsing `backup-vosk` + `test-whispercpp` + `add-qwen3-asr` into `main`. **Not yet executed.**
+11. **`5fcb225` Wear OS companion scaffold** — complication + PCM streaming + phone receiver. Blocked on ears merge before wiring into `BubbleService`.
+12. **`88eb119` Make whisper.cpp usable** — quantized model (60 MB vs 140 MB fp16, ~2× faster), **coroutine `Mutex` replacing `synchronized(lock)` JVM monitor** that was blocking the UI thread during 70+ second transcriptions, cancel-on-restart via `pendingTranscriptionJob` field in `BubbleService`.
+13. **`64f418f` Skip overlapping whisper.cpp transcriptions** — `@Volatile isTranscribing` flag at `LocalWhisperClient:39`, early-return before `mutex.withLock`, try/finally resets on completion. Rationale: native JNI calls cannot be interrupted mid-inference, so queueing rapid-fire recordings piled up to 15–70s waits. Caller (`BubbleService`) falls back to Samsung/on-device text when this returns empty. **Needs rapid-fire on-device validation.**
+14. **`ba1c4e3` Play Store launch asset package** — 7 files under `play_store/`. **FLAGGED: entire set uses "stutter/stuttering" terminology — MUST be rewritten to "speech disfluency" before submission (per George's marketing rule). Do not regenerate without applying this correction.**
+
+### What shipped — Lavrentiy (`be0730d..fa00cd1`, 11 commits on same day)
+
+See `lavrentiy/SESSION_LOG_2026-04-20.md` for detail. Highlights:
+- **Moonshine swap** replaced Canary (RTF 0.35 on desktop, Python 3.14-alpha httpx bug worked around via stdlib `urllib`).
+- **`firestore_publisher.py`** — desktop→Firestore publisher for `trigger_words`, `onset_weights`, `covert_profile` to `wim_users/{uid}` with MD5 idempotency. WiM-side consumer pending.
+- **Research memos (7)**: Spanish stuttering, multilingual research notes, StutterZero checkpoint, clinical validation protocol, L4 prompt engineering, YOLO-Stutter evaluation, foundation grant landscape. All whitelisted in `.gitignore` via `!docs/*.md` pattern.
+- **Phase4 ears benchmark harness** at `bench/_phase4_ears_benchmark.py` (1,058 lines) — ready to run against the three WiM ears branches for stutter-accuracy comparison.
+
+### Branches currently unmerged
+
+| Branch | Purpose | Status |
+|--------|---------|--------|
+| `backup-vosk` | Vosk as backup engine (Kaldi, live streaming) | Scaffolded + wired, needs device test |
+| `test-whispercpp` | whisper.cpp post-stop accuracy path | Device-tested; skip-overlap patch (`64f418f`) needs rapid-fire validation |
+| `add-qwen3-asr` | Qwen3-ASR via sherpa-onnx (52 languages) | Built at `ededf00`, **never installed on device** |
+| `feat/wearos-companion` | Wear OS complication + PCM streaming | Scaffold only; wire into `BubbleService` after ears merge |
+| `feat/l4-prompt-rewrite` | L4 prompt engineering rewrite (multilingual) | Shell #3 still running Phase 3 (Cloud Function backend) + Phase 4 (Lavrentiy port + A/B bench) |
+| `perf-wakelock` | Wake-lock scoping | Merged? Verify — commit `c36ffa5` lives on this branch |
+
+**`MERGE_PLAN.md` exists. Execute after rapid-fire test of `64f418f` + device test of `add-qwen3-asr`.**
+
+### Wrong calls / corrections this session (continuation)
+
+1. **Generated Play Store copy using "stutter/stuttering"** — violated the saved memory rule `feedback_use_speech_disfluency.md`. George's marketing logic: "Do you stutter?" gets "no"; "Do you have a speech disfluency?" gets "yes" (condition framing beats identity framing). ALL 7 Play Store files need rewrite before submission.
+2. **Misattributed 72-second inference to background thread.** George pointed out the UI ACTUALLY froze — a real, perceived freeze, not a background blocker. Diagnosed correctly after re-reading `LocalWhisperClient.kt`: the JVM `synchronized(lock)` was blocking the bubble-tap thread's init/release path during inference. Fixed with coroutine `Mutex` + skip-overlap in `88eb119` and `64f418f`.
+3. **Claimed whisper.cpp was production-ready at 72s inference** — it isn't, on this Samsung CPU. Repositioned as **L4 clinical mode only** (acceptable for accuracy-over-latency use). L1–L3 stay on Samsung SpeechRecognizer.
+4. **Gemini CLI context bleed** — reusing a single Gemini CLI session for whisper.cpp then Qwen3 put the session in the wrong sandbox dir with wrong "next edit" target. Saved rule: **one fat task per Gem CLI lifetime, spin fresh window for next**. Memory: `feedback_gem_cli_one_task_rule.md`.
+5. **Gemini CLI infinite planning loop** — `"Applying Edits Precisely"` log line repeated 30× without a tool call. Unblocked with a forceful nudge. Pattern: Gem CLI sometimes loops on planning when prompt is under-specified.
+6. **Competitor audit missed 3 apps** in first pass — Private Dictation, WhisperInput, Google AI Edge Eloquent. George caught it.
+7. **Initial SHA-1 explanation in prior session's Session 10 entry was wrong** — already documented above but re-surfaced when checking Google Sign-In on fresh devices. The real fix is `GetSignInWithGoogleOption` fallback (`db427b6`), not SHA-1.
+
+### FLAGS FOR NEXT SESSION (read these first)
+
+1. **Play Store copy rewrite pending** — all 7 files in `wim-android/play_store/` use "stutter/stuttering". MUST rewrite to "speech disfluency" (research memos in Lavrentiy may keep "stuttering" as technical citation term — that's fine).
+2. **`64f418f` skip-overlap patch is unverified under rapid-fire conditions.** Test plan: two consecutive recordings <2s apart, confirm second returns empty (not 15–70s wait) and caller falls back to on-device text.
+3. **`add-qwen3-asr` APK (`ededf00`) never installed.** Install, run, check it launches; sherpa-onnx model download flow not validated on device.
+4. **Claude shell #3 (L4 prompt rewrite) still running.** Phases 3+4 incomplete when this log was written. Don't double-work its output; check `feat/l4-prompt-rewrite` branch for its commits before re-doing anything L4-related.
+5. **Terminology rule is the #1 landmine.** Memory: `feedback_use_speech_disfluency.md`. The word "stutter" appears in codebase (DisfluencyFilter.kt regex names, research memos citing academic lit) — those are fine. The word in user-facing copy is NOT fine.
+6. **MERGE_PLAN.md is the roadmap.** Don't collapse branches without reading it.
+7. **Benchmark harness (`lavrentiy/bench/_phase4_ears_benchmark.py`)** has never been run against the three ears branches. That's the objective accuracy comparison, not vibes.
+
+### Still open (continuation pointer set)
+
+- 7 research memos in Lavrentiy docs/ are the outreach ammunition — Berkeley Speech Group email for DysfluentWFST license is the highest-leverage next action per YOLO-Stutter memo.
+- Foundation outreach emails still undrafted. Spanish memo + foundation landscape + clinical protocol are the three source documents.
+- Wear OS Phase 2 (wire PCM stream into BubbleService) blocked until ears merge into main.
+- Pricing moved from $0.99 idea to $3.99 free + unlock (session conversation, not yet committed to Play Store listing).
