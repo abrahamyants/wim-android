@@ -54,6 +54,7 @@ class BubbleService : Service() {
         }
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
+    private var qwen3Engine: Qwen3AsrEngine? = null
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
@@ -215,6 +216,7 @@ class BubbleService : Service() {
         }, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
+        qwen3Engine = Qwen3AsrEngine(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
         setupBluetoothSco()
@@ -477,6 +479,7 @@ class BubbleService : Service() {
                             if (startedOnThisPress && isRecording) {
                                 isRecording = false
                                 onDeviceRecognizer?.stop()
+                                qwen3Engine?.cancel()
                                 audioRecorder?.stop()
                                 audioRecorder = null
                                 dafPlayer?.stop()
@@ -719,6 +722,40 @@ class BubbleService : Service() {
             dafPlayer?.start()
         }
 
+        // Qwen3 branch — if the user enabled Qwen3 AND the model is installed,
+        // route audio through sherpa-onnx instead of the default on-device engine.
+        if (WimApp.useQwen3() && qwen3Engine?.isReady() == true) {
+            Log.i(TAG, "Routing to Qwen3-ASR engine")
+            qwen3Engine?.start(object : Qwen3AsrEngine.ResultListener {
+                override fun onPartialResult(text: String) {
+                    Log.i(TAG, "Qwen3 partial: $text")
+                    lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+                    updateLiveTranscript(lastRawText)
+                }
+                override fun onFinalResult(text: String) {
+                    Log.i(TAG, "Qwen3 final: $text")
+                    if (text.isNotBlank()) {
+                        finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+                        lastRawText = finalizedSegments
+                        updateLiveTranscript(lastRawText)
+                    }
+                }
+                override fun onSoundEvent(label: String) {
+                    updateLiveTranscript("$lastRawText $label")
+                }
+                override fun onError(errorCode: Int) {
+                    Log.e(TAG, "Qwen3 ASR error: $errorCode")
+                    isRecording = false
+                    dafPlayer?.stop()
+                    dafPlayer = null
+                    setBubbleIdle()
+                    bubbleView?.scaleX = 1.0f
+                    bubbleView?.scaleY = 1.0f
+                }
+            })
+            return
+        }
+
         onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
             override fun onPartialResult(text: String) {
                 Log.i(TAG, "Partial: $text")
@@ -765,6 +802,7 @@ class BubbleService : Service() {
         audioRecorder = null
         
         onDeviceRecognizer?.stop() // just in case
+        qwen3Engine?.stop()
 
         updateLiveTranscript("Transcribing...")
 
@@ -2091,6 +2129,7 @@ class BubbleService : Service() {
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
+        qwen3Engine?.destroy()
         scope.cancel()
         super.onDestroy()
     }

@@ -27,6 +27,8 @@ class WimApp : Application() {
         fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
         fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 100)
         fun bubbleSize(): Int = prefs.getInt("bubble_size", 95)
+        /** When true, the bubble uses Qwen3-ASR (sherpa-onnx) if model installed. */
+        fun useQwen3(): Boolean = prefs.getBoolean("use_qwen3", false)
 
         fun profile(): ProfileManager = profileManager
     }

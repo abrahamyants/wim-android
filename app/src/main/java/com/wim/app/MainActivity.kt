@@ -462,6 +462,9 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("cloud_backup", checked).apply()
         }
 
+        // ── Qwen3-ASR (sherpa-onnx) settings ──
+        setupQwen3Settings()
+
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
         val settingsDafDelay = findViewById<SeekBar>(R.id.settingsDafDelay)
@@ -1727,6 +1730,69 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                     }
                 }
                 onSelect?.invoke(i, values[i])
+            }
+        }
+    }
+
+    // ── Qwen3-ASR (sherpa-onnx) settings wiring ───────────────────────
+    private fun setupQwen3Settings() {
+        val qwen3Toggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.qwen3Toggle)
+        val qwen3Status = findViewById<TextView>(R.id.qwen3Status)
+        val qwen3DownloadBtn = findViewById<TextView>(R.id.qwen3DownloadBtn)
+
+        fun refreshStatus() {
+            val installed = Qwen3ModelDownloader.isInstalled(this@MainActivity)
+            qwen3Status?.text = if (installed) "Model installed — ready" else "Model not installed"
+            qwen3DownloadBtn?.text = if (installed) "REINSTALL" else "DOWNLOAD"
+            if (qwen3Toggle?.isEnabled != null) {
+                qwen3Toggle.isEnabled = installed
+                if (!installed && qwen3Toggle.isChecked) {
+                    qwen3Toggle.isChecked = false
+                    WimApp.prefs.edit().putBoolean("use_qwen3", false).apply()
+                }
+            }
+        }
+
+        qwen3Toggle?.isChecked = WimApp.useQwen3() && Qwen3ModelDownloader.isInstalled(this)
+        styleToggle(qwen3Toggle!!)
+        refreshStatus()
+
+        qwen3Toggle.setOnCheckedChangeListener { _, checked ->
+            if (checked && !Qwen3ModelDownloader.isInstalled(this)) {
+                qwen3Toggle.isChecked = false
+                Toast.makeText(this, "Download the Qwen3 model first", Toast.LENGTH_SHORT).show()
+                return@setOnCheckedChangeListener
+            }
+            WimApp.prefs.edit().putBoolean("use_qwen3", checked).apply()
+        }
+
+        qwen3DownloadBtn?.setOnClickListener {
+            qwen3DownloadBtn.isEnabled = false
+            qwen3Status?.text = "Starting download..."
+            lifecycleScope.launch {
+                val result = Qwen3ModelDownloader.downloadAndUnpack(this@MainActivity) { p ->
+                    runOnUiThread {
+                        val mb = p.bytesDone / (1024 * 1024)
+                        val totalMb = if (p.bytesTotal > 0) p.bytesTotal / (1024 * 1024) else 0
+                        qwen3Status?.text = if (totalMb > 0) {
+                            "${p.stage}: ${mb}/${totalMb} MB"
+                        } else {
+                            "${p.stage}: ${mb} MB"
+                        }
+                    }
+                }
+                runOnUiThread {
+                    when (result) {
+                        is Qwen3ModelDownloader.Result.Success -> {
+                            Toast.makeText(this@MainActivity, "Qwen3 model installed", Toast.LENGTH_SHORT).show()
+                        }
+                        is Qwen3ModelDownloader.Result.Failed -> {
+                            Toast.makeText(this@MainActivity, "Download failed: ${result.reason}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    qwen3DownloadBtn.isEnabled = true
+                    refreshStatus()
+                }
             }
         }
     }
