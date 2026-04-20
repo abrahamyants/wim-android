@@ -31,6 +31,13 @@ object LocalWhisperClient {
     @Volatile
     private var isInitialized = false
 
+    // Set while a nativeTranscribe call is in-flight. Used to reject overlapping
+    // transcriptions outright rather than queue them behind the mutex — native
+    // JNI calls can't be interrupted mid-inference, so queueing caused visible
+    // pileups (15-70s waits) when the user recorded twice in quick succession.
+    @Volatile
+    private var isTranscribing = false
+
     // Coroutine-aware mutex. Replaces the prior `synchronized(lock)` JVM monitor,
     // which blocked threads during 70+ second transcriptions and caused the UI to
     // freeze when the bubble tap handler tried to acquire the lock for init/release.
@@ -64,40 +71,63 @@ object LocalWhisperClient {
      * job before nativeTranscribe starts (no way to cancel mid-JNI call).
      */
     suspend fun transcribe(wavFile: File, languageCode: String = "en"): String = withContext(Dispatchers.IO) {
+        // Skip-overlap policy: if a transcription is already running, return
+        // empty immediately rather than queue behind it. Rationale: whisper.cpp
+        // native calls cannot be interrupted, so two rapid-fire recordings
+        // otherwise pile up and the second blocks for the first's duration.
+        // Caller (BubbleService) falls back to Samsung / on-device text when
+        // this returns empty.
+        if (isTranscribing) {
+            Log.w(TAG, "Skipping overlap — a transcription is already in flight")
+            return@withContext ""
+        }
+
         mutex.withLock {
-            if (!isInitialized) {
-                Log.e(TAG, "Cannot transcribe, model is not initialized")
-                throw IllegalStateException("Whisper model not initialized")
-            }
-
-            if (!wavFile.exists()) {
-                throw IllegalArgumentException("Audio file not found")
-            }
-
-            Log.i(TAG, "Transcribing ${wavFile.length()} bytes...")
-
-            val bytes = wavFile.readBytes()
-            val headerSize = 44
-            val dataSize = bytes.size - headerSize
-
-            if (dataSize <= 0) {
-                Log.w(TAG, "Audio file contains no data")
+            // Re-check inside the lock in case another coroutine grabbed the
+            // slot between the outer check and lock acquisition.
+            if (isTranscribing) {
+                Log.w(TAG, "Skipping overlap (lock-check) — a transcription is already in flight")
                 return@withLock ""
             }
+            isTranscribing = true
 
-            val numSamples = dataSize / 2
-            val floatData = FloatArray(numSamples)
-            val bb = ByteBuffer.wrap(bytes, headerSize, dataSize).order(ByteOrder.LITTLE_ENDIAN)
-            for (i in 0 until numSamples) {
-                floatData[i] = bb.getShort().toFloat() / 32768.0f
+            try {
+                if (!isInitialized) {
+                    Log.e(TAG, "Cannot transcribe, model is not initialized")
+                    throw IllegalStateException("Whisper model not initialized")
+                }
+
+                if (!wavFile.exists()) {
+                    throw IllegalArgumentException("Audio file not found")
+                }
+
+                Log.i(TAG, "Transcribing ${wavFile.length()} bytes...")
+
+                val bytes = wavFile.readBytes()
+                val headerSize = 44
+                val dataSize = bytes.size - headerSize
+
+                if (dataSize <= 0) {
+                    Log.w(TAG, "Audio file contains no data")
+                    return@withLock ""
+                }
+
+                val numSamples = dataSize / 2
+                val floatData = FloatArray(numSamples)
+                val bb = ByteBuffer.wrap(bytes, headerSize, dataSize).order(ByteOrder.LITTLE_ENDIAN)
+                for (i in 0 until numSamples) {
+                    floatData[i] = bb.getShort().toFloat() / 32768.0f
+                }
+
+                val t0 = System.currentTimeMillis()
+                val text = nativeTranscribe(floatData, numSamples, languageCode)
+                val t1 = System.currentTimeMillis()
+
+                Log.i(TAG, "Local transcription took ${t1 - t0}ms: $text")
+                text.trim()
+            } finally {
+                isTranscribing = false
             }
-
-            val t0 = System.currentTimeMillis()
-            val text = nativeTranscribe(floatData, numSamples, languageCode)
-            val t1 = System.currentTimeMillis()
-
-            Log.i(TAG, "Local transcription took ${t1 - t0}ms: $text")
-            text.trim()
         }
     }
 
