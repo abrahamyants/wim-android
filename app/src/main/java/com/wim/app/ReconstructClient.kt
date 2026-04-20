@@ -394,7 +394,7 @@ object ReconstructClient {
             } else if (riskFlags.contains("critical_token_lost")) {
                 false
             } else {
-                falconValidate(rawText, cleanText, layer, tone)
+                falconValidate(rawText, cleanText, layer, tone, onsetWeights)
             }
 
             val reconMs = System.currentTimeMillis() - t0
@@ -421,7 +421,13 @@ object ReconstructClient {
     }
 
     /** Falcon validation: binary meaning-preservation check via GPT. */
-    private suspend fun falconValidate(rawText: String, cleanText: String, layer: Int, tone: String = "casual"): Boolean =
+    private suspend fun falconValidate(
+        rawText: String, 
+        cleanText: String, 
+        layer: Int, 
+        tone: String = "casual",
+        onsetWeights: Map<String, Double> = emptyMap()
+    ): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 val apiKey = WimApp.apiKey()
@@ -437,13 +443,25 @@ object ReconstructClient {
                 }
 
                 val prompt = if (layer >= 4) {
-                    "Speaker stutters. Repeated syllables, prolongations, and blocks are " +
+                    var p = "Speaker stutters. Repeated syllables, prolongations, and blocks are " +
                     "disfluencies, not emphasis. Filler clusters before content words are " +
                     "postponement tactics, not meaningful hesitation. Synonym substitutions " +
                     "and circumlocutions are avoidance behaviors — the reconstruction should " +
                     "recover the intended word. Rambling run-on filler (mazes) should be " +
-                    "stripped. $toneNote Does the reconstruction preserve intended meaning? " +
-                    "Answer ONLY 'yes' or 'no'."
+                    "stripped. $toneNote "
+                    
+                    if (onsetWeights.isNotEmpty()) {
+                        val topOnsets = onsetWeights.entries
+                            .sortedByDescending { it.value }
+                            .take(5)
+                            .joinToString(", ") { "/${it.key}/" }
+                        p += "Evaluate carefully against over-correction: ensure the reconstructed text strictly aligns with the phonetic intent of the raw transcription, especially near the speaker's hardest phonemes: $topOnsets. Do not accept hallucinations that drastically alter the spoken phonemes. "
+                    } else {
+                        p += "Evaluate carefully against over-correction: ensure the reconstructed text strictly aligns with the phonetic intent of the raw transcription. Do not accept hallucinations that drastically alter the spoken phonemes. "
+                    }
+                    
+                    p += "Does the reconstruction preserve intended meaning without unwarranted phonetic hallucination? Answer ONLY 'yes' or 'no'."
+                    p
                 } else {
                     "The reconstruction cleans up a voice transcription: removing filler words " +
                     "(um, uh, like, you know), fixing grammar, and improving clarity. " +
