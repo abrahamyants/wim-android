@@ -54,6 +54,10 @@ class BubbleService : Service() {
         }
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
+    private var voskEngine: VoskEngine? = null
+    // True while the current session is running on Vosk rather than the
+    // Android SpeechRecognizer path.
+    private var useVoskForCurrentSession: Boolean = false
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
@@ -215,6 +219,7 @@ class BubbleService : Service() {
         }, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
+        voskEngine = VoskEngine(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
         setupBluetoothSco()
@@ -719,37 +724,58 @@ class BubbleService : Service() {
             dafPlayer?.start()
         }
 
-        onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
-            override fun onPartialResult(text: String) {
-                Log.i(TAG, "Partial: $text")
-                // Partial = current segment only; combine with finalized segments
-                lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+        // Shared ASR callback logic — same for both engines.
+        val handlePartial: (String) -> Unit = { text ->
+            Log.i(TAG, "Partial: $text")
+            lastRawText = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+            updateLiveTranscript(lastRawText)
+        }
+        val handleFinal: (String) -> Unit = { text ->
+            Log.i(TAG, "Final ASR: $text")
+            if (text.isNotBlank()) {
+                finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
+                lastRawText = finalizedSegments
                 updateLiveTranscript(lastRawText)
             }
+        }
+        val handleSound: (String) -> Unit = { label ->
+            updateLiveTranscript("$lastRawText $label")
+        }
+        val handleError: (Int) -> Unit = { code ->
+            Log.e(TAG, "ASR error: $code")
+            isRecording = false
+            dafPlayer?.stop()
+            dafPlayer = null
+            setBubbleIdle()
+            bubbleView?.scaleX = 1.0f
+            bubbleView?.scaleY = 1.0f
+        }
 
-            override fun onFinalResult(text: String) {
-                Log.i(TAG, "Final ASR: $text")
-                if (text.isNotBlank()) {
-                    finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
-                    lastRawText = finalizedSegments
-                    updateLiveTranscript(lastRawText)
-                }
-            }
+        // Pick the engine. Vosk preferred when the user toggled it on and the
+        // model is unpacked on disk. Otherwise fall back to Android
+        // SpeechRecognizer (which chirps but always works).
+        val wantVosk = WimApp.useVosk() && (voskEngine?.isReady() == true)
+        useVoskForCurrentSession = wantVosk
 
-            override fun onSoundEvent(label: String) {
-                updateLiveTranscript("$lastRawText $label")
+        if (wantVosk) {
+            Log.i(TAG, "Using Vosk engine (no chirp path)")
+            voskEngine?.start(object : VoskEngine.ResultListener {
+                override fun onPartialResult(text: String) = handlePartial(text)
+                override fun onFinalResult(text: String) = handleFinal(text)
+                override fun onSoundEvent(label: String) = handleSound(label)
+                override fun onError(errorCode: Int) = handleError(errorCode)
+            })
+        } else {
+            if (WimApp.useVosk()) {
+                Log.w(TAG, "Vosk enabled but model not ready — falling back to SpeechRecognizer")
             }
-
-            override fun onError(errorCode: Int) {
-                Log.e(TAG, "ASR error: $errorCode")
-                isRecording = false
-                dafPlayer?.stop()
-                dafPlayer = null
-                setBubbleIdle()
-                bubbleView?.scaleX = 1.0f
-                bubbleView?.scaleY = 1.0f
-            }
-        })
+            onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
+                override fun onPartialResult(text: String) = handlePartial(text)
+                override fun onFinalResult(text: String) = handleFinal(text)
+                override fun onSoundEvent(label: String) = handleSound(label)
+                override fun onError(errorCode: Int) = handleError(errorCode)
+            })
+        }
     }
 
     private fun stopAndProcess() {
@@ -764,7 +790,9 @@ class BubbleService : Service() {
         val wavFile = audioRecorder?.stop()
         audioRecorder = null
         
-        onDeviceRecognizer?.stop() // just in case
+        // Stop whichever engine was running this session; cheap defensive calls on both.
+        onDeviceRecognizer?.stop()
+        voskEngine?.stop()
 
         updateLiveTranscript("Transcribing...")
 
@@ -2091,6 +2119,7 @@ class BubbleService : Service() {
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
+        voskEngine?.destroy()
         scope.cancel()
         super.onDestroy()
     }

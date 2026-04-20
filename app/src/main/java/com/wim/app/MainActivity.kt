@@ -462,6 +462,9 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("cloud_backup", checked).apply()
         }
 
+        // ── Vosk ASR (no chirp) ──
+        setupVoskSettings()
+
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
         val settingsDafDelay = findViewById<SeekBar>(R.id.settingsDafDelay)
@@ -1727,6 +1730,69 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                     }
                 }
                 onSelect?.invoke(i, values[i])
+            }
+        }
+    }
+
+    // ── Vosk ASR settings wiring ───────────────────────
+    private fun setupVoskSettings() {
+        val voskToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.voskToggle)
+        val voskStatus = findViewById<TextView>(R.id.voskStatus)
+        val voskDownloadBtn = findViewById<TextView>(R.id.voskDownloadBtn)
+
+        fun refreshStatus() {
+            val installed = VoskModelDownloader.isInstalled(this@MainActivity)
+            voskStatus?.text = if (installed) "Model installed — ready" else "Model not installed"
+            voskDownloadBtn?.text = if (installed) "REINSTALL" else "DOWNLOAD"
+            if (voskToggle?.isEnabled != null) {
+                voskToggle.isEnabled = installed
+                if (!installed && voskToggle.isChecked) {
+                    voskToggle.isChecked = false
+                    WimApp.prefs.edit().putBoolean("use_vosk", false).apply()
+                }
+            }
+        }
+
+        voskToggle?.isChecked = WimApp.useVosk() && VoskModelDownloader.isInstalled(this)
+        styleToggle(voskToggle!!)
+        refreshStatus()
+
+        voskToggle.setOnCheckedChangeListener { _, checked ->
+            if (checked && !VoskModelDownloader.isInstalled(this)) {
+                voskToggle.isChecked = false
+                Toast.makeText(this, "Download the Vosk model first", Toast.LENGTH_SHORT).show()
+                return@setOnCheckedChangeListener
+            }
+            WimApp.prefs.edit().putBoolean("use_vosk", checked).apply()
+        }
+
+        voskDownloadBtn?.setOnClickListener {
+            voskDownloadBtn.isEnabled = false
+            voskStatus?.text = "Starting download..."
+            lifecycleScope.launch {
+                val result = VoskModelDownloader.downloadAndUnpack(this@MainActivity) { p ->
+                    runOnUiThread {
+                        val mb = p.bytesDone / (1024 * 1024)
+                        val totalMb = if (p.bytesTotal > 0) p.bytesTotal / (1024 * 1024) else 0
+                        voskStatus?.text = if (totalMb > 0) {
+                            "${p.stage}: ${mb}/${totalMb} MB"
+                        } else {
+                            "${p.stage}: ${mb} MB"
+                        }
+                    }
+                }
+                runOnUiThread {
+                    when (result) {
+                        is VoskModelDownloader.Result.Success -> {
+                            Toast.makeText(this@MainActivity, "Vosk model installed", Toast.LENGTH_SHORT).show()
+                        }
+                        is VoskModelDownloader.Result.Failed -> {
+                            Toast.makeText(this@MainActivity, "Download failed: ${result.reason}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    voskDownloadBtn.isEnabled = true
+                    refreshStatus()
+                }
             }
         }
     }

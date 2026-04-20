@@ -61,7 +61,13 @@ class VoskEngine(private val context: Context) {
             return
         }
         try {
-            model = Model(modelDir().absolutePath)
+            // Lazy-load the model once and keep it in memory across sessions —
+            // loading a 40 MB Vosk model takes 1-2 seconds on a phone.
+            if (model == null) {
+                val t0 = System.currentTimeMillis()
+                model = Model(modelDir().absolutePath)
+                Log.i(TAG, "Model loaded in ${System.currentTimeMillis() - t0}ms")
+            }
             recognizer = Recognizer(model, SAMPLE_RATE)
             speechService = SpeechService(recognizer, SAMPLE_RATE)
             speechService?.startListening(object : org.vosk.android.RecognitionListener {
@@ -97,6 +103,7 @@ class VoskEngine(private val context: Context) {
 
     fun destroy() {
         cleanup()
+        destroyModel()
         listener = null
     }
 
@@ -105,6 +112,11 @@ class VoskEngine(private val context: Context) {
         speechService = null
         try { recognizer?.close() } catch (_: Exception) {}
         recognizer = null
+        // Model intentionally NOT closed here — kept warm for next start().
+        // Model is closed only in destroy().
+    }
+
+    private fun destroyModel() {
         try { model?.close() } catch (_: Exception) {}
         model = null
     }
