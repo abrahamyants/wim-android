@@ -799,8 +799,18 @@ class BubbleService : Service() {
                 }
             }
         } else {
-            Log.w(TAG, "No audio captured")
-            setBubbleIdle()
+            // No wav — happens when user has no local API key (backend-only tier)
+            // or on L1 where audioRecorder is intentionally gated off. Fall back to
+            // OnDeviceRecognizer's last result so the app still pastes something.
+            lastWhisperLowConf = emptyList()
+            val onDeviceText = lastRawText.trim()
+            if (onDeviceText.isNotBlank()) {
+                Log.i(TAG, "No wav, using on-device text: $onDeviceText")
+                processText(onDeviceText)
+            } else {
+                Log.w(TAG, "No audio captured and no on-device text")
+                setBubbleIdle()
+            }
         }
     }
 
