@@ -76,6 +76,12 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
+    // Vosk on-device ASR — backup path to Android SpeechRecognizer. No NDK/JNI glue;
+    // the AAR ships precompiled native libs for arm64-v8a + armeabi-v7a. Activated
+    // when a model is present in filesDir/vosk-models/<model-name>/.
+    implementation("com.alphacephei:vosk-android:0.3.47@aar")
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
