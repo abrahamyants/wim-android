@@ -28,7 +28,9 @@ import androidx.core.app.ActivityCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.CoroutineScope
@@ -137,30 +139,46 @@ class MainActivity : AppCompatActivity() {
 
         googleSignInBtn.setOnClickListener {
             val credentialManager = CredentialManager.create(this)
-            val googleIdOption = GetGoogleIdOption.Builder()
+            // Bottom-sheet path for returning users
+            val idOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(webClientId)
                 .build()
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
+            val idRequest = GetCredentialRequest.Builder().addCredentialOption(idOption).build()
 
             CoroutineScope(Dispatchers.Main).launch {
-                try {
-                    val result = credentialManager.getCredential(this@MainActivity, request)
-                    val googleIdToken = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
-                    val user = AuthManager.signInWithGoogle(googleIdToken)
-                    if (user != null) {
-                        Toast.makeText(this@MainActivity, "Signed in as ${user.email}", Toast.LENGTH_SHORT).show()
-                        updateAuthUI()
-                    } else {
-                        Toast.makeText(this@MainActivity, "Sign-in failed", Toast.LENGTH_SHORT).show()
-                    }
+                val idToken = try {
+                    val result = credentialManager.getCredential(this@MainActivity, idRequest)
+                    GoogleIdTokenCredential.createFrom(result.credential.data).idToken
                 } catch (e: GetCredentialCancellationException) {
-                    // User cancelled — do nothing
+                    return@launch
+                } catch (e: NoCredentialException) {
+                    // Fresh-device path — no returning credential matches, open the full Sign-in-with-Google flow
+                    Log.i("WiM", "No bottom-sheet credentials, falling back to full Sign-in-with-Google")
+                    try {
+                        val siwgOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+                        val siwgRequest = GetCredentialRequest.Builder().addCredentialOption(siwgOption).build()
+                        val result = credentialManager.getCredential(this@MainActivity, siwgRequest)
+                        GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                    } catch (e2: GetCredentialCancellationException) {
+                        return@launch
+                    } catch (e2: Exception) {
+                        Log.e("WiM", "Sign-in fallback failed: ${e2.message}", e2)
+                        Toast.makeText(this@MainActivity, "Sign-in error: ${e2.message}", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
                 } catch (e: Exception) {
                     Log.e("WiM", "Sign-in error: ${e.message}", e)
                     Toast.makeText(this@MainActivity, "Sign-in error: ${e.message}", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val user = AuthManager.signInWithGoogle(idToken)
+                if (user != null) {
+                    Toast.makeText(this@MainActivity, "Signed in as ${user.email}", Toast.LENGTH_SHORT).show()
+                    updateAuthUI()
+                } else {
+                    Toast.makeText(this@MainActivity, "Sign-in failed", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -763,7 +781,7 @@ class MainActivity : AppCompatActivity() {
             text = "OUT"
             textSize = 11f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-            setTextColor(0xFFEE5A24.toInt())
+            setTextColor(getColor(R.color.orange_label))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -875,7 +893,7 @@ class MainActivity : AppCompatActivity() {
             text = "SHARE"
             textSize = 9f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-            setTextColor(0xFFEE5A24.toInt())
+            setTextColor(getColor(R.color.orange_label))
             setPadding((8 * dp).toInt(), (4 * dp).toInt(), (8 * dp).toInt(), (4 * dp).toInt())
             setOnClickListener {
                 val intent = Intent(Intent.ACTION_SEND).apply {
@@ -1213,7 +1231,7 @@ class MainActivity : AppCompatActivity() {
         val cardColor = if (isNight) 0xFF252530.toInt() else 0xFFd8d8dc.toInt()
         val textColor = if (isNight) 0xFFe0e0e4.toInt() else 0xFF2a2a30.toInt()
         val dimColor = if (isNight) 0xFF8a8a92.toInt() else 0xFF666670.toInt()
-        val accentColor = 0xFFEE5A24.toInt()
+        val accentColor = getColor(R.color.orange_label)
 
         val sections = listOf(
             Triple("How It Works", "What happens when you tap the bubble", """
