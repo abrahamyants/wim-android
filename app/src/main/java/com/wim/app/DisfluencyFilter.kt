@@ -108,14 +108,23 @@ object DisfluencyFilter {
         // Step 1: Remove stutter fragments
         var cleaned = STUTTER_FRAGMENT.replace(text, "")
 
-        // Step 2: Remove consecutive word repetitions (protect natural repeats)
+        // Step 2: Remove consecutive word repetitions (protect natural repeats).
+        // Natural repeats ("bye bye", "go go") are valid at exactly 2 occurrences;
+        // 3+ means the speaker was blocked, not being idiomatic.
         cleaned = WORD_REPEAT.replace(cleaned) { match ->
-            val pair = "${match.groupValues[1].lowercase()} ${match.groupValues[1].lowercase()}"
-            if (pair in NATURAL_REPEATS) match.value else match.groupValues[1]
+            val word = match.groupValues[1]
+            val pair = "${word.lowercase()} ${word.lowercase()}"
+            val totalCount = match.value.trim().split("\\s+".toRegex()).size
+            if (pair in NATURAL_REPEATS && totalCount == 2) match.value else word
         }
 
-        // Step 3: Remove phrase repetitions
-        cleaned = PHRASE_REPEAT.replace(cleaned) { it.groupValues[1] }
+        // Step 3: Remove phrase repetitions — but skip phrases that are just
+        // the same word duplicated, which word-repeat already handled correctly.
+        cleaned = PHRASE_REPEAT.replace(cleaned) { match ->
+            val phrase = match.groupValues[1]
+            val words = phrase.trim().split("\\s+".toRegex()).map { it.lowercase() }
+            if (words.toSet().size == 1) match.value else phrase
+        }
 
         // Step 4: Strip filler words
         val fillerSet = fillerWords.map { it.lowercase() }.toSet()
