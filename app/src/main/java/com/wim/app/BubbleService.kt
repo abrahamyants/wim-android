@@ -801,16 +801,22 @@ class BubbleService : Service() {
         } else {
             // No wav — happens when user has no local API key (backend-only tier)
             // or on L1 where audioRecorder is intentionally gated off. Fall back to
-            // OnDeviceRecognizer's last result so the app still pastes something.
+            // OnDeviceRecognizer's last result.
+            // Wait 400ms before reading lastRawText: the recognizer's onFinalResult
+            // callback typically arrives 150-250ms after stop() and overwrites
+            // lastRawText with the full utterance. Without this wait we paste a
+            // truncated partial (e.g. "this is" instead of "this is a test").
             lastWhisperLowConf = emptyList()
-            val onDeviceText = lastRawText.trim()
-            if (onDeviceText.isNotBlank()) {
-                Log.i(TAG, "No wav, using on-device text: $onDeviceText")
-                processText(onDeviceText)
-            } else {
-                Log.w(TAG, "No audio captured and no on-device text")
-                setBubbleIdle()
-            }
+            timerHandler.postDelayed({
+                val onDeviceText = lastRawText.trim()
+                if (onDeviceText.isNotBlank()) {
+                    Log.i(TAG, "No wav, using on-device text: $onDeviceText")
+                    processText(onDeviceText)
+                } else {
+                    Log.w(TAG, "No audio captured and no on-device text")
+                    setBubbleIdle()
+                }
+            }, 400)
         }
     }
 
