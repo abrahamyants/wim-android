@@ -2,6 +2,7 @@ package com.wim.app
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.google.firebase.FirebaseApp
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -18,6 +19,7 @@ class SessionHistoryTest {
 
     @Before fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        if (FirebaseApp.getApps(context).isEmpty()) FirebaseApp.initializeApp(context)
         // Delete old DB to start fresh
         context.deleteDatabase("wim_sessions.db")
         history = SessionHistory(context)

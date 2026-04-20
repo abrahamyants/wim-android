@@ -3,6 +3,7 @@ package com.wim.app
 import android.app.Application
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 
 class WimApp : Application() {
@@ -33,6 +34,9 @@ class WimApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // In production FirebaseInitProvider runs first; in Robolectric unit tests
+        // manifest providers are skipped, so initialize explicitly. Idempotent.
+        if (FirebaseApp.getApps(this).isEmpty()) FirebaseApp.initializeApp(this)
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
         profileManager = ProfileManager(prefs)
         // Restore user's dark mode preference, default to system

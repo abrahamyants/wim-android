@@ -3,6 +3,7 @@ package com.wim.app
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
+import com.google.firebase.FirebaseApp
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -19,6 +20,7 @@ class ProfileManagerTest {
 
     @Before fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        if (FirebaseApp.getApps(context).isEmpty()) FirebaseApp.initializeApp(context)
         prefs = context.getSharedPreferences("wim_test", Context.MODE_PRIVATE)
         prefs.edit().clear().commit()
         profile = ProfileManager(prefs)
