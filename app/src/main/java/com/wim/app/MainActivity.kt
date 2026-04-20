@@ -486,6 +486,9 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // ── Local whisper.cpp (post-recording accuracy) ──
+        setupLocalWhisperSettings()
+
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
 
@@ -1455,6 +1458,97 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 ))
             } catch (e: Exception) {
                 Log.e("WiM", "Battery exemption request failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Wires the Local Whisper (whisper.cpp) settings row:
+     *  - toggle gates whether the post-recording local pass runs
+     *  - status text shows "Not installed" / "Ready" / progress during download
+     *  - DOWNLOAD button fetches the ~140 MB ggml-base.en model, then
+     *    initializes LocalWhisperClient so the next recording can use it.
+     *
+     * Toggle auto-disables when the model file is not present.
+     */
+    private fun setupLocalWhisperSettings() {
+        val toggle = findViewById<MaterialSwitch>(R.id.localWhisperToggle) ?: return
+        val status = findViewById<TextView>(R.id.localWhisperStatus)
+        val downloadBtn = findViewById<TextView>(R.id.localWhisperDownloadBtn)
+
+        styleToggle(toggle)
+
+        fun applyInstalledState() {
+            val installed = WhisperModelDownloader.isInstalled(this)
+            if (!installed) {
+                // Force-off if model went missing
+                if (WimApp.useLocalWhisper()) {
+                    WimApp.prefs.edit().putBoolean("use_local_whisper", false).apply()
+                }
+                toggle.isChecked = false
+                toggle.isEnabled = false
+                status?.text = "Not installed"
+                downloadBtn?.text = "DOWNLOAD"
+                downloadBtn?.isEnabled = true
+            } else {
+                toggle.isEnabled = true
+                toggle.isChecked = WimApp.useLocalWhisper()
+                val mb = WhisperModelDownloader.modelFile(this).length() / (1024 * 1024)
+                status?.text = "Ready (${mb} MB)"
+                downloadBtn?.text = "INSTALLED"
+                downloadBtn?.isEnabled = false
+            }
+        }
+        applyInstalledState()
+
+        toggle.setOnCheckedChangeListener { _, checked ->
+            if (checked && !WhisperModelDownloader.isInstalled(this)) {
+                // Can't turn on without the model
+                toggle.isChecked = false
+                Toast.makeText(this, "Download the model first", Toast.LENGTH_SHORT).show()
+                return@setOnCheckedChangeListener
+            }
+            WimApp.prefs.edit().putBoolean("use_local_whisper", checked).apply()
+        }
+
+        downloadBtn?.setOnClickListener {
+            if (WhisperModelDownloader.isInstalled(this)) {
+                return@setOnClickListener
+            }
+            downloadBtn.isEnabled = false
+            downloadBtn.text = "0%"
+            status?.text = "Downloading..."
+
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val modelFile = WhisperModelDownloader.downloadAndUnpack(this@MainActivity) { downloaded, total ->
+                        val pct = if (total > 0) ((downloaded * 100) / total).toInt() else -1
+                        runOnUiThread {
+                            if (pct >= 0) {
+                                downloadBtn.text = "${pct}%"
+                                status?.text = "Downloading... ${downloaded / (1024 * 1024)} MB"
+                            } else {
+                                status?.text = "Downloading... ${downloaded / (1024 * 1024)} MB"
+                            }
+                        }
+                    }
+                    // Init the model so the next recording can use it without cold-start cost
+                    val ok = LocalWhisperClient.init(modelFile)
+                    runOnUiThread {
+                        if (ok) {
+                            Toast.makeText(this@MainActivity, "Whisper model ready", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Model installed but init failed", Toast.LENGTH_LONG).show()
+                        }
+                        applyInstalledState()
+                    }
+                } catch (e: Exception) {
+                    Log.e("WiM", "Whisper model download failed: ${e.message}", e)
+                    runOnUiThread {
+                        Toast.makeText(this@MainActivity, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        applyInstalledState()
+                    }
+                }
             }
         }
     }

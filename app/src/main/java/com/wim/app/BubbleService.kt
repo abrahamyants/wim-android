@@ -59,6 +59,10 @@ class BubbleService : Service() {
     private var audioRecorder: AudioRecorder? = null
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
 
+    // Local whisper.cpp post-recording accuracy path. Set only after successful
+    // native init. Guarded by WimApp.useLocalWhisper() at runtime.
+    private var whisperModelFile: java.io.File? = null
+
     // Command Mode state — when armed, the next recording is a GPT transform command
     private var commandModeArmed: Boolean = false
     private var commandSourceText: String = ""
@@ -216,6 +220,30 @@ class BubbleService : Service() {
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
         sessionHistory = SessionHistory(this)
+
+        // If the whisper.cpp ggml model has been downloaded, warm-load it in the
+        // background so the first post-stop transcription doesn't pay the init
+        // cost. Gated by file presence; runtime use is also gated by the
+        // use_local_whisper feature flag in stopAndProcess().
+        run {
+            val modelFile = WhisperModelDownloader.modelFile(this)
+            if (modelFile.exists() && modelFile.length() > 1_000_000L) {
+                scope.launch {
+                    try {
+                        val ok = LocalWhisperClient.init(modelFile)
+                        if (ok) {
+                            whisperModelFile = modelFile
+                            Log.i(TAG, "LocalWhisperClient initialized from ${modelFile.absolutePath}")
+                        } else {
+                            Log.w(TAG, "LocalWhisperClient.init returned false")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "LocalWhisperClient.init threw: ${e.message}", e)
+                    }
+                }
+            }
+        }
+
         createNotificationChannel()
         setupBluetoothSco()
         val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -771,6 +799,10 @@ class BubbleService : Service() {
         if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
+                // Cloud result (primary path, unchanged)
+                var cloudText: String = ""
+                var cloudFailed = false
+                var cloudHallucinated = false
                 try {
                     val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
                     Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
@@ -778,22 +810,69 @@ class BubbleService : Service() {
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                         Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                     }
-                    if (whisperResult.wasFullyHallucinated) {
+                    cloudHallucinated = whisperResult.wasFullyHallucinated
+                    cloudText = whisperResult.text ?: ""
+                } catch (e: Exception) {
+                    Log.e(TAG, "Whisper cloud failed: ${e.message}")
+                    cloudFailed = true
+                }
+
+                // Local whisper.cpp accuracy path — only if user opted in AND
+                // model is installed. Runs after cloud so we can A/B or fall back.
+                var localText: String = ""
+                val localOn = WimApp.useLocalWhisper()
+                val localReady = whisperModelFile?.let { it.exists() && it.length() > 1_000_000L } == true
+                if (localOn && localReady) {
+                    try {
+                        // LocalWhisperClient.init is idempotent — safe to call again if
+                        // the background warm-load from onCreate hasn't completed yet.
+                        LocalWhisperClient.init(whisperModelFile!!)
+                        val primaryLang = WimApp.prefs.getString("primary_language", "en-US") ?: "en-US"
+                        val langCode = primaryLang.substringBefore('-').lowercase()
+                        localText = LocalWhisperClient.transcribe(wavFile, languageCode = langCode)
+                        Log.i(TAG, "LocalWhisper: \"$localText\" (cloud: \"$cloudText\")")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "LocalWhisper failed: ${e.message}")
+                    }
+                }
+
+                // Decide which text to use. Keep cloud as the default path to
+                // preserve existing behavior; only use local when it adds value.
+                val finalText: String = when {
+                    // Cloud failed or came back empty → use local if available
+                    (cloudFailed || cloudText.isBlank()) && localText.isNotBlank() -> {
+                        Log.i(TAG, "Using local whisper result (cloud failed/empty)")
+                        localText
+                    }
+                    // Both present → prefer the longer (simple length heuristic)
+                    localOn && localText.isNotBlank() && cloudText.isNotBlank() -> {
+                        if (localText.length > cloudText.length) {
+                            Log.i(TAG, "Preferring local (${localText.length}) over cloud (${cloudText.length})")
+                            localText
+                        } else {
+                            cloudText
+                        }
+                    }
+                    else -> cloudText
+                }
+
+                try {
+                    if (cloudFailed && localText.isBlank()) {
+                        // Both paths failed entirely
+                        showPipelineStage("Error", "Transcription failed")
+                        timerHandler.postDelayed({ setBubbleIdle() }, 2000)
+                    } else if (cloudHallucinated && localText.isBlank()) {
+                        // Cloud said it was silence and we have no local text to override
                         Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
                         showPipelineStage("∅ Silence", "Nothing to transcribe")
                         timerHandler.postDelayed({ setBubbleIdle() }, 1500)
                     } else {
-                        val finalText = whisperResult.text
                         if (finalText.isNotBlank()) {
                             processText(finalText)
                         } else {
                             setBubbleIdle()
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Whisper failed: ${e.message}")
-                    showPipelineStage("Error", "Transcription failed")
-                    timerHandler.postDelayed({ setBubbleIdle() }, 2000)
                 } finally {
                     wavFile.delete()
                 }
