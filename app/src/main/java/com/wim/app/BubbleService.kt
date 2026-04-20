@@ -754,7 +754,7 @@ class BubbleService : Service() {
 
     private fun stopAndProcess() {
         if (processed) return
-        Log.i(TAG, "Stop requested, waiting 750ms for final words...")
+        Log.i(TAG, "Stop requested, processing audio immediately...")
         processed = true
         isRecording = false
         dafPlayer?.stop()
@@ -763,76 +763,45 @@ class BubbleService : Service() {
         // Stop audio recorder immediately (captures full audio)
         val wavFile = audioRecorder?.stop()
         audioRecorder = null
+        
+        onDeviceRecognizer?.stop() // just in case
 
-        // Delay stopping the recognizer — let it finish processing the last audio buffer
-        timerHandler.postDelayed({
-            // Suppress SpeechRecognizer stop beep — grab exclusive audio focus
-            val stopFocusRequest = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
-                .setAudioAttributes(android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build())
-                .build()
-            audioManager?.requestAudioFocus(stopFocusRequest)
-            timerHandler.postDelayed({
-                audioManager?.abandonAudioFocusRequest(stopFocusRequest)
-            }, 600)
+        updateLiveTranscript("Transcribing...")
 
-            val textBeforeStop = lastRawText
-            onDeviceRecognizer?.stop()
-
-            // Wait another 250ms for the final result callback
-            timerHandler.postDelayed({
-                val onDeviceText = if (lastRawText.length > textBeforeStop.length) lastRawText else textBeforeStop
-
-                // L4 with recorded audio: use Whisper API for better stutter transcription
-                if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
-                    Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
-                    scope.launch {
-                        try {
-                            val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
-                            Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
-                            lastWhisperLowConf = whisperResult.lowConfidenceSegments
-                            if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
-                                Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
-                            }
-                            // If Whisper was 100% hallucination, don't fall back — bail.
-                            // On-device ASR during silence is garbage too, and pasting garbage is worse than pasting nothing.
-                            if (whisperResult.wasFullyHallucinated) {
-                                Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
-                                showPipelineStage("∅ Silence", "Nothing to transcribe")
-                                timerHandler.postDelayed({ setBubbleIdle() }, 1500)
-                            } else {
-                                val finalText = whisperResult.text.ifBlank { onDeviceText }
-                                if (finalText.isNotBlank()) {
-                                    processText(finalText)
-                                } else {
-                                    setBubbleIdle()
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Whisper failed, falling back to on-device: ${e.message}")
-                            if (onDeviceText.isNotBlank()) {
-                                processText(onDeviceText)
-                            } else {
-                                setBubbleIdle()
-                            }
-                        } finally {
-                            wavFile.delete()
+        if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
+            Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
+            scope.launch {
+                try {
+                    val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
+                    Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                    lastWhisperLowConf = whisperResult.lowConfidenceSegments
+                    if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
+                        Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
+                    }
+                    if (whisperResult.wasFullyHallucinated) {
+                        Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
+                        showPipelineStage("∅ Silence", "Nothing to transcribe")
+                        timerHandler.postDelayed({ setBubbleIdle() }, 1500)
+                    } else {
+                        val finalText = whisperResult.text
+                        if (finalText.isNotBlank()) {
+                            processText(finalText)
+                        } else {
+                            setBubbleIdle()
                         }
                     }
-                } else {
-                    // L1 or no audio: use on-device result
-                    lastWhisperLowConf = emptyList()
-                    Log.i(TAG, "Final text after delay: $onDeviceText")
-                    if (onDeviceText.isNotBlank()) {
-                        processText(onDeviceText)
-                    } else {
-                        setBubbleIdle()
-                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Whisper failed: ${e.message}")
+                    showPipelineStage("Error", "Transcription failed")
+                    timerHandler.postDelayed({ setBubbleIdle() }, 2000)
+                } finally {
+                    wavFile.delete()
                 }
-            }, 250)
-        }, 750)
+            }
+        } else {
+            Log.w(TAG, "No audio captured")
+            setBubbleIdle()
+        }
     }
 
     private fun startPulseRings() {
