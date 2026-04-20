@@ -102,7 +102,7 @@ class LogoBarsView @JvmOverloads constructor(
             val bar = View(context).apply {
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(0xFFEE5A24.toInt(), 0xFFB55050.toInt())  // orange → maroon
+                    intArrayOf(context.getColor(R.color.orange_label), 0xFFB55050.toInt())  // orange → maroon
                 ).apply {
                     cornerRadius = widthPx.toFloat() / 2
                 }

@@ -1120,7 +1120,7 @@ class BubbleService : Service() {
             // Flash the checkmark, then cycle sparkle sequence
             label?.apply {
                 text = if (answer == true) "✓" else "✕"
-                setTextColor(if (answer == true) 0xFFEE5A24.toInt() else 0xFFCC4444.toInt())
+                setTextColor(if (answer == true) getColor(R.color.orange_label) else 0xFFCC4444.toInt())
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 24f)
                 setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80FFFFFF.toInt() else 0x80CC4444.toInt())
             }
@@ -1136,7 +1136,7 @@ class BubbleService : Service() {
             // Sparkle sequence: ✓ → ✦ → ✧ → idle
             timerHandler.postDelayed({
                 label?.text = "✦"
-                label?.setTextColor(0xFFEE5A24.toInt()) // copper gold
+                label?.setTextColor(getColor(R.color.orange_label)) // copper gold
             }, 400)
             timerHandler.postDelayed({
                 label?.text = "✧"
@@ -1449,11 +1449,11 @@ class BubbleService : Service() {
         val currentLayer = WimApp.layer()
         layerBtns.forEachIndexed { i, btn ->
             val layerVal = i + 1
-            btn.setTextColor(if (layerVal == currentLayer) 0xFFEE5A24.toInt() else 0xFF888890.toInt())
+            btn.setTextColor(if (layerVal == currentLayer) getColor(R.color.orange_label) else 0xFF888890.toInt())
             btn.setOnClickListener {
                 WimApp.prefs.edit().putInt("layer", layerVal).apply()
                 layerBtns.forEach { b -> b.setTextColor(0xFF888890.toInt()) }
-                btn.setTextColor(0xFFEE5A24.toInt())
+                btn.setTextColor(getColor(R.color.orange_label))
                 updateIdleDisplay()
             }
         }
