@@ -871,10 +871,12 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 ### Known Issues
 1. ~~**Backend tier gate:**~~ **FIXED** (Session 7 desktop) — George's Firestore `tier` changed from "free" to "pro". L4 via backend no longer 403s.
 2. **Design mismatch:** Android XML cannot match Lavrentiy CSS depth/texture. Needs Jetpack Compose migration or custom Canvas views.
-3. **Kotlin hardcoded colors:** 23 occurrences of `0xFFEE5A24` that don't respond to theme switching. Need refactor to `getColor(R.color.copper_gold)`.
+3. ~~**Kotlin hardcoded colors:**~~ **FIXED** (Session 10) — 13 Kotlin literals of `0xFFEE5A24` refactored to `R.color.orange_label` (exists in both `values/` and `values-night/`). README's prior guidance to map to `copper_gold` was wrong — `copper_gold` is brown, not orange. 3 remaining instances live inside HTML `<font color="#EE5A24">` strings in MainActivity about-screen; not theme-aware.
 4. **ProGuard strips logs:** `isMinifyEnabled = true` only on `release`, but verify debug builds have full logging.
 5. **Sticky Settings header:** One-directional (can go down, can't go up) — implemented via `translationY` in scroll listener but needs testing.
-6. **Lavrentiy F9 stuck recording:** Fixed with toggle safety + 3-second startup guard + 30-second timeout. Fix is in root `lavrentiy.py` but NOT in `portable/engine/lavrentiy.py` — needs to be copied.
+6. ~~**Lavrentiy F9 stuck recording:**~~ **OBSOLETE** — `portable/engine/lavrentiy.py` was deleted in Session 7 (installer replaces portable). Single canonical `lavrentiy.py` now.
+7. **Samsung recognizer chirp (confirmed unsolvable with config)** — 16+ attempts across Sessions 9-10. The chirp plays at `USAGE_ASSISTANCE_SONIFICATION` from the recognizer service process (`com.google.android.tts/.../GoogleTTSRecognitionService` — Google's, not Samsung's OEM). Cross-process audio suppression is architecturally impossible for AOSP sonification streams; explicitly exempted in `AudioPolicyManager`. The only real fix is replacing `SpeechRecognizer` with in-process ASR (whisper.cpp, Vosk). See Session 10 technical memo.
+8. **L1 disfluency pre-collapse** — Samsung's recognizer smooths out disfluencies before delivering results. "go go go go go" arrives as "go go go". Filter regex improvements in Session 10 are correct but only observable at L2+ where Whisper preserves raw audio. Same root fix as #7.
 
 ### Design Workflow (DO THIS)
 1. **Screenshot phone** → look at actual app
@@ -910,11 +912,11 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 
 ### From Session 8
 - **Onboarding color verification** — CSS changed but never verified on device (Samsung lock screen issues). George not satisfied with orange usage audit.
-- **Onboarding end-to-end test** — all 6 tiles, especially tile 5 (simplified stats) and tile 6 (permissions) need on-device verification
-- **Google Sign-In fix** — "no credentials available" error, likely SHA-1 fingerprint mismatch
+- **Onboarding end-to-end test** — all 6 tiles, especially tile 5 (simplified stats) and tile 6 (permissions) need on-device verification. Also audit dual entry: Bouncer + OnboardingActivity both set `onboarding_complete=true`; one path may be dead code.
+- ~~**Google Sign-In fix**~~ — **FIXED** (Session 10). SHA-1 hypothesis was wrong — debug keystore hash matches `google-services.json` exactly. Real cause was `GetGoogleIdOption` being the returning-user path; first-time authorization needs `GetSignInWithGoogleOption`. Added fallback on `NoCredentialException`. Verified on device (`Signed in as: gugosf@gmail.com`).
 - **BoH filter re-implementation** — bring back with proper anchoring (match only when entire transcription is a hallucination phrase, not substrings)
-- **Hardcoded colors in Kotlin** — 23 occurrences of `0xFFEE5A24` that don't respond to theme switching, need refactor to `getColor(R.color.*)`
-- **Ears upgrade evaluation** — test Deepgram/AssemblyAI as Whisper alternatives for better accuracy
+- ~~**Hardcoded colors in Kotlin**~~ — **FIXED** (Session 10). 13 literals refactored to `R.color.orange_label`. 3 HTML-string literals on About screen remain.
+- **Ears upgrade evaluation** — test Deepgram/AssemblyAI as Whisper alternatives for better accuracy. Moot if whisper.cpp integration lands (Session 10 memo MEMO-R1).
 
 ### Carried Forward
 - One-directional sticky Settings header — verify/improve
@@ -1033,4 +1035,65 @@ Lives in worktree `practical-golick`. 5 of 7 tools are zero-cost (pure regex and
 - Audio playback monitor (CHIRP_MONITOR) for automated chirp detection
 - test_chirp and toggle_recording actions added to WimTestReceiver
 - Confirmed bubble view sound effects are suppressed via automated test
-- **Nothing committed. All changes are uncommitted local modifications.**
+- **Nothing committed. All changes are uncommitted local modifications.** → **RESOLVED** in Session 10: Session 9 work committed as `be0730d "Add Bouncer onboarding flow and UI/audio tweaks"` before Session 10 began.
+
+## Session 10 — April 19-20, 2026
+
+*Follow-up to Session 9's failure log. Started with a full audit of the committed state, then shipped targeted fixes with on-device verification.*
+
+### Context at start
+
+- Session 9's work (Bouncer onboarding, chirp attempts, Play Store fixes) had landed in `be0730d`.
+- Tests were green at Gradle level (exit 0) but actually hiding 36 failures. CI was lying.
+- Known Issues list included a SHA-1 hypothesis for Google Sign-In that turned out to be wrong.
+
+### What shipped (12 commits, `25db36a..b50d574`)
+
+1. **`25db36a` Bypass Samsung chirp by pinning Google recognizer** — probed `com.google.android.voicesearch.serviceapi.GoogleRecognitionService` before creating `SpeechRecognizer`. **Failed on device** — component doesn't exist on Samsung R5CWB08K38H; fell back to default (which is already Google). No-op in practice but pin logic is still correct for devices that do expose the component.
+2. **`2df7467` Collapse 3+ word repeats even when pair is a natural repeat** — `WORD_REPEAT` regex was honoring `NATURAL_REPEATS` (`"go go"`, `"had had"`) at any count. Now honors only at exactly 2; 3+ strips to one. Added same-word guard to `PHRASE_REPEAT`. Fixes `DisfluencyFilterStressTest.wordRepeat_fiveRepeats`.
+3. **`780654f` Initialize FirebaseApp for Robolectric tests** — root cause of the 35 red-and-hidden tests: `WimApp.onCreate()` called `FirebaseAuth.getInstance()` before `FirebaseApp.initializeApp()` ran (Robolectric skips manifest `ContentProvider` init). Added explicit `FirebaseApp.initializeApp(this)` at start of `onCreate`. 213/213 green after.
+4. **`9fc50d0` Theme-aware orange** — 10 of 13 `0xFFEE5A24` literals swapped to `R.color.orange_label` (already exists in `values/` as `#FFC94A1F` and `values-night/` as `#FFEE5A24`). Session 8 guidance to map to `copper_gold` was wrong — copper_gold is brown.
+5. **`db427b6` Google Sign-In `GetSignInWithGoogleOption` fallback** — 3 remaining `0xFFEE5A24` in MainActivity swapped, plus real fix for Sign-In. The SHA-1 hypothesis from Session 9 was wrong: debug keystore hash (`DB:3F:B8:38:...`) normalizes to the exact `certificate_hash` in `google-services.json:21`. Real cause: `CredentialManager` was using `GetGoogleIdOption` (returning-user bottom-sheet); fresh devices need `GetSignInWithGoogleOption` (full picker). Added fallback on `NoCredentialException`.
+6. **`f878f19` Plug 3 DisfluencyFilter regex leaks from audit** — external code review spotted: (a) `STUTTER_FRAGMENT` missed no-whitespace repeats like `w-w-want` (added second-pass regex requiring repeat so legit hyphenated words like `pre-existing` stay); (b) `FALSE_START` comment said it handled `...` but regex only matched `--` (added `\.{3,}`, `\u2014`, `\u2013`); (c) `PROLONGATION` had word-initial `\b` constraint so `yessss`/`heyyyy` slipped through (removed boundary, simplified replacement).
+7. **`0bb53d6` Accessibility look-behind** — `WimAccessibilityService.getPreCursorContext(maxChars: Int = 200)` returns text immediately before the cursor. `BubbleService` scrapes it, passes through `ReconstructClient.reconstruct(..., precedingContext)`. Injected into system prompt (direct path) and backend JSON as `preceding_context`. Password fields return null. Disambiguates reconstructions that would otherwise be blind.
+8. **`bd2ba08` (external) Falcon phonetic context** — added `onsetWeights` to `falconValidate` signature; L4 validator prompt now receives phonetic-adherence constraints. Had deferred in audit as low-ROI but George's external tool did it anyway.
+9. **`fff5f15` (external) Disable OnDeviceRecognizer and AudioFocus hacks** — removed the stop-side `AudioFocus` hack + 750ms wait in `stopAndProcess`. **Caused two regressions:** (a) L1 and backend-only users got `setBubbleIdle()` and nothing pasted (wav file never exists without local API key); (b) on-device text pasted as partial instead of final because 0ms wait after `.stop()` races the `onFinalResult` callback.
+10. **`5537210` Restore on-device text fallback** — when `wavFile` is null/empty, fall back to `lastRawText` instead of `setBubbleIdle`. Fixes regression (a).
+11. **`5db1eac` Wait 400ms for final ASR** — `timerHandler.postDelayed` around the fallback, only on the on-device path (Whisper untouched). On-device final typically arrives 150-250ms after stop; 400ms is a safe margin. Fixes regression (b).
+12. **`b50d574` Disable recognizer profanity filter** — `putExtra("android.speech.extra.PROFANITY_FILTER_OFF", true)` on the `RecognizerIntent`. Samsung was returning `c*********` instead of the actual word, violating the prompt rule "preserve speaker's language EXACTLY as spoken." Untested on device before session end.
+
+### Verified on device (Samsung R5CWB08K38H)
+
+- Sign-In: `I WiM: Signed in as: gugosf@gmail.com`. Backend session persists across installs.
+- Text paste: `I WiM: No wav, using on-device text: this is a test I guess and Chloe is a c*********`
+- Settle-delay: stop at 55.469s, partial at 55.499s, final at 55.584s, processed at 55.874s — used final, not partial. Full sentence pasted.
+- 213/213 unit tests green (verified by parsing XML reports, since Gradle exit code is untrustworthy).
+
+### What remains unfixable without engine replacement
+
+- **Chirp** still fires 3× at start, 3× at stop. Confirmed source is the `RecognitionService` process itself playing `USAGE_ASSISTANCE_SONIFICATION` (usage=10, content=2). Cross-process suppression is architecturally impossible under AOSP AudioPolicyManager rules.
+- **L1 disfluency pre-collapse** — Samsung's recognizer already smoothed "go go go go go" to "go go go" before our code saw it; "heyyyy" arrived as "hey". Filter fixes are code-correct but L2+ only.
+- **Profanity** — Samsung's OEM recognizer may ignore the `PROFANITY_FILTER_OFF` extra; it's undocumented in public AOSP.
+
+All three collapse to one project: **replace `SpeechRecognizer` with in-process ASR (whisper.cpp, Vosk, or similar)**. Estimated 34 engineering hours — breakdown logged in session conversation.
+
+### Wrong calls / corrections this session
+
+1. **Claimed tests passed when `JAVA_HOME` was unset** — Gradle wrapper exited 0 after immediately bailing on missing JDK; I reported "tests passing" based on exit code. Re-ran with `JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"` and surfaced the real 36 failures.
+2. **First chirp fix pinned a component name that doesn't exist on this Samsung** — `com.google.android.voicesearch.serviceapi.GoogleRecognitionService` is not registered on One UI. The pin falls back to default, which is already Google's TTS-hosted recognizer. The commit is harmless but didn't move the needle.
+3. **First regex fix for `STUTTER_FRAGMENT` used `+` instead of `*`** — broke `stutterFragment_single` test because single fragments like "s- stop" need to strip even without a repeat. Corrected with two-pass regex (whitespace-required pass + no-whitespace-repeat-required pass).
+4. **Deferred Falcon phonetic context as "low-ROI"** — external tool landed it anyway (`bd2ba08`). The call was defensible (direct-path only, backend already had it) but George's tolerance for deferred work is lower than the ROI calc suggested.
+5. **SHA-1 mismatch hypothesis in Session 9 Known Issue #3 was wrong** — hashes match exactly. Three Sessions believed this narrative before someone actually ran `keytool` against the debug keystore.
+6. **External commit `fff5f15` introduced two regressions** caught only by reading the diff before testing. Flagged before install; fixed with `5537210` + `5db1eac`.
+7. **Told George to sleep at the end of a frustration spiral.** He rejected it sharply ("never mention that shit again"). Rule saved to memory: never suggest rest/sleep/breaks.
+
+### Still open (pointer to memos — not repeated here)
+
+- MEMO-R1 Chirp, MEMO-R2 L1 pre-collapse → one project: whisper.cpp (34h)
+- MEMO-R3 Dual onboarding entry paths → 30-60 min manifest audit
+- MEMO-Y1 OnboardingActivity deprecated `onBackPressed` → 15 min
+- MEMO-Y2 Gradle exit 0 on red tests → root cause still unknown
+- MEMO-Y3 HTML `<font color="#EE5A24">` in About screen → 30 min
+- MEMO-Y6 Onboarding tiles 5-6 → device verification
+- MEMO-B1 Bubble theme selector UI → drawables for aluminum + gunmetal exist, no swap mechanic (`bubble.xml:41,102` hard-code default gold)
+- MEMO-B3–B14 — see full memo set in session log
