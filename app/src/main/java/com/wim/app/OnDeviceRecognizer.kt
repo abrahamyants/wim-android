@@ -120,6 +120,10 @@ class OnDeviceRecognizer(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra("android.speech.extra.DICTATION_MODE", true)
+            // Disable the recognizer's profanity filter — product rule is to
+            // preserve the speaker's language verbatim. Undocumented but
+            // respected by Google's recognizer.
+            putExtra("android.speech.extra.PROFANITY_FILTER_OFF", true)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 60000L)
             // If secondary language set, allow both
             if (!secondaryLang.isNullOrBlank()) {
