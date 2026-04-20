@@ -28,9 +28,18 @@ object DisfluencyFilter {
         "да да", "нет нет", "ну ну"
     )
 
-    // Step 1: Stutter fragments — "p- p- pop" -> "pop", "be- be- become" -> "become"
+    // Step 1a: Stutter fragments with whitespace — "p- p- pop" -> "pop",
+    // "s- stop" -> "stop", "be- be- become" -> "become".
     private val STUTTER_FRAGMENT = Regex(
         """(\b\w+)-\s+(?:\1-\s+)*""",
+        RegexOption.IGNORE_CASE
+    )
+
+    // Step 1b: Stutter fragments without whitespace — "w-w-want" -> "want",
+    // "m-m-m-meeting" -> "meeting". Requires at least one repeat so legitimate
+    // hyphenated words ("pre-existing", "well-known", "re-record") don't match.
+    private val STUTTER_FRAGMENT_NOSPACE = Regex(
+        """(\b\w+)-(?:\1-)+""",
         RegexOption.IGNORE_CASE
     )
 
@@ -46,17 +55,21 @@ object DisfluencyFilter {
         RegexOption.IGNORE_CASE
     )
 
-    // Step 5: False starts — "I was going to-- I went" or "I was going to... I went"
-    // Requires at least 2 dashes/em-dashes to avoid eating legitimate single em-dashes
+    // Step 5: False starts — "I was going to-- I went", "I was going to... I went",
+    // "I was going to— I went". Accepts 2+ ASCII hyphens, 3+ periods, or a single
+    // em-dash/en-dash. The following capital-letter lookahead still guards against
+    // prose em-dashes mid-sentence.
     private val FALSE_START = Regex(
-        """[A-Za-z\u0400-\u04FF][^.!?]*?[-]{2,}\s*(?=[A-Z\u0410-\u042F])""",
+        """[A-Za-z\u0400-\u04FF][^.!?]*?(?:[-]{2,}|\.{3,}|[\u2014\u2013])\s*(?=[A-Z\u0410-\u042F])""",
         RegexOption.DOT_MATCHES_ALL
     )
 
-    // Step 6: Prolongations — "mmmmaybe" -> "maybe", "sssso" -> "so"
-    // Match repeated leading char (3+) followed by rest of word, replace with single char + rest
+    // Step 6: Prolongations — "mmmmaybe" -> "maybe", "sssso" -> "so", "yessss" -> "yes",
+    // "heyyyy" -> "hey". Match 3+ consecutive identical characters anywhere in a token
+    // and collapse to one. Common double letters ("success", "Mississippi") stay intact
+    // because the regex demands 3+ in a row.
     private val PROLONGATION = Regex(
-        """\b(\w)\1{2,}(\w*)""",
+        """(\w)\1{2,}""",
         RegexOption.IGNORE_CASE
     )
 
@@ -105,8 +118,9 @@ object DisfluencyFilter {
     fun filter(text: String, fillerWords: List<String>): String {
         if (text.isBlank()) return text
 
-        // Step 1: Remove stutter fragments
+        // Step 1: Remove stutter fragments (two passes — with and without whitespace)
         var cleaned = STUTTER_FRAGMENT.replace(text, "")
+        cleaned = STUTTER_FRAGMENT_NOSPACE.replace(cleaned, "")
 
         // Step 2: Remove consecutive word repetitions (protect natural repeats).
         // Natural repeats ("bye bye", "go go") are valid at exactly 2 occurrences;
@@ -149,8 +163,8 @@ object DisfluencyFilter {
         // Step 5: Strip false starts (clause + em-dash + restart)
         cleaned = FALSE_START.replace(cleaned, "")
 
-        // Step 6: Strip prolongations — "mmmmaybe" -> "maybe"
-        cleaned = PROLONGATION.replace(cleaned) { "${it.groupValues[1]}${it.groupValues[2]}" }
+        // Step 6: Strip prolongations — "mmmmaybe" -> "maybe", "yessss" -> "yes"
+        cleaned = PROLONGATION.replace(cleaned) { it.groupValues[1] }
 
         // Collapse multiple spaces
         cleaned = MULTI_SPACE.replace(cleaned, " ").trim()
