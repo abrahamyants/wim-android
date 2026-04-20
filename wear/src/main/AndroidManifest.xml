@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="WiM Watch"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- Declares this is a standalone-capable Wear app; required by Wear OS
+             so the watch app can run even if the paired phone app is uninstalled
+             (the phone is still needed for PCM delivery, obviously). -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- Main activity: user taps to start/stop recording.
+             When launched from the complication, the intent carries EXTRA_START_NOW=true
+             so recording begins immediately without a second tap. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="WiM"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Complication data source: appears as a watchface tile.
+             Tapping it launches MainActivity with EXTRA_START_NOW=true. -->
+        <service
+            android:name=".WimComplicationService"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="WiM"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,SMALL_IMAGE,ICON" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
+    </application>
+</manifest>

@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "WhatIMeant"
 include(":app")
+include(":wear")
