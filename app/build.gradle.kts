@@ -18,6 +18,18 @@ android {
         versionName = "0.1.0"
     }
 
+    // NOTE: ndk.abiFilters intentionally omitted here — AGP rejects abiFilters
+    // when a splits.abi block is also configured. The splits block below is
+    // the single source of truth for ABI selection and drops x86/x86_64.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
