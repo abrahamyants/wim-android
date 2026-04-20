@@ -133,6 +133,25 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Returns up to [maxChars] of text immediately preceding the cursor in
+     * the currently focused editable field. Returns null for password fields
+     * or when no field is active. Used to give the reconstructor conversational
+     * context so it can disambiguate ambiguous dictations.
+     */
+    fun getPreCursorContext(maxChars: Int = 200): String? {
+        if (isPasswordField) return null
+        val node = activeTextField ?: return null
+        if (!node.refresh()) return null
+        val text = node.text?.toString() ?: return null
+        if (text.isEmpty()) return null
+        val cursorEnd = (if (node.textSelectionEnd >= 0) node.textSelectionEnd else text.length)
+            .coerceAtMost(text.length)
+        val start = (cursorEnd - maxChars).coerceAtLeast(0)
+        val slice = text.substring(start, cursorEnd)
+        return slice.takeIf { it.isNotBlank() }
+    }
+
+    /**
      * Paste text into the currently focused text field.
      */
     fun injectText(text: String) {

@@ -66,15 +66,16 @@ object ReconstructClient {
         covertProfile: Map<String, String> = emptyMap(),
         whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
         whisperDisagreements: List<String> = emptyList(),
-        speechSeverityMod: Double = 0.0
+        speechSeverityMod: Double = 0.0,
+        precedingContext: String = ""
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
-        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights)
+        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext)
     }
 
     /**
@@ -89,7 +90,8 @@ object ReconstructClient {
         idToken: String,
         whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
         whisperDisagreements: List<String> = emptyList(),
-        speechSeverityMod: Double = 0.0
+        speechSeverityMod: Double = 0.0,
+        precedingContext: String = ""
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -130,6 +132,9 @@ object ReconstructClient {
             }
             if (speechSeverityMod != 0.0) {
                 put("speech_severity_mod", speechSeverityMod)
+            }
+            if (precedingContext.isNotBlank()) {
+                put("preceding_context", precedingContext)
             }
         }
 
@@ -175,7 +180,8 @@ object ReconstructClient {
         rawText: String, tone: String, layer: Int, situation: String,
         vocabulary: List<String>, corrections: Map<String, String>,
         triggerWords: List<String> = emptyList(),
-        onsetWeights: Map<String, Double> = emptyMap()
+        onsetWeights: Map<String, Double> = emptyMap(),
+        precedingContext: String = ""
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -198,6 +204,14 @@ object ReconstructClient {
                 append(" If the speaker said 'fuck', output 'fuck'. If the speaker said 'steal', output 'steal'. Do not substitute softer synonyms.")
                 append(" Your job is to clean up SPEECH ARTIFACTS, not to edit the speaker's word choices.")
                 append(" Output ONLY the reconstructed text, nothing else.")
+
+                // Accessibility look-behind: text already sitting in the field before the dictation.
+                // Use as context to disambiguate the speaker's current phrase. Do not echo it back.
+                if (precedingContext.isNotBlank()) {
+                    append("\n\nText already in the target field before this dictation (CONTEXT — do NOT include in output, do NOT repeat, do NOT acknowledge):\n\"")
+                    append(precedingContext.takeLast(500))
+                    append("\"\nUse this only to disambiguate words and match the speaker's running topic.")
+                }
 
                 // Situation severity context (ported from lavrentiy.py aggression_note logic)
                 if (severity >= 1.4) {

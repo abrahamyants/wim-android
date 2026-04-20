@@ -1888,6 +1888,13 @@ class BubbleService : Service() {
                     }
                 } else null
 
+                // Look-behind: scrape text already in the target field so the reconstructor
+                // can disambiguate using conversational context. Skipped for password fields.
+                val precedingContext = WimAccessibilityService.instance?.getPreCursorContext() ?: ""
+                if (precedingContext.isNotBlank()) {
+                    Log.i(TAG, "Look-behind context: ${precedingContext.length} chars")
+                }
+
                 ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
                 val reconResult = ReconstructClient.reconstruct(
@@ -1903,7 +1910,8 @@ class BubbleService : Service() {
                     covertProfile = profile.getCovertProfile(),
                     whisperLowConf = lastWhisperLowConf,
                     whisperDisagreements = emptyList(),
-                    speechSeverityMod = 0.0
+                    speechSeverityMod = 0.0,
+                    precedingContext = precedingContext
                 )
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
