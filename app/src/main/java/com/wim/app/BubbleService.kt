@@ -63,6 +63,11 @@ class BubbleService : Service() {
     // native init. Guarded by WimApp.useLocalWhisper() at runtime.
     private var whisperModelFile: java.io.File? = null
 
+    // In-flight cloud+local transcription job from the last stopAndProcess().
+    // Cancelled at the start of the next recording so overlapping sessions
+    // don't queue whisper.cpp calls behind each other or race over the wav file.
+    private var pendingTranscriptionJob: kotlinx.coroutines.Job? = null
+
     // Command Mode state — when armed, the next recording is a GPT transform command
     private var commandModeArmed: Boolean = false
     private var commandSourceText: String = ""
@@ -673,6 +678,17 @@ class BubbleService : Service() {
     private fun startListening() {
         if (isRecording) return
 
+        // Cancel any in-flight transcription from the previous recording.
+        // Prevents whisper.cpp from racing over a wav file that's about to
+        // be overwritten and avoids queued jobs blocking behind one another.
+        pendingTranscriptionJob?.let {
+            if (it.isActive) {
+                Log.i(TAG, "Cancelling pending transcription from previous recording")
+                it.cancel()
+            }
+        }
+        pendingTranscriptionJob = null
+
         // Safety: refuse to record into password/sensitive fields
         if (WimAccessibilityService.isPasswordField) {
             Toast.makeText(this, "Password field — dictation blocked", Toast.LENGTH_SHORT).show()
@@ -729,12 +745,16 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
-        // L2+: record audio for Whisper API transcription (better quality than on-device ASR)
-        if (WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()) {
+        // Capture audio for a transcription pass when ANY of:
+        //   - cloud Whisper path (L2+ with local API key)
+        //   - local whisper.cpp path (use_local_whisper flag on, regardless of layer/key)
+        val cloudWhisperAvailable = WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()
+        val localWhisperEnabled = WimApp.useLocalWhisper()
+        if (cloudWhisperAvailable || localWhisperEnabled) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
-                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for Whisper pipeline")
+                Log.i(TAG, "AudioRecorder started (layer=${WimApp.layer()} cloudWhisper=$cloudWhisperAvailable localWhisper=$localWhisperEnabled)")
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -798,7 +818,7 @@ class BubbleService : Service() {
 
         if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
-            scope.launch {
+            pendingTranscriptionJob = scope.launch {
                 // Cloud result (primary path, unchanged)
                 var cloudText: String = ""
                 var cloudFailed = false

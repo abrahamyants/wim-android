@@ -1,7 +1,12 @@
 package com.wim.app
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.ByteBuffer
@@ -25,33 +30,41 @@ object LocalWhisperClient {
 
     @Volatile
     private var isInitialized = false
-    private val lock = Any()
+
+    // Coroutine-aware mutex. Replaces the prior `synchronized(lock)` JVM monitor,
+    // which blocked threads during 70+ second transcriptions and caused the UI to
+    // freeze when the bubble tap handler tried to acquire the lock for init/release.
+    // A Mutex suspends the coroutine instead of blocking the underlying thread.
+    private val mutex = Mutex()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
-     * Initializes the Whisper model from the given file path.
-     * Thread-safe, ensures only one model is loaded at a time.
+     * Initializes the Whisper model from the given file path. Idempotent —
+     * subsequent calls while already initialized return true immediately.
      */
     suspend fun init(modelFile: File): Boolean = withContext(Dispatchers.IO) {
-        synchronized(lock) {
-            if (isInitialized) return@withContext true
-            
+        mutex.withLock {
+            if (isInitialized) return@withLock true
+
             if (!modelFile.exists()) {
                 Log.e(TAG, "Model file not found: ${modelFile.absolutePath}")
-                return@withContext false
+                return@withLock false
             }
 
             Log.i(TAG, "Initializing local Whisper model...")
             val success = nativeInit(modelFile.absolutePath)
             isInitialized = success
-            return@withContext success
+            success
         }
     }
 
     /**
      * Transcribes 16kHz mono 16-bit PCM WAV file using the local model.
+     * Cancellable via standard coroutine cancellation — callers can cancel the
+     * job before nativeTranscribe starts (no way to cancel mid-JNI call).
      */
     suspend fun transcribe(wavFile: File, languageCode: String = "en"): String = withContext(Dispatchers.IO) {
-        synchronized(lock) {
+        mutex.withLock {
             if (!isInitialized) {
                 Log.e(TAG, "Cannot transcribe, model is not initialized")
                 throw IllegalStateException("Whisper model not initialized")
@@ -62,23 +75,19 @@ object LocalWhisperClient {
             }
 
             Log.i(TAG, "Transcribing ${wavFile.length()} bytes...")
-            
-            // Read WAV data and convert 16-bit PCM to normalized 32-bit floats
+
             val bytes = wavFile.readBytes()
-            
-            // Skip WAV header (44 bytes)
             val headerSize = 44
             val dataSize = bytes.size - headerSize
-            
+
             if (dataSize <= 0) {
                 Log.w(TAG, "Audio file contains no data")
-                return@withContext ""
+                return@withLock ""
             }
-            
+
             val numSamples = dataSize / 2
             val floatData = FloatArray(numSamples)
             val bb = ByteBuffer.wrap(bytes, headerSize, dataSize).order(ByteOrder.LITTLE_ENDIAN)
-            
             for (i in 0 until numSamples) {
                 floatData[i] = bb.getShort().toFloat() / 32768.0f
             }
@@ -86,17 +95,25 @@ object LocalWhisperClient {
             val t0 = System.currentTimeMillis()
             val text = nativeTranscribe(floatData, numSamples, languageCode)
             val t1 = System.currentTimeMillis()
-            
+
             Log.i(TAG, "Local transcription took ${t1 - t0}ms: $text")
-            return@withContext text.trim()
+            text.trim()
         }
     }
 
+    /**
+     * Releases native resources. Non-blocking — schedules the native release
+     * on the internal scope. Any in-flight transcription finishes first.
+     */
     fun release() {
-        synchronized(lock) {
-            if (isInitialized) {
-                nativeRelease()
-                isInitialized = false
+        if (!isInitialized) return
+        scope.launch {
+            mutex.withLock {
+                if (isInitialized) {
+                    nativeRelease()
+                    isInitialized = false
+                    Log.i(TAG, "Local Whisper released")
+                }
             }
         }
     }

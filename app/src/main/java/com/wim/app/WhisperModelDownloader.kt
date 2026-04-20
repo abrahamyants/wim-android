@@ -10,10 +10,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Downloads the whisper.cpp ggml base.en model into app-private storage.
- * Single-file download — no archive extraction (unlike Vosk-style zips).
+ * Downloads the whisper.cpp ggml base.en-q5_1 (Q5_1-quantized) model into
+ * app-private storage. Quantized model is ~60 MB vs 140 MB for fp16 base.en,
+ * runs roughly 2x faster with ~95% of base.en's accuracy preserved.
  *
- * Target file: <filesDir>/whisper-models/base.en/ggml-base.en.bin (~140 MB)
+ * Target file: <filesDir>/whisper-models/base.en/ggml-base.en-q5_1.bin (~60 MB)
+ *
+ * If an older ggml-base.en.bin (fp16, 140 MB) from a previous install is
+ * present, it is deleted on successful download of the quantized variant.
  *
  * Matches the LocalWhisperClient.init() path convention and provides the same
  * progress callback shape (bytesDownloaded, totalBytes) used elsewhere.
@@ -22,9 +26,10 @@ object WhisperModelDownloader {
 
     private const val TAG = "WhisperModelDownloader"
     private const val MODEL_URL =
-        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin"
     private const val MODEL_SUBDIR = "whisper-models/base.en"
-    private const val MODEL_FILENAME = "ggml-base.en.bin"
+    private const val MODEL_FILENAME = "ggml-base.en-q5_1.bin"
+    private const val LEGACY_MODEL_FILENAME = "ggml-base.en.bin"
 
     /** Returns the target model file (whether or not it exists yet). */
     fun modelFile(context: Context): File {
@@ -115,6 +120,13 @@ object WhisperModelDownloader {
 
             onProgress(downloaded, if (total > 0) total else downloaded)
             Log.i(TAG, "Model downloaded successfully: ${targetFile.length()} bytes")
+
+            // Clean up the old fp16 model if present — saves ~140 MB of disk
+            val legacyFile = File(targetDir, LEGACY_MODEL_FILENAME)
+            if (legacyFile.exists() && legacyFile.delete()) {
+                Log.i(TAG, "Deleted legacy fp16 model: $LEGACY_MODEL_FILENAME")
+            }
+
             return@withContext targetFile
         } catch (e: Exception) {
             Log.e(TAG, "Model download failed: ${e.message}", e)
