@@ -7,6 +7,7 @@ plugins {
 }
 
 android {
+    ndkVersion = "26.3.11579264"
     namespace = "com.wim.app"
     compileSdk = 35
 
@@ -16,6 +17,16 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-std=c++17", "-O3")
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
     }
 
     buildTypes {
@@ -44,6 +55,13 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 
