@@ -39,11 +39,18 @@ class AmbientOrbsView @JvmOverloads constructor(
         val radiusFrac: Float    // radius as fraction of min(w, h)
     )
 
-    // Upper-right = warm champagne (lighter). Lower-left = bronze (deeper).
-    // Placed slightly past the corner so half the orb bleeds off-screen — the
-    // visible arc then shifts naturally into and out of frame as you tilt.
+    // Three orbs positioned around the canvas:
+    //   upper-right = deep teal  (complements — but does NOT repeat — the gold
+    //                             dials rendered by the UI in that corner)
+    //   center      = warm champagne-gold (anchor light, pulled in from the
+    //                                      old upper-right slot)
+    //   lower-left  = bronze (deep warm counterweight, unchanged from prior)
+    // Corner orbs sit slightly past the canvas edge so the visible arc shifts
+    // into and out of frame as you tilt; the center orb stays centered so
+    // parallax wiggles it rather than slides it off.
     private val orbs = listOf(
-        Orb(fx = 0.92f, fy = 0.08f, coreColor = 0xFFF2CF7A.toInt(), radiusFrac = 0.55f),
+        Orb(fx = 0.92f, fy = 0.08f, coreColor = 0xFF4A9898.toInt(), radiusFrac = 0.45f),
+        Orb(fx = 0.50f, fy = 0.50f, coreColor = 0xFFF2CF7A.toInt(), radiusFrac = 0.45f),
         Orb(fx = 0.08f, fy = 0.92f, coreColor = 0xFFD98A4A.toInt(), radiusFrac = 0.60f)
     )
 
