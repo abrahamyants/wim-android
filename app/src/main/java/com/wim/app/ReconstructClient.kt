@@ -67,15 +67,16 @@ object ReconstructClient {
         whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
         whisperDisagreements: List<String> = emptyList(),
         speechSeverityMod: Double = 0.0,
-        precedingContext: String = ""
+        precedingContext: String = "",
+        languageCode: String = "en"
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
-        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext)
+        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode)
     }
 
     /**
@@ -91,7 +92,8 @@ object ReconstructClient {
         whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList(),
         whisperDisagreements: List<String> = emptyList(),
         speechSeverityMod: Double = 0.0,
-        precedingContext: String = ""
+        precedingContext: String = "",
+        languageCode: String = "en"
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -136,6 +138,7 @@ object ReconstructClient {
             if (precedingContext.isNotBlank()) {
                 put("preceding_context", precedingContext)
             }
+            put("language_code", LangPackHelper.normalizeLangCode(languageCode))
         }
 
         val request = Request.Builder()
@@ -181,7 +184,8 @@ object ReconstructClient {
         vocabulary: List<String>, corrections: Map<String, String>,
         triggerWords: List<String> = emptyList(),
         onsetWeights: Map<String, Double> = emptyMap(),
-        precedingContext: String = ""
+        precedingContext: String = "",
+        languageCode: String = "en"
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -257,92 +261,98 @@ object ReconstructClient {
                     append("\n  OUT: 'The database needs updating'")
                 }
 
-                // L4: Full clinical stutter prompt (ported from Лаврентий)
+                // L4: Language-parameterized speech-disfluency prompt
+                // (see docs/l4_prompt_engineering_memo.md § 4–5 in the lavrentiy repo)
                 if (layer >= 4) {
-                    append("\n\nThe speaker stutters. Raw transcription is evidence, not truth. ")
-                    append("Reconstruct intended meaning, not literal word sequence.")
+                    val langCode = LangPackHelper.normalizeLangCode(languageCode)
+                    val langName = LangPackHelper.languageName(langCode)
+
+                    append("\n\nThe speaker has a speech disfluency. Language: ${langCode.uppercase()} ($langName). ")
+                    append("Raw transcription is evidence of intent, not truth. ")
+                    append("Reconstruct the intended message. Preserve FULL meaning.")
+
+                    // Language-specific fillers
+                    val langFillers = LangPackHelper.getLangFillers(langCode)
+                    if (langFillers.isNotEmpty()) {
+                        append("\n\nFILLERS TO STRIP ($langCode): ${langFillers.joinToString(", ")}")
+                    }
+
+                    // Natural-repeat protection — must come BEFORE any repetition-stripping rule
+                    val naturalRepeats = LangPackHelper.getLangNaturalRepeats(langCode)
+                    if (naturalRepeats.isNotEmpty()) {
+                        append("\n\nEMPHATIC PATTERNS — DO NOT STRIP in $langCode: ${naturalRepeats.joinToString(", ")}")
+                        append("\nThese are pragmatically meaningful in $langName, not stuttering.")
+                    }
 
                     append("\n\nOvert disfluencies — strip and reconstruct:")
-                    append("\n- Part-word repetitions: 'b-b-b-buy' → 'buy', 'Ca-ca-ca-can' → 'Can'")
-                    append("\n- Whole-word repetitions: 'I I I want' → 'I want'")
-                    append("\n- Prolongations: 'mmmmaybe' → 'maybe', 'Sssssscience' → 'Science'")
-                    append("\n- Schwa substitution: 'guh-guh-goat' → 'goat'")
+                    append("\n- Part-word repetitions: ${LangPackHelper.getLangPartWordExample(langCode)}")
+                    append("\n- Whole-word repetitions (NOT matching the emphatic allow-list above)")
+                    append("\n- Prolongations: ${LangPackHelper.getLangProlongationExample(langCode)}")
+                    append("\n- Epenthetic insertions during blocks: ${LangPackHelper.getLangEpenthesisNote(langCode)}")
                     append("\n- Blocks: silence or frozen onset before a word (locked articulators)")
                     append("\n- False starts and restarts")
 
-                    append("\n\nCovert stuttering — recognize as avoidance, not content:")
-                    append("\n- Filler clusters before a content word = delay tactic, not hesitation")
+                    append("\n\nCovert avoidance — recognize as avoidance behavior, not content:")
+                    append("\n- Filler clusters before a content word = postponement (see filler list above)")
                     append("\n- Synonym substitution = avoiding a feared word")
                     append("\n- Circumlocution = talking around a feared word")
                     append("\n- Sentence abandonment = dropping thought before feared word")
-                    append("\n- Mazes/cluttering = rambling run-on filler adding no information")
+                    append("\n- Mazes: extended filler runs adding no information. Distinct from cluttered")
+                    append(" rapid speech — do not over-strip if the speaker's speech is globally rapid.")
+                    val dialectNote = LangPackHelper.getLangDialectAvoidanceNote(langCode)
+                    if (dialectNote.isNotEmpty()) append("\n$dialectNote")
 
-                    append("\n\nAnticipatory behavior (CRITICAL):")
-                    append("\n- A pause or silence BEFORE a content word is likely ANTICIPATORY FEAR, not thinking")
-                    append("\n- The speaker scans ahead, detects a feared word, and freezes")
-                    append("\n- Treat pre-word pauses on content words as blocks, not natural hesitation")
+                    append("\n\nAnticipatory behavior:")
+                    append("\n- A pause or silence BEFORE a content word with a hard onset MAY INDICATE anticipatory fear")
+                    append("\n- Confidence increases when a filler cluster appears in the preceding 1–3 words")
+                    append(" AND the following word begins with a documented hard onset")
+                    append("\n- Treat as a block candidate, not certainty")
+                    val timingNote = LangPackHelper.getLangSyllableTimingNote(langCode)
+                    if (timingNote.isNotEmpty()) append("\n$timingNote")
 
-                    append("\n\nWhisper ASR failure modes on stuttered speech:")
-                    append("\n- HALLUCINATION DURING BLOCKS: silence → Whisper invents words")
+                    append("\n\nWhisper ASR failure modes on disfluent speech:")
+                    append("\n- HALLUCINATION DURING BLOCKS: silence → Whisper generates phantom text.")
+                    append("\n  Known hallucination strings to discard: 'thank you', 'thanks for watching',")
+                    append(" 'subscribe', 'like and subscribe', 'transcribed by', 'captions by', 'otter.ai'.")
+                    if (langCode != "en") {
+                        append("\n  In $langName transcripts, English phrases appearing mid-utterance are")
+                        append(" likely Whisper hallucinations — discard them.")
+                    }
                     append("\n- SYLLABLE DELETION: repeated syllables collapsed or dropped")
-                    append("\n- PHANTOM INSERTIONS: prolongations → Whisper hallucinates similar words")
-                    append("\n- SCHWA CORRUPTION: neutral vowel in repeated clusters → transcribed as real word")
-                    append("\n- PAUSE HALLUCINATION: long pauses → Whisper generates filler text")
+                    append("\n- PHANTOM INSERTIONS: prolongations → Whisper hallucinates similar-sounding words")
+                    append("\n- ${LangPackHelper.getLangEpenthesisCorruptionNote(langCode)}")
+                    append("\n- PAUSE HALLUCINATION: long pauses → Whisper generates filler text (see above)")
 
-                    append("\n\n=== FEW-SHOT EXAMPLES ===")
-                    append("\n\nBLOCKS:")
-                    append("\n  IN:  'I need the... [silence]... computer from the office'")
-                    append("\n  OUT: 'I need the computer from the office'")
-                    append("\n  IN:  'Can you get me the, the, the uh come put her from IT'")
-                    append("\n  OUT: 'Can you get me the computer from IT'")
+                    append("\n\n")
+                    append(LangPackHelper.getLangFewShotExamples(langCode))
 
-                    append("\n\nSOUND/SYLLABLE REPETITIONS:")
-                    append("\n  IN:  'I was g-g-g-going to the st-store'")
-                    append("\n  OUT: 'I was going to the store'")
-                    append("\n  IN:  'Ca-ca-ca-can you p-p-please send the re-report'")
-                    append("\n  OUT: 'Can you please send the report'")
-
-                    append("\n\nWORD REPETITIONS:")
-                    append("\n  IN:  'I I I want to to to go to the the meeting'")
-                    append("\n  OUT: 'I want to go to the meeting'")
-
-                    append("\n\nPROLONGATIONS:")
-                    append("\n  IN:  'I was thinking about the sssssschedule for next week'")
-                    append("\n  OUT: 'I was thinking about the schedule for next week'")
-
-                    append("\n\nFILLER STACKING + POSTPONEMENT:")
-                    append("\n  IN:  'So um uh like basically uh the thing is we need more time'")
-                    append("\n  OUT: 'We need more time'")
-
-                    append("\n\nAVOIDANCE / CIRCUMLOCUTION:")
-                    append("\n  IN:  'I need the b-... the document from yesterday'")
-                    append("\n  OUT: 'I need the document from yesterday'")
-
-                    append("\n\nWHISPER ARTIFACTS:")
-                    append("\n  IN:  'I was trying to come put her the file' (block on 'computer')")
-                    append("\n  OUT: 'I was trying to get the computer file'")
-
-                    append("\n\n=== END EXAMPLES ===")
-                    append("\n\nDo not mistake disfluency for emphasis. Do not invent meaning beyond what was intended.")
+                    append("\n\nDo not mistake disfluency for emphasis — but PRESERVE the emphatic patterns listed above.")
+                    append("\nReconstruct within the speaker's established dialect — do not substitute dialectal forms.")
                     append("\nWhen uncertain, prefer conservative cleanup over aggressive rewriting.")
 
-                    // Personal phoneme difficulty map
+                    // Personal phoneme difficulty map — language-caveated
                     if (onsetWeights.isNotEmpty()) {
                         val topOnsets = onsetWeights.entries
                             .sortedByDescending { it.value }
                             .take(5)
                             .joinToString(", ") { "/${it.key}/ (${(it.value * 100).toInt()}%)" }
                         append("\n\nTHIS SPEAKER'S HARDEST PHONEMES: $topOnsets")
-                        append("\nWhisper output near these onsets is unreliable — expect hallucinations, syllable drops, or phantom word insertions.")
+                        val onsetCaveat = LangPackHelper.getLangOnsetCaveat(langCode)
+                        if (onsetCaveat.isNotEmpty()) append("\n$onsetCaveat")
+                        append("\nWhisper output near these onsets is unreliable — expect hallucinations, syllable drops, or phantom insertions.")
+                    } else if (LangPackHelper.hasNoOnsetResearch(langCode)) {
+                        append("\n\nONSET NOTE: No published phoneme-difficulty research exists for $langCode as of April 2026.")
+                        append(" Do not apply English-derived onset assumptions. Focus on word-level repetitions,")
+                        append(" prolongations, filler clusters, and Whisper hallucination strings.")
                     }
 
-                    // Known trigger words
+                    // Known trigger words (user-specific)
                     if (triggerWords.isNotEmpty()) {
                         append("\n\nKnown trigger words: ${triggerWords.take(10).joinToString(", ")}")
                     }
 
-                    // Predictive trigger flagging — score all words in this utterance
-                    val predicted = PhoneticRisk.predictTriggersInText(rawText, triggerWords, onsetWeights)
+                    // Predictive trigger flagging — language-aware
+                    val predicted = PhoneticRisk.predictTriggersInText(rawText, triggerWords, onsetWeights, languageCode = langCode)
                     if (predicted.isNotEmpty()) {
                         val flagged = predicted.take(5).joinToString(", ") { "${it.first}(${it.second})" }
                         append("\n\nPhonetically predicted high-risk words in this utterance: $flagged")
@@ -394,7 +404,7 @@ object ReconstructClient {
             } else if (riskFlags.contains("critical_token_lost")) {
                 false
             } else {
-                falconValidate(rawText, cleanText, layer, tone, onsetWeights)
+                falconValidate(rawText, cleanText, layer, tone, onsetWeights, languageCode)
             }
 
             val reconMs = System.currentTimeMillis() - t0
@@ -422,11 +432,12 @@ object ReconstructClient {
 
     /** Falcon validation: binary meaning-preservation check via GPT. */
     private suspend fun falconValidate(
-        rawText: String, 
-        cleanText: String, 
-        layer: Int, 
+        rawText: String,
+        cleanText: String,
+        layer: Int,
         tone: String = "casual",
-        onsetWeights: Map<String, Double> = emptyMap()
+        onsetWeights: Map<String, Double> = emptyMap(),
+        languageCode: String = "en"
     ): Boolean =
         withContext(Dispatchers.IO) {
             try {
@@ -443,25 +454,29 @@ object ReconstructClient {
                 }
 
                 val prompt = if (layer >= 4) {
-                    var p = "Speaker stutters. Repeated syllables, prolongations, and blocks are " +
-                    "disfluencies, not emphasis. Filler clusters before content words are " +
-                    "postponement tactics, not meaningful hesitation. Synonym substitutions " +
-                    "and circumlocutions are avoidance behaviors — the reconstruction should " +
-                    "recover the intended word. Rambling run-on filler (mazes) should be " +
-                    "stripped. $toneNote "
-                    
-                    if (onsetWeights.isNotEmpty()) {
-                        val topOnsets = onsetWeights.entries
+                    // Phonetic guard FIRST, then high-level criteria. Does not re-specify the
+                    // L4 disfluency rules already given in the reconstruction prompt.
+                    val langCode = LangPackHelper.normalizeLangCode(languageCode)
+                    val topOnsets = if (onsetWeights.isNotEmpty()) {
+                        onsetWeights.entries
                             .sortedByDescending { it.value }
                             .take(5)
                             .joinToString(", ") { "/${it.key}/" }
-                        p += "Evaluate carefully against over-correction: ensure the reconstructed text strictly aligns with the phonetic intent of the raw transcription, especially near the speaker's hardest phonemes: $topOnsets. Do not accept hallucinations that drastically alter the spoken phonemes. "
-                    } else {
-                        p += "Evaluate carefully against over-correction: ensure the reconstructed text strictly aligns with the phonetic intent of the raw transcription. Do not accept hallucinations that drastically alter the spoken phonemes. "
-                    }
-                    
-                    p += "Does the reconstruction preserve intended meaning without unwarranted phonetic hallucination? Answer ONLY 'yes' or 'no'."
-                    p
+                    } else "(no personal onset data)"
+                    val naturalRepeats = LangPackHelper.getLangNaturalRepeats(langCode)
+                    val naturalRepeatsStr = if (naturalRepeats.isNotEmpty())
+                        naturalRepeats.joinToString(", ") else "none defined"
+
+                    "Validate a layer-4 speech-disfluency reconstruction. Language: ${langCode.uppercase()}. " +
+                    "Near the speaker's hardest phonemes ($topOnsets), the reconstruction MUST NOT " +
+                    "substitute a different-phoneme word — phonetic drift is the primary failure mode. " +
+                    "The reconstruction should also have: " +
+                    "(1) stripped overt disfluencies (part-word repetitions, prolongations, blocks, false starts); " +
+                    "(2) preserved emphatic patterns that are NOT stuttering: $naturalRepeatsStr; " +
+                    "(3) NOT normalized the speaker's dialect or register forms; " +
+                    "(4) discarded Whisper hallucination strings ('thank you', 'subscribe', etc.). " +
+                    "$toneNote " +
+                    "Does the reconstruction satisfy all criteria? Answer ONLY 'yes' or 'no'."
                 } else {
                     "The reconstruction cleans up a voice transcription: removing filler words " +
                     "(um, uh, like, you know), fixing grammar, and improving clarity. " +

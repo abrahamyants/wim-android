@@ -13,8 +13,9 @@ package com.wim.app
  */
 object PhoneticRisk {
 
-    // High-risk initial onsets (English)
-    private val HIGH_RISK_ONSETS = mapOf(
+    // English baseline — used as fallback when the user's language has no published
+    // phoneme-difficulty research or when a language code is unknown.
+    private val HIGH_RISK_ONSETS_EN = mapOf(
         // Unvoiced plosives (hardest)
         "p" to 0.85, "t" to 0.80, "k" to 0.85, "c" to 0.85,
         // Voiced plosives
@@ -42,16 +43,34 @@ object PhoneticRisk {
     )
 
     /**
-     * Extract the initial onset (1-3 chars of consonants) from a word.
+     * Onset table for the requested language, merging cited lang-pack data with the
+     * English baseline so familiar clusters still score when the speaker is bilingual.
+     * Languages whose pack flags `quality_note: unavailable` (zh/hi/ar/ko) fall back
+     * to the English baseline.
      */
-    fun extractOnset(word: String): String {
+    fun highRiskOnsets(languageCode: String): Map<String, Double> {
+        val normalized = LangPackHelper.normalizeLangCode(languageCode)
+        if (normalized == "en") return HIGH_RISK_ONSETS_EN
+        val fromPack = LangPackHelper.getLangHardOnsets(normalized)
+        if (fromPack.isEmpty()) return HIGH_RISK_ONSETS_EN
+        return HIGH_RISK_ONSETS_EN + fromPack
+    }
+
+    private fun activeLanguage(): String =
+        WimApp.prefs.getString("primary_language", "en-US") ?: "en-US"
+
+    /**
+     * Extract the initial onset (1-3 chars of consonants) from a word, using the
+     * onset table for [languageCode]. Falls back to the active user language when omitted.
+     */
+    fun extractOnset(word: String, languageCode: String? = null): String {
         val lower = word.lowercase()
         if (lower.isEmpty()) return ""
-        // Try 3-char, then 2-char, then 1-char matches
+        val table = highRiskOnsets(languageCode ?: activeLanguage())
         for (len in 3 downTo 1) {
             if (lower.length >= len) {
                 val candidate = lower.substring(0, len)
-                if (HIGH_RISK_ONSETS.containsKey(candidate)) return candidate
+                if (table.containsKey(candidate)) return candidate
             }
         }
         return lower.substring(0, 1)
@@ -65,25 +84,24 @@ object PhoneticRisk {
         word: String,
         sentencePosition: Int? = null,
         sentenceLength: Int? = null,
-        personalOnsetWeights: Map<String, Double> = emptyMap()
+        personalOnsetWeights: Map<String, Double> = emptyMap(),
+        languageCode: String? = null
     ): Double {
         val clean = word.lowercase().trim()
         if (clean.length < 2) return 0.0
 
-        // Feature 1: Onset difficulty (personal weights override defaults if available)
-        val onset = extractOnset(clean)
-        var risk = personalOnsetWeights[onset] ?: HIGH_RISK_ONSETS[onset] ?: 0.3
+        val lang = languageCode ?: activeLanguage()
+        val langTable = highRiskOnsets(lang)
+        val onset = extractOnset(clean, lang)
+        var risk = personalOnsetWeights[onset] ?: langTable[onset] ?: 0.3
 
-        // Feature 2: Content word (function words are easier)
         if (clean in FUNCTION_WORDS) {
             risk *= 0.4
         }
 
-        // Feature 3: Word length (longer = harder, cap at 1.0)
         val lengthBoost = (clean.length / 10.0).coerceAtMost(0.2)
         risk = (risk + lengthBoost).coerceAtMost(1.0)
 
-        // Feature 4: Sentence position (first 20% of clause = clause boundary, +20%)
         if (sentencePosition != null && sentenceLength != null && sentenceLength > 0) {
             val positionFrac = sentencePosition.toDouble() / sentenceLength
             if (positionFrac < 0.2) {
@@ -104,8 +122,10 @@ object PhoneticRisk {
         text: String,
         existingTriggers: List<String> = emptyList(),
         personalOnsetWeights: Map<String, Double> = emptyMap(),
-        threshold: Double = 0.6
+        threshold: Double = 0.6,
+        languageCode: String? = null
     ): List<Pair<String, Double>> {
+        val lang = languageCode ?: activeLanguage()
         val words = Regex("\\b\\w+\\b").findAll(text).map { it.value }.toList()
         val known = existingTriggers.map { it.lowercase() }.toSet()
         val predicted = mutableListOf<Pair<String, Double>>()
@@ -114,7 +134,7 @@ object PhoneticRisk {
             val clean = word.lowercase()
             if (clean.length < 2) continue
 
-            var risk = predictPhoneticRisk(clean, i, words.size, personalOnsetWeights)
+            var risk = predictPhoneticRisk(clean, i, words.size, personalOnsetWeights, lang)
 
             // Onset boost: shared first 2 letters with known trigger
             if (clean.length >= 2) {

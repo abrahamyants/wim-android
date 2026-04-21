@@ -1882,6 +1882,7 @@ class BubbleService : Service() {
 
                 ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                 Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
+                val primaryLanguage = WimApp.prefs.getString("primary_language", "en-US") ?: "en-US"
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -1896,7 +1897,8 @@ class BubbleService : Service() {
                     whisperLowConf = lastWhisperLowConf,
                     whisperDisagreements = emptyList(),
                     speechSeverityMod = 0.0,
-                    precedingContext = precedingContext
+                    precedingContext = precedingContext,
+                    languageCode = primaryLanguage
                 )
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
