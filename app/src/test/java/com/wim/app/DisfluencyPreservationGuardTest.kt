@@ -74,6 +74,121 @@ class DisfluencyPreservationGuardTest {
             naturalRepeats = setOf("そうそう", "はいはい")
         ),
 
+        // ── French natural repeats via lang-pack ──
+        PreservationCase(
+            description = "French emphatic 'non non' (fr pack)",
+            input = "non non ce n'est pas correct",
+            mustSurvive = listOf("non non"),
+            naturalRepeats = setOf("non non", "oui oui", "si si", "et et")
+        ),
+        PreservationCase(
+            description = "French emphatic 'oui oui' (fr pack)",
+            input = "oui oui bien sur",
+            mustSurvive = listOf("oui oui"),
+            naturalRepeats = setOf("non non", "oui oui", "si si", "et et")
+        ),
+
+        // ── German natural repeats via lang-pack ──
+        PreservationCase(
+            description = "German emphatic 'nein nein' (de pack)",
+            input = "nein nein das ist falsch",
+            mustSurvive = listOf("nein nein"),
+            naturalRepeats = setOf("nein nein", "ja ja", "doch doch", "und und")
+        ),
+        PreservationCase(
+            description = "German emphatic 'ja ja' (de pack)",
+            input = "ja ja ich verstehe",
+            mustSurvive = listOf("ja ja"),
+            naturalRepeats = setOf("nein nein", "ja ja", "doch doch", "und und")
+        ),
+
+        // ── Italian natural repeats via lang-pack ──
+        PreservationCase(
+            description = "Italian emphatic 'sì sì' (it pack)",
+            input = "sì sì certamente",
+            mustSurvive = listOf("sì sì"),
+            naturalRepeats = setOf("no no", "sì sì", "dai dai", "e e")
+        ),
+        PreservationCase(
+            description = "Italian emphatic 'dai dai' (it pack)",
+            input = "dai dai andiamo",
+            mustSurvive = listOf("dai dai"),
+            naturalRepeats = setOf("no no", "sì sì", "dai dai", "e e")
+        ),
+
+        // ── Portuguese natural repeats via lang-pack ──
+        PreservationCase(
+            description = "Portuguese emphatic 'não não' (pt pack)",
+            input = "não não isso está errado",
+            mustSurvive = listOf("não não"),
+            naturalRepeats = setOf("não não", "sim sim", "já já", "e e")
+        ),
+        PreservationCase(
+            description = "Portuguese emphatic 'sim sim' (pt pack)",
+            input = "sim sim está bem",
+            mustSurvive = listOf("sim sim"),
+            naturalRepeats = setOf("não não", "sim sim", "já já", "e e")
+        ),
+
+        // ── Mandarin natural repeats via lang-pack ──
+        // Chinese reduplication has no internal whitespace; the WORD_REPEAT regex
+        // doesn't fire on single-token 对对, so protection is moot but the text
+        // must still survive intact through the pipeline.
+        PreservationCase(
+            description = "Mandarin '对对' preserved (zh pack)",
+            input = "对对 this is correct",
+            mustSurvive = listOf("对对"),
+            naturalRepeats = setOf("对对", "是是", "行行", "好好")
+        ),
+        PreservationCase(
+            description = "Mandarin aspectual '看看' (take-a-look) preserved",
+            input = "我去看看 the new store",
+            mustSurvive = listOf("看看"),
+            naturalRepeats = setOf("对对", "是是", "行行", "好好")
+        ),
+
+        // ── Hindi natural repeats via lang-pack ──
+        PreservationCase(
+            description = "Hindi emphatic 'नहीं नहीं' (hi pack)",
+            input = "नहीं नहीं यह सही नहीं है",
+            mustSurvive = listOf("नहीं नहीं"),
+            naturalRepeats = setOf("नहीं नहीं", "हाँ हाँ", "ठीक ठीक", "और और")
+        ),
+        PreservationCase(
+            description = "Hindi emphatic 'हाँ हाँ' (hi pack)",
+            input = "हाँ हाँ बिल्कुल",
+            mustSurvive = listOf("हाँ हाँ"),
+            naturalRepeats = setOf("नहीं नहीं", "हाँ हाँ", "ठीक ठीक", "और और")
+        ),
+
+        // ── Arabic natural repeats via lang-pack ──
+        PreservationCase(
+            description = "Arabic emphatic 'لا لا' (ar pack)",
+            input = "لا لا هذا غير صحيح",
+            mustSurvive = listOf("لا لا"),
+            naturalRepeats = setOf("لا لا", "اه اه", "ايوه ايوه", "و و")
+        ),
+        PreservationCase(
+            description = "Arabic emphatic 'ايوه ايوه' (ar pack)",
+            input = "ايوه ايوه صحيح",
+            mustSurvive = listOf("ايوه ايوه"),
+            naturalRepeats = setOf("لا لا", "اه اه", "ايوه ايوه", "و و")
+        ),
+
+        // ── Korean natural repeats via lang-pack ──
+        PreservationCase(
+            description = "Korean emphatic '아니 아니' (ko pack)",
+            input = "아니 아니 그게 맞지 않아요",
+            mustSurvive = listOf("아니 아니"),
+            naturalRepeats = setOf("아니 아니", "네 네", "맞아 맞아", "그리고 그리고")
+        ),
+        PreservationCase(
+            description = "Korean emphatic '네 네' (ko pack)",
+            input = "네 네 알겠습니다",
+            mustSurvive = listOf("네 네"),
+            naturalRepeats = setOf("아니 아니", "네 네", "맞아 맞아", "그리고 그리고")
+        ),
+
         // ── Stuttering patterns — must strip correctly, must preserve the content word ──
         PreservationCase(
             description = "Part-word stutter b-b-b-buy → buy",
