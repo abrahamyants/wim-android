@@ -84,20 +84,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Ambient center glow — subtle radiating pulse
-        findViewById<View>(R.id.ambientGlow)?.let { glow ->
-            val dur = 4000L
-            val interp = android.view.animation.AccelerateDecelerateInterpolator()
-            fun anim(prop: String, from: Float, to: Float) =
-                android.animation.ObjectAnimator.ofFloat(glow, prop, from, to).apply {
-                    duration = dur; repeatCount = android.animation.ValueAnimator.INFINITE
-                    repeatMode = android.animation.ValueAnimator.REVERSE; interpolator = interp
-                }
-            android.animation.AnimatorSet().apply {
-                playTogether(anim("scaleX", 0.75f, 1.25f), anim("scaleY", 0.75f, 1.25f), anim("alpha", 0.55f, 0.15f))
-                start()
-            }
-        }
+        // Ambient parallax orbs handle their own rendering + sensor — no setup here.
+        // See app/src/main/java/com/wim/app/AmbientOrbsView.kt.
 
         // Reset section prefs once after layout changes (v2)
         val layoutVersion = WimApp.prefs.getInt("layout_version", 0)

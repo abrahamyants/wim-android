@@ -4,12 +4,14 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_app">
 
-    <!-- Ambient glow removed -->
-    <View
-        android:id="@+id/ambientGlow"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
+    <!-- Parallax bokeh: two warm amber orbs sitting behind all content,
+         repositioning inversely to phone tilt via the accelerometer.
+         Lives at index 0 of the parent FrameLayout so it paints below
+         every other view. -->
+    <com.wim.app.AmbientOrbsView
+        android:id="@+id/ambientOrbs"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:layout_width="match_parent"

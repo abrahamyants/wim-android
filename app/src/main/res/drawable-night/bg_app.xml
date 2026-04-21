@@ -1,30 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark mode base — warm plank. Edges lift with a pale champagne-gold wash
-     (instead of pure white) to match the WiM amber/brass palette. Bumped
-     contrast ~4× from the previous ~2-3% white alpha so the floor reads as a
-     hardwood-plank gradient, not a flat charcoal. -->
+<!-- Dark base only. Visual interest lives in AmbientOrbsView (parallax orbs)
+     layered above this in activity_main.xml. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <solid android:color="#FF1A1A1E" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#22F2D79A"
-                android:centerColor="#00F2D79A"
-                android:endColor="#1EF2D79A"
-                android:angle="0" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#18F2D79A"
-                android:centerColor="#00F2D79A"
-                android:endColor="#20F2D79A"
-                android:angle="180" />
         </shape>
     </item>
 </layer-list>
