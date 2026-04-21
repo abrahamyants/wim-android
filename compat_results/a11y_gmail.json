@@ -1,0 +1,1470 @@
+{
+  "status": "ok",
+  "window_count": 5,
+  "tree": [
+    {
+      "class": "android.widget.FrameLayout",
+      "text": "",
+      "content_desc": "",
+      "resource_id": "",
+      "clickable": false,
+      "editable": false,
+      "enabled": true,
+      "focused": false,
+      "password": false,
+      "bounds": "0,2496,1080,2640",
+      "children": [
+        {
+          "class": "android.widget.FrameLayout",
+          "text": "",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,2496,1080,2640",
+          "children": [
+            {
+              "class": "android.widget.ImageView",
+              "text": "",
+              "content_desc": "Back",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "118,2496,357,2640"
+            },
+            {
+              "class": "android.widget.ImageView",
+              "text": "",
+              "content_desc": "Recents",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "723,2496,962,2640"
+            },
+            {
+              "class": "android.widget.ImageView",
+              "text": "",
+              "content_desc": "Home",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "420,2496,659,2640"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "text": "",
+      "content_desc": "",
+      "resource_id": "",
+      "clickable": false,
+      "editable": false,
+      "enabled": true,
+      "focused": false,
+      "password": false,
+      "bounds": "0,0,1080,94",
+      "children": [
+        {
+          "class": "android.widget.FrameLayout",
+          "text": "",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,0,1080,94",
+          "children": [
+            {
+              "class": "android.widget.TextView",
+              "text": "1:12",
+              "content_desc": "1:12 AM",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "61,20,134,94"
+            },
+            {
+              "class": "android.widget.ImageView",
+              "text": "",
+              "content_desc": "What I Meant notification: ",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "146,20,193,94"
+            },
+            {
+              "class": "android.widget.LinearLayout",
+              "text": "",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "832,20,1007,94",
+              "children": [
+                {
+                  "class": "android.widget.ImageView",
+                  "text": "",
+                  "content_desc": "Wifi signal full.",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "843,37,893,76"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "T-Mobile, signal full.",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "893,37,934,76"
+                },
+                {
+                  "class": "android.widget.LinearLayout",
+                  "text": "",
+                  "content_desc": "Battery 100 percent.",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "939,36,1007,78"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "text": "",
+      "content_desc": "",
+      "resource_id": "",
+      "clickable": false,
+      "editable": false,
+      "enabled": true,
+      "focused": false,
+      "password": false,
+      "bounds": "828,1094,1080,1346",
+      "children": [
+        {
+          "class": "android.widget.TextView",
+          "text": "IDLE",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "912,1194,996,1223"
+        },
+        {
+          "class": "android.widget.TextView",
+          "text": "2:40",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "932,1223,976,1246"
+        }
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "text": "",
+      "content_desc": "",
+      "resource_id": "",
+      "clickable": false,
+      "editable": false,
+      "enabled": true,
+      "focused": false,
+      "password": false,
+      "bounds": "0,94,1080,2640",
+      "children": [
+        {
+          "class": "android.widget.FrameLayout",
+          "text": "",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,94,1080,2640",
+          "children": [
+            {
+              "class": "android.widget.LinearLayout",
+              "text": "",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "0,1509,1080,2496",
+              "children": [
+                {
+                  "class": "android.support.v7.widget.RecyclerView",
+                  "text": "",
+                  "content_desc": "",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "0,1509,1080,1644",
+                  "children": [
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "0,1509,126,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "😂 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "6,1509,111,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "98,1509,233,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "😘 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "113,1509,218,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "205,1509,340,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "😀 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "220,1509,325,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "312,1509,447,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "❤️ emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "327,1509,432,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "419,1509,554,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "😭 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "434,1509,539,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "526,1509,661,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "👍 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "541,1509,646,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "633,1509,768,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "🎉 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "648,1509,753,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "740,1509,875,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "🎈 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "755,1509,860,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "847,1509,982,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "🤢 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "862,1509,967,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "954,1509,1080,1644",
+                      "children": [
+                        {
+                          "class": "android.view.View",
+                          "text": "",
+                          "content_desc": "😷 emoji",
+                          "resource_id": "",
+                          "clickable": true,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "969,1509,1074,1644"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.view.ViewGroup",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": true,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "1089,1509,1080,1644",
+                      "children": [
+                        {
+                          "class": "android.widget.ImageView",
+                          "text": "",
+                          "content_desc": "Remove emoji fast-access row",
+                          "resource_id": "",
+                          "clickable": false,
+                          "editable": false,
+                          "enabled": true,
+                          "focused": false,
+                          "password": false,
+                          "bounds": "1125,1554,1080,1599"
+                        }
+                      ]
+                    },
+                    {
+                      "class": "android.widget.FrameLayout",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "1089,1509,1080,1644"
+                    }
+                  ]
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Open features menu",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,1644,132,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Sticker Keyboard",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "147,1644,304,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "GIF Keyboard",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "304,1644,461,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Clipboard",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "461,1644,618,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Settings",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "618,1644,775,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Theme settings",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "775,1644,932,1776"
+                },
+                {
+                  "class": "android.speech.SpeechRecognizer.VoiceDictationButton",
+                  "text": "",
+                  "content_desc": "Use voice typing",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "948,1644,1074,1776"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "1",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,1800,112,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "2",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "112,1800,218,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "3",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "218,1800,325,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "4",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "325,1800,432,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "5",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "432,1800,539,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "6",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "539,1800,646,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "7",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "646,1800,753,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "8",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "753,1800,860,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "9",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "860,1800,967,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "0",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "967,1800,1074,1929"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Q",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,1929,112,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "W",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "112,1929,218,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "E",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "218,1929,325,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "R",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "325,1929,432,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "T",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "432,1929,539,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Y",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "539,1929,646,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "U",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "646,1929,753,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "I",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "753,1929,860,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "O",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "860,1929,967,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "P",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "967,1929,1074,2067"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "A",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,2067,166,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "S",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "166,2067,272,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "D",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "272,2067,378,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "F",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "378,2067,485,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "G",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "485,2067,592,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "H",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "592,2067,699,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "J",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "699,2067,806,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "K",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "806,2067,913,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "L",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "913,2067,1074,2205"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Shift enabled",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,2205,166,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Z",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "166,2205,272,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "X",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "272,2205,378,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "C",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "378,2205,485,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "V",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "485,2205,592,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "B",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "592,2205,699,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "N",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "699,2205,806,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "M",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "806,2205,913,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Delete",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "913,2205,1074,2343"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Symbol keyboard",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "6,2343,166,2496"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": ",",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "166,2343,272,2496"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Emoji button",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "272,2343,378,2496"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Space",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "378,2343,806,2496"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": ".",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "806,2343,913,2496"
+                },
+                {
+                  "class": "android.widget.FrameLayout",
+                  "text": "",
+                  "content_desc": "Enter",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "913,2343,1074,2496"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "text": "",
+      "content_desc": "",
+      "resource_id": "",
+      "clickable": false,
+      "editable": false,
+      "enabled": true,
+      "focused": false,
+      "password": false,
+      "bounds": "0,0,1080,2640",
+      "children": [
+        {
+          "class": "android.view.ViewGroup",
+          "text": "",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,0,1080,2640"
+        },
+        {
+          "class": "android.widget.ImageButton",
+          "text": "",
+          "content_desc": "Navigate up",
+          "resource_id": "",
+          "clickable": true,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,106,168,274"
+        },
+        {
+          "class": "android.widget.Button",
+          "text": "",
+          "content_desc": "Help me write",
+          "resource_id": "",
+          "clickable": true,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "504,118,648,262"
+        },
+        {
+          "class": "android.widget.Button",
+          "text": "",
+          "content_desc": "Attach files",
+          "resource_id": "",
+          "clickable": true,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "648,118,792,262"
+        },
+        {
+          "class": "android.widget.Button",
+          "text": "",
+          "content_desc": "Send",
+          "resource_id": "",
+          "clickable": true,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "792,118,936,262"
+        },
+        {
+          "class": "android.widget.ImageView",
+          "text": "",
+          "content_desc": "More options",
+          "resource_id": "",
+          "clickable": true,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "936,118,1080,262"
+        },
+        {
+          "class": "android.widget.ScrollView",
+          "text": "",
+          "content_desc": "",
+          "resource_id": "",
+          "clickable": false,
+          "editable": false,
+          "enabled": true,
+          "focused": false,
+          "password": false,
+          "bounds": "0,286,1080,1509",
+          "children": [
+            {
+              "class": "android.widget.TextView",
+              "text": "From",
+              "content_desc": "From",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "48,286,216,454"
+            },
+            {
+              "class": "android.widget.TextView",
+              "text": "gugosf@gmail.com",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "216,333,1080,406"
+            },
+            {
+              "class": "android.widget.RelativeLayout",
+              "text": "",
+              "content_desc": "Recipients: Spinoverse Support,",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "0,456,1080,624",
+              "children": [
+                {
+                  "class": "android.view.ViewGroup",
+                  "text": "",
+                  "content_desc": "",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "0,468,1080,612",
+                  "children": [
+                    {
+                      "class": "android.widget.Button",
+                      "text": "Spinoverse Support",
+                      "content_desc": "Spinoverse Support, support@spinoverse.com",
+                      "resource_id": "",
+                      "clickable": true,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "216,468,769,612"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "class": "android.widget.Spinner",
+              "text": "",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "0,456,216,624",
+              "children": [
+                {
+                  "class": "android.widget.ImageView",
+                  "text": "",
+                  "content_desc": "Reply",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "48,504,120,576"
+                }
+              ]
+            },
+            {
+              "class": "android.widget.ImageView",
+              "text": "",
+              "content_desc": "Add Cc\/Bcc",
+              "resource_id": "",
+              "clickable": true,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "912,456,1080,624"
+            },
+            {
+              "class": "android.widget.EditText",
+              "text": "Re: Big wins are back on your favorite games",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": true,
+              "editable": true,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "48,626,1032,868"
+            },
+            {
+              "class": "android.widget.RelativeLayout",
+              "text": "",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "0,870,1080,1038",
+              "children": [
+                {
+                  "class": "android.webkit.WebView",
+                  "text": "",
+                  "content_desc": "",
+                  "resource_id": "",
+                  "clickable": false,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "48,870,1032,1029",
+                  "children": [
+                    {
+                      "class": "android.webkit.WebView",
+                      "text": "",
+                      "content_desc": "",
+                      "resource_id": "",
+                      "clickable": false,
+                      "editable": false,
+                      "enabled": true,
+                      "focused": false,
+                      "password": false,
+                      "bounds": "48,870,1032,1029",
+                      "children": [
+                        {
+                          "class": "android.widget.EditText",
+                          "text": "",
+                          "content_desc": "",
+                          "resource_id": "editor",
+                          "clickable": false,
+                          "editable": true,
+                          "enabled": true,
+                          "focused": true,
+                          "password": false,
+                          "bounds": "48,918,1032,981"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "class": "android.widget.LinearLayout",
+              "text": "",
+              "content_desc": "",
+              "resource_id": "",
+              "clickable": false,
+              "editable": false,
+              "enabled": true,
+              "focused": false,
+              "password": false,
+              "bounds": "0,1038,1080,1182",
+              "children": [
+                {
+                  "class": "android.widget.ImageButton",
+                  "text": "",
+                  "content_desc": "Include quoted text",
+                  "resource_id": "",
+                  "clickable": true,
+                  "editable": false,
+                  "enabled": true,
+                  "focused": false,
+                  "password": false,
+                  "bounds": "0,1038,144,1182"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

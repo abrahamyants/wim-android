@@ -155,14 +155,27 @@ class WimAccessibilityService : AccessibilityService() {
      * Paste text into the currently focused text field.
      */
     fun injectText(text: String) {
-        val node = activeTextField ?: run {
-            android.widget.Toast.makeText(this, getString(R.string.toast_tap_field), android.widget.Toast.LENGTH_SHORT).show()
-            return
+        // Try the stored reference first (fast path). When it goes stale or is
+        // missing, re-find across ALL visible windows. rootInActiveWindow is
+        // unreliable when WiM's own bubble overlay or the IME window is top-
+        // most — iterating windows and skipping our own package is robust.
+        var node = activeTextField
+        if (node != null && !node.refresh()) {
+            Log.i("WiM", "Stored text field stale, searching all windows for focused editable")
+            node = null
         }
-        if (!node.refresh()) {
-            activeTextField = null
-            android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
-            return
+        if (node == null) {
+            val refound = findFocusedEditableAcrossWindows()
+            if (refound != null) {
+                activeTextField = refound
+                isPasswordField = detectPasswordField(refound)
+                node = refound
+                Log.i("WiM", "Re-found focused editable in window stack — proceeding with paste")
+            } else {
+                activeTextField = null
+                android.widget.Toast.makeText(this, getString(R.string.toast_tap_field), android.widget.Toast.LENGTH_SHORT).show()
+                return
+            }
         }
         // Smart spacing: prepend a space if the character before the cursor
         // isn't already a space or newline, so consecutive dictations don't
@@ -192,6 +205,38 @@ class WimAccessibilityService : AccessibilityService() {
             clipboard.setPrimaryClip(clip)
             node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
         }
+    }
+
+    /**
+     * Iterate every accessibility-visible window and find a focused editable
+     * node. Skips WiM's own overlay windows because `rootInActiveWindow` can
+     * return our bubble's window, which has no editable content. Falls back
+     * from `findFocus(FOCUS_INPUT)` to a recursive descent for editable+focused
+     * nodes for apps whose WebViews or custom views report focus oddly.
+     */
+    private fun findFocusedEditableAcrossWindows(): AccessibilityNodeInfo? {
+        val ownPackage = packageName
+        for (window in windows) {
+            val root = window.root ?: continue
+            if (root.packageName?.toString() == ownPackage) continue
+            val viaFocus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            if (viaFocus != null && viaFocus.isEditable) return viaFocus
+            val viaDescent = findEditableFocusedDescendant(root)
+            if (viaDescent != null) return viaDescent
+        }
+        return null
+    }
+
+    /** Recursive descent: first node where isEditable && isFocused both hold. */
+    private fun findEditableFocusedDescendant(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        if (node == null) return null
+        if (node.isEditable && node.isFocused) return node
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findEditableFocusedDescendant(child)
+            if (result != null) return result
+        }
+        return null
     }
 
     private fun showBubble() {
