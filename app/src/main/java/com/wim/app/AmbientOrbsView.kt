@@ -58,13 +58,16 @@ class AmbientOrbsView @JvmOverloads constructor(
 
     // How much the orbs translate per unit of tilt. Max parallax offset is
     // capped at maxOffsetFrac of view width so they don't slide off-screen.
-    private val maxOffsetFrac = 0.05f
-    // Low-pass smoothing coefficient — lower = more floaty, higher = more responsive.
-    private val smoothingAlpha = 0.08f
-    // Sensor values at rest on a level surface reach ~9.8 on the z-axis; tilt
-    // deviations on x/y rarely exceed this magnitude, so normalizing by 9.8f
-    // gives a -1..1-ish range we can multiply by maxOffsetFrac.
-    private val tiltNormalization = 9.8f
+    // Tuned for visible-but-tasteful motion — iOS wallpaper parallax is in this
+    // same ballpark.
+    private val maxOffsetFrac = 0.18f
+    // Low-pass smoothing coefficient — higher = more responsive, lower = more floaty.
+    // 0.22 gives noticeable snap while still feeling dampened, not jittery.
+    private val smoothingAlpha = 0.22f
+    // Divisor scaling raw accelerometer readings (m/s²) into a roughly -1..1
+    // range the offset math expects. Reduced from 9.8 → 5.0 so gentle,
+    // everyday hand-movement tilts (2-4 m/s²) move the orbs a meaningful amount.
+    private val tiltNormalization = 5.0f
 
     private val sensorManager by lazy {
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
