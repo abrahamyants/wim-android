@@ -1867,6 +1867,10 @@ class BubbleService : Service() {
             if (sessionNum > 0 && sessionNum % 30 == 0) {
                 profile.decayStaleCorrections(sessionNum)
             }
+            // Phonetic-neighbor correction against user vocabulary using
+            // Double Metaphone. Catches misheard loanwords / proper nouns that
+            // aren't in the explicit corrections map yet.
+            l1Text = PhoneticMatcher.correct(l1Text, profile.getVocabulary(), profile.getOnsetWeights())
             if (stripped > 0 || l1Text != preCleaned) {
                 val corrCount = if (l1Text != preCleaned) " + corrections" else ""
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
@@ -1927,6 +1931,10 @@ class BubbleService : Service() {
                 Log.i(TAG, "L$layer correction: \"$wrong\" → \"$right\"")
             }
         }
+        // Phonetic-neighbor correction before GPT — gives the reconstruction
+        // prompt a cleaner input, reduces round-trip cost of "fix this word"
+        // when the fix is just a phonetic neighbor of vocabulary.
+        correctedText = PhoneticMatcher.correct(correctedText, profile.getVocabulary(), profile.getOnsetWeights())
 
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()

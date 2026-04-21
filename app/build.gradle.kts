@@ -82,6 +82,10 @@ dependencies {
     implementation("com.alphacephei:vosk-android:0.3.47@aar")
     implementation("net.java.dev.jna:jna:5.13.0@aar")
 
+    // Apache Commons Codec — Double Metaphone for phonetic-neighbor correction
+    // (PhoneticMatcher post-hoc swaps ASR output against user vocabulary).
+    implementation("commons-codec:commons-codec:1.17.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
