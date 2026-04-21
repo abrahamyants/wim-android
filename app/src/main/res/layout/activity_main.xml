@@ -1576,11 +1576,88 @@
             android:visibility="gone"
             android:layout_marginBottom="10dp" />
 
-        <!-- Spacer pushes profile/footer to bottom of screen -->
-        <View
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- BUBBLE DOCK — three parked bubbles, tap to pick today's color -->
+        <!-- Magnetic feel: click-in scale + overshoot bounce on select       -->
+        <!-- ═══════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/bubbleDock"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PICK YOUR BUBBLE"
+                android:textColor="@color/text_dim"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="14dp"
+                android:alpha="0.55" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <FrameLayout
+                    android:id="@+id/dockBronze"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bubble_bg_idle"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bubble_inner_knob" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/dockAluminum"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bubble_bezel_aluminum"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bubble_knob_aluminum" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/dockGunmetal"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bubble_bezel_gunmetal"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bubble_knob_gunmetal" />
+                </FrameLayout>
+
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- PROFILE ACCESS STRIP -->

@@ -284,7 +284,16 @@ class BubbleService : Service() {
 
                 if (gForce > 2.5 && WimApp.prefs.getBoolean("shake_enabled", true)) {
                     val now = System.currentTimeMillis()
-                    if (now - lastShakeTime > 500) {
+                    // A single physical shake oscillates the accelerometer
+                    // multiple times in 20-80ms. Debounce so only one of those
+                    // oscillations counts as a "shake" event. Without this, a
+                    // single jolt reads as 2+ shakes and fires the double-shake
+                    // toggle on what the user feels as one shake.
+                    if (now - lastShakeTime < 200) {
+                        lastShakeTime = now
+                        return
+                    }
+                    if (now - lastShakeTime > 800) {
                         shakeCount = 1
                     } else {
                         shakeCount++
@@ -707,12 +716,17 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
-        // L2+: record audio for Whisper API transcription (better quality than on-device ASR)
-        if (WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()) {
+        // Cloud-ASR fallback: capture audio for gpt-4o-transcribe ONLY when Vosk
+        // is not the live engine. With Vosk active, its final text is the ASR
+        // output for ALL layers — GPT-4o reconstruction (L2+) can handle
+        // Vosk's ~10-15% WER just fine, and Vosk preserves disfluencies that
+        // cloud ASR pre-smooths. Audio stays on device at L2+ when Vosk is on.
+        val wantVoskLive = WimApp.useVosk() && (voskEngine?.isReady() == true)
+        if (!wantVoskLive && WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
-                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for Whisper pipeline")
+                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for cloud-ASR fallback")
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -923,6 +937,13 @@ class BubbleService : Service() {
             .putInt("tip_index", tipIndex + 1)
             .apply()
     }
+
+    /**
+     * Public entry point so MainActivity's bubble dock can flip the theme
+     * while the user is in Settings — the live floating bubble picks up the
+     * new palette immediately.
+     */
+    fun refreshBubbleTheme() = applyBubbleTheme()
 
     /** Apply the user's selected bubble color theme (bronze/aluminum/gunmetal). */
     private fun applyBubbleTheme() {
@@ -1974,9 +1995,41 @@ class BubbleService : Service() {
                     Log.i(TAG, "Look-behind context: ${precedingContext.length} chars")
                 }
 
-                ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
-                Log.i(TAG, "Calling reconstruction (L$layer, $tone, sit=$situation)...")
-                val reconResult = ReconstructClient.reconstruct(
+                // Local L2/L3: try on-device Gemma first when model is ready.
+                // L4 stays cloud — small local LLM can't handle clinical work.
+                val useGemma = WimApp.useGemmaLocal() && layer < 4 &&
+                    GemmaEngine.isReady(this@BubbleService)
+                val gemmaT0 = System.currentTimeMillis()
+                val gemmaText = if (useGemma) {
+                    ConsoleLog.log("Reconstructing... [L$layer $tone gemma-local]", "info")
+                    Log.i(TAG, "Calling Gemma local reconstruction (L$layer, $tone)...")
+                    GemmaEngine.reconstruct(
+                        context = this@BubbleService,
+                        rawText = correctedText,
+                        tone = tone,
+                        layer = layer,
+                        situation = situation,
+                        vocabulary = vocabulary,
+                        corrections = corrections
+                    )
+                } else null
+
+                val reconResult = if (gemmaText != null) {
+                    val gemmaMs = System.currentTimeMillis() - gemmaT0
+                    Log.i(TAG, "Gemma reconstruction succeeded in ${gemmaMs}ms")
+                    // Local path: no Falcon (self-check at L2/L3 isn't valuable),
+                    // no cloud cost, deterministic.
+                    ReconstructClient.ReconstructResult(
+                        cleanText = gemmaText,
+                        reconMs = gemmaMs,
+                        riskFlags = emptyList(),
+                        falconApproved = true
+                    )
+                } else {
+                    if (useGemma) Log.w(TAG, "Gemma returned null — falling back to cloud")
+                    ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
+                    Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
+                    ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
                     layer = layer,
@@ -1995,6 +2048,7 @@ class BubbleService : Service() {
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext
                 )
+                }
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
                 ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")

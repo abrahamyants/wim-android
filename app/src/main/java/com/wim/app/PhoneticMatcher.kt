@@ -109,9 +109,21 @@ object PhoneticMatcher {
         val asrAlternate = dm.doubleMetaphone(clean, true).orEmpty()
         if (asrPrimary.isBlank()) return null
 
+        val asrFirstLetter = clean.firstOrNull() ?: return null
+
         for (entry in vocabCodes) {
             // Already identical (case-insensitive) — no swap needed.
             if (entry.original.equals(asrWord, ignoreCase = true)) return null
+
+            // Require first-letter match (case-insensitive). Double-Metaphone
+            // collapses b/p, t/d, k/g, m/n etc. to the same code — without
+            // this guard "bitch" collides with "push" (both PX), "tin" with
+            // "din" (both TN), and so on. The first-letter constraint keeps
+            // legitimate matches like Smith/Smyth, Catherine/Katharine (both
+            // C/K onsets collide harmlessly because the LETTER 'c' equals 'c'
+            // across variants, not because of the Metaphone code).
+            val entryFirstLetter = entry.original.firstOrNull()?.lowercaseChar() ?: continue
+            if (asrFirstLetter != entryFirstLetter) continue
 
             val codeMatch = asrPrimary == entry.primary
                 || (asrAlternate.isNotBlank() && asrAlternate == entry.primary)

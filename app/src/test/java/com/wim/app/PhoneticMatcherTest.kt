@@ -98,13 +98,40 @@ class PhoneticMatcherTest {
 
     @Test
     fun multipleSwaps_independent() {
+        // Both words pass the first-letter guard (s=s, m=m).
         val out = PhoneticMatcher.correct(
-            "tell smyth and karol the plan",
-            listOf("Smith", "Carol"),
-            highRiskOnsets
+            "tell smyth and markas the plan",
+            listOf("Smith", "Marcus"),
+            highRiskOnsets + mapOf("m" to 0.7)
         )
         assertTrue("expected smith: '$out'", out.contains("smith", ignoreCase = true))
-        assertTrue("expected carol: '$out'", out.contains("carol", ignoreCase = true))
+        assertTrue("expected marcus: '$out'", out.contains("marcus", ignoreCase = true))
+    }
+
+    @Test
+    fun firstLetterConstraint_preventsFalsePositives() {
+        // Regression: "bitch" and "push" share Double-Metaphone "PX" because
+        // the algorithm collapses b/p, t/d, etc. to the same plosive code.
+        // First-letter guard must prevent this cross-consonant swap even
+        // when both words happen to be on high-risk onsets.
+        val out = PhoneticMatcher.correct(
+            "claude is a bitch",
+            listOf("push"),   // vocabulary happens to contain "push"
+            mapOf("b" to 0.7, "p" to 0.85)  // both are high-risk
+        )
+        assertEquals("claude is a bitch", out)
+    }
+
+    @Test
+    fun firstLetterConstraint_tinDinNoSwap() {
+        // Another Metaphone collision: "tin"/"din" both TN. Different first
+        // letter → no swap.
+        val out = PhoneticMatcher.correct(
+            "pass the tin",
+            listOf("din"),
+            mapOf("t" to 0.8, "d" to 0.65)
+        )
+        assertEquals("pass the tin", out)
     }
 
     @Test

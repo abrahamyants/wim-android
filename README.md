@@ -1195,3 +1195,53 @@ The engineering plan is five phases and we are mid-Phase-2:
 4. **Cross-linguistic Falcon behavior** — does our English-trained meaning-preservation validator behave on non-English reconstruction outputs, or does it need per-language fine-tuning? Unknown, falls out of Phase 5 benchmark.
 
 **When each of these lands depends on foundation funding hitting the 6-month deadlines in `foundation_grant_landscape.md`** — which is why the outreach sequence (Berkeley Speech Group for DysfluentWFST license → foundation shortlist → Spanish clinical partners) is the critical-path gating item, not the code. The code path is well-understood; the research path is not.
+
+## Session 11 — April 21, 2026
+
+*Merge landed, Vosk live, Gmail paste fixed, PhoneticMatcher shipped. Full log at `SESSION_LOG_2026-04-21.md`.*
+
+### What shipped (5 commits on `main`, 2 ahead of origin, not pushed)
+
+```
+f9de686  PhoneticMatcher: Double-Metaphone correction against user vocabulary
+9026c28  Improve editable refinding; add compat test script
+c356101  Bubble UX + Vosk-ready L1 infrastructure
+83f8f23  Merge remote-tracking branch 'origin/backup-vosk'
+```
+
+1. **Vosk merged into main.** `backup-vosk` merged via throwaway `merge/vosk-into-main` branch per `MERGE_PLAN.md`, then fast-forwarded. Opt-in via `use_vosk` pref; default OFF. Model downloaded on demand from settings card (`vosk-model-small-en-us-0.15`, ~40 MB).
+
+2. **Lang-pack integration** (L1–L3). 10 JSONs shipped as `app/src/main/assets/lang_packs/`. `LangPack.kt` loads the user's primary-language pack on app start. `DisfluencyFilter` accepts per-language natural-repeat allow-list override. Spanish `sí sí`, Japanese `そうそう`, German `nein nein` survive as emphatic patterns.
+
+3. **Rate-gap detector.** `RateGapDetector.analyze()` computes words-per-second vs rolling-median baseline. `ProfileManager` persists `wps_history` (30 samples). `BubbleService` boosts `speechSeverityMod` to 0.3 on L2+ calls when the gap fires, signalling the reconstruction prompt that the ASR may have eaten content.
+
+4. **Disfluency preservation guard test.** 15 fixture cases. First run caught a real gap — `NATURAL_REPEATS` was missing emphatic doublings (`really really`, `many many`, etc.) that Lavrentiy's eval-build added months ago. Fixed; Android + desktop lists in sync.
+
+5. **Bubble UX.** `setBubbleProcessing()` at top of `stopAndProcess()` makes the bubble flip to PROC amber instantly on stop (was staying red-pulsing through the entire cloud wait). Double-tap menu gained a Color row with Bronze / Silver / Gunmetal variants; drawables already existed from Session 6, only the swap mechanic was missing.
+
+6. **Gmail injection fix (applies to any modern app).** Gmail recycles its compose view during the seconds the user is recording, so the stored `activeTextField` node goes stale. `WimAccessibilityService.injectText()` now walks all accessibility-visible windows (skipping WiM's own package) and falls back to a recursive descent searching for `isEditable && isFocused` nodes. Verified working on Gmail, WhatsApp, Google Messages.
+
+7. **PhoneticMatcher — Double-Metaphone correction.** Apache Commons Codec 1.17.1 (+300 KB APK). Targets ASR output words whose onset is in the user's personal high-risk onset map; Double-Metaphone lookup against learned vocabulary swaps phonetic neighbors in place (preserves case, punctuation, whitespace). Catches "dunken" → "Dankeschön" without an explicit user-correction pair. Wired at L1 pre-inject AND L2+ pre-GPT.
+
+8. **Compat test scripts.** `scripts/compat_test.sh` (user-assisted per-app) + `scripts/compat_auto.sh` (full-matrix, launches via monkey). Auto-run's limitation: every installed app opens to a chat list / feed / home screen — no editable field visible on main. 12/12 installed apps SKIPPED in auto run. User-assisted remains the real coverage path.
+
+### Tests: 224 passing (was 213)
++10 PhoneticMatcherTest + 1 DisfluencyPreservationGuardTest (15 internal fixtures).
+
+### Rules saved this session
+- `feedback_no_defensive_bug_framing.md` — when diagnosing, skip "pre-existing / not my fault / was there before" framing. Diagnose and fix only.
+
+### Device verification on Samsung R5CWB08K38H
+- Vosk: no chirp start/stop, partials stream live, lowercase paste
+- Button fix: instant PROC transition
+- Paste: Gmail, WhatsApp, Google Messages all passing
+
+### Still needs user-assisted verification (run `./scripts/compat_test.sh <label>`)
+`telegram`, `signal`, `discord`, `fb-messenger`, `instagram-dm`, `linkedin-dm`, `reddit`, `outlook`, `samsung-messages`
+
+### Next-Claude punch list
+1. Confidence gate + lang-pack match (2-factor strip logic, uses Whisper `avg_logprob` / Vosk per-word confidence)
+2. sherpa-onnx AAR + punctuation restoration (biggest visible UX gap vs cloud Whisper)
+3. Moonshine Tiny as optional English engine (rides same AAR)
+4. Phonetic LM for N-best rescoring (trained on session history, phonetic-neighbor-aware)
+5. Phase-1 benchmark runner for desktop (English-only Vosk vs cloud Whisper against `~/.lavrentiy/audio_archive/`)

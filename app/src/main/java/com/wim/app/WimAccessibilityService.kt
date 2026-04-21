@@ -198,12 +198,21 @@ class WimAccessibilityService : AccessibilityService() {
         val args = android.os.Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)
         }
-        if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
-            // Fallback to clipboard if ACTION_SET_TEXT fails
+        val setOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        if (setOk) {
+            Log.i("WiM", "injectText: ACTION_SET_TEXT ok (${finalText.length} chars)")
+        } else {
+            Log.w("WiM", "injectText: ACTION_SET_TEXT failed — falling back to clipboard+PASTE")
             val clip = android.content.ClipData.newPlainText("wim", finalText)
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(clip)
-            node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            val pasteOk = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            if (pasteOk) {
+                Log.i("WiM", "injectText: ACTION_PASTE fallback ok")
+            } else {
+                Log.e("WiM", "injectText: both ACTION_SET_TEXT and ACTION_PASTE failed — text did not land")
+                android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

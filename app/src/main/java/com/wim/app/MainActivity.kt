@@ -453,6 +453,9 @@ class MainActivity : AppCompatActivity() {
         // ── Vosk ASR (no chirp) ──
         setupVoskSettings()
 
+        // ── Bubble dock — three parked bubble variants (bronze/silver/gunmetal) ──
+        setupBubbleDock()
+
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
         val settingsDafDelay = findViewById<SeekBar>(R.id.settingsDafDelay)
@@ -1781,6 +1784,53 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                     voskDownloadBtn.isEnabled = true
                     refreshStatus()
                 }
+            }
+        }
+    }
+
+    // ── Bubble dock: 3 parked bubble variants, tap to pick today's color ──
+    private fun setupBubbleDock() {
+        val dockBronze = findViewById<android.view.View>(R.id.dockBronze) ?: return
+        val dockAluminum = findViewById<android.view.View>(R.id.dockAluminum) ?: return
+        val dockGunmetal = findViewById<android.view.View>(R.id.dockGunmetal) ?: return
+        val slots = mapOf(
+            "bronze" to dockBronze,
+            "aluminum" to dockAluminum,
+            "gunmetal" to dockGunmetal
+        )
+
+        fun paintHighlight(active: String) {
+            slots.forEach { (key, view) ->
+                val isActive = key == active
+                // The inactive bubbles fade back so the picked one stands proud.
+                view.alpha = if (isActive) 1.0f else 0.55f
+                // A small Z-lift on the active slot gives the "clicked in" feel.
+                view.animate().translationZ(if (isActive) 6f else 0f).setDuration(180).start()
+            }
+        }
+
+        paintHighlight(WimApp.bubbleTheme())
+
+        slots.forEach { (key, view) ->
+            view.setOnClickListener { tapped ->
+                WimApp.prefs.edit().putString("bubble_theme", key).apply()
+                BubbleService.instance?.refreshBubbleTheme()
+                // Magnetic "click-in" — quick squish then overshoot back.
+                tapped.animate()
+                    .scaleX(0.82f).scaleY(0.82f)
+                    .setDuration(90)
+                    .withEndAction {
+                        tapped.animate()
+                            .scaleX(1f).scaleY(1f)
+                            .setInterpolator(android.view.animation.OvershootInterpolator(2.4f))
+                            .setDuration(260)
+                            .start()
+                    }
+                    .start()
+                try {
+                    tapped.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                } catch (_: Exception) {}
+                paintHighlight(key)
             }
         }
     }
