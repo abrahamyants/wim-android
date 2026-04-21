@@ -51,6 +51,10 @@ class ProfileManager(private val prefs: SharedPreferences) {
     /** Tracks session number when correction was last used (for decay). */
     private var correctionLastUsed: MutableMap<String, Int> = mutableMapOf()
 
+    /** Rolling history of words-per-second per session; RateGapDetector uses the median. */
+    private var wpsHistory: MutableList<Double> = mutableListOf()
+    private val WPS_HISTORY_SIZE = 30
+
     init {
         loadProfile()
     }
@@ -86,7 +90,12 @@ class ProfileManager(private val prefs: SharedPreferences) {
                     lastUsed.keys().forEach { key -> map[key] = lastUsed.getInt(key) }
                 }
 
-                Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers")
+                wpsHistory = mutableListOf<Double>().also { list ->
+                    val arr = obj.optJSONArray("wps_history") ?: JSONArray()
+                    for (i in 0 until arr.length()) list.add(arr.getDouble(i))
+                }
+
+                Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers, ${wpsHistory.size} wps samples")
             } catch (e: Exception) {
                 Log.e(TAG, "Profile parse error, resetting to defaults: ${e.message}")
                 resetToDefaults()
@@ -103,9 +112,33 @@ class ProfileManager(private val prefs: SharedPreferences) {
             put("filler_words", JSONArray(fillerWords))
             put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
             put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
+            put("wps_history", JSONArray(wpsHistory))
         }
         prefs.edit().putString(PREF_KEY, obj.toString()).apply()
         Log.i(TAG, "Profile saved")
+    }
+
+    /**
+     * Record one session's words-per-second. Keeps a rolling window of the last
+     * [WPS_HISTORY_SIZE] samples. Ignores zero/non-finite values.
+     */
+    fun recordWps(wps: Double) {
+        if (wps <= 0.0 || !wps.isFinite()) return
+        wpsHistory.add(wps)
+        while (wpsHistory.size > WPS_HISTORY_SIZE) wpsHistory.removeAt(0)
+        saveProfile()
+    }
+
+    /**
+     * Rolling-median WPS across the stored samples. Returns null until we have
+     * at least [RateGapDetector.MIN_SAMPLES_FOR_BASELINE] samples — too few and
+     * the baseline is noise.
+     */
+    fun baselineWps(): Double? {
+        if (wpsHistory.size < RateGapDetector.MIN_SAMPLES_FOR_BASELINE) return null
+        val sorted = wpsHistory.sorted()
+        val mid = sorted.size / 2
+        return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2.0 else sorted[mid]
     }
 
     /**

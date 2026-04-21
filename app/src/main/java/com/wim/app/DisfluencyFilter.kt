@@ -17,13 +17,17 @@ package com.wim.app
 object DisfluencyFilter {
 
     // Natural repeats — grammatically valid repeated words that should NOT be stripped
-    // Ported from Лаврентий NATURAL_REPEATS set
+    // Ported from Лаврентий NATURAL_REPEATS set (including the eval-build extensions
+    // that protect emphatic doublings: "really really", "many many", etc.)
     private val NATURAL_REPEATS = setOf(
         "had had", "that that", "is is", "was was", "do do",
         "can can", "no no", "bye bye", "so so", "very very",
         "go go", "now now", "come come", "well well",
         "out out", "boo boo", "ha ha", "ho ho",
         "knock knock", "tsk tsk", "aye aye",
+        // Emphatic doublings (eval-build additions from Лаврентий)
+        "really really", "many many", "much much", "right right",
+        "sure sure", "okay sure", "okay okay", "just just",
         // Russian
         "да да", "нет нет", "ну ну"
     )
@@ -115,21 +119,30 @@ object DisfluencyFilter {
      * @param fillerWords list of filler words to strip (from profile)
      * @return cleaned text with disfluencies removed
      */
-    fun filter(text: String, fillerWords: List<String>): String {
+    fun filter(
+        text: String,
+        fillerWords: List<String>,
+        naturalRepeats: Set<String>? = null
+    ): String {
         if (text.isBlank()) return text
+
+        // When the user is dictating in a non-English language, LangPack supplies
+        // the matching natural-repeat allow-list (e.g. "sí sí", "そうそう"). English
+        // falls back to the hardcoded NATURAL_REPEATS set.
+        val activeNaturalRepeats = naturalRepeats ?: NATURAL_REPEATS
 
         // Step 1: Remove stutter fragments (two passes — with and without whitespace)
         var cleaned = STUTTER_FRAGMENT.replace(text, "")
         cleaned = STUTTER_FRAGMENT_NOSPACE.replace(cleaned, "")
 
         // Step 2: Remove consecutive word repetitions (protect natural repeats).
-        // Natural repeats ("bye bye", "go go") are valid at exactly 2 occurrences;
-        // 3+ means the speaker was blocked, not being idiomatic.
+        // Natural repeats ("bye bye", "go go", "sí sí") are valid at exactly 2
+        // occurrences; 3+ means the speaker was blocked, not being idiomatic.
         cleaned = WORD_REPEAT.replace(cleaned) { match ->
             val word = match.groupValues[1]
             val pair = "${word.lowercase()} ${word.lowercase()}"
             val totalCount = match.value.trim().split("\\s+".toRegex()).size
-            if (pair in NATURAL_REPEATS && totalCount == 2) match.value else word
+            if (pair in activeNaturalRepeats && totalCount == 2) match.value else word
         }
 
         // Step 3: Remove phrase repetitions — but skip phrases that are just

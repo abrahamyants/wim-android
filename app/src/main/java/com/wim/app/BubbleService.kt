@@ -610,7 +610,8 @@ class BubbleService : Service() {
             }
         }
 
-        // Apply saved bubble opacity and size
+        // Apply saved bubble color theme, opacity, and size
+        applyBubbleTheme()
         val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
 
@@ -783,6 +784,12 @@ class BubbleService : Service() {
         Log.i(TAG, "Stop requested, processing audio immediately...")
         processed = true
         isRecording = false
+        // Immediate visual feedback — bubble transitions to PROC the instant the
+        // stop tap is received, not after transcription finishes. Without this,
+        // the bubble stays in "recording" red for the full transcription window
+        // (3–10s on cloud Whisper, 15–70s on whisper.cpp) and users think the
+        // button didn't register.
+        setBubbleProcessing()
         dafPlayer?.stop()
         dafPlayer = null
 
@@ -917,16 +924,29 @@ class BubbleService : Service() {
             .apply()
     }
 
+    /** Apply the user's selected bubble color theme (bronze/aluminum/gunmetal). */
+    private fun applyBubbleTheme() {
+        val theme = WimApp.bubbleTheme()
+        val bezelDrawable = when (theme) {
+            "aluminum" -> R.drawable.bubble_bezel_aluminum
+            "gunmetal" -> R.drawable.bubble_bezel_gunmetal
+            else -> R.drawable.bubble_bg_idle
+        }
+        val knobDrawable = when (theme) {
+            "aluminum" -> R.drawable.bubble_knob_aluminum
+            "gunmetal" -> R.drawable.bubble_knob_gunmetal
+            else -> R.drawable.bubble_inner_knob
+        }
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
+    }
+
     private fun setBubbleIdle() {
         stopPulseRings()
         hideLiveTranscript()
         maybeShowTip()
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
-            clearAnimation()
-            setBackgroundResource(R.drawable.bubble_inner_knob)
-        }
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-            ?.setBackgroundResource(R.drawable.bubble_bg_idle)
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
+        applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
             setTextColor(0xFF555560.toInt())
@@ -1471,6 +1491,26 @@ class BubbleService : Service() {
             }
         }
 
+        // Bubble color selector — bronze (default) / aluminum / gunmetal
+        val themeBtns = mapOf(
+            "bronze" to menuView!!.findViewById<TextView>(R.id.menuThemeBronze),
+            "aluminum" to menuView!!.findViewById<TextView>(R.id.menuThemeAluminum),
+            "gunmetal" to menuView!!.findViewById<TextView>(R.id.menuThemeGunmetal)
+        )
+        val currentTheme = WimApp.bubbleTheme()
+        themeBtns.forEach { (themeKey, btn) ->
+            btn.setTextColor(
+                if (themeKey == currentTheme) getColor(R.color.orange_label)
+                else 0xFF888890.toInt()
+            )
+            btn.setOnClickListener {
+                WimApp.prefs.edit().putString("bubble_theme", themeKey).apply()
+                themeBtns.values.forEach { b -> b.setTextColor(0xFF888890.toInt()) }
+                btn.setTextColor(getColor(R.color.orange_label))
+                applyBubbleTheme()
+            }
+        }
+
         menuView!!.findViewById<TextView>(R.id.menuResetTimer).setOnClickListener {
             sessionStartTime = System.currentTimeMillis()
             bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "0:00"
@@ -1747,6 +1787,19 @@ class BubbleService : Service() {
         ConsoleLog.log("Processing... [L$layer ${tone.uppercase()} $situation]", "info")
         val profile = WimApp.profile()
 
+        // Rate-gap analysis: does the word count match the audio duration vs the
+        // user's historical baseline? Low ratio = ASR dropped content (Samsung
+        // pre-smooths "go go go go go" to "go go go"). Information-only; signals
+        // downstream reconstruction that something may need recovery.
+        val audioDurationSec = asrMs / 1000.0
+        val rawWordCountForGap = rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
+        val rateGap = RateGapDetector.analyze(rawWordCountForGap, audioDurationSec, profile.baselineWps())
+        if (rateGap.wps > 0) profile.recordWps(rateGap.wps)
+        if (rateGap.gapDetected) {
+            Log.w(TAG, "Rate-gap: wps=${"%.2f".format(rateGap.wps)} baseline=${"%.2f".format(rateGap.baselineWps ?: 0.0)} ratio=${"%.2f".format(rateGap.ratio ?: 0.0)}")
+            ConsoleLog.log("Rate-gap: ${((rateGap.ratio ?: 0.0) * 100).toInt()}% of baseline WPS — ASR likely dropped content", "warn")
+        }
+
         // Voice shortcuts — expand triggers before processing
         var expandedText = rawText
         val shortcuts = WimApp.prefs.getString("voice_shortcuts", null)
@@ -1775,9 +1828,14 @@ class BubbleService : Service() {
         // L4 stutter-aware path needs to SEE the disfluencies to reason about them,
         // so we skip the pre-filter at L4 and let the clinical prompt handle it.
         val rawWordCount = deHallucinated.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-        val fillerWords = profile.getFillerWords()
+        // Merge user profile fillers with language-pack fillers (empty for English).
+        val fillerWords = profile.getFillerWords() + LangPack.fillers()
         showPipelineStage("\u29BB Cleaning up...", "Removing disfluencies & fillers")
-        val preCleaned = if (layer >= 4) deHallucinated else DisfluencyFilter.filter(deHallucinated, fillerWords)
+        val preCleaned = if (layer >= 4) deHallucinated else DisfluencyFilter.filter(
+            deHallucinated,
+            fillerWords,
+            LangPack.naturalRepeats()
+        )
         val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val stripped = rawWordCount - cleanWordCount
         // Track filler count for VU meter — resets at 150
@@ -1923,7 +1981,10 @@ class BubbleService : Service() {
                     covertProfile = profile.getCovertProfile(),
                     whisperLowConf = lastWhisperLowConf,
                     whisperDisagreements = emptyList(),
-                    speechSeverityMod = 0.0,
+                    // Bump severity when rate-gap indicates dropped content —
+                    // signals the reconstruction prompt to trust literal words
+                    // less and use onset_weights + covert_profile for recovery.
+                    speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext
                 )
                 turboTaxJob?.cancel()
