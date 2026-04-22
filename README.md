@@ -1198,18 +1198,29 @@ The engineering plan is five phases and we are mid-Phase-2:
 
 ## Session 11 — April 21, 2026
 
-*Merge landed, Vosk live, Gmail paste fixed, PhoneticMatcher shipped. Full log at `SESSION_LOG_2026-04-21.md`.*
+*Merge landed, Vosk live, Gmail paste fixed, PhoneticMatcher shipped, Gemma local L2/L3 scaffolded, bubble dock + visual polish (orbs, shimmer, knob pins, extended logo bars). All pushed. Full log at `SESSION_LOG_2026-04-21.md`.*
 
-### What shipped (5 commits on `main`, 2 ahead of origin, not pushed)
+### What shipped (13 commits on `main`, all pushed to origin)
 
 ```
+81ce73f  ShimmerFx: animated light-sweep on category borders + subcategory text
+a5ba3ee  Revert "MainActivity: click-badge-to-cycle + Easter-egg pin flash on Layer/Tone/Situation"
+ad0f342  MainActivity: click-badge-to-cycle + Easter-egg pin flash on Layer/Tone/Situation
+c4eaab4  Gemma local L2/L3 + Vosk defaults + inject robustness + bubble dock
+de94532  KnobPins: Easter-egg drawables + knob→image mapping
+09a552b  AmbientOrbsView: three orbs — teal UR, gold center, bronze LL
+3a6b5a3  AmbientOrbsView: tune parallax parameters for visible motion
+b643b42  AmbientOrbsView: parallax bokeh orbs w/ accelerometer tilt
+3d48c30  LogoBarsView: horizontal extension on record + bg_app hardwood contrast bump
+7b7fe60  Add automated compatibility runner and results
+a62ac45  Extend disfluency preservation guard to fr/de/it/pt/zh/hi/ar/ko
 f9de686  PhoneticMatcher: Double-Metaphone correction against user vocabulary
 9026c28  Improve editable refinding; add compat test script
 c356101  Bubble UX + Vosk-ready L1 infrastructure
 83f8f23  Merge remote-tracking branch 'origin/backup-vosk'
 ```
 
-1. **Vosk merged into main.** `backup-vosk` merged via throwaway `merge/vosk-into-main` branch per `MERGE_PLAN.md`, then fast-forwarded. Opt-in via `use_vosk` pref; default OFF. Model downloaded on demand from settings card (`vosk-model-small-en-us-0.15`, ~40 MB).
+1. **Vosk merged into main — now default ON with auto-download.** `backup-vosk` merged per `MERGE_PLAN.md`. `use_vosk` default flipped to `true` (was `false`); `WimApp.onCreate` kicks off background download of `vosk-model-small-en-us-0.15` (~40 MB) via `appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)` if not installed. Falls back to Samsung/Google native ASR until the model lands. Same pattern for Gemma (gated on `layer() >= 2` so L1 users don't pull 550 MB they'll never use).
 
 2. **Lang-pack integration** (L1–L3). 10 JSONs shipped as `app/src/main/assets/lang_packs/`. `LangPack.kt` loads the user's primary-language pack on app start. `DisfluencyFilter` accepts per-language natural-repeat allow-list override. Spanish `sí sí`, Japanese `そうそう`, German `nein nein` survive as emphatic patterns.
 
@@ -1225,8 +1236,20 @@ c356101  Bubble UX + Vosk-ready L1 infrastructure
 
 8. **Compat test scripts.** `scripts/compat_test.sh` (user-assisted per-app) + `scripts/compat_auto.sh` (full-matrix, launches via monkey). Auto-run's limitation: every installed app opens to a chat list / feed / home screen — no editable field visible on main. 12/12 installed apps SKIPPED in auto run. User-assisted remains the real coverage path.
 
+9. **Gemma local reconstruction for L2/L3.** `GemmaEngine.kt` wraps MediaPipe `tasks-genai:0.10.24` `LlmInference` around Gemma 3 1B IT (`gemma3-1b-it-int4.task`, ~550 MB, LiteRT format, public HF download — no auth gate). `GemmaModelDownloader` streams the model in 256KB chunks with atomic rename into `filesDir/gemma-models/`. `BubbleService.processText()` at L2+ tries Gemma first (`useGemma = WimApp.useGemmaLocal() && layer < 4 && GemmaEngine.isReady(...)`); falls back to cloud GPT-4o if not ready. L4 stays cloud regardless. Default ON via `use_gemma_local` pref. Gemma 3n E4B (audio-in, ~4 GB) deferred — blocked by HF license-acceptance gate; 1B IT is distribution-clean for v1.
+
+10. **Bubble dock + color selector in MainActivity.** Replaced a spacer in `activity_main.xml` with `bubbleDock` LinearLayout — three 64dp FrameLayout slots (Bronze / Aluminum / Gunmetal) with bezel + inner drawables under a "PICK YOUR BUBBLE" label. Tap = squish + `OvershootInterpolator(2.4f)` bounce + `HapticFeedbackConstants.CONFIRM` + `BubbleService.instance?.refreshBubbleTheme()`. Theme persists across recording cycles via `applyBubbleTheme()` in `showBubble()` and `setBubbleIdle()`.
+
+11. **LogoBarsView — 18 bars, horizontal extension on record.** `LogoBarsView.kt` expanded from 7 to 18 bars (7 idle + 7 extension + 4 trailing tail). Idle state shows just the base 7 (puppy-ear shape). Recording activates a staggered unfurl (`extensionStaggerMs = 22L`) outward from the logo with `OvershootInterpolator` retract on stop — the "ear-ping" effect. Gradient swaps from orange→maroon (idle) to amber→hot-red (active). Whole strip lifts `activeExtendScaleY = 1.15×` with bottom pivot.
+
+12. **AmbientOrbsView — parallax bokeh behind the app.** Three blurred orbs (teal upper-right, gold center, bronze lower-left) that drift slightly with accelerometer tilt. Gives the main activity a subtle depth plane without stealing focus.
+
+13. **KnobPins — Easter-egg drawables.** Layer/Tone/Situation knob → image mapping for Easter-egg pin flash on click. `ad0f342` added click-badge-to-cycle; `a5ba3ee` reverted it after George's review — kept the drawables, dropped the cycle behavior.
+
+14. **ShimmerFx — animated light-sweep.** Diagonal light sweep on category borders + subcategory text (Anthropic-style shine element). Runs at low intensity so it registers as polish, not distraction.
+
 ### Tests: 224 passing (was 213)
-+10 PhoneticMatcherTest + 1 DisfluencyPreservationGuardTest (15 internal fixtures).
++10 PhoneticMatcherTest + 1 DisfluencyPreservationGuardTest (15 internal fixtures, extended to 9 languages in `a62ac45`).
 
 ### Rules saved this session
 - `feedback_no_defensive_bug_framing.md` — when diagnosing, skip "pre-existing / not my fault / was there before" framing. Diagnose and fix only.
