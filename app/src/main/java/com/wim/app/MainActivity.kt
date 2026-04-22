@@ -1928,14 +1928,22 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                     android.view.MotionEvent.ACTION_MOVE -> {
                         startRawX = event.rawX
                         startRawY = event.rawY
-                        // Drag past threshold → immediate pickup at current finger.
                         if (!handled) {
+                            // Drag past threshold → spawn bubble at current finger.
                             val dx = event.rawX - downRawX
                             val dy = event.rawY - downRawY
                             if (kotlin.math.hypot(dx, dy) > dragThresholdPx) {
                                 handled = true
                                 pickUpBubble(key, tapped, event.rawX.toInt(), event.rawY.toInt())
                             }
+                        } else {
+                            // Already picked up — pipe the finger's screen coords
+                            // straight to the service so the overlay tracks the
+                            // drag even though its window never received the touch.
+                            BubbleService.instance?.moveBubbleTo(
+                                event.rawX.toInt(),
+                                event.rawY.toInt()
+                            )
                         }
                         true
                     }

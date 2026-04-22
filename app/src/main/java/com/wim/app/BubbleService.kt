@@ -720,6 +720,26 @@ class BubbleService : Service() {
     /** True iff the floating bubble view is currently attached to the window manager. */
     fun isBubbleVisible(): Boolean = bubbleView != null
 
+    /**
+     * Remote-drive the bubble's screen position. Called from MainActivity's
+     * dock-slot touch listener during drag-from-dock pickup: Android can't
+     * hand a touch stream across windows, but MainActivity's listener keeps
+     * getting ACTION_MOVE events until the finger lifts, so we pipe those
+     * coords here and reposition the overlay in real time. The bubble's
+     * notional center lands on (cx, cy).
+     *
+     * Safe to call every MOVE event — updateViewLayout is cheap relative
+     * to touch event cadence (60 Hz). If this becomes a perf concern,
+     * throttle at the caller.
+     */
+    fun moveBubbleTo(cx: Int, cy: Int) {
+        val view = bubbleView ?: return
+        val params = bubbleParams ?: return
+        params.x = cx - view.width / 2
+        params.y = cy - view.height / 2
+        try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+    }
+
     private fun startListening() {
         if (isRecording) return
 
