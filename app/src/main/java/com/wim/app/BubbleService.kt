@@ -133,6 +133,13 @@ class BubbleService : Service() {
          * and the bubble animates into the dock then hides.
          */
         var dockSlotRects: Map<String, android.graphics.Rect>? = null
+
+        /**
+         * MainActivity subscribes so it can ghost-out the currently-picked-up
+         * dock slot. Called on every showBubble/hideBubble transition.
+         * Cleared on MainActivity.onPause so we don't leak the activity.
+         */
+        var onBubbleVisibilityChanged: (() -> Unit)? = null
     }
 
     fun isCurrentlyRecording(): Boolean = isRecording
@@ -663,6 +670,10 @@ class BubbleService : Service() {
             if (audioRecorder == null) audioRecorder = AudioRecorder(this)
             audioRecorder?.primeBuffer()
         }
+
+        // Coat-rack signal: MainActivity's dock listens to this and ghosts
+        // the matching slot to show the bubble is "in use."
+        onBubbleVisibilityChanged?.invoke()
     }
 
     private fun hideBubble() {
@@ -673,7 +684,12 @@ class BubbleService : Service() {
         // Re-post notification so it stays visible as the recall button
         val nm = getSystemService(NotificationManager::class.java)
         nm.notify(NOTIFICATION_ID, buildNotification("Bubble hidden — tap to show"))
+        // Coat-rack signal: bubble is back on the hanger. Dock un-ghosts.
+        onBubbleVisibilityChanged?.invoke()
     }
+
+    /** True iff the floating bubble view is currently attached to the window manager. */
+    fun isBubbleVisible(): Boolean = bubbleView != null
 
     private fun startListening() {
         if (isRecording) return
@@ -1046,6 +1062,17 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
+        // If the label is currently showing IDLE, refresh its color to match
+        // the new theme. Without this, a lingering gunmetal-gold would stay
+        // on the aluminum/bronze bezel and become invisible against the
+        // lighter metal. REC/PROC labels are left alone — their colors are
+        // managed by the recording state path.
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.let { label ->
+            if (label.text == "IDLE") {
+                val idleColor = if (theme == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+                label.setTextColor(idleColor)
+            }
+        }
     }
 
     private fun setBubbleIdle() {

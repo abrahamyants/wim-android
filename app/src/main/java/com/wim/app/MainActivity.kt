@@ -599,6 +599,10 @@ class MainActivity : AppCompatActivity() {
             )
             dockBronze.post { publishDockRects(slots) }
         }
+        // Coat-rack wire-up: BubbleService calls this when show/hide fires.
+        // We also refresh now in case the bubble state changed while paused.
+        BubbleService.onBubbleVisibilityChanged = { runOnUiThread { refreshDockGhost() } }
+        refreshDockGhost()
     }
 
     override fun onPause() {
@@ -606,6 +610,9 @@ class MainActivity : AppCompatActivity() {
         // Clear the rects so the floating bubble doesn't try to snap into
         // invisible targets when MainActivity is backgrounded.
         BubbleService.dockSlotRects = null
+        // Drop the coat-rack callback so the service doesn't hold this
+        // activity after it's gone.
+        BubbleService.onBubbleVisibilityChanged = null
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -1878,11 +1885,15 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         }
     }
 
-    // ── Bubble dock: 3 parked bubble variants, tap to pick + summon ──
-    // Each slot mirrors the floating bubble's tick+IDLE geometry. Tap swaps
-    // the theme and also summons the bubble if it's hidden. Slot rects are
-    // published to BubbleService.dockSlotRects so dragging the floating
-    // bubble near any slot triggers the "pulled him back in" park animation.
+    // Slots cached for the dock-refresh callback; populated in setupBubbleDock.
+    private var dockSlots: Map<String, android.view.View>? = null
+
+    // ── Bubble dock: 3 parked bubble variants — coat rack model. ──
+    // At rest: all three are "on the hanger." Tap one to pick it up — that
+    // slot ghosts out (you took the coat) and the floating bubble appears.
+    // Drag the bubble back onto any slot to hang it up again — that slot
+    // becomes solid, the bubble disappears. Each slot mirrors the live
+    // floating bubble's geometry (72dp bezel, 44dp knob, tick, IDLE label).
     private fun setupBubbleDock() {
         val dockBronze = findViewById<android.view.View>(R.id.dockBronze) ?: return
         val dockAluminum = findViewById<android.view.View>(R.id.dockAluminum) ?: return
@@ -1892,25 +1903,13 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             "aluminum" to dockAluminum,
             "gunmetal" to dockGunmetal
         )
-
-        fun paintHighlight(active: String) {
-            slots.forEach { (key, view) ->
-                val isActive = key == active
-                // The inactive bubbles fade back so the picked one stands proud.
-                view.alpha = if (isActive) 1.0f else 0.55f
-                // A small Z-lift on the active slot gives the "clicked in" feel.
-                view.animate().translationZ(if (isActive) 6f else 0f).setDuration(180).start()
-            }
-        }
-
-        paintHighlight(WimApp.bubbleTheme())
+        dockSlots = slots
 
         slots.forEach { (key, view) ->
             view.setOnClickListener { tapped ->
                 WimApp.prefs.edit().putString("bubble_theme", key).apply()
                 BubbleService.instance?.refreshBubbleTheme()
-                // Summon the bubble — this slot is also a spawn point. Harmless
-                // if it's already visible; starts the service if it isn't.
+                // Summon the bubble — picks this coat off the hanger.
                 val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
                 startForegroundService(intent)
                 // Magnetic "click-in" — quick squish then overshoot back.
@@ -1928,14 +1927,52 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 try {
                     tapped.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                 } catch (_: Exception) {}
-                paintHighlight(key)
+                // BubbleService will fire onBubbleVisibilityChanged which
+                // triggers refreshDockGhost — but we also refresh immediately
+                // so the UI responds without a round-trip wait.
+                refreshDockGhost()
             }
         }
+
+        // Initial paint — covers the case where BubbleService is already
+        // running with a visible bubble when MainActivity opens.
+        refreshDockGhost()
 
         // Publish dock rects once layout settles so BubbleService's drag-snap
         // knows where the dock is. Re-published on every resume (rotation /
         // window-metric changes would otherwise leave stale rects).
         dockBronze.post { publishDockRects(slots) }
+    }
+
+    /**
+     * Coat-rack update: if the bubble is out (visible), ghost the matching
+     * slot (faded outline, smaller). If it's back on the hanger, show all
+     * three slots at full opacity with a subtle overshoot-pop so returning
+     * home reads as an event, not a silent swap.
+     */
+    private fun refreshDockGhost() {
+        val slots = dockSlots ?: return
+        val activeTheme = WimApp.bubbleTheme()
+        val bubbleOut = BubbleService.instance?.isBubbleVisible() == true
+        slots.forEach { (theme, view) ->
+            val isPickedUp = bubbleOut && theme == activeTheme
+            if (isPickedUp) {
+                view.animate()
+                    .alpha(0.22f)
+                    .scaleX(0.85f).scaleY(0.85f)
+                    .translationZ(0f)
+                    .setDuration(220)
+                    .start()
+            } else {
+                view.animate()
+                    .alpha(1.0f)
+                    .scaleX(1f).scaleY(1f)
+                    .translationZ(if (theme == activeTheme) 4f else 0f)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(2.0f))
+                    .setDuration(240)
+                    .start()
+            }
+        }
     }
 
     private fun publishDockRects(slots: Map<String, android.view.View>) {
