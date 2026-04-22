@@ -23,6 +23,7 @@ import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -610,6 +611,18 @@ class BubbleService : Service() {
                     val outerR = v.width * 0.40f    // bezel outer edge
                     val tapDuration = System.currentTimeMillis() - downTime
 
+                    // SEND_READY: any tap within the bubble (bezel OR knob) fires
+                    // confirm-and-send. Takes precedence over the bezel-only
+                    // work/life toggle because the whole bubble is the affordance
+                    // when it reads "SEND".
+                    if (isSendReady && !isRecording && dist < outerR && tapDuration < 300) {
+                        try { vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        isSendReady = false
+                        timerHandler.removeCallbacks(revertSendReadyRunnable)
+                        handleSendConfirmTap()
+                        return@setOnTouchListener true
+                    }
+
                     if (!isRecording && dist > innerR && dist < outerR && tapDuration < 300) {
                         try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                         if (isClarifierActive) {
@@ -706,6 +719,11 @@ class BubbleService : Service() {
     }
 
     private fun hideBubble() {
+        // Drop any in-flight send-ready timer + disclaimer so they don't
+        // survive the bubble's lifetime.
+        isSendReady = false
+        timerHandler.removeCallbacks(revertSendReadyRunnable)
+        dismissSendDisclaimer()
         bubbleView?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
             bubbleView = null
@@ -719,6 +737,164 @@ class BubbleService : Service() {
 
     /** True iff the floating bubble view is currently attached to the window manager. */
     fun isBubbleVisible(): Boolean = bubbleView != null
+
+    // ── Auto-send state ─────────────────────────────────────────────────
+    // Flipped true after a successful injectText when auto-send is enabled
+    // and the focused app is whitelisted. Tap the bubble in this state to
+    // fire ACTION_CLICK on the app's Send button. Auto-reverts to IDLE
+    // after SEND_READY_TIMEOUT_MS.
+    private var isSendReady = false
+    private val SEND_READY_TIMEOUT_MS = 3500L
+    private val revertSendReadyRunnable = Runnable {
+        if (isSendReady) {
+            isSendReady = false
+            setBubbleIdle()
+        }
+    }
+    private var disclaimerView: View? = null
+
+    /**
+     * Called after a successful injectText. Decides whether to rest at IDLE
+     * or flip to SEND_READY (green label, tap to auto-send). SEND_READY is
+     * gated on user opt-in + per-app whitelist so unsupported apps still
+     * behave exactly as today.
+     */
+    private fun onInjectComplete() {
+        val autoSendOn = WimApp.autoSendEnabled()
+        val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
+        if (autoSendOn && supported && bubbleView != null) {
+            setBubbleSendReady()
+        } else {
+            setBubbleIdle()
+        }
+    }
+
+    private fun setBubbleSendReady() {
+        val view = bubbleView ?: return
+        isSendReady = true
+        stopPulseRings()
+        hideLiveTranscript()
+        view.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
+        view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "SEND"
+            setTextColor(0xFF5AD15F.toInt())
+        }
+        view.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            text = "TAP"
+            setTextColor(0xFF5AD15F.toInt())
+        }
+        timerHandler.removeCallbacks(revertSendReadyRunnable)
+        timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
+        ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
+    }
+
+    private fun handleSendConfirmTap() {
+        val count = WimApp.autoSendDisclaimerCount()
+        if (count < 3) {
+            showSendDisclaimer(
+                onConfirm = {
+                    WimApp.prefs.edit().putInt("auto_send_disclaimer_count", count + 1).apply()
+                    actuallySend()
+                },
+                onCancel = { setBubbleIdle() }
+            )
+        } else {
+            actuallySend()
+        }
+    }
+
+    private fun actuallySend() {
+        val ok = WimAccessibilityService.instance?.clickSendButton() == true
+        if (ok) {
+            ConsoleLog.log("Auto-send dispatched", "info")
+            Toast.makeText(this, "Sent", Toast.LENGTH_SHORT).show()
+        } else {
+            ConsoleLog.log("Auto-send failed — no Send node", "warn")
+            Toast.makeText(this, "Couldn't find Send button", Toast.LENGTH_SHORT).show()
+        }
+        setBubbleIdle()
+    }
+
+    private fun showSendDisclaimer(onConfirm: () -> Unit, onCancel: () -> Unit) {
+        dismissSendDisclaimer()
+        val ctx = this
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 40, 48, 28)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0xFF1E1E22.toInt())
+                cornerRadius = 28f
+                setStroke(2, 0xFFC8B48A.toInt())
+            }
+        }
+        val title = TextView(ctx).apply {
+            text = "About to send"
+            setTextColor(0xFFC8B48A.toInt())
+            textSize = 17f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 18)
+        }
+        val body = TextView(ctx).apply {
+            text = "Tapping the green bubble sends the text in the compose field through the app that's open — Google Messages, Gmail, WhatsApp, etc. — using your existing signed-in session. " +
+                "WiM never sends without a deliberate tap. If the text is wrong, tap outside or wait 3 seconds to cancel and edit."
+            setTextColor(0xFFB8B8B0.toInt())
+            textSize = 13f
+            setLineSpacing(4f, 1f)
+            setPadding(0, 0, 0, 24)
+        }
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val cancelBtn = TextView(ctx).apply {
+            text = "CANCEL"
+            setTextColor(0xFF8A7D68.toInt())
+            textSize = 14f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setPadding(36, 22, 28, 22)
+            isClickable = true
+        }
+        val okBtn = TextView(ctx).apply {
+            text = "SEND IT"
+            setTextColor(0xFF5AD15F.toInt())
+            textSize = 14f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setPadding(28, 22, 36, 22)
+            isClickable = true
+        }
+        row.addView(cancelBtn)
+        row.addView(okBtn)
+        container.addView(title)
+        container.addView(body)
+        container.addView(row)
+        val lp = WindowManager.LayoutParams(
+            (resources.displayMetrics.widthPixels * 0.85f).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_DIM_BEHIND,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+            dimAmount = 0.7f
+        }
+        cancelBtn.setOnClickListener {
+            dismissSendDisclaimer()
+            onCancel()
+        }
+        okBtn.setOnClickListener {
+            dismissSendDisclaimer()
+            onConfirm()
+        }
+        disclaimerView = container
+        try { windowManager?.addView(container, lp) } catch (_: Exception) {}
+    }
+
+    private fun dismissSendDisclaimer() {
+        disclaimerView?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+        }
+        disclaimerView = null
+    }
 
     /**
      * Remote-drive the bubble's screen position. Called from MainActivity's
@@ -1968,7 +2144,7 @@ class BubbleService : Service() {
         if (WimApp.prefs.getBoolean("instant_mode", false)) {
             Log.i(TAG, "INSTANT mode: pasting raw text, no processing")
             WimAccessibilityService.instance?.injectText(rawText)
-            setBubbleIdle()
+            onInjectComplete()
             return
         }
 
@@ -2100,7 +2276,7 @@ class BubbleService : Service() {
                     put("wer", (sessionHistory?.computeWer(rawText, l1Text) ?: 0f).toDouble())
                 }
             }
-            setBubbleIdle()
+            onInjectComplete()
             return
         }
 
@@ -2326,7 +2502,7 @@ class BubbleService : Service() {
                     }
                 }
 
-                setBubbleIdle()
+                onInjectComplete()
             } catch (e: Exception) {
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
                 ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")

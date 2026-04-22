@@ -55,6 +55,22 @@ class WimApp : Application() {
          */
         fun useGemmaLocal(): Boolean = prefs.getBoolean("use_gemma_local", true)
 
+        /**
+         * Auto-send lets the bubble click the app's Send button after a
+         * successful inject. Off by default — the user opts in explicitly
+         * in settings, and still has to tap the green bubble once to fire
+         * each individual send. Per-app whitelist lives in
+         * WimAccessibilityService.SUPPORTED_AUTOSEND_APPS.
+         */
+        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", false)
+
+        /**
+         * How many times the disclaimer has been shown + confirmed. Three
+         * confirmations and we stop showing it. `reset_auto_send_disclaimer`
+         * in settings wipes this back to 0.
+         */
+        fun autoSendDisclaimerCount(): Int = prefs.getInt("auto_send_disclaimer_count", 0)
+
         fun profile(): ProfileManager = profileManager
     }
 

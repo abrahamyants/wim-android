@@ -20,6 +20,21 @@ class WimAccessibilityService : AccessibilityService() {
         /** True if the currently focused text field is a password/sensitive field. */
         var isPasswordField: Boolean = false
             private set
+        /**
+         * Packages where the per-app Send-node finder (findSendNodeForApp)
+         * has verified strategies. BubbleService gates auto-send on this
+         * list so we never try to click a phantom Send in an unknown app.
+         */
+        val SUPPORTED_AUTOSEND_APPS = setOf(
+            "com.google.android.apps.messaging",
+            "com.samsung.android.messaging",
+            "com.google.android.gm",
+            "com.whatsapp",
+            "com.whatsapp.w4b",
+            "org.telegram.messenger",
+            "org.thunderdog.challegram",
+            "org.thoughtcrime.securesms",
+        )
     }
 
     private var recordingUnsub: (() -> Unit)? = null
@@ -260,4 +275,118 @@ class WimAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Find and click the Send button in the window that owns the last-injected
+     * editable field. Returns true if the click was dispatched. Per-app
+     * strategies for the mainstream messengers; generic content-description
+     * fallback for everything else.
+     *
+     * Preconditions: injectText must have run first so activeTextField (or a
+     * re-find) points at the compose field's window.
+     */
+    fun clickSendButton(): Boolean {
+        val editable = activeTextField ?: findFocusedEditableAcrossWindows()
+        if (editable == null) {
+            Log.w("WiM", "clickSendButton: no editable field — can't locate the app window")
+            return false
+        }
+        val root = editable.window?.root
+            ?: windows.firstOrNull { it.root?.packageName?.toString() != packageName }?.root
+        if (root == null) {
+            Log.w("WiM", "clickSendButton: no window root")
+            return false
+        }
+        val pkg = root.packageName?.toString() ?: ""
+        val sendNode = findSendNodeForApp(root, pkg)
+        if (sendNode == null) {
+            Log.w("WiM", "clickSendButton: no Send node found in $pkg")
+            return false
+        }
+        // Walk up to the nearest clickable ancestor if the match itself isn't
+        // clickable — some apps put content-description on an inner ImageView
+        // but the clickable handler sits on the parent FrameLayout.
+        var clickTarget: AccessibilityNodeInfo? = sendNode
+        while (clickTarget != null && !clickTarget.isClickable) {
+            clickTarget = clickTarget.parent
+        }
+        val target = clickTarget ?: sendNode
+        val ok = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        Log.i("WiM", "clickSendButton: $pkg click ${if (ok) "ok" else "failed"}")
+        return ok
+    }
+
+    /**
+     * Per-app Send node finder. When adding a new app:
+     * 1. open it, with an editable compose field and visible Send button
+     * 2. `adb shell uiautomator dump` → inspect the XML for content-description
+     *    / resource-id of the Send node
+     * 3. add a branch here with whichever identifier is stable
+     */
+    private fun findSendNodeForApp(root: AccessibilityNodeInfo, pkg: String): AccessibilityNodeInfo? {
+        when (pkg) {
+            "com.google.android.apps.messaging",
+            "com.samsung.android.messaging",
+            "com.google.android.apps.messaging.sms" -> {
+                return findByContentDescription(root, listOf("Send SMS", "Send message", "Send"))
+            }
+            "com.google.android.gm" -> {
+                return findByContentDescription(root, listOf("Send"))
+                    ?: findByResourceIdSuffix(root, "send")
+            }
+            "com.whatsapp", "com.whatsapp.w4b" -> {
+                val byId = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send").firstOrNull()
+                if (byId != null) return byId
+                return findByContentDescription(root, listOf("Send"))
+            }
+            "org.telegram.messenger", "org.thunderdog.challegram" -> {
+                return findByContentDescription(root, listOf("Send", "Send message"))
+            }
+            "org.thoughtcrime.securesms" -> { // Signal
+                return findByContentDescription(root, listOf("Send"))
+            }
+        }
+        // Generic fallback — any clickable whose contentDescription reads Send-ish.
+        return findByContentDescription(root, listOf("Send", "Send message", "Send SMS"))
+    }
+
+    private fun findByContentDescription(
+        node: AccessibilityNodeInfo?,
+        targets: List<String>
+    ): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val desc = node.contentDescription?.toString()
+        if (!desc.isNullOrEmpty()) {
+            for (target in targets) {
+                if (desc.equals(target, ignoreCase = true)) return node
+            }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findByContentDescription(child, targets)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    private fun findByResourceIdSuffix(
+        node: AccessibilityNodeInfo?,
+        suffix: String
+    ): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val id = node.viewIdResourceName
+        if (!id.isNullOrEmpty() && id.endsWith(":id/$suffix")) return node
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findByResourceIdSuffix(child, suffix)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    /** Whether the focused app is in the auto-send per-app whitelist. */
+    fun focusedAppSupportsAutoSend(): Boolean {
+        val editable = activeTextField ?: findFocusedEditableAcrossWindows() ?: return false
+        val pkg = editable.packageName?.toString() ?: return false
+        return pkg in SUPPORTED_AUTOSEND_APPS
+    }
 }
