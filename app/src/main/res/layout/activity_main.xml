@@ -61,11 +61,9 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
-                        <com.wim.app.LogoBarsView
-                            android:id="@+id/logoBarsLeft"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="10dp" />
+                        <!-- Equalizer effect flanking the WiM logo will be added
+                             back here by the frontend-design pass — removed for
+                             a clean-slate redesign. -->
 
                         <TextView
                             android:id="@+id/wimLogoSummon"
@@ -80,12 +78,6 @@
                             android:focusable="true"
                             android:paddingStart="6dp"
                             android:paddingEnd="6dp" />
-
-                        <com.wim.app.LogoBarsView
-                            android:id="@+id/logoBarsRight"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp" />
 
                     </LinearLayout>
 
@@ -1574,13 +1566,29 @@
                 android:orientation="horizontal"
                 android:gravity="center">
 
-                <!-- BRONZE slot -->
+                <!-- BRONZE: reveal wrapper — ImageView behind the slot.
+                     When dockBronze fades to alpha 0 on pickup, the image
+                     underneath shows through. Image is circular-clipped in
+                     setupBubbleDock so corners don't bleed past the bezel. -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp">
+
+                    <ImageView
+                        android:id="@+id/dockBronzeReveal"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/pin_tone_heisenberg"
+                        android:scaleType="centerCrop"
+                        android:importantForAccessibility="no" />
+
                 <FrameLayout
                     android:id="@+id/dockBronze"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bg_idle"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1614,14 +1622,28 @@
                             android:maxLines="1" />
                     </FrameLayout>
                 </FrameLayout>
+                </FrameLayout>
 
-                <!-- ALUMINUM slot -->
+                <!-- ALUMINUM: reveal wrapper + slot -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp">
+
+                    <ImageView
+                        android:id="@+id/dockAluminumReveal"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/pin_layer_jr"
+                        android:scaleType="centerCrop"
+                        android:importantForAccessibility="no" />
+
                 <FrameLayout
                     android:id="@+id/dockAluminum"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_aluminum"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1655,14 +1677,28 @@
                             android:maxLines="1" />
                     </FrameLayout>
                 </FrameLayout>
+                </FrameLayout>
 
-                <!-- GUNMETAL slot — gold IDLE text (dark bg needs bright foreground) -->
+                <!-- GUNMETAL: reveal wrapper + slot (gold IDLE text on dark bg) -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp">
+
+                    <ImageView
+                        android:id="@+id/dockGunmetalReveal"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/pin_situation_ducky"
+                        android:scaleType="centerCrop"
+                        android:importantForAccessibility="no" />
+
                 <FrameLayout
                     android:id="@+id/dockGunmetal"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_gunmetal"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1695,6 +1731,7 @@
                             android:gravity="center"
                             android:maxLines="1" />
                     </FrameLayout>
+                </FrameLayout>
                 </FrameLayout>
 
             </LinearLayout>

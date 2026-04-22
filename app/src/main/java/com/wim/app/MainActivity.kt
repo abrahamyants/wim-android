@@ -245,8 +245,8 @@ class MainActivity : AppCompatActivity() {
         // the bubble. Header badges still need a refresh pass.
         refreshHeaderBadges()
 
-        // Mirror right-side sound bars so tallest bars face the logo on both sides
-        findViewById<LogoBarsView>(R.id.logoBarsRight)?.mirror = true
+        // LogoBarsView was removed pending frontend-design redesign of the
+        // equalizer flanking the WiM logo.
 
         // Export all sessions
         findViewById<TextView>(R.id.exportBtn)?.setOnClickListener {
@@ -1955,6 +1955,20 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                         true
                     }
                     else -> false
+                }
+            }
+        }
+
+        // Circular-clip the reveal images so they match the bezel's oval
+        // shape — a square image behind an oval slot would leak corners.
+        val reveals = listOf(R.id.dockBronzeReveal, R.id.dockAluminumReveal, R.id.dockGunmetalReveal)
+        reveals.forEach { id ->
+            findViewById<android.widget.ImageView>(id)?.let { iv ->
+                iv.clipToOutline = true
+                iv.outlineProvider = object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                        outline.setOval(0, 0, view.width, view.height)
+                    }
                 }
             }
         }
