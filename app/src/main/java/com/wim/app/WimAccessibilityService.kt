@@ -276,13 +276,16 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Find and click the Send button in the window that owns the last-injected
-     * editable field. Returns true if the click was dispatched. Per-app
-     * strategies for the mainstream messengers; generic content-description
-     * fallback for everything else.
-     *
-     * Preconditions: injectText must have run first so activeTextField (or a
-     * re-find) points at the compose field's window.
+     * Find and click the Send button. Two-tier strategy:
+     *   1. Walk the tree, try ACTION_CLICK on the matched node (cheap, works
+     *      when the node has a real click handler).
+     *   2. If that fails or the node isn't clickable, get its screen bounds
+     *      and dispatch a synthetic tap gesture at the center — bypasses
+     *      any framework quirk where the node reports unclickable but the
+     *      actual touch target responds normally.
+     *   3. If no node matched, dump the accessibility tree to logcat with
+     *      tag "WiM.tree" so we can see what Samsung's Messages / whatever
+     *      app is actually exposing. Third time's a diagnostic step.
      */
     fun clickSendButton(): Boolean {
         val editable = activeTextField ?: findFocusedEditableAcrossWindows()
@@ -299,20 +302,70 @@ class WimAccessibilityService : AccessibilityService() {
         val pkg = root.packageName?.toString() ?: ""
         val sendNode = findSendNodeForApp(root, pkg)
         if (sendNode == null) {
-            Log.w("WiM", "clickSendButton: no Send node found in $pkg")
+            Log.w("WiM", "clickSendButton: no Send node found in $pkg — dumping a11y tree")
+            dumpAccessibilityTree(root, 0)
             return false
         }
-        // Walk up to the nearest clickable ancestor if the match itself isn't
-        // clickable — some apps put content-description on an inner ImageView
-        // but the clickable handler sits on the parent FrameLayout.
+        // Tier 1: ACTION_CLICK on the node, walking up to a clickable ancestor.
         var clickTarget: AccessibilityNodeInfo? = sendNode
         while (clickTarget != null && !clickTarget.isClickable) {
             clickTarget = clickTarget.parent
         }
-        val target = clickTarget ?: sendNode
-        val ok = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        Log.i("WiM", "clickSendButton: $pkg click ${if (ok) "ok" else "failed"}")
+        if (clickTarget != null) {
+            val actionOk = clickTarget.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            if (actionOk) {
+                Log.i("WiM", "clickSendButton: $pkg ACTION_CLICK ok")
+                return true
+            }
+            Log.i("WiM", "clickSendButton: $pkg ACTION_CLICK returned false — falling through to gesture")
+        }
+        // Tier 2: synthetic tap at the node's screen center. "Hijack the
+        // coordinate" — we know where the button is, fire a real touch event
+        // there. Works even when the node isn't exposed as clickable.
+        val bounds = android.graphics.Rect()
+        sendNode.getBoundsInScreen(bounds)
+        if (bounds.width() <= 0 || bounds.height() <= 0) {
+            Log.w("WiM", "clickSendButton: $pkg send node has zero bounds")
+            return false
+        }
+        return dispatchTapAt(bounds.exactCenterX(), bounds.exactCenterY(), pkg)
+    }
+
+    /** Dispatch a 50ms down+up gesture at the given screen coordinates. */
+    private fun dispatchTapAt(x: Float, y: Float, reason: String): Boolean {
+        val path = android.graphics.Path().apply { moveTo(x, y) }
+        val stroke = android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50)
+        val gesture = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(stroke)
+            .build()
+        var dispatched = false
+        val ok = dispatchGesture(gesture, object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
+            override fun onCompleted(g: android.accessibilityservice.GestureDescription?) {
+                dispatched = true
+                Log.i("WiM", "dispatchTapAt($reason): completed at $x,$y")
+            }
+            override fun onCancelled(g: android.accessibilityservice.GestureDescription?) {
+                Log.w("WiM", "dispatchTapAt($reason): cancelled at $x,$y")
+            }
+        }, null)
+        Log.i("WiM", "dispatchTapAt($reason) at $x,$y dispatch-submitted=$ok")
         return ok
+    }
+
+    /** Recursive tree dump — logs each node's class, desc, text, id, bounds. */
+    private fun dumpAccessibilityTree(node: AccessibilityNodeInfo?, depth: Int) {
+        if (node == null || depth > 30) return
+        val indent = "  ".repeat(depth)
+        val cls = node.className?.toString()?.substringAfterLast('.') ?: "?"
+        val desc = node.contentDescription?.toString()?.take(40) ?: ""
+        val text = node.text?.toString()?.take(30) ?: ""
+        val id = node.viewIdResourceName?.substringAfterLast('/') ?: ""
+        val click = if (node.isClickable) "C" else "."
+        val bounds = android.graphics.Rect().also { node.getBoundsInScreen(it) }
+        Log.i("WiM.tree", "$indent[$click] $cls desc=\"$desc\" text=\"$text\" id=$id bounds=${bounds.flattenToString()}")
+        for (i in 0 until node.childCount) {
+            dumpAccessibilityTree(node.getChild(i), depth + 1)
+        }
     }
 
     /**
@@ -357,7 +410,19 @@ class WimAccessibilityService : AccessibilityService() {
         val desc = node.contentDescription?.toString()
         if (!desc.isNullOrEmpty()) {
             for (target in targets) {
-                if (desc.equals(target, ignoreCase = true)) return node
+                // Substring + ignoreCase — Samsung Messages sometimes emits
+                // "Send SMS to +1…" or localized variants; exact-equals was
+                // too strict. "Send" is specific enough that false matches
+                // are rare in compose rows.
+                if (desc.contains(target, ignoreCase = true)) return node
+            }
+        }
+        // Text also worth checking — some buttons expose a visible "Send"
+        // label without a content-description.
+        val text = node.text?.toString()
+        if (!text.isNullOrEmpty()) {
+            for (target in targets) {
+                if (text.equals(target, ignoreCase = true)) return node
             }
         }
         for (i in 0 until node.childCount) {
