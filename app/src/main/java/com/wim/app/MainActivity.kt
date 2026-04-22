@@ -378,6 +378,29 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerGuide, R.id.contentGuide, "guide_section", defaultExpanded = false)
         buildGuideContent()
 
+        // ── Shimmer FX (per design spec: "flashlight passing over" subtle sweep) ──
+        // Applied to:
+        //   • Category header borders (Layer/Tone/Situation) — continuous subtle sweep
+        //   • Subcategory tile label text — continuous subtle sweep
+        // Deliberately limited to these three categories for now; spread to the
+        // remaining headers (Sessions/DAF/Permissions/etc.) once the effect is
+        // validated on this batch.
+        applyHeaderShimmer(R.id.headerLayer)
+        applyHeaderShimmer(R.id.headerTone)
+        applyHeaderShimmer(R.id.headerSituation)
+        // Layer tile labels
+        listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label).forEach {
+            findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
+        }
+        // Tone tile labels
+        listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel).forEach {
+            findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
+        }
+        // Situation tile labels
+        listOf(R.id.sitDefaultLabel, R.id.sitHighStressLabel, R.id.sitReadingLabel).forEach {
+            findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
+        }
+
         // ── Auto-collapse sections on scroll ──
         // Find the ScrollView in our split layout (fixed top + scrollable bottom)
         val scrollView = findScrollView(findViewById<ViewGroup>(android.R.id.content))
@@ -1103,6 +1126,24 @@ class MainActivity : AppCompatActivity() {
             container.setBackgroundResource(R.drawable.card_bg_pressable)
             label.setTextColor(getColor(R.color.text_dim))
         }
+    }
+
+    /**
+     * Layer a BorderShimmerDrawable foreground on top of a section header so
+     * its stroke gets a subtle animated light-sweep. The underlying
+     * glass_panel_bg_pressable background (cream fill + copper stroke) is
+     * untouched; the shimmer renders on top without hiding it.
+     */
+    private fun applyHeaderShimmer(headerId: Int) {
+        val header = findViewById<View>(headerId) ?: return
+        val shimmer = ShimmerFx.BorderShimmerDrawable(
+            displayMetrics = resources.displayMetrics,
+            cornerRadiusDp = 10f,
+            strokeWidthDp = 1.5f,
+            cycleMs = 3500L
+        )
+        header.foreground = shimmer
+        shimmer.start()
     }
 
     private fun setupCollapsible(headerId: Int, contentId: Int, prefKey: String, defaultExpanded: Boolean = true) {
