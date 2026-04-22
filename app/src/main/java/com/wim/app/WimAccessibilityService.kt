@@ -20,21 +20,6 @@ class WimAccessibilityService : AccessibilityService() {
         /** True if the currently focused text field is a password/sensitive field. */
         var isPasswordField: Boolean = false
             private set
-        /**
-         * Packages where the per-app Send-node finder (findSendNodeForApp)
-         * has verified strategies. BubbleService gates auto-send on this
-         * list so we never try to click a phantom Send in an unknown app.
-         */
-        val SUPPORTED_AUTOSEND_APPS = setOf(
-            "com.google.android.apps.messaging",
-            "com.samsung.android.messaging",
-            "com.google.android.gm",
-            "com.whatsapp",
-            "com.whatsapp.w4b",
-            "org.telegram.messenger",
-            "org.thunderdog.challegram",
-            "org.thoughtcrime.securesms",
-        )
     }
 
     private var recordingUnsub: (() -> Unit)? = null
@@ -499,10 +484,15 @@ class WimAccessibilityService : AccessibilityService() {
         return null
     }
 
-    /** Whether the focused app is in the auto-send per-app whitelist. */
+    /**
+     * Whether an editable field is currently focused in any non-WiM app.
+     * No per-app whitelist — every app gets auto-send. If the Send-node
+     * finder misses, the green SEND just reverts to IDLE on its timer;
+     * worst case is no worse than the pre-feature baseline.
+     */
     fun focusedAppSupportsAutoSend(): Boolean {
         val editable = activeTextField ?: findFocusedEditableAcrossWindows() ?: return false
         val pkg = editable.packageName?.toString() ?: return false
-        return pkg in SUPPORTED_AUTOSEND_APPS
+        return pkg != packageName
     }
 }
