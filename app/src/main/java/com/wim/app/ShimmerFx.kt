@@ -122,7 +122,9 @@ object ShimmerFx {
 
         private val animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = cycleMs
-            repeatCount = ValueAnimator.INFINITE
+            // Single-shot by default — callers invoke trigger() to fire one sweep.
+            // Callers wanting a continuous shimmer can call startInfinite() instead.
+            repeatCount = 0
             interpolator = android.view.animation.LinearInterpolator()
             addUpdateListener {
                 phase = it.animatedValue as Float
@@ -130,8 +132,19 @@ object ShimmerFx {
             }
         }
 
-        fun start() {
-            if (!animator.isStarted) animator.start()
+        /** Fire one single sweep across the border, resetting any prior in-flight sweep. */
+        fun trigger() {
+            animator.cancel()
+            animator.repeatCount = 0
+            phase = 0f
+            animator.start()
+        }
+
+        /** Continuous sweep — retained for any future caller that wants always-on. */
+        fun startInfinite() {
+            animator.cancel()
+            animator.repeatCount = ValueAnimator.INFINITE
+            animator.start()
         }
 
         fun stop() {

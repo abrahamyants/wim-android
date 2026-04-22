@@ -379,15 +379,25 @@ class MainActivity : AppCompatActivity() {
         buildGuideContent()
 
         // ── Shimmer FX (per design spec: "flashlight passing over" subtle sweep) ──
-        // Applied to:
-        //   • Category header borders (Layer/Tone/Situation) — continuous subtle sweep
-        //   • Subcategory tile label text — continuous subtle sweep
-        // Deliberately limited to these three categories for now; spread to the
-        // remaining headers (Sessions/DAF/Permissions/etc.) once the effect is
-        // validated on this batch.
-        applyHeaderShimmer(R.id.headerLayer)
-        applyHeaderShimmer(R.id.headerTone)
-        applyHeaderShimmer(R.id.headerSituation)
+        // Two distinct treatments:
+        //   • Category header borders — ONE-SHOT on tap. Touch any part of a
+        //     category (the header's +/− / label, or any subcategory tile
+        //     inside it), the parent header's stroke fires a single light
+        //     sweep. No continuous animation (too busy per design).
+        //   • Subcategory tile label text — continuous subtle sweep. Stays
+        //     always-on; these are the "flashlight across text" effect.
+        listOf(
+            R.id.headerLayer,
+            R.id.headerTone,
+            R.id.headerSituation,
+            R.id.headerSessions,
+            R.id.headerDaf,
+            R.id.headerPermissions,
+            R.id.headerTransparency,
+            R.id.headerSettings,
+            R.id.headerGuide
+        ).forEach { applyHeaderShimmer(it) }
+
         // Layer tile labels
         listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label).forEach {
             findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
@@ -955,6 +965,7 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
+                triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
                 }
@@ -978,6 +989,7 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
+                triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
                 }
@@ -1128,11 +1140,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Live map of category header → its BorderShimmerDrawable so we can fire
+    // trigger() from any click path (the header itself, or a tile inside it).
+    private val headerShimmers = mutableMapOf<Int, ShimmerFx.BorderShimmerDrawable>()
+
+    // Map of prefKey (as passed to setupCollapsible / setupLayoutGroup) to the
+    // parent header ID so tile-click listeners can fire their parent's shimmer.
+    private val prefKeyToHeaderId = mapOf(
+        "layer" to R.id.headerLayer,
+        "tone" to R.id.headerTone,
+        "situation" to R.id.headerSituation
+    )
+
     /**
-     * Layer a BorderShimmerDrawable foreground on top of a section header so
-     * its stroke gets a subtle animated light-sweep. The underlying
-     * glass_panel_bg_pressable background (cream fill + copper stroke) is
-     * untouched; the shimmer renders on top without hiding it.
+     * Layer a BorderShimmerDrawable foreground on top of a section header.
+     * The drawable is one-shot — trigger() must be called on each interaction
+     * for the shimmer to sweep. Underlying background (glass_panel_bg_pressable
+     * etc.) is untouched; the shimmer only renders while its sweep is in flight.
      */
     private fun applyHeaderShimmer(headerId: Int) {
         val header = findViewById<View>(headerId) ?: return
@@ -1143,7 +1167,17 @@ class MainActivity : AppCompatActivity() {
             cycleMs = 3500L
         )
         header.foreground = shimmer
-        shimmer.start()
+        headerShimmers[headerId] = shimmer
+    }
+
+    /** Fire the border shimmer sweep on a specific header. No-op if none attached. */
+    private fun triggerHeaderShimmer(headerId: Int) {
+        headerShimmers[headerId]?.trigger()
+    }
+
+    /** Fire the shimmer for the header a given tile-group prefKey belongs to. */
+    private fun triggerShimmerForPrefKey(prefKey: String) {
+        prefKeyToHeaderId[prefKey]?.let { triggerHeaderShimmer(it) }
     }
 
     private fun setupCollapsible(headerId: Int, contentId: Int, prefKey: String, defaultExpanded: Boolean = true) {
@@ -1156,6 +1190,7 @@ class MainActivity : AppCompatActivity() {
         updateCollapseArrow(header, expanded)
 
         header.setOnClickListener {
+            triggerHeaderShimmer(headerId)
             val isVisible = content.visibility == View.VISIBLE
             content.visibility = if (isVisible) View.GONE else View.VISIBLE
             updateCollapseArrow(header, !isVisible)
