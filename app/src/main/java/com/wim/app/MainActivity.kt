@@ -1905,32 +1905,57 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         )
         dockSlots = slots
 
+        // Touch handler (not click) so we can read the finger's screen position
+        // and spawn the bubble AT that spot — "natural pickup" feel. Tap and
+        // drag both pick it up; drag just uses the latest finger position.
+        val dragThresholdPx = (8f * resources.displayMetrics.density)
         slots.forEach { (key, view) ->
-            view.setOnClickListener { tapped ->
-                WimApp.prefs.edit().putString("bubble_theme", key).apply()
-                BubbleService.instance?.refreshBubbleTheme()
-                // Summon the bubble — picks this coat off the hanger.
-                val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
-                startForegroundService(intent)
-                // Magnetic "click-in" — quick squish then overshoot back.
-                tapped.animate()
-                    .scaleX(0.82f).scaleY(0.82f)
-                    .setDuration(90)
-                    .withEndAction {
-                        tapped.animate()
-                            .scaleX(1f).scaleY(1f)
-                            .setInterpolator(android.view.animation.OvershootInterpolator(2.4f))
-                            .setDuration(260)
-                            .start()
+            var startRawX = 0f
+            var startRawY = 0f
+            var downRawX = 0f
+            var downRawY = 0f
+            var handled = false
+            view.setOnTouchListener { tapped, event ->
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        downRawX = event.rawX
+                        downRawY = event.rawY
+                        startRawX = event.rawX
+                        startRawY = event.rawY
+                        handled = false
+                        true
                     }
-                    .start()
-                try {
-                    tapped.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
-                } catch (_: Exception) {}
-                // BubbleService will fire onBubbleVisibilityChanged which
-                // triggers refreshDockGhost — but we also refresh immediately
-                // so the UI responds without a round-trip wait.
-                refreshDockGhost()
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        startRawX = event.rawX
+                        startRawY = event.rawY
+                        // Drag past threshold → immediate pickup at current finger.
+                        if (!handled) {
+                            val dx = event.rawX - downRawX
+                            val dy = event.rawY - downRawY
+                            if (kotlin.math.hypot(dx, dy) > dragThresholdPx) {
+                                handled = true
+                                pickUpBubble(key, tapped, event.rawX.toInt(), event.rawY.toInt())
+                            }
+                        }
+                        true
+                    }
+                    android.view.MotionEvent.ACTION_UP -> {
+                        if (!handled) {
+                            // Tap (no drag) — spawn at slot center.
+                            val loc = IntArray(2)
+                            tapped.getLocationOnScreen(loc)
+                            val cx = loc[0] + tapped.width / 2
+                            val cy = loc[1] + tapped.height / 2
+                            pickUpBubble(key, tapped, cx, cy)
+                        }
+                        true
+                    }
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        handled = false
+                        true
+                    }
+                    else -> false
+                }
             }
         }
 
@@ -1945,10 +1970,40 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     }
 
     /**
-     * Coat-rack update: if the bubble is out (visible), ghost the matching
-     * slot (faded outline, smaller). If it's back on the hanger, show all
-     * three slots at full opacity with a subtle overshoot-pop so returning
-     * home reads as an event, not a silent swap.
+     * Swap the bubble theme, summon the floating bubble AT the given screen
+     * coordinates (finger position), play the pickup haptic + slot squish.
+     * Bubble appears centered on the finger so it reads as "picked up."
+     */
+    private fun pickUpBubble(theme: String, slotView: android.view.View, spawnCx: Int, spawnCy: Int) {
+        WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+        BubbleService.instance?.refreshBubbleTheme()
+        val intent = Intent(this, BubbleService::class.java).apply {
+            action = "SHOW"
+            putExtra("spawn_cx", spawnCx)
+            putExtra("spawn_cy", spawnCy)
+        }
+        startForegroundService(intent)
+        slotView.animate()
+            .scaleX(0.82f).scaleY(0.82f)
+            .setDuration(90)
+            .withEndAction {
+                slotView.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(2.4f))
+                    .setDuration(260)
+                    .start()
+            }
+            .start()
+        try {
+            slotView.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+        } catch (_: Exception) {}
+        refreshDockGhost()
+    }
+
+    /**
+     * Coat-rack update — pure alpha crossfade. Picked-up slot goes invisible,
+     * the other two stay at rest. No scale animation (scale-with-overshoot
+     * reads as "shuffle" — neighboring slots appear to pop when one ghosts).
      */
     private fun refreshDockGhost() {
         val slots = dockSlots ?: return
@@ -1956,25 +2011,10 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val bubbleOut = BubbleService.instance?.isBubbleVisible() == true
         slots.forEach { (theme, view) ->
             val isPickedUp = bubbleOut && theme == activeTheme
-            if (isPickedUp) {
-                // Coat is off the hanger — slot is fully invisible. Space is
-                // preserved (alpha 0, not visibility=GONE) so the other two
-                // don't reshuffle when the bubble comes home.
-                view.animate()
-                    .alpha(0f)
-                    .scaleX(0.85f).scaleY(0.85f)
-                    .translationZ(0f)
-                    .setDuration(220)
-                    .start()
-            } else {
-                view.animate()
-                    .alpha(1.0f)
-                    .scaleX(1f).scaleY(1f)
-                    .translationZ(if (theme == activeTheme) 4f else 0f)
-                    .setInterpolator(android.view.animation.OvershootInterpolator(2.0f))
-                    .setDuration(240)
-                    .start()
-            }
+            view.animate()
+                .alpha(if (isPickedUp) 0f else 1f)
+                .setDuration(200)
+                .start()
         }
     }
 

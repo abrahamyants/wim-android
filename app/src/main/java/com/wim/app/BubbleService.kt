@@ -339,7 +339,15 @@ class BubbleService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "BubbleService onStartCommand: ${intent?.action}")
         when (intent?.action) {
-            "SHOW" -> showBubble()
+            "SHOW" -> {
+                val cx = intent.getIntExtra("spawn_cx", Int.MIN_VALUE)
+                val cy = intent.getIntExtra("spawn_cy", Int.MIN_VALUE)
+                if (cx != Int.MIN_VALUE && cy != Int.MIN_VALUE) {
+                    showBubble(spawnCx = cx, spawnCy = cy)
+                } else {
+                    showBubble()
+                }
+            }
             "HIDE" -> hideBubble()
             "TOGGLE_RECORDING" -> {
                 if (bubbleView == null) showBubble()
@@ -401,8 +409,21 @@ class BubbleService : Service() {
         }
     }
 
-    private fun showBubble() {
-        if (bubbleView != null) return
+    private fun showBubble(spawnCx: Int? = null, spawnCy: Int? = null) {
+        if (bubbleView != null) {
+            // Already visible — if a spawn position was requested (dock pickup
+            // with a finger-follow expectation), just reposition so the effect
+            // is "bubble is already out but jumped to your finger."
+            if (spawnCx != null && spawnCy != null) {
+                bubbleParams?.let { p ->
+                    val view = bubbleView ?: return@let
+                    p.x = spawnCx - view.width / 2
+                    p.y = spawnCy - view.height / 2
+                    try { windowManager?.updateViewLayout(view, p) } catch (_: Exception) {}
+                }
+            }
+            return
+        }
 
         // Guard: overlay permission must be granted before adding window
         if (!android.provider.Settings.canDrawOverlays(this)) {
@@ -658,6 +679,14 @@ class BubbleService : Service() {
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
             it.scaleX = scale
             it.scaleY = scale
+        }
+
+        // Spawn-at-finger: if the caller passed a screen center point (dock
+        // pickup), position the bubble window so its center lands exactly
+        // on that point. Otherwise keep whatever position bubbleParams had.
+        if (spawnCx != null && spawnCy != null) {
+            params.x = spawnCx - newWindowPx / 2
+            params.y = spawnCy - newWindowPx / 2
         }
 
         windowManager?.addView(bubbleView, params)
