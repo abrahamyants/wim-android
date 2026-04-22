@@ -293,10 +293,27 @@ class WimAccessibilityService : AccessibilityService() {
             Log.w("WiM", "clickSendButton: no editable field — can't locate the app window")
             return false
         }
-        val root = editable.window?.root
-            ?: windows.firstOrNull { it.root?.packageName?.toString() != packageName }?.root
+        // Remember the target app's package from the editable itself, since
+        // the node's window reference can expire between inject and send.
+        val targetPkg = editable.packageName?.toString()
+        val appWindowType = android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION
+        // Preference ladder for finding the right window root:
+        //   1. The editable's own window (best — same node owned it a moment ago)
+        //   2. An APPLICATION window matching targetPkg (re-find by package)
+        //   3. Any APPLICATION window that isn't WiM or systemui (last resort)
+        // Without this ladder, we fell through to windows.firstOrNull() which
+        // grabbed com.android.systemui (the nav bar) and scanned Back/Home/
+        // Recents for a Send button. It wasn't there. Obviously.
+        val root: AccessibilityNodeInfo? = editable.window?.root
+            ?: windows.firstOrNull {
+                it.type == appWindowType && it.root?.packageName?.toString() == targetPkg
+            }?.root
+            ?: windows.firstOrNull {
+                val pkg = it.root?.packageName?.toString()
+                it.type == appWindowType && pkg != packageName && pkg != "com.android.systemui"
+            }?.root
         if (root == null) {
-            Log.w("WiM", "clickSendButton: no window root")
+            Log.w("WiM", "clickSendButton: no app window root found (targetPkg=$targetPkg)")
             return false
         }
         val pkg = root.packageName?.toString() ?: ""
