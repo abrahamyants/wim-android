@@ -1265,6 +1265,118 @@ c356101  Bubble UX + Vosk-ready L1 infrastructure
 ### Next-Claude punch list
 1. Confidence gate + lang-pack match (2-factor strip logic, uses Whisper `avg_logprob` / Vosk per-word confidence)
 2. sherpa-onnx AAR + punctuation restoration (biggest visible UX gap vs cloud Whisper)
-3. Moonshine Tiny as optional English engine (rides same AAR)
+3. Moonshine Tiny as optional English engine (rides same AAR) — role (primary / fallback / toggle) TBD
 4. Phonetic LM for N-best rescoring (trained on session history, phonetic-neighbor-aware)
 5. Phase-1 benchmark runner for desktop (English-only Vosk vs cloud Whisper against `~/.lavrentiy/audio_archive/`)
+
+---
+
+## Session 11 (continued) — April 21 late-session
+
+*Dock pickup rebuilt as a coat-rack, auto-send wired through Messages/Gmail/WhatsApp end-to-end, consent stack of 5 gates.*
+
+### What shipped (15 more commits)
+
+```
+1fe71ef  Auto-send: drop the per-app whitelist I added on my own initiative
+d8b36c7  Auto-send: MaterialSwitch toggle in Settings — no more adb to flip it
+4a1930a  Auto-send: match Google Messages' Compose:Draft:Send resource-id
+998c3e6  Auto-send: fix wrong-window bug — was scanning systemui for Send
+fb90e6e  Auto-send: gesture-based tap fallback + substring match + tree dump
+b4c7a64  Auto-send: bubble taps Send button in Messages/Gmail/WhatsApp/etc
+6dce024  Dock magnet: stronger pull — faster, sharper snap + meatier haptic
+2d4547f  Dock pickup: continuous drag — bubble follows finger off the slot
+60b68ab  Revert dock reveal images — new art incoming
+fb7825c  Dock reveal images: solid white discs + per-image sizing
+f81b052  Dock: reveal Easter-egg images underneath when bubble is picked up
+493cc78  Dock pickup: spawn at finger position + pure-alpha ghost (no shuffle)
+47e4f50  Dock ghost: fully invisible (alpha 0) instead of faded outline
+88ef883  Bubble dock: coat rack model + fix IDLE color stickiness on theme swap
+85a1441  Bubble dock: real pickup bubbles + magnetic drag-back + WiM logo summon
+```
+
+### Dock: coat-rack pickup model
+
+Each dock slot now renders the full floating-bubble visual (72dp bezel + 44dp knob + tick + IDLE label), mirroring `bubble.xml`. Pickup flow:
+
+- **Tap or press-and-drag** on a slot → `BubbleService.showBubble(spawnCx, spawnCy)` spawns the floating bubble centered on the finger. Drag past 8dp threshold during ACTION_DOWN triggers immediate pickup at live finger position; ACTION_UP with no drag spawns at slot center.
+- **Continuous drag off the slot**: MainActivity's touch listener keeps receiving ACTION_MOVE events after the finger leaves the slot's bounds (once a window captures ACTION_DOWN, the gesture is its until UP regardless of cursor location). Every MOVE is piped to `BubbleService.instance?.moveBubbleTo(rawX, rawY)` which calls `windowManager.updateViewLayout` on the overlay. The bubble follows the finger smoothly across the whole screen even though its own window never owns the touch stream. I had initially claimed this was impossible due to Android's cross-window touch model — it was actually a much narrower constraint.
+- **Magnetic drag-back (bubble → dock)**: `BubbleService.dockSlotRects: Map<String, Rect>?` is populated by MainActivity on resume (cleared on pause). When the bubble is released inside any rect (40% padding for generous pull), `parkIntoDock` animates it into the slot center with `AccelerateInterpolator(3.0)` over 180ms + 75ms haptic, then hides. "Pulled him back in" — per Michael Corleone.
+- **Coat-rack ghost**: when the floating bubble is visible, the matching dock slot goes fully `alpha=0` (space preserved via `View.VISIBLE`-not-GONE so the other two don't reshuffle). `BubbleService.onBubbleVisibilityChanged` callback notifies MainActivity to repaint.
+- **IDLE color stickiness fix**: `applyBubbleTheme()` now refreshes `bubbleLabel` color on theme swap — without this, a gunmetal → aluminum switch left the cream-gold text invisible on the aluminum bezel.
+
+### Reveal-under-the-coat (shipped + reverted + pending)
+
+Dropped three circular-clipped ImageViews with `pin_tone_heisenberg` / `pin_layer_jr` / `pin_situation_ducky` under each slot. George's feedback was per-image-size-specific (Heisenberg 9% smaller, Jessica 22%, Ducky 18%) and then "revert, new art incoming." Code path (wrapper FrameLayouts around slots + `clipToOutline` with oval outline provider) is documented but unwrapped pending new images.
+
+### Auto-send: bubble clicks Send on your behalf
+
+After a successful `injectText`, if auto-send is enabled AND a non-WiM editable is focused, bubble flips from PROC amber to a green SEND_READY state (3.5s timer). Tap the green bubble → `WimAccessibilityService.clickSendButton()` fires `ACTION_CLICK` on the focused app's Send button. First three taps show a gold-bordered overlay disclaimer (stored count in `auto_send_disclaimer_count` pref); after that the send is direct. Uses the existing accessibility permission — no new SDKs, no Google API, no OAuth. Same plumbing that types the text now clicks Send.
+
+Three-tier click strategy in `clickSendButton`:
+
+1. `performAction(ACTION_CLICK)` on the matched node (walks up to clickable ancestor). Works for traditional View-based UIs.
+2. If ACTION_CLICK returns false, **dispatch a synthetic tap gesture at the node's screen center** via `dispatchGesture()`. Bypasses framework quirks where a node reports unclickable but a real pixel touch works. Accessibility config already has `canPerformGestures="true"`.
+3. If no node matched at all, **dump the window's accessibility tree** to logcat tag `WiM.tree` with class / content-desc / text / resource-id / bounds per node. Third failure is a diagnostic, not a dead end.
+
+#### The wrong-window bug (memorable)
+
+First run on Samsung failed with `no Send node found in com.android.systemui`. Tree dump showed Back / Recents / Home — we were scanning the navigation bar, not Messages. The `activeTextField` node's `.window?.root` had gone null between inject and tap, and the fallback `windows.firstOrNull { != WiM }` picked systemui (first match wins, not best match wins). Fix: three-tier window picker — prefer the editable's own window, then any visible window matching the editable's package, then anything non-WiM non-systemui. Dropped an earlier `TYPE_APPLICATION` type filter since Samsung Messages doesn't report that type for its compose window.
+
+#### The Compose testTag surprise
+
+Next run: `clickSendButton: no Send node found in com.google.android.apps.messaging`. Live `uiautomator dump` on device caught Google Messages migrating its compose row to Jetpack Compose. The Send button is now:
+
+```
+resource-id = "Compose:Draft:Send"   (bare Compose testTag, no package:id/)
+content-desc = ""                    (EMPTY)
+class = android.view.View
+clickable = true
+bounds = [888,2304][1056,2472]
+```
+
+My matcher only read content-description. Added `findByResourceIdExact()` that walks the tree matching resource-id literally (not via `findAccessibilityNodeInfosByViewId` — that API expects `package:id/name` format and often misses Compose testTags). Patterns now try Compose:Draft:Send first, falls back to content-description for pre-Compose builds.
+
+#### Per-app Send finders in `findSendNodeForApp`
+
+```
+com.google.android.apps.messaging → "Compose:Draft:Send" | content-desc "Send*"
+com.samsung.android.messaging     → content-desc "Send*" | :id/send_btn | :id/send
+com.google.android.gm             → content-desc "Send" | :id/send
+com.whatsapp                      → :id/com.whatsapp:id/send | content-desc "Send"
+org.telegram.messenger            → content-desc "Send*"
+org.thoughtcrime.securesms        → content-desc "Send"
+default (any other app)           → content-desc "Send" | "Send SMS" | "Send message"
+```
+
+#### The consent stack ("The Fifth Consent")
+
+Auto-send requires (1) accessibility permission, (2) Settings toggle ON, (3) voice action, (4) disclaimer acceptance for the first three sends, (5) green bubble tap within 3.5s. The per-app whitelist I'd initially added as a 6th gate was pure unsolicited caution on my part — removed in `1fe71ef` at George's direction. Auto-send now tries in any app that's not WiM; if the Send-node finder misses, green SEND reverts to IDLE on its timer and the user sends manually (no worse than pre-feature baseline).
+
+### Verified on device (SM-F731U via adb logs)
+
+```
+20:29:54  clickSendButton: com.google.android.apps.messaging ACTION_CLICK ok
+20:33:03  clickSendButton: com.google.android.apps.messaging ACTION_CLICK ok
+20:34:19  clickSendButton: com.google.android.gm              ACTION_CLICK ok
+20:35:10  clickSendButton: com.whatsapp                       ACTION_CLICK ok
+```
+
+Samsung Messages, Telegram, Signal — patterns in code, not device-verified.
+
+### New test-receiver action
+
+`click_send` broadcast invokes `WimAccessibilityService.instance?.clickSendButton()` directly. Used by the on-device verification loop above (inject via `inject_raw`, then fire `click_send`, then grep logcat). Worth adding more of these test-only actions as the per-app matrix grows.
+
+### Rules saved / reinforced this session
+
+- `feedback_dont_project_training_recall.md` reinforced: "Android can't hand off touch between windows" was a half-truth I over-generalized. The narrow truth is that a gesture stream can't jump to another window, but MainActivity's listener keeps receiving MOVE events for the whole gesture — so remote-driving the overlay from the non-owning window works fine.
+- `feedback_no_defensive_bug_framing.md` reinforced: stopped saying "effectively done" / "almost native" after George flagged the weasel language.
+- `feedback_do_what_asked.md` reinforced: the per-app whitelist was silent scope narrowing I added without being asked. Removed.
+
+### Punch list (short list of real gaps in auto-send)
+
+- Samsung Messages device verification
+- Telegram / Signal device verification
+- Disclaimer overlay never actually fired on George's device (he's past 3 acceptances from earlier toggle testing); need a fresh device run or a `reset_auto_send_disclaimer_count` pref wipe to validate the overlay UX
+- Dock reveal images — awaiting new art
