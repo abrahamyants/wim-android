@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -1033,6 +1034,43 @@ class MainActivity : AppCompatActivity() {
             badgeStart, badgeEnd,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
+
+        // Click-the-badge-to-cycle for the three knob headers. Tapping on
+        // the current-value text advances to the next option WITHOUT toggling
+        // the section's expand/collapse state. The "+/−" arrow (and taps on
+        // the "LAYER" / "TONE" / "SITUATION" label itself) still handle
+        // expand/collapse via the existing setupCollapsible click listener.
+        val knobKey = when (headerId) {
+            R.id.headerLayer -> KnobPins.LAYER
+            R.id.headerTone -> KnobPins.TONE
+            R.id.headerSituation -> KnobPins.SITUATION
+            else -> null
+        }
+        if (knobKey != null) {
+            val span = object : android.text.style.ClickableSpan() {
+                override fun onClick(widget: View) {
+                    cycleKnob(knobKey)
+                }
+
+                override fun updateDrawState(ds: android.text.TextPaint) {
+                    // Intentionally omit super() — we don't want the default
+                    // link-blue color and underline. Our existing maroon
+                    // ForegroundColorSpan already styles the badge.
+                }
+            }
+            sb.setSpan(
+                span, badgeStart, badgeEnd,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            header.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+            // LinkMovementMethod also enables focus-on-tap which can steal
+            // clicks from the parent OnClickListener; keep the header
+            // non-focusable so the expand/collapse click still registers
+            // on the "LAYER" label portion.
+            header.isFocusable = false
+            header.isClickable = true
+        }
+
         header.text = sb
     }
 
@@ -1066,6 +1104,105 @@ class MainActivity : AppCompatActivity() {
         setHeaderWithBadge(R.id.headerLayer, "LAYER", layerNames[WimApp.layer()] ?: layerNames[1]!!)
         setHeaderWithBadge(R.id.headerTone, "TONE", toneNames[WimApp.tone()] ?: toneNames["casual"]!!)
         setHeaderWithBadge(R.id.headerSituation, "SITUATION", situationNames[WimApp.situation()] ?: situationNames["default"]!!)
+    }
+
+    /**
+     * Advance the selected value on a "knob" (Layer / Tone / Situation) by one
+     * position, save to prefs, refresh the tile visual state and header badge,
+     * and flash the knob's Easter-egg pin image over the header. Triggered by
+     * tapping the badge portion of the section header (see setHeaderWithBadge).
+     */
+    private fun cycleKnob(knob: String) {
+        when (knob) {
+            KnobPins.LAYER -> {
+                val values = listOf(1, 2, 3, 4)
+                val cur = WimApp.layer()
+                val next = values[(values.indexOf(cur).coerceAtLeast(0) + 1) % values.size]
+                WimApp.prefs.edit().putInt("layer", next).apply()
+                applyTileSelection(layerIds, layerLabelIds, values.indexOf(next))
+                loadSessions() // third VU cell changes per layer
+            }
+            KnobPins.TONE -> {
+                val values = listOf("casual", "professional")
+                val cur = WimApp.tone()
+                val next = values[(values.indexOf(cur).coerceAtLeast(0) + 1) % values.size]
+                WimApp.prefs.edit().putString("tone", next).apply()
+                // toneIds/toneLabelIds are locals in setupSettings — inline the
+                // ID lists here rather than hoist them to class fields.
+                val toneIds = listOf(R.id.toneCasual, R.id.toneProfessional)
+                val toneLabelIds = listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel)
+                applyTileSelection(toneIds, toneLabelIds, values.indexOf(next))
+            }
+            KnobPins.SITUATION -> {
+                val values = listOf("default", "high_stress", "reading")
+                val cur = WimApp.situation()
+                val next = values[(values.indexOf(cur).coerceAtLeast(0) + 1) % values.size]
+                WimApp.prefs.edit().putString("situation", next).apply()
+                applyTileSelection(situationIds, situationLabelIds, values.indexOf(next))
+                // Mirror setupLayoutGroup's auto-config: high_stress → layer 4 + DAF on
+                if (next == "high_stress") {
+                    WimApp.prefs.edit().putInt("layer", 4).putBoolean("daf_enabled", true).apply()
+                    val layerValues = listOf(1, 2, 3, 4)
+                    applyTileSelection(layerIds, layerLabelIds, layerValues.indexOf(4))
+                    loadSessions()
+                }
+            }
+            else -> return
+        }
+        refreshHeaderBadges()
+        val headerId = when (knob) {
+            KnobPins.LAYER -> R.id.headerLayer
+            KnobPins.TONE -> R.id.headerTone
+            KnobPins.SITUATION -> R.id.headerSituation
+            else -> return
+        }
+        findViewById<View>(headerId)?.let { flashPin(knob, it) }
+    }
+
+    /** Re-apply selected/unselected visuals to every tile in a group. */
+    private fun applyTileSelection(ids: List<Int>, labelIds: List<Int>, selectedIdx: Int) {
+        ids.forEachIndexed { i, id ->
+            val container = findViewById<LinearLayout>(id) ?: return@forEachIndexed
+            val label = findViewById<TextView>(labelIds[i]) ?: return@forEachIndexed
+            setLayoutSelected(container, label, i == selectedIdx)
+        }
+    }
+
+    /**
+     * Briefly reveal the Easter-egg pin image anchored to a knob's header.
+     * Added to the activity's root content frame as a transient overlay so
+     * it paints above all other views and auto-cleans when the reveal fades.
+     */
+    private fun flashPin(knob: String, anchor: View) {
+        val drawableRes = KnobPins.drawableFor(knob)
+        if (drawableRes == 0) return
+        val root = findViewById<FrameLayout>(android.R.id.content) ?: return
+        val image = ImageView(this).apply {
+            setImageResource(drawableRes)
+            alpha = 0f
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+        val loc = IntArray(2)
+        anchor.getLocationInWindow(loc)
+        val rootLoc = IntArray(2)
+        root.getLocationInWindow(rootLoc)
+        val lp = FrameLayout.LayoutParams(anchor.width, anchor.height).apply {
+            leftMargin = loc[0] - rootLoc[0]
+            topMargin = loc[1] - rootLoc[1]
+        }
+        root.addView(image, lp)
+        image.animate()
+            .alpha(0.85f)
+            .setDuration(180)
+            .withEndAction {
+                image.animate()
+                    .alpha(0f)
+                    .setStartDelay(380)
+                    .setDuration(300)
+                    .withEndAction { root.removeView(image) }
+                    .start()
+            }
+            .start()
     }
 
     private fun setupStatusChips() {
