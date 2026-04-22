@@ -490,6 +490,8 @@ class MainActivity : AppCompatActivity() {
         setupBubbleDock()
         // ── WiM logo in brand plate = summon — replaces the old SUMMON chip bar ──
         setupLogoSummon()
+        // ── Auto-send toggle (green SEND bubble after inject) ──
+        setupAutoSendToggle()
 
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
@@ -2039,6 +2041,21 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             }
         }
         BubbleService.dockSlotRects = if (rects.isNotEmpty()) rects else null
+    }
+
+    // ── Auto-send toggle ──
+    // User flips this on → after any successful injectText into a supported
+    // app (Messages, Gmail, WhatsApp, Telegram, Signal), bubble goes green
+    // with "SEND" label. Tap the green bubble → accessibility ACTION_CLICK
+    // fires the app's Send button. First three taps show a disclaimer
+    // overlay explaining the mechanism.
+    private fun setupAutoSendToggle() {
+        val toggle = findViewById<MaterialSwitch>(R.id.autoSendToggle) ?: return
+        toggle.isChecked = WimApp.autoSendEnabled()
+        styleToggle(toggle)
+        toggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("auto_send_enabled", checked).apply()
+        }
     }
 
     // ── WiM logo = summon. Tap the gold Limelight letters to spawn the bubble. ──

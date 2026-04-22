@@ -1435,6 +1435,51 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Auto-send: after injection, bubble flips green; tap to click Send. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Auto-send (tap green bubble)"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/autoSendToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/autoSendHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send."
+                    android:textColor="@color/text_dim"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:alpha="0.65"
+                    android:paddingTop="4dp" />
+            </LinearLayout>
+
             <!-- DAF toggle + delay -->
             <LinearLayout
                 android:layout_width="match_parent"
