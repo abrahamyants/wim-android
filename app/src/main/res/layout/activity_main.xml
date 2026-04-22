@@ -1577,33 +1577,13 @@
                 android:orientation="horizontal"
                 android:gravity="center">
 
-                <!-- BRONZE: reveal wrapper — ImageView behind the slot.
-                     When dockBronze fades to alpha 0 on pickup, the image
-                     underneath shows through. Image is circular-clipped in
-                     setupBubbleDock so corners don't bleed past the bezel. -->
-                <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp">
-
-                    <!-- 72dp oval-clipped white disc + Heisenberg at 91% (9% smaller)
-                         via 3dp padding on each side. Padding ≈ (72 - 72*0.91) / 2. -->
-                    <ImageView
-                        android:id="@+id/dockBronzeReveal"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/pin_tone_heisenberg"
-                        android:scaleType="fitCenter"
-                        android:background="#FFFFFFFF"
-                        android:padding="3dp"
-                        android:importantForAccessibility="no" />
-
+                <!-- BRONZE slot (reveal image pending — new art to be provided) -->
                 <FrameLayout
                     android:id="@+id/dockBronze"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bg_idle"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1637,31 +1617,14 @@
                             android:maxLines="1" />
                     </FrameLayout>
                 </FrameLayout>
-                </FrameLayout>
 
-                <!-- ALUMINUM: reveal wrapper + slot -->
-                <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp">
-
-                    <!-- Jessica Rabbit at 78% (22% smaller): 8dp padding. -->
-                    <ImageView
-                        android:id="@+id/dockAluminumReveal"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/pin_layer_jr"
-                        android:scaleType="fitCenter"
-                        android:background="#FFFFFFFF"
-                        android:padding="8dp"
-                        android:importantForAccessibility="no" />
-
+                <!-- ALUMINUM slot -->
                 <FrameLayout
                     android:id="@+id/dockAluminum"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_aluminum"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1695,33 +1658,14 @@
                             android:maxLines="1" />
                     </FrameLayout>
                 </FrameLayout>
-                </FrameLayout>
 
-                <!-- GUNMETAL: reveal wrapper + slot (gold IDLE text on dark bg) -->
-                <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp">
-
-                    <!-- Ducky at 82% (18% smaller): ~7dp padding. Ducky's own art
-                         already has a white background, so the extra white disc
-                         here just continues that, not a jarring swap. -->
-                    <ImageView
-                        android:id="@+id/dockGunmetalReveal"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/pin_situation_ducky"
-                        android:scaleType="fitCenter"
-                        android:background="#FFFFFFFF"
-                        android:padding="7dp"
-                        android:importantForAccessibility="no" />
-
+                <!-- GUNMETAL slot — gold IDLE text (dark bg needs bright foreground) -->
                 <FrameLayout
                     android:id="@+id/dockGunmetal"
                     android:layout_width="72dp"
                     android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_gunmetal"
                     android:elevation="4dp"
                     android:clickable="true"
@@ -1754,7 +1698,6 @@
                             android:gravity="center"
                             android:maxLines="1" />
                     </FrameLayout>
-                </FrameLayout>
                 </FrameLayout>
 
             </LinearLayout>

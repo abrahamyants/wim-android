@@ -1959,20 +1959,6 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             }
         }
 
-        // Circular-clip the reveal images so they match the bezel's oval
-        // shape — a square image behind an oval slot would leak corners.
-        val reveals = listOf(R.id.dockBronzeReveal, R.id.dockAluminumReveal, R.id.dockGunmetalReveal)
-        reveals.forEach { id ->
-            findViewById<android.widget.ImageView>(id)?.let { iv ->
-                iv.clipToOutline = true
-                iv.outlineProvider = object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
-                        outline.setOval(0, 0, view.width, view.height)
-                    }
-                }
-            }
-        }
-
         // Initial paint — covers the case where BubbleService is already
         // running with a visible bubble when MainActivity opens.
         refreshDockGhost()
