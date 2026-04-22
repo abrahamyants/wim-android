@@ -1957,8 +1957,11 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         slots.forEach { (theme, view) ->
             val isPickedUp = bubbleOut && theme == activeTheme
             if (isPickedUp) {
+                // Coat is off the hanger — slot is fully invisible. Space is
+                // preserved (alpha 0, not visibility=GONE) so the other two
+                // don't reshuffle when the bubble comes home.
                 view.animate()
-                    .alpha(0.22f)
+                    .alpha(0f)
                     .scaleX(0.85f).scaleY(0.85f)
                     .translationZ(0f)
                     .setDuration(220)
