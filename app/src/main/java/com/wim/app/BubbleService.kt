@@ -124,6 +124,15 @@ class BubbleService : Service() {
         private const val NOTIFICATION_ID = 1
         var instance: BubbleService? = null
             private set
+
+        /**
+         * Screen-space rects of the three dock slots in MainActivity, keyed
+         * by theme name. Populated from MainActivity.onResume and cleared on
+         * pause. When non-null AND the user releases a bubble drag inside
+         * one of these rects, the bubble "parks" — theme swaps to that slot
+         * and the bubble animates into the dock then hides.
+         */
+        var dockSlotRects: Map<String, android.graphics.Rect>? = null
     }
 
     fun isCurrentlyRecording(): Boolean = isRecording
@@ -527,6 +536,15 @@ class BubbleService : Service() {
                         val scale = WimApp.bubbleSize() / 100f
                         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
                             it.animate().scaleX(scale).scaleY(scale).setDuration(200).start()
+                        }
+
+                        // Check if dragged into a dock slot — "pulled him back in".
+                        // Only active when MainActivity is visible (it publishes the
+                        // rects on resume, clears on pause).
+                        val dockSnap = checkDockSnap(params)
+                        if (dockSnap != null) {
+                            parkIntoDock(dockSnap.first, dockSnap.second, params)
+                            return@setOnTouchListener true
                         }
 
                         // Check if dragged to bottom edge — hide bubble
@@ -945,6 +963,74 @@ class BubbleService : Service() {
      */
     fun refreshBubbleTheme() = applyBubbleTheme()
 
+    /**
+     * Returns (theme, slot-center-point) if the bubble's current position
+     * lands inside one of MainActivity's dock slot rects, else null. The
+     * bubble's notional center is params.x + bubbleWidth/2 / params.y + bubbleHeight/2.
+     */
+    private fun checkDockSnap(params: WindowManager.LayoutParams): Pair<String, android.graphics.Point>? {
+        val rects = dockSlotRects ?: return null
+        val view = bubbleView ?: return null
+        val cx = params.x + view.width / 2
+        val cy = params.y + view.height / 2
+        for ((theme, rect) in rects) {
+            // Generous pull radius — rect grown by half its width on each side.
+            // Makes the snap feel magnetic rather than pixel-precise.
+            val pad = (rect.width() * 0.4f).toInt()
+            if (cx in (rect.left - pad)..(rect.right + pad) &&
+                cy in (rect.top - pad)..(rect.bottom + pad)) {
+                return theme to android.graphics.Point(rect.centerX(), rect.centerY())
+            }
+        }
+        return null
+    }
+
+    /**
+     * Animate the bubble toward a dock slot's center, fade + shrink, swap
+     * the theme to match the slot, then hide the bubble. Visual effect:
+     * "pulled him back in."
+     */
+    private fun parkIntoDock(
+        theme: String,
+        slotCenter: android.graphics.Point,
+        layoutParams: WindowManager.LayoutParams
+    ) {
+        WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+        applyBubbleTheme()
+        val view = bubbleView ?: run { hideBubble(); return }
+        val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run { hideBubble(); return }
+        // Target position: slot center minus bubble half-width/height so the
+        // bubble's visual center lands on the slot center.
+        val targetX = slotCenter.x - view.width / 2
+        val targetY = slotCenter.y - view.height / 2
+        val startX = layoutParams.x
+        val startY = layoutParams.y
+        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 260
+            interpolator = android.view.animation.AccelerateInterpolator(1.4f)
+            addUpdateListener { a ->
+                val t = a.animatedValue as Float
+                layoutParams.x = (startX + (targetX - startX) * t).toInt()
+                layoutParams.y = (startY + (targetY - startY) * t).toInt()
+                try { windowManager?.updateViewLayout(view, layoutParams) } catch (_: Exception) {}
+                bezel.scaleX = 1f - 0.55f * t
+                bezel.scaleY = 1f - 0.55f * t
+                bezel.alpha = 1f - 0.85f * t
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(a: android.animation.Animator) {
+                    bezel.scaleX = 1f
+                    bezel.scaleY = 1f
+                    bezel.alpha = 1f
+                    hideBubble()
+                    updateNotification("Bubble parked — tap a dock slot or the WiM logo to resummon")
+                }
+            })
+        }
+        try { vibrator?.vibrate(VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+        anim.start()
+    }
+
     /** Apply the user's selected bubble color theme (bronze/aluminum/gunmetal). */
     private fun applyBubbleTheme() {
         val theme = WimApp.bubbleTheme()
@@ -970,7 +1056,10 @@ class BubbleService : Service() {
         applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
-            setTextColor(0xFF555560.toInt())
+            // Gunmetal's dark bezel swallows the default gray. Switch to the
+            // brand cream-gold so IDLE is legible on all three themes.
+            val idleColor = if (WimApp.bubbleTheme() == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+            setTextColor(idleColor)
         }
         // Keep session timer ticking in idle (maroon)
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {

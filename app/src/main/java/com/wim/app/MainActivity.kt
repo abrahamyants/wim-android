@@ -241,8 +241,8 @@ class MainActivity : AppCompatActivity() {
         setupVuDoubleTapReset(R.id.vuCleanup, "stat_cleanup_reset")
         setupVuDoubleTapReset(R.id.vuScore, "filler_count")
 
-        // Status chips — tap to cycle
-        setupStatusChips()
+        // Summon chip removed — tap the WiM logo in the brand plate to spawn
+        // the bubble. Header badges still need a refresh pass.
         refreshHeaderBadges()
 
         // Mirror right-side sound bars so tallest bars face the logo on both sides
@@ -488,6 +488,8 @@ class MainActivity : AppCompatActivity() {
 
         // ── Bubble dock — three parked bubble variants (bronze/silver/gunmetal) ──
         setupBubbleDock()
+        // ── WiM logo in brand plate = summon — replaces the old SUMMON chip bar ──
+        setupLogoSummon()
 
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
@@ -583,6 +585,27 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updatePermissionStatus()
         loadSessions()
+        // Re-publish dock slot screen rects so BubbleService's drag-snap is
+        // aware while MainActivity is visible. Done after the next layout
+        // pass; rects at onResume are often (0,0,0,0) before layout settles.
+        val dockBronze = findViewById<android.view.View>(R.id.dockBronze)
+        val dockAluminum = findViewById<android.view.View>(R.id.dockAluminum)
+        val dockGunmetal = findViewById<android.view.View>(R.id.dockGunmetal)
+        if (dockBronze != null && dockAluminum != null && dockGunmetal != null) {
+            val slots = mapOf(
+                "bronze" to dockBronze,
+                "aluminum" to dockAluminum,
+                "gunmetal" to dockGunmetal
+            )
+            dockBronze.post { publishDockRects(slots) }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Clear the rects so the floating bubble doesn't try to snap into
+        // invisible targets when MainActivity is backgrounded.
+        BubbleService.dockSlotRects = null
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -1101,15 +1124,6 @@ class MainActivity : AppCompatActivity() {
         setHeaderWithBadge(R.id.headerLayer, "LAYER", layerNames[WimApp.layer()] ?: layerNames[1]!!)
         setHeaderWithBadge(R.id.headerTone, "TONE", toneNames[WimApp.tone()] ?: toneNames["casual"]!!)
         setHeaderWithBadge(R.id.headerSituation, "SITUATION", situationNames[WimApp.situation()] ?: situationNames["default"]!!)
-    }
-
-    private fun setupStatusChips() {
-        // Bubble summon chip — only chip remaining
-        findViewById<View>(R.id.chipFindBubble)?.setOnClickListener {
-            val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
-            startForegroundService(intent)
-            Toast.makeText(this, "Bubble summoned", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun setupVuDoubleTapReset(vuId: Int, prefKey: String) {
@@ -1864,7 +1878,11 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         }
     }
 
-    // ── Bubble dock: 3 parked bubble variants, tap to pick today's color ──
+    // ── Bubble dock: 3 parked bubble variants, tap to pick + summon ──
+    // Each slot mirrors the floating bubble's tick+IDLE geometry. Tap swaps
+    // the theme and also summons the bubble if it's hidden. Slot rects are
+    // published to BubbleService.dockSlotRects so dragging the floating
+    // bubble near any slot triggers the "pulled him back in" park animation.
     private fun setupBubbleDock() {
         val dockBronze = findViewById<android.view.View>(R.id.dockBronze) ?: return
         val dockAluminum = findViewById<android.view.View>(R.id.dockAluminum) ?: return
@@ -1891,6 +1909,10 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             view.setOnClickListener { tapped ->
                 WimApp.prefs.edit().putString("bubble_theme", key).apply()
                 BubbleService.instance?.refreshBubbleTheme()
+                // Summon the bubble — this slot is also a spawn point. Harmless
+                // if it's already visible; starts the service if it isn't.
+                val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
+                startForegroundService(intent)
                 // Magnetic "click-in" — quick squish then overshoot back.
                 tapped.animate()
                     .scaleX(0.82f).scaleY(0.82f)
@@ -1908,6 +1930,52 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 } catch (_: Exception) {}
                 paintHighlight(key)
             }
+        }
+
+        // Publish dock rects once layout settles so BubbleService's drag-snap
+        // knows where the dock is. Re-published on every resume (rotation /
+        // window-metric changes would otherwise leave stale rects).
+        dockBronze.post { publishDockRects(slots) }
+    }
+
+    private fun publishDockRects(slots: Map<String, android.view.View>) {
+        val loc = IntArray(2)
+        val rects = mutableMapOf<String, android.graphics.Rect>()
+        slots.forEach { (theme, view) ->
+            if (view.width > 0 && view.height > 0) {
+                view.getLocationOnScreen(loc)
+                rects[theme] = android.graphics.Rect(
+                    loc[0], loc[1],
+                    loc[0] + view.width, loc[1] + view.height
+                )
+            }
+        }
+        BubbleService.dockSlotRects = if (rects.isNotEmpty()) rects else null
+    }
+
+    // ── WiM logo = summon. Tap the gold Limelight letters to spawn the bubble. ──
+    // Replaces the old "SUMMON" chip which was a wide wasted bar above LAYER.
+    private fun setupLogoSummon() {
+        val logo = findViewById<TextView>(R.id.wimLogoSummon) ?: return
+        logo.setOnClickListener {
+            val intent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
+            startForegroundService(intent)
+            try {
+                logo.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+            } catch (_: Exception) {}
+            // Subtle flash so the tap registers visually.
+            logo.animate()
+                .scaleX(1.12f).scaleY(1.12f)
+                .setDuration(110)
+                .withEndAction {
+                    logo.animate()
+                        .scaleX(1f).scaleY(1f)
+                        .setInterpolator(android.view.animation.OvershootInterpolator(2.2f))
+                        .setDuration(220)
+                        .start()
+                }
+                .start()
+            Toast.makeText(this, "Bubble summoned", Toast.LENGTH_SHORT).show()
         }
     }
 }

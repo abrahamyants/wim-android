@@ -45,7 +45,9 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Centered: WiM + What I Meant -->
+                <!-- Centered: WiM + What I Meant. The "WiM" text is the summon control —
+                     tap the gold letters to spawn/restore the floating bubble. Equalizer
+                     bars are NOT part of the tap target (they're decorative). -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -66,13 +68,18 @@
                             android:layout_marginEnd="10dp" />
 
                         <TextView
+                            android:id="@+id/wimLogoSummon"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="WiM"
                             android:textColor="#FFC8B48A"
                             android:textSize="26sp"
                             android:fontFamily="@font/limelight"
-                            android:letterSpacing="0.08" />
+                            android:letterSpacing="0.08"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp" />
 
                         <com.wim.app.LogoBarsView
                             android:id="@+id/logoBarsRight"
@@ -207,47 +214,7 @@
 
         </LinearLayout>
 
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- BUBBLE SUMMON -->
-        <!-- ═══════════════════════════════════════════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="-4dp"
-            android:layout_marginBottom="6dp">
-
-            <LinearLayout
-                android:id="@+id/chipFindBubble"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="BUBBLE"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.15" />
-                <TextView
-                    android:id="@+id/chipFindBubbleValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SUMMON"
-                    android:textColor="@color/section_header"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-        </LinearLayout>
+        <!-- Summon bar killed — tap the WiM brand plate logo to summon the bubble instead. -->
 
         <!-- ═══════════════════════════════════════════ -->
         <!-- LAYER -->
@@ -1577,8 +1544,10 @@
             android:layout_marginBottom="10dp" />
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- BUBBLE DOCK — three parked bubbles, tap to pick today's color -->
-        <!-- Magnetic feel: click-in scale + overshoot bounce on select       -->
+        <!-- BUBBLE DOCK — three parked bubbles, tap to pick + summon -->
+        <!-- Each slot mirrors the real floating bubble: bezel + knob -->
+        <!-- + tick mark + IDLE label. When the user drags the        -->
+        <!-- floating bubble near these rects, it snaps back in.      -->
         <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/bubbleDock"
@@ -1593,11 +1562,11 @@
                 android:layout_height="wrap_content"
                 android:text="PICK YOUR BUBBLE"
                 android:textColor="@color/text_dim"
-                android:textSize="10sp"
+                android:textSize="13sp"
                 android:fontFamily="monospace"
                 android:letterSpacing="0.15"
-                android:layout_marginBottom="14dp"
-                android:alpha="0.55" />
+                android:layout_marginBottom="18dp"
+                android:alpha="0.75" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -1605,55 +1574,127 @@
                 android:orientation="horizontal"
                 android:gravity="center">
 
+                <!-- BRONZE slot -->
                 <FrameLayout
                     android:id="@+id/dockBronze"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bg_idle"
+                    android:elevation="4dp"
                     android:clickable="true"
                     android:focusable="true">
 
                     <FrameLayout
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:layout_gravity="center"
-                        android:background="@drawable/bubble_inner_knob" />
+                        android:background="@drawable/bubble_inner_knob">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="6dp"
+                            android:layout_gravity="top|center_horizontal"
+                            android:layout_marginTop="2dp"
+                            android:background="@drawable/knob_tick" />
+
+                        <TextView
+                            android:id="@+id/dockBronzeLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="IDLE"
+                            android:textColor="#FF555560"
+                            android:textSize="8sp"
+                            android:fontFamily="monospace"
+                            android:letterSpacing="0.05"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:maxLines="1" />
+                    </FrameLayout>
                 </FrameLayout>
 
+                <!-- ALUMINUM slot -->
                 <FrameLayout
                     android:id="@+id/dockAluminum"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_aluminum"
+                    android:elevation="4dp"
                     android:clickable="true"
                     android:focusable="true">
 
                     <FrameLayout
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:layout_gravity="center"
-                        android:background="@drawable/bubble_knob_aluminum" />
+                        android:background="@drawable/bubble_knob_aluminum">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="6dp"
+                            android:layout_gravity="top|center_horizontal"
+                            android:layout_marginTop="2dp"
+                            android:background="@drawable/knob_tick" />
+
+                        <TextView
+                            android:id="@+id/dockAluminumLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="IDLE"
+                            android:textColor="#FF555560"
+                            android:textSize="8sp"
+                            android:fontFamily="monospace"
+                            android:letterSpacing="0.05"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:maxLines="1" />
+                    </FrameLayout>
                 </FrameLayout>
 
+                <!-- GUNMETAL slot — gold IDLE text (dark bg needs bright foreground) -->
                 <FrameLayout
                     android:id="@+id/dockGunmetal"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
                     android:background="@drawable/bubble_bezel_gunmetal"
+                    android:elevation="4dp"
                     android:clickable="true"
                     android:focusable="true">
 
                     <FrameLayout
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:layout_gravity="center"
-                        android:background="@drawable/bubble_knob_gunmetal" />
+                        android:background="@drawable/bubble_knob_gunmetal">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="6dp"
+                            android:layout_gravity="top|center_horizontal"
+                            android:layout_marginTop="2dp"
+                            android:background="@drawable/knob_tick" />
+
+                        <TextView
+                            android:id="@+id/dockGunmetalLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="IDLE"
+                            android:textColor="#FFC8B48A"
+                            android:textSize="8sp"
+                            android:fontFamily="monospace"
+                            android:letterSpacing="0.05"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:maxLines="1" />
+                    </FrameLayout>
                 </FrameLayout>
 
             </LinearLayout>
