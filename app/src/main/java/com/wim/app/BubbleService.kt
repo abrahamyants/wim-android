@@ -1071,8 +1071,11 @@ class BubbleService : Service() {
         val startX = layoutParams.x
         val startY = layoutParams.y
         val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 260
-            interpolator = android.view.animation.AccelerateInterpolator(1.4f)
+            // Stronger magnet: faster overall + much sharper end-rush.
+            // AccelerateInterpolator(3f) barely moves for the first half and
+            // SNAPS into the slot in the last ~30% — reads as "yanked in."
+            duration = 180
+            interpolator = android.view.animation.AccelerateInterpolator(3.0f)
             addUpdateListener { a ->
                 val t = a.animatedValue as Float
                 layoutParams.x = (startX + (targetX - startX) * t).toInt()
@@ -1092,7 +1095,9 @@ class BubbleService : Service() {
                 }
             })
         }
-        try { vibrator?.vibrate(VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+        // Meatier haptic to match the stronger visual snap — registers as
+        // a physical "klunk" when the coat hits the hanger.
+        try { vibrator?.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
         anim.start()
     }
 
