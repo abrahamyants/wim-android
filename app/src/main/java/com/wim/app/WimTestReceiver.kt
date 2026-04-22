@@ -84,6 +84,15 @@ class WimTestReceiver : BroadcastReceiver() {
                 "toggle_daf"        -> handleToggleDaf(context, intent)
                 "dump_a11y_tree"    -> handleDumpA11yTree(context)
                 "clear_sessions"    -> handleClearSessions(context)
+                "click_send"        -> {
+                    // Test-only entry to fire the auto-send click directly,
+                    // bypassing the bubble. Returns status so we can verify
+                    // without device-side interaction.
+                    val ok = WimAccessibilityService.instance?.clickSendButton() == true
+                    writeResult(context, JSONObject()
+                        .put("status", if (ok) "ok" else "failed"))
+                    Log.i(TAG, "click_send: ${if (ok) "ok" else "failed"}")
+                }
                 else -> writeResult(context, JSONObject().put("error", "Unknown action: $action"))
             }
         } catch (e: Exception) {

@@ -296,24 +296,29 @@ class WimAccessibilityService : AccessibilityService() {
         // Remember the target app's package from the editable itself, since
         // the node's window reference can expire between inject and send.
         val targetPkg = editable.packageName?.toString()
-        val appWindowType = android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION
         // Preference ladder for finding the right window root:
         //   1. The editable's own window (best — same node owned it a moment ago)
-        //   2. An APPLICATION window matching targetPkg (re-find by package)
-        //   3. Any APPLICATION window that isn't WiM or systemui (last resort)
-        // Without this ladder, we fell through to windows.firstOrNull() which
-        // grabbed com.android.systemui (the nav bar) and scanned Back/Home/
-        // Recents for a Send button. It wasn't there. Obviously.
+        //   2. Any visible window whose package matches targetPkg (re-find by package)
+        //   3. Any visible window that isn't WiM or systemui (last resort)
+        //
+        // Earlier version restricted tier 2/3 to TYPE_APPLICATION, but Samsung /
+        // Google Messages reports something else for its chat window on some
+        // device builds, so the filter missed everything. Dropping the type
+        // filter; matching by package is the correctness lever.
         val root: AccessibilityNodeInfo? = editable.window?.root
             ?: windows.firstOrNull {
-                it.type == appWindowType && it.root?.packageName?.toString() == targetPkg
+                it.root?.packageName?.toString() == targetPkg
             }?.root
             ?: windows.firstOrNull {
                 val pkg = it.root?.packageName?.toString()
-                it.type == appWindowType && pkg != packageName && pkg != "com.android.systemui"
+                pkg != null && pkg != packageName && pkg != "com.android.systemui"
             }?.root
         if (root == null) {
-            Log.w("WiM", "clickSendButton: no app window root found (targetPkg=$targetPkg)")
+            Log.w("WiM", "clickSendButton: no window root (targetPkg=$targetPkg) — dumping windows")
+            for ((i, w) in windows.withIndex()) {
+                val wpkg = w.root?.packageName?.toString() ?: "<null>"
+                Log.w("WiM", "  window[$i] type=${w.type} pkg=$wpkg focused=${w.isFocused}")
+            }
             return false
         }
         val pkg = root.packageName?.toString() ?: ""
@@ -395,9 +400,17 @@ class WimAccessibilityService : AccessibilityService() {
     private fun findSendNodeForApp(root: AccessibilityNodeInfo, pkg: String): AccessibilityNodeInfo? {
         when (pkg) {
             "com.google.android.apps.messaging",
-            "com.samsung.android.messaging",
             "com.google.android.apps.messaging.sms" -> {
+                // Compose-based UI uses resource-id "Compose:Draft:Send" with
+                // EMPTY content-description. Older (View-based) builds had
+                // content-description "Send SMS". Try both.
+                return findByResourceIdExact(root, "Compose:Draft:Send")
+                    ?: findByContentDescription(root, listOf("Send SMS", "Send message", "Send"))
+            }
+            "com.samsung.android.messaging" -> {
                 return findByContentDescription(root, listOf("Send SMS", "Send message", "Send"))
+                    ?: findByResourceIdSuffix(root, "send_btn")
+                    ?: findByResourceIdSuffix(root, "send")
             }
             "com.google.android.gm" -> {
                 return findByContentDescription(root, listOf("Send"))
@@ -460,6 +473,27 @@ class WimAccessibilityService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             val result = findByResourceIdSuffix(child, suffix)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    /**
+     * Exact resource-id match. Jetpack Compose exposes testTags as
+     * resource-ids WITHOUT the traditional `package:id/name` format —
+     * Google Messages uses bare identifiers like "Compose:Draft:Send".
+     * findAccessibilityNodeInfosByViewId often misses these, so walk
+     * the tree ourselves.
+     */
+    private fun findByResourceIdExact(
+        node: AccessibilityNodeInfo?,
+        targetId: String
+    ): AccessibilityNodeInfo? {
+        if (node == null) return null
+        if (node.viewIdResourceName == targetId) return node
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findByResourceIdExact(child, targetId)
             if (result != null) return result
         }
         return null
