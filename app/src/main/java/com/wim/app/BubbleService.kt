@@ -2375,6 +2375,7 @@ class BubbleService : Service() {
                     if (useGemma) Log.w(TAG, "Gemma returned null — falling back to cloud")
                     ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                     Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
+                    val primaryLanguage = WimApp.prefs.getString("primary_language", "en-US") ?: "en-US"
                     ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -2392,7 +2393,8 @@ class BubbleService : Service() {
                     // signals the reconstruction prompt to trust literal words
                     // less and use onset_weights + covert_profile for recovery.
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
-                    precedingContext = precedingContext
+                    precedingContext = precedingContext,
+                    languageCode = primaryLanguage
                 )
                 }
                 turboTaxJob?.cancel()
