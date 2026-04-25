@@ -55,9 +55,9 @@ class MainActivity : AppCompatActivity() {
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
 
-    private val situationIds = listOf(R.id.sitDefault, R.id.sitHighStress, R.id.sitReading)
-    private val situationLabelIds = listOf(R.id.sitDefaultLabel, R.id.sitHighStressLabel, R.id.sitReadingLabel)
-    private val situationValues = listOf("default", "high_stress", "reading")
+    // Situation selection (default / high_stress / reading) was retired Apr 24, 2026.
+    // The pref still defaults to "default" via WimApp.situation() and is passed
+    // through the reconstruction pipeline; only the UI is gone.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply saved dark/light mode before setContentView
@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         if (layoutVersion < 2) {
             val editor = WimApp.prefs.edit()
             listOf("sessions_section", "tone_section", "layer_section",
-                "situation_section", "bubble_section", "daf_section", "permissions_section"
+                "bubble_section", "daf_section", "permissions_section"
             ).forEach { editor.remove("section_$it") }
             editor.putInt("layout_version", 2).apply()
         }
@@ -292,9 +292,6 @@ class MainActivity : AppCompatActivity() {
 
 
 
-        // ── Situation selection (LinearLayouts with label child)
-        setupLayoutGroup(situationIds, situationLabelIds, situationValues, "situation", WimApp.situation())
-
         // ── DAF toggle + delay SeekBar ───────────────────
         val switchDaf = findViewById<MaterialSwitch>(R.id.switchDaf)
         val seekDafDelay = findViewById<SeekBar>(R.id.seekDafDelay)
@@ -370,7 +367,6 @@ class MainActivity : AppCompatActivity() {
         // ── Collapsible sections ─────────────────────────────
         setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
         setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = false)
-        setupCollapsible(R.id.headerSituation, R.id.contentSituation, "situation_section", defaultExpanded = false)
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
         setupCollapsible(R.id.headerTransparency, R.id.contentTransparency, "transparency_section", defaultExpanded = false)
@@ -389,7 +385,6 @@ class MainActivity : AppCompatActivity() {
         listOf(
             R.id.headerLayer,
             R.id.headerTone,
-            R.id.headerSituation,
             R.id.headerSessions,
             R.id.headerDaf,
             R.id.headerPermissions,
@@ -406,11 +401,6 @@ class MainActivity : AppCompatActivity() {
         listOf(R.id.toneCasualLabel, R.id.toneProfessionalLabel).forEach {
             findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
         }
-        // Situation tile labels
-        listOf(R.id.sitDefaultLabel, R.id.sitHighStressLabel, R.id.sitReadingLabel).forEach {
-            findViewById<TextView>(it)?.let(ShimmerFx::attachTextShimmer)
-        }
-
         // ── Auto-collapse sections on scroll ──
         // Find the ScrollView in our split layout (fixed top + scrollable bottom)
         val scrollView = findScrollView(findViewById<ViewGroup>(android.R.id.content))
@@ -1000,11 +990,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
                 WimApp.prefs.edit().putString(prefKey, values[i]).apply()
-                // Situation auto-config
-                if (prefKey == "situation" && values[i] == "high_stress") {
-                    WimApp.prefs.edit().putInt("layer", 4).putBoolean("daf_enabled", true).apply()
-                    loadSessions() // refresh stats for new layer
-                }
                 refreshHeaderBadges()
             }
         }
@@ -1121,15 +1106,8 @@ class MainActivity : AppCompatActivity() {
             "friend"       to "friend      ",
             "formal"       to "formal      "
         )
-        // Situation: padded to 20 visual chars ("high stress (assist)" is longest)
-        val situationNames = mapOf(
-            "default"     to "default (everyday)  ",
-            "high_stress" to "high stress (assist)",
-            "reading"     to "reading (fluent)    "
-        )
         setHeaderWithBadge(R.id.headerLayer, "LAYER", layerNames[WimApp.layer()] ?: layerNames[1]!!)
         setHeaderWithBadge(R.id.headerTone, "TONE", toneNames[WimApp.tone()] ?: toneNames["casual"]!!)
-        setHeaderWithBadge(R.id.headerSituation, "SITUATION", situationNames[WimApp.situation()] ?: situationNames["default"]!!)
     }
 
     private fun setupVuDoubleTapReset(vuId: Int, prefKey: String) {
@@ -1169,7 +1147,6 @@ class MainActivity : AppCompatActivity() {
     private val prefKeyToHeaderId = mapOf(
         "layer" to R.id.headerLayer,
         "tone" to R.id.headerTone,
-        "situation" to R.id.headerSituation
     )
 
     /**
