@@ -144,6 +144,14 @@ class WimAccessibilityService : AccessibilityService() {
         if (!node.refresh()) return null
         val text = node.text?.toString() ?: return null
         if (text.isEmpty()) return null
+        // Some compose UIs (Samsung Messages 2024+, certain Material 3 TextFields)
+        // expose the hint/placeholder ("Text message") via .text when the field is
+        // empty. Treat hint == text as empty so we don't feed "Text message" into
+        // the L4 reconstruction prompt as preceding context.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val hint = node.hintText?.toString()
+            if (!hint.isNullOrEmpty() && hint == text) return null
+        }
         val cursorEnd = (if (node.textSelectionEnd >= 0) node.textSelectionEnd else text.length)
             .coerceAtMost(text.length)
         val start = (cursorEnd - maxChars).coerceAtLeast(0)
@@ -177,12 +185,24 @@ class WimAccessibilityService : AccessibilityService() {
                 return
             }
         }
+        // Treat node.text as empty when it equals the hint/placeholder. Samsung
+        // Messages 2024+ (and some Material 3 compose TextFields) return the
+        // hint string ("Text message", "Type a message", etc.) via .text when
+        // the field has no real content. Without this guard, ACTION_SET_TEXT
+        // would write "Text message hello" instead of just "hello".
+        val rawText = node.text?.toString().orEmpty()
+        val hint = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            node.hintText?.toString().orEmpty()
+        } else {
+            ""
+        }
+        val existing = if (rawText.isNotEmpty() && rawText == hint) "" else rawText
+
         // Smart spacing: prepend a space if the character before the cursor
         // isn't already a space or newline, so consecutive dictations don't
         // smash together (matches Wispr Flow / Dragon behavior).
         var finalText = text
-        val existing = node.text?.toString()
-        if (!existing.isNullOrEmpty()) {
+        if (existing.isNotEmpty()) {
             val cursorEnd = if (node.textSelectionEnd >= 0) node.textSelectionEnd else existing.length
             if (cursorEnd > 0) {
                 val charBefore = existing[cursorEnd - 1]
@@ -192,8 +212,14 @@ class WimAccessibilityService : AccessibilityService() {
             }
         }
         // Use ACTION_SET_TEXT to avoid clipboard sound on Android 13+
-        val currentText = node.text?.toString() ?: ""
-        val insertPos = if (node.textSelectionEnd >= 0) node.textSelectionEnd else currentText.length
+        val currentText = existing
+        val insertPos = if (currentText.isEmpty()) {
+            0
+        } else if (node.textSelectionEnd >= 0) {
+            node.textSelectionEnd.coerceAtMost(currentText.length)
+        } else {
+            currentText.length
+        }
         val newText = currentText.substring(0, insertPos) + finalText + currentText.substring(insertPos)
         val args = android.os.Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)

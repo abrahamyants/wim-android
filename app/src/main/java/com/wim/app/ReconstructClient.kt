@@ -360,42 +360,44 @@ object ReconstructClient {
                 }
             }
 
-            val model = "gpt-4o"
-
-            val messages = JSONArray().apply {
-                put(JSONObject().put("role", "system").put("content", systemPrompt))
-                put(JSONObject().put("role", "user").put("content", rawText))
+            // L4 routes to Claude Sonnet 4.6 with extended thinking when an
+            // Anthropic key is set — clinical reasoning depth matches the
+            // Lavrentiy desktop setup. L1/L2/L3 stay on GPT-4o.
+            val anthropicKey = WimApp.anthropicApiKey()
+            val useSonnet = layer >= 4 && anthropicKey.isNotBlank()
+            val cleanText = if (useSonnet) {
+                reconstructWithSonnet(systemPrompt, rawText, anthropicKey)
+            } else {
+                val model = "gpt-4o"
+                val messages = JSONArray().apply {
+                    put(JSONObject().put("role", "system").put("content", systemPrompt))
+                    put(JSONObject().put("role", "user").put("content", rawText))
+                }
+                val body = JSONObject().apply {
+                    put("model", model)
+                    put("messages", messages)
+                    put("temperature", temperature)
+                    put("max_tokens", 1024)
+                }
+                val request = Request.Builder()
+                    .url("https://api.openai.com/v1/chat/completions")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                val response = http.newCall(request).execute()
+                val responseBody = response.body?.string()
+                    ?: throw RuntimeException("Empty response from reconstruction API")
+                if (!response.isSuccessful) {
+                    throw RuntimeException("Reconstruction API error ${response.code}: $responseBody")
+                }
+                JSONObject(responseBody)
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+                    .trim()
             }
-
-            val body = JSONObject().apply {
-                put("model", model)
-                put("messages", messages)
-                put("temperature", temperature)
-                put("max_tokens", 1024)
-            }
-
-            val request = Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .addHeader("Content-Type", "application/json")
-                .post(body.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-
-            val response = http.newCall(request).execute()
-            val responseBody = response.body?.string()
-                ?: throw RuntimeException("Empty response from reconstruction API")
-
-            if (!response.isSuccessful) {
-                throw RuntimeException("Reconstruction API error ${response.code}: $responseBody")
-            }
-
-            val json = JSONObject(responseBody)
-            val cleanText = json
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-                .trim()
 
             val riskFlags = computeRiskFlags(rawText, cleanText)
             val fastMode = com.wim.app.WimApp.prefs.getBoolean("fast_mode", false)
@@ -430,7 +432,18 @@ object ReconstructClient {
         return rawTokens.all { it in cleanTokens }
     }
 
-    /** Falcon validation: binary meaning-preservation check via GPT. */
+    /**
+     * Falcon validation: binary meaning-preservation check.
+     *
+     * Routing (April 24, 2026):
+     *   - L2 / L3 with `anthropic_api_key` set → Claude Haiku 4.5 (cross-provider QA,
+     *     ~0.4-0.8 s — faster than GPT and structurally a stronger check than
+     *     GPT-checking-itself).
+     *   - L4 → GPT-4o (unchanged; L4 has its own dedicated setup pending).
+     *   - L2 / L3 without Anthropic key → GPT-4o (fallback).
+     *
+     * Returns true on any error so a flaky validator never blocks reconstruction.
+     */
     private suspend fun falconValidate(
         rawText: String,
         cleanText: String,
@@ -438,91 +451,204 @@ object ReconstructClient {
         tone: String = "casual",
         onsetWeights: Map<String, Double> = emptyMap(),
         languageCode: String = "en"
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            try {
-                val apiKey = WimApp.apiKey()
-                if (apiKey.isBlank()) return@withContext true // skip if no key
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val systemPrompt = buildFalconSystemPrompt(layer, tone, onsetWeights, languageCode)
+            val userMessage = "Original: $rawText\nReconstruction: $cleanText"
 
-                // Tone-aware rewrite latitude — more permissive tones allow bigger restructuring
-                val toneNote = when (tone) {
-                    "formal" -> "Target tone is FORMAL — reconstruction should be conservative. Structural rewrites that change sentence formality are concerning."
-                    "professional" -> "Target tone is PROFESSIONAL — minor rephrasing for clarity is acceptable but not paraphrasing."
-                    "casual" -> "Target tone is CASUAL — contractions, colloquialisms, and minor restructuring for natural speech rhythm are expected and acceptable."
-                    "friend" -> "Target tone is FRIEND — fragments, informal phrasing, and free restructuring for conversational feel are expected."
-                    else -> ""
-                }
+            val anthropicKey = WimApp.anthropicApiKey()
+            val openaiKey = WimApp.apiKey()
 
-                val prompt = if (layer >= 4) {
-                    // Phonetic guard FIRST, then high-level criteria. Does not re-specify the
-                    // L4 disfluency rules already given in the reconstruction prompt.
-                    val langCode = LangPackHelper.normalizeLangCode(languageCode)
-                    val topOnsets = if (onsetWeights.isNotEmpty()) {
-                        onsetWeights.entries
-                            .sortedByDescending { it.value }
-                            .take(5)
-                            .joinToString(", ") { "/${it.key}/" }
-                    } else "(no personal onset data)"
-                    val naturalRepeats = LangPackHelper.getLangNaturalRepeats(langCode)
-                    val naturalRepeatsStr = if (naturalRepeats.isNotEmpty())
-                        naturalRepeats.joinToString(", ") else "none defined"
+            // L2/L3 with Claude key → Haiku. L4 always GPT. Empty key → GPT or skip.
+            val useClaude = layer < 4 && anthropicKey.isNotBlank()
+            if (useClaude) {
+                return@withContext falconValidateClaude(systemPrompt, userMessage, anthropicKey)
+            }
+            if (openaiKey.isBlank()) return@withContext true // skip if no GPT key either
+            falconValidateGpt(systemPrompt, userMessage, openaiKey)
+        } catch (e: Exception) {
+            Log.e("WiM", "Falcon validation error: ${e.message}")
+            true
+        }
+    }
 
-                    "Validate a layer-4 speech-disfluency reconstruction. Language: ${langCode.uppercase()}. " +
-                    "Near the speaker's hardest phonemes ($topOnsets), the reconstruction MUST NOT " +
-                    "substitute a different-phoneme word — phonetic drift is the primary failure mode. " +
-                    "The reconstruction should also have: " +
-                    "(1) stripped overt disfluencies (part-word repetitions, prolongations, blocks, false starts); " +
-                    "(2) preserved emphatic patterns that are NOT stuttering: $naturalRepeatsStr; " +
-                    "(3) NOT normalized the speaker's dialect or register forms; " +
-                    "(4) discarded Whisper hallucination strings ('thank you', 'subscribe', etc.). " +
-                    "$toneNote " +
-                    "Does the reconstruction satisfy all criteria? Answer ONLY 'yes' or 'no'."
-                } else {
-                    "The reconstruction cleans up a voice transcription: removing filler words " +
-                    "(um, uh, like, you know), fixing grammar, and improving clarity. " +
-                    "Filler removal and grammar fixes are expected and acceptable. " +
-                    "$toneNote Does the reconstruction preserve the core content and intent? " +
-                    "Answer ONLY 'yes' or 'no'."
-                }
+    /**
+     * Construct the Falcon system prompt. L4 gets the phonetic-guard + clinical
+     * criteria block; L2/L3 gets the lighter "preserve meaning" framing. Reused
+     * by both the GPT and Claude paths.
+     */
+    private fun buildFalconSystemPrompt(
+        layer: Int,
+        tone: String,
+        onsetWeights: Map<String, Double>,
+        languageCode: String,
+    ): String {
+        val toneNote = when (tone) {
+            "formal" -> "Target tone is FORMAL — reconstruction should be conservative. Structural rewrites that change sentence formality are concerning."
+            "professional" -> "Target tone is PROFESSIONAL — minor rephrasing for clarity is acceptable but not paraphrasing."
+            "casual" -> "Target tone is CASUAL — contractions, colloquialisms, and minor restructuring for natural speech rhythm are expected and acceptable."
+            "friend" -> "Target tone is FRIEND — fragments, informal phrasing, and free restructuring for conversational feel are expected."
+            else -> ""
+        }
+        if (layer >= 4) {
+            val langCode = LangPackHelper.normalizeLangCode(languageCode)
+            val topOnsets = if (onsetWeights.isNotEmpty()) {
+                onsetWeights.entries
+                    .sortedByDescending { it.value }
+                    .take(5)
+                    .joinToString(", ") { "/${it.key}/" }
+            } else "(no personal onset data)"
+            val naturalRepeats = LangPackHelper.getLangNaturalRepeats(langCode)
+            val naturalRepeatsStr = if (naturalRepeats.isNotEmpty())
+                naturalRepeats.joinToString(", ") else "none defined"
 
-                val messages = JSONArray().apply {
-                    put(JSONObject().put("role", "system").put("content", prompt))
-                    put(JSONObject().put("role", "user").put("content",
-                        "Original: $rawText\nReconstruction: $cleanText"))
-                }
+            return "Validate a layer-4 speech-disfluency reconstruction. Language: ${langCode.uppercase()}. " +
+                "Near the speaker's hardest phonemes ($topOnsets), the reconstruction MUST NOT " +
+                "substitute a different-phoneme word — phonetic drift is the primary failure mode. " +
+                "The reconstruction should also have: " +
+                "(1) stripped overt disfluencies (part-word repetitions, prolongations, blocks, false starts); " +
+                "(2) preserved emphatic patterns that are NOT stuttering: $naturalRepeatsStr; " +
+                "(3) NOT normalized the speaker's dialect or register forms; " +
+                "(4) discarded Whisper hallucination strings ('thank you', 'subscribe', etc.). " +
+                "$toneNote " +
+                "Does the reconstruction satisfy all criteria? Answer ONLY 'yes' or 'no'."
+        }
+        return "The reconstruction cleans up a voice transcription: removing filler words " +
+            "(um, uh, like, you know), fixing grammar, and improving clarity. " +
+            "Filler removal and grammar fixes are expected and acceptable. " +
+            "$toneNote Does the reconstruction preserve the core content and intent? " +
+            "Answer ONLY 'yes' or 'no'."
+    }
 
-                val body = JSONObject().apply {
-                    put("model", "gpt-4o")
-                    put("messages", messages)
-                    put("temperature", 0.0)
-                    put("max_tokens", 5)
-                }
+    /** GPT-4o Falcon (used at L4 always, and at L2/L3 when no Anthropic key). */
+    private fun falconValidateGpt(systemPrompt: String, userMessage: String, apiKey: String): Boolean {
+        val messages = JSONArray().apply {
+            put(JSONObject().put("role", "system").put("content", systemPrompt))
+            put(JSONObject().put("role", "user").put("content", userMessage))
+        }
+        val body = JSONObject().apply {
+            put("model", "gpt-4o")
+            put("messages", messages)
+            put("temperature", 0.0)
+            put("max_tokens", 5)
+        }
+        val request = Request.Builder()
+            .url("https://api.openai.com/v1/chat/completions")
+            .addHeader("Authorization", "Bearer $apiKey")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = http.newCall(request).execute()
+        val responseBody = response.body?.string() ?: return true
+        if (!response.isSuccessful) {
+            Log.w("WiM", "Falcon (GPT) HTTP ${response.code}: ${responseBody.take(120)}")
+            return true
+        }
+        val answer = JSONObject(responseBody)
+            .getJSONArray("choices")
+            .getJSONObject(0)
+            .getJSONObject("message")
+            .getString("content")
+            .trim()
+            .lowercase()
+        return answer.startsWith("yes")
+    }
 
-                val request = Request.Builder()
-                    .url("https://api.openai.com/v1/chat/completions")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
+    /**
+     * Claude Haiku 4.5 Falcon (L2/L3 only, when anthropic_api_key is set).
+     *
+     * Anthropic Messages API has two API-shape differences from OpenAI Chat
+     * Completions:
+     *   - `system` is a top-level field, not a message in messages[].
+     *   - Auth via `x-api-key` header + required `anthropic-version` header.
+     *   - Response shape: `content[0].text` instead of `choices[0].message.content`.
+     */
+    private fun falconValidateClaude(systemPrompt: String, userMessage: String, apiKey: String): Boolean {
+        val messages = JSONArray().apply {
+            put(JSONObject().put("role", "user").put("content", userMessage))
+        }
+        val body = JSONObject().apply {
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 16)
+            put("system", systemPrompt)
+            put("messages", messages)
+        }
+        val request = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", apiKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = http.newCall(request).execute()
+        val responseBody = response.body?.string() ?: return true
+        if (!response.isSuccessful) {
+            Log.w("WiM", "Falcon (Claude) HTTP ${response.code}: ${responseBody.take(120)}")
+            return true
+        }
+        val answer = JSONObject(responseBody)
+            .getJSONArray("content")
+            .getJSONObject(0)
+            .getString("text")
+            .trim()
+            .lowercase()
+        return answer.startsWith("yes")
+    }
 
-                val response = http.newCall(request).execute()
-                val responseBody = response.body?.string() ?: return@withContext true
-                if (!response.isSuccessful) return@withContext true
-
-                val answer = JSONObject(responseBody)
-                    .getJSONArray("choices")
-                    .getJSONObject(0)
-                    .getJSONObject("message")
-                    .getString("content")
-                    .trim()
-                    .lowercase()
-
-                answer.startsWith("yes")
-            } catch (e: Exception) {
-                Log.e("WiM", "Falcon validation error: ${e.message}")
-                true // on error, trust the reconstruction
+    /**
+     * L4 reconstruction via Claude Sonnet 4.6 with extended thinking.
+     *
+     * Anthropic Messages API differences vs OpenAI Chat Completions:
+     *   - `system` is top-level, not a message in messages[]
+     *   - `thinking: {type: "enabled", budget_tokens: N}` opts into extended
+     *     reasoning; total max_tokens must be > budget_tokens
+     *   - When thinking is enabled, temperature MUST be 1.0 (Anthropic constraint)
+     *   - Response.content is an array of blocks: thinking blocks + text blocks.
+     *     We extract the first `text` block as the reconstruction.
+     *
+     * Budget: 8K thinking + ~2K output = 10K total. Typical L4 utterance is
+     * <50 words; extended thinking on a short input ends after a few hundred
+     * tokens. Budget is the cap, not the spend.
+     */
+    private fun reconstructWithSonnet(systemPrompt: String, rawText: String, apiKey: String): String {
+        val messages = JSONArray().apply {
+            put(JSONObject().put("role", "user").put("content", rawText))
+        }
+        val thinkingConfig = JSONObject().apply {
+            put("type", "enabled")
+            put("budget_tokens", 8000)
+        }
+        val body = JSONObject().apply {
+            put("model", "claude-sonnet-4-6")
+            put("max_tokens", 10000)
+            put("temperature", 1.0)
+            put("system", systemPrompt)
+            put("thinking", thinkingConfig)
+            put("messages", messages)
+        }
+        val request = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", apiKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = http.newCall(request).execute()
+        val responseBody = response.body?.string()
+            ?: throw RuntimeException("Empty response from Sonnet reconstruction API")
+        if (!response.isSuccessful) {
+            throw RuntimeException("Sonnet reconstruction API error ${response.code}: $responseBody")
+        }
+        val content = JSONObject(responseBody).getJSONArray("content")
+        // Skip thinking blocks, return the first text block.
+        for (i in 0 until content.length()) {
+            val block = content.getJSONObject(i)
+            if (block.optString("type") == "text") {
+                return block.getString("text").trim()
             }
         }
+        throw RuntimeException("Sonnet response had no text block: ${responseBody.take(200)}")
+    }
 
     /** Compute risk flags for a reconstruction result. */
     fun computeRiskFlags(rawText: String, cleanText: String): List<String> {

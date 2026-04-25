@@ -76,11 +76,17 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
-    // Vosk on-device ASR — backup path to Android SpeechRecognizer. No NDK/JNI glue;
-    // the AAR ships precompiled native libs for arm64-v8a + armeabi-v7a. Activated
-    // when a model is present in filesDir/vosk-models/<model-name>/.
-    implementation("com.alphacephei:vosk-android:0.3.47@aar")
-    implementation("net.java.dev.jna:jna:5.13.0@aar")
+    // Sherpa-onnx for Moonshine ASR — flat-file AAR (53.9 MB, ships .so for all 4 ABIs).
+    // Released April 24, 2026. Pairs with Moonshine base-en quantized model
+    // (encoder_model.ort 31 MB + decoder_model_merged.ort 109 MB + tokens.txt) downloaded
+    // at runtime via MoonshineModelDownloader. The Kotlin API surface is hand-copied
+    // into app/src/main/java/com/k2fsa/sherpa/onnx/ from the sherpa-onnx repo at the
+    // matching version — those classes are thin wrappers around the JNI in this AAR.
+    implementation(files("libs/sherpa-onnx-1.12.40.aar"))
+
+    // Apache Commons Compress — needed to extract the tar.bz2 model archive at runtime.
+    // Java/Android stdlib supports zip but not bzip2; commons-compress is ~600 KB.
+    implementation("org.apache.commons:commons-compress:1.27.1")
 
     // Apache Commons Codec — Double Metaphone for phonetic-neighbor correction
     // (PhoneticMatcher post-hoc swaps ASR output against user vocabulary).

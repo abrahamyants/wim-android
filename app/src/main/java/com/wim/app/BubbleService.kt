@@ -55,10 +55,7 @@ class BubbleService : Service() {
         }
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
-    private var voskEngine: VoskEngine? = null
-    // True while the current session is running on Vosk rather than the
-    // Android SpeechRecognizer path.
-    private var useVoskForCurrentSession: Boolean = false
+    private var moonshineEngine: MoonshineEngine? = null
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
@@ -180,8 +177,12 @@ class BubbleService : Service() {
         recordingStartTime = System.currentTimeMillis()
         scope.launch {
             try {
-                val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
-                Log.i("WiM", "Test audio Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                // L4 uses whisper-1 (preserves more disfluencies + the verbose_json
+                // confidence signals the clinical prompt depends on). L1-L3 stay
+                // on the newer gpt-4o-transcribe.
+                val whisperModel = if (WimApp.layer() >= 4) "whisper-1" else "gpt-4o-transcribe"
+                val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
+                Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
                 if (whisperResult.wasFullyHallucinated) {
                     WimTestReceiver.lastResult = org.json.JSONObject().apply {
@@ -236,7 +237,7 @@ class BubbleService : Service() {
         }, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
-        voskEngine = VoskEngine(this)
+        moonshineEngine = MoonshineEngine(this)
         sessionHistory = SessionHistory(this)
         createNotificationChannel()
         setupBluetoothSco()
@@ -529,6 +530,7 @@ class BubbleService : Service() {
                             if (startedOnThisPress && isRecording) {
                                 isRecording = false
                                 onDeviceRecognizer?.stop()
+                                moonshineEngine?.stop()
                                 audioRecorder?.stop()
                                 audioRecorder = null
                                 dafPlayer?.stop()
@@ -975,13 +977,19 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
-        // Cloud-ASR fallback: capture audio for gpt-4o-transcribe ONLY when Vosk
-        // is not the live engine. With Vosk active, its final text is the ASR
-        // output for ALL layers — GPT-4o reconstruction (L2+) can handle
-        // Vosk's ~10-15% WER just fine, and Vosk preserves disfluencies that
-        // cloud ASR pre-smooths. Audio stays on device at L2+ when Vosk is on.
-        val wantVoskLive = WimApp.useVosk() && (voskEngine?.isReady() == true)
-        if (!wantVoskLive && WimApp.layer() >= 2 && WimApp.apiKey().isNotBlank()) {
+        // Cloud-ASR fallback: capture audio for gpt-4o-transcribe ONLY when no
+        // local engine (Moonshine) is going to produce the L1 text. When
+        // a local engine is live, its final text is the ASR output for ALL
+        // layers — GPT-4o reconstruction (L2+) can handle local-ASR WER fine,
+        // and local engines preserve disfluencies that cloud ASR pre-smooths.
+        // Audio stays on device at L2+ when a local engine is on.
+        // L4 always captures WAV regardless of Moonshine state — the L4 ASR
+        // is cloud Whisper-1 (verbose_json) for the per-segment confidence
+        // signals the clinical prompt depends on. L2/L3 only capture WAV
+        // when Moonshine isn't ready (cloud fallback for ASR).
+        val isL4 = WimApp.layer() >= 4
+        val wantMoonshineLive = WimApp.useMoonshine() && (moonshineEngine?.isReady() == true) && !isL4
+        if ((isL4 || (!wantMoonshineLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
@@ -1025,24 +1033,27 @@ class BubbleService : Service() {
             bubbleView?.scaleY = 1.0f
         }
 
-        // Pick the engine. Vosk preferred when the user toggled it on and the
-        // model is unpacked on disk. Otherwise fall back to Android
-        // SpeechRecognizer (which chirps but always works).
-        val wantVosk = WimApp.useVosk() && (voskEngine?.isReady() == true)
-        useVoskForCurrentSession = wantVosk
-
-        if (wantVosk) {
-            Log.i(TAG, "Using Vosk engine (no chirp path)")
-            voskEngine?.start(object : VoskEngine.ResultListener {
+        // Pick the engine.
+        //   L4: no live engine — AudioRecorder above is capturing WAV; Whisper-1
+        //       runs post-stop (the clinical prompt needs verbose_json confidence
+        //       signals only Whisper provides). Live transcript bar stays empty.
+        //   L1/L2/L3: cascade.
+        //     1. Moonshine BASE-en (sherpa-onnx) — primary, fully local, no chirp.
+        //     2. Android SpeechRecognizer (Google's TTS service on Samsung) —
+        //        fallback when Moonshine model isn't ready, pinned offline.
+        if (isL4) {
+            Log.i(TAG, "L4 mode: WAV captured, no live ASR (Whisper-1 runs post-stop)")
+            updateLiveTranscript("Recording for clinical reconstruction…")
+        } else if (moonshineEngine?.isReady() == true) {
+            Log.i(TAG, "Using Moonshine engine (local-only, BASE-en sherpa-onnx)")
+            moonshineEngine?.start(object : MoonshineEngine.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
                 override fun onSoundEvent(label: String) = handleSound(label)
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
         } else {
-            if (WimApp.useVosk()) {
-                Log.w(TAG, "Vosk enabled but model not ready — falling back to SpeechRecognizer")
-            }
+            Log.w(TAG, "Moonshine model not ready — using Android SpeechRecognizer (offline-pinned)")
             onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
@@ -1072,7 +1083,7 @@ class BubbleService : Service() {
         
         // Stop whichever engine was running this session; cheap defensive calls on both.
         onDeviceRecognizer?.stop()
-        voskEngine?.stop()
+        moonshineEngine?.stop()
 
         updateLiveTranscript("Transcribing...")
 
@@ -1080,8 +1091,10 @@ class BubbleService : Service() {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
                 try {
-                    val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4)
-                    Log.i(TAG, "Whisper (${whisperResult.asrMs}ms): ${whisperResult.text}")
+                    // L4 uses whisper-1; L1-L3 stay on gpt-4o-transcribe.
+                    val whisperModel = if (WimApp.layer() >= 4) "whisper-1" else "gpt-4o-transcribe"
+                    val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
+                    Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                         Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
@@ -2341,42 +2354,13 @@ class BubbleService : Service() {
                     Log.i(TAG, "Look-behind context: ${precedingContext.length} chars")
                 }
 
-                // Local L2/L3: try on-device Gemma first when model is ready.
-                // L4 stays cloud — small local LLM can't handle clinical work.
-                val useGemma = WimApp.useGemmaLocal() && layer < 4 &&
-                    GemmaEngine.isReady(this@BubbleService)
-                val gemmaT0 = System.currentTimeMillis()
-                val gemmaText = if (useGemma) {
-                    ConsoleLog.log("Reconstructing... [L$layer $tone gemma-local]", "info")
-                    Log.i(TAG, "Calling Gemma local reconstruction (L$layer, $tone)...")
-                    GemmaEngine.reconstruct(
-                        context = this@BubbleService,
-                        rawText = correctedText,
-                        tone = tone,
-                        layer = layer,
-                        situation = situation,
-                        vocabulary = vocabulary,
-                        corrections = corrections
-                    )
-                } else null
-
-                val reconResult = if (gemmaText != null) {
-                    val gemmaMs = System.currentTimeMillis() - gemmaT0
-                    Log.i(TAG, "Gemma reconstruction succeeded in ${gemmaMs}ms")
-                    // Local path: no Falcon (self-check at L2/L3 isn't valuable),
-                    // no cloud cost, deterministic.
-                    ReconstructClient.ReconstructResult(
-                        cleanText = gemmaText,
-                        reconMs = gemmaMs,
-                        riskFlags = emptyList(),
-                        falconApproved = true
-                    )
-                } else {
-                    if (useGemma) Log.w(TAG, "Gemma returned null — falling back to cloud")
-                    ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
-                    Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
-                    val primaryLanguage = WimApp.prefs.getString("primary_language", "en-US") ?: "en-US"
-                    ReconstructClient.reconstruct(
+                // L2/L3/L4: cloud GPT-4o reconstruction. No local Gemma path —
+                // reconstruction is the product's "shtick" and quality matters more
+                // than cloud cost. (L4 will get its own dedicated setup later.)
+                ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
+                Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
+                val primaryLanguage = "en"
+                val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
                     layer = layer,
@@ -2389,14 +2373,10 @@ class BubbleService : Service() {
                     covertProfile = profile.getCovertProfile(),
                     whisperLowConf = lastWhisperLowConf,
                     whisperDisagreements = emptyList(),
-                    // Bump severity when rate-gap indicates dropped content —
-                    // signals the reconstruction prompt to trust literal words
-                    // less and use onset_weights + covert_profile for recovery.
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext,
-                    languageCode = primaryLanguage
+                    languageCode = primaryLanguage,
                 )
-                }
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
                 ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")
@@ -2590,7 +2570,7 @@ class BubbleService : Service() {
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
-        voskEngine?.destroy()
+        moonshineEngine?.destroy()
         scope.cancel()
         super.onDestroy()
     }

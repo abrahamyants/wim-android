@@ -1,0 +1,225 @@
+package com.wim.app
+
+import android.content.Context
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.util.Log
+import com.k2fsa.sherpa.onnx.OfflineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineMoonshineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineRecognizer
+import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
+
+/**
+ * Moonshine BASE-en ASR via sherpa-onnx, replacement for [VoskEngine] on the
+ * L1 path. Captures mic audio with [AudioRecord] (no chirp — never binds to
+ * Android's SpeechRecognizer) and runs offline inference through
+ * [OfflineRecognizer] when [stop] is called.
+ *
+ * Moonshine is an offline (non-streaming) ASR — we accumulate the full
+ * utterance into a [FloatArray] then decode in one pass on stop. That matches
+ * how WiM uses Vosk in practice (the tap-to-stop UX always waits for a final
+ * before injecting). Live partials are not emitted; the live transcript bar
+ * stays empty during recording, then populates with the final.
+ *
+ * Interface mirrors [VoskEngine.ResultListener] so [BubbleService] can route
+ * to either by a SharedPreference flag.
+ *
+ * Model files must be installed by [MoonshineModelDownloader] first.
+ * [isReady] short-circuits start when the encoder/decoder/tokens aren't on
+ * disk yet; the caller (BubbleService) then falls back to Samsung native.
+ */
+class MoonshineEngine(private val context: Context) {
+
+    companion object {
+        private const val TAG = "WiM.Moonshine"
+        private const val SAMPLE_RATE = 16000
+        // 100 ms read chunks at 16 kHz mono PCM_16 = 3200 bytes / 1600 samples.
+        // AudioRecord accepts shorts for PCM_16 so we read into a ShortArray.
+        private const val CHUNK_SAMPLES = 1600
+
+        const val ERROR_NO_MODEL = 200
+        const val ERROR_INIT = 201
+        const val ERROR_INFERENCE = 202
+        const val ERROR_AUDIO = 203
+    }
+
+    interface ResultListener {
+        fun onPartialResult(text: String)
+        fun onFinalResult(text: String)
+        fun onError(errorCode: Int)
+        fun onSoundEvent(label: String) {}
+    }
+
+    private var recognizer: OfflineRecognizer? = null
+    private var audioRecord: AudioRecord? = null
+    private var captureThread: Thread? = null
+    @Volatile private var isCapturing = false
+    private val sampleBuffer = ArrayList<Float>(SAMPLE_RATE * 30) // pre-size for ~30 s
+    private var listener: ResultListener? = null
+
+    fun isReady(): Boolean = MoonshineModelDownloader.isInstalled(context)
+
+    /**
+     * Lazy-load the recognizer. ~140 MB of ONNX has to mmap into memory which
+     * takes 2–5 s on a phone CPU; we keep it warm across sessions and only
+     * release in [destroy].
+     */
+    private fun ensureRecognizer(): OfflineRecognizer? {
+        recognizer?.let { return it }
+        val dir = MoonshineModelDownloader.modelDir(context)
+        return try {
+            val t0 = System.currentTimeMillis()
+            val config = OfflineRecognizerConfig(
+                modelConfig = OfflineModelConfig(
+                    moonshine = OfflineMoonshineModelConfig(
+                        encoder = java.io.File(dir, "encoder_model.ort").absolutePath,
+                        mergedDecoder = java.io.File(dir, "decoder_model_merged.ort").absolutePath,
+                    ),
+                    tokens = java.io.File(dir, "tokens.txt").absolutePath,
+                    numThreads = 2,
+                    provider = "cpu",
+                    debug = false,
+                ),
+            )
+            val rec = OfflineRecognizer(assetManager = null, config = config)
+            recognizer = rec
+            Log.i(TAG, "Recognizer ready in ${System.currentTimeMillis() - t0}ms")
+            rec
+        } catch (e: Throwable) {
+            Log.e(TAG, "Recognizer init failed: ${e.message}", e)
+            null
+        }
+    }
+
+    fun start(resultListener: ResultListener) {
+        listener = resultListener
+        if (!isReady()) {
+            Log.w(TAG, "Model missing at ${MoonshineModelDownloader.modelDir(context)}")
+            resultListener.onError(ERROR_NO_MODEL)
+            return
+        }
+        // Touch the recognizer eagerly so the first session pays the load cost,
+        // not the first stop() call. Subsequent starts are zero-cost.
+        if (ensureRecognizer() == null) {
+            resultListener.onError(ERROR_INIT)
+            return
+        }
+        try {
+            sampleBuffer.clear()
+            val minBufBytes = AudioRecord.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+            )
+            val bufBytes = maxOf(minBufBytes, CHUNK_SAMPLES * 2 * 4) // 4× chunk for headroom
+            val record = AudioRecord(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufBytes,
+            )
+            if (record.state != AudioRecord.STATE_INITIALIZED) {
+                Log.e(TAG, "AudioRecord init failed (state=${record.state})")
+                record.release()
+                resultListener.onError(ERROR_AUDIO)
+                return
+            }
+            audioRecord = record
+            record.startRecording()
+            isCapturing = true
+            captureThread = Thread({ captureLoop(record) }, "MoonshineCapture").apply {
+                isDaemon = true
+                start()
+            }
+            Log.i(TAG, "Listening (Moonshine BASE)")
+        } catch (e: Throwable) {
+            Log.e(TAG, "start failed: ${e.message}", e)
+            cleanupAudio()
+            listener?.onError(ERROR_INIT)
+        }
+    }
+
+    private fun captureLoop(record: AudioRecord) {
+        val shorts = ShortArray(CHUNK_SAMPLES)
+        while (isCapturing) {
+            val n = try {
+                record.read(shorts, 0, shorts.size)
+            } catch (e: Throwable) {
+                Log.e(TAG, "AudioRecord read failed: ${e.message}")
+                break
+            }
+            if (n <= 0) continue
+            // Convert s16 PCM → float32 normalized to [-1, 1] as sherpa-onnx expects.
+            synchronized(sampleBuffer) {
+                for (i in 0 until n) {
+                    sampleBuffer.add(shorts[i] / 32768f)
+                }
+            }
+        }
+    }
+
+    /**
+     * Stop capture and run a single offline decode on the accumulated buffer.
+     * Emits exactly one [ResultListener.onFinalResult] (or onError on failure).
+     */
+    fun stop() {
+        if (!isCapturing && audioRecord == null) {
+            // Nothing to stop — defensive against double-stop calls.
+            return
+        }
+        isCapturing = false
+        try { captureThread?.join(500) } catch (_: InterruptedException) {}
+        captureThread = null
+        cleanupAudio()
+
+        val rec = recognizer
+        if (rec == null) {
+            listener?.onError(ERROR_INFERENCE)
+            return
+        }
+        val samples: FloatArray = synchronized(sampleBuffer) {
+            FloatArray(sampleBuffer.size).also { arr ->
+                for (i in arr.indices) arr[i] = sampleBuffer[i]
+            }
+        }
+        if (samples.isEmpty()) {
+            listener?.onFinalResult("")
+            return
+        }
+        try {
+            val t0 = System.currentTimeMillis()
+            val stream = rec.createStream()
+            try {
+                stream.acceptWaveform(samples, SAMPLE_RATE)
+                rec.decode(stream)
+                val text = rec.getResult(stream).text.trim()
+                Log.i(
+                    TAG,
+                    "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
+                        "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
+                )
+                listener?.onFinalResult(text)
+            } finally {
+                stream.release()
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Decode failed: ${e.message}", e)
+            listener?.onError(ERROR_INFERENCE)
+        }
+    }
+
+    fun destroy() {
+        cleanupAudio()
+        try { recognizer?.release() } catch (_: Throwable) {}
+        recognizer = null
+        listener = null
+    }
+
+    private fun cleanupAudio() {
+        try { audioRecord?.stop() } catch (_: Throwable) {}
+        try { audioRecord?.release() } catch (_: Throwable) {}
+        audioRecord = null
+    }
+}

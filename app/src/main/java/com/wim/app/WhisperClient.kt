@@ -112,7 +112,21 @@ object WhisperClient {
         return result.replace(Regex("\\s{2,}"), " ").trim()
     }
 
-    suspend fun transcribe(audioFile: File, language: String = "en", patienceMode: Boolean = false): TranscribeResult =
+    /**
+     * Transcribe a WAV file via OpenAI's audio transcription API.
+     *
+     * @param model defaults to `gpt-4o-transcribe` (used at L2/L3 when the
+     *   Moonshine fallback path is active). Pass `whisper-1` at L4 — older
+     *   model preserves more disfluencies and the verbose_json response shape
+     *   exposes per-segment `avg_logprob` + `no_speech_prob` confidence
+     *   signals that L4's clinical prompt depends on.
+     */
+    suspend fun transcribe(
+        audioFile: File,
+        language: String = "en",
+        patienceMode: Boolean = false,
+        model: String = "gpt-4o-transcribe",
+    ): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
             if (apiKey.isBlank()) throw IllegalStateException("No API key for Whisper")
@@ -121,7 +135,7 @@ object WhisperClient {
 
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("model", "gpt-4o-transcribe")
+                .addFormDataPart("model", model)
                 .addFormDataPart("language", language)
                 .addFormDataPart("temperature", "0")
                 .addFormDataPart("response_format", "verbose_json")

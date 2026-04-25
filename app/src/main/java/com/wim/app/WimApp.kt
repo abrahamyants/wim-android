@@ -24,12 +24,19 @@ class WimApp : Application() {
         var onSessionsSynced: (() -> Unit)? = null
 
         fun apiKey(): String = prefs.getString("api_key", "") ?: ""
+
+        /**
+         * Anthropic API key — used for the Falcon validator at L2/L3 only
+         * (Claude Haiku 4.5). L4 Falcon stays on GPT-4o by current design.
+         * When blank, all layers' Falcon falls back to GPT-4o.
+         */
+        fun anthropicApiKey(): String = prefs.getString("anthropic_api_key", "") ?: ""
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
         /**
-         * Default layer is 1 — users land on the fully-local Vosk + Disfluency
-         * filter path on first launch. L2+ opts them into reconstruction (and
-         * the Gemma model download). Flip to L2+ via the bubble menu or
-         * settings when ready.
+         * Default layer is 1 — users land on the fully-local Moonshine +
+         * Disfluency filter path on first launch. L2+ opts them into
+         * reconstruction (and the Gemma model download). Flip to L2+ via the
+         * bubble menu or settings when ready.
          */
         fun layer(): Int = prefs.getInt("layer", 1)
         fun situation(): String = prefs.getString("situation", "default") ?: "default"
@@ -39,13 +46,15 @@ class WimApp : Application() {
         fun bubbleSize(): Int = prefs.getInt("bubble_size", 95)
         fun bubbleTheme(): String = prefs.getString("bubble_theme", "bronze") ?: "bronze"
         /**
-         * Vosk is the default ASR path — no chirp, preserves speech
-         * disfluencies, command-line nothing. Falls back to Samsung /
-         * Google native ASR only when the Vosk model isn't installed yet
-         * (VoskEngine.isReady() returns false). Toggle can be flipped off
-         * by the user for emergency rollback; default is ON.
+         * Moonshine BASE-en via sherpa-onnx is the L1 ASR. No chirp, beats the
+         * Android SpeechRecognizer fallback on technical vocabulary, MIT
+         * licensed, ~141 MB model downloaded on first launch. Default ON —
+         * the only reason to flip it off is if a user is on a metered network
+         * and wants to defer the model download, in which case the L1 path
+         * falls back to Android SpeechRecognizer (Google's TTS recognizer
+         * service on Samsung, Google's own on Pixel) until Moonshine is ready.
          */
-        fun useVosk(): Boolean = prefs.getBoolean("use_vosk", true)
+        fun useMoonshine(): Boolean = prefs.getBoolean("use_moonshine", true)
 
         /**
          * Gemma local reconstruction for L2/L3. When the model is installed,
@@ -74,7 +83,7 @@ class WimApp : Application() {
         fun profile(): ProfileManager = profileManager
     }
 
-    /** Application-lifetime scope for background work (Vosk model download, etc.). */
+    /** Application-lifetime scope for background work (Moonshine model download, etc.). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -85,37 +94,28 @@ class WimApp : Application() {
         if (FirebaseApp.getApps(this).isEmpty()) FirebaseApp.initializeApp(this)
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
         profileManager = ProfileManager(prefs)
-        // Load per-language disfluency pack (fillers + natural_repeats) for
-        // the user's primary_language. English → empty pack, filter uses
-        // hardcoded defaults. Reload after any language change.
-        LangPack.loadFromPrefs(this)
-        // If the user is on the default Vosk path and the model isn't
-        // installed yet, kick the download off in the background so new
-        // users aren't quietly stuck on the Samsung fallback.
-        if (useVosk() && !VoskModelDownloader.isInstalled(this)) {
+        // English-only build. Lang packs in assets/ are not loaded — the
+        // hardcoded English defaults in DisfluencyFilter and the English
+        // baseline in PhoneticRisk are the only paths that run. Re-enable
+        // by calling LangPack.loadFromPrefs(this) here.
+        // Auto-download the Moonshine BASE-en model on first launch (~141 MB
+        // compressed → ~141 MB on disk). Until the model lands, BubbleService's
+        // wantMoonshine check returns false and the L1 path falls through to
+        // Android SpeechRecognizer (the chirpy fallback).
+        if (useMoonshine() && !MoonshineModelDownloader.isInstalled(this)) {
             appScope.launch {
-                android.util.Log.i("WiM", "Auto-downloading Vosk model (default path)...")
-                VoskModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
+                android.util.Log.i("WiM", "Auto-downloading Moonshine BASE model (~141 MB)...")
+                MoonshineModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
                     if (progress.stage == "Ready" || progress.stage == "Downloaded") {
-                        android.util.Log.i("WiM", "Vosk model ${progress.stage}")
+                        android.util.Log.i("WiM", "Moonshine model ${progress.stage}")
                     }
                 }
             }
         }
-        // Same pattern for Gemma local reconstruction. ~550 MB model — larger
-        // download, runs in background, pipeline falls back to cloud GPT-4o
-        // until the model is ready. Gated on layer >= 2 so L1-only users
-        // don't pull 550 MB they'll never use.
-        if (useGemmaLocal() && layer() >= 2 && !GemmaModelDownloader.isInstalled(this)) {
-            appScope.launch {
-                android.util.Log.i("WiM", "Auto-downloading Gemma model (default L2/L3 path)...")
-                GemmaModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
-                    if (progress.stage == "Ready" || progress.stage == "Downloaded") {
-                        android.util.Log.i("WiM", "Gemma model ${progress.stage}")
-                    }
-                }
-            }
-        }
+        // Gemma local reconstruction was retired April 24, 2026 — L2/L3 go
+        // straight to cloud GPT-4o now. GemmaEngine + downloader files remain
+        // dormant in case we ever revive a local-LLM path; nothing references
+        // them at runtime.
         // Restore user's dark mode preference, default to system
         val nightMode = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         AppCompatDelegate.setDefaultNightMode(nightMode)

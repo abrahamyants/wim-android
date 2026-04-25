@@ -114,6 +114,11 @@ class OnDeviceRecognizer(private val context: Context) {
 
         listenIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            // Force on-device recognition so this fallback path (only fires when
+            // Moonshine model isn't ready) doesn't quietly send audio to Google's
+            // cloud. Hint, not guarantee — but Google's TTS recognizer service
+            // honors it on Pixel and modern Samsung.
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, patienceMs)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, patienceMs)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, primaryLang)
