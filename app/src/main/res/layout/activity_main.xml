@@ -46,9 +46,10 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
 
-                <!-- Centered: WiM + What I Meant. The "WiM" text is the summon control —
-                     tap the gold letters to spawn/restore the floating bubble. Equalizer
-                     bars are NOT part of the tap target (they're decorative). -->
+                <!-- Centered: WiM + What I Meant. The "WiM" text is the summon
+                     control — tap the gold letters to spawn/restore the floating
+                     bubble. Equalizer placeholder is removed; reserved space for
+                     the real equalizer when the design lands. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -56,41 +57,19 @@
                     android:gravity="center_horizontal"
                     android:layout_gravity="center">
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/wimLogoSummon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <com.wim.app.OscilloscopeTraceView
-                            android:id="@+id/scopeLeft"
-                            android:layout_width="48dp"
-                            android:layout_height="28dp"
-                            android:layout_marginEnd="10dp"
-                            app:mirror="false" />
-
-                        <TextView
-                            android:id="@+id/wimLogoSummon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="WiM"
-                            android:textColor="#FFC8B48A"
-                            android:textSize="26sp"
-                            android:fontFamily="@font/limelight"
-                            android:letterSpacing="0.08"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:paddingStart="6dp"
-                            android:paddingEnd="6dp" />
-
-                        <com.wim.app.OscilloscopeTraceView
-                            android:id="@+id/scopeRight"
-                            android:layout_width="48dp"
-                            android:layout_height="28dp"
-                            android:layout_marginStart="10dp"
-                            app:mirror="true" />
-
-                    </LinearLayout>
+                        android:text="WiM"
+                        android:textColor="#FFC8B48A"
+                        android:textSize="26sp"
+                        android:fontFamily="@font/limelight"
+                        android:letterSpacing="0.08"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
