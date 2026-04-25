@@ -27,6 +27,13 @@ import org.json.JSONObject
  * v2 TODO: per-pattern toggle (user opts in/out of individual markers) and
  * normalize-vs-preserve mode (preserve = pack loaded but injected with a
  * different framing that asks the model to keep patterns as authentic voice).
+ *
+ * v2 TODO (l1-onset): per-L1 onset weights for the L4 clinical layer.
+ * Mandarin-L1 stutter onsets diverge from Russian-L1; currently both apps
+ * use English-only Howell weights regardless of the speaker's L1. Plug
+ * per-L1 onset files (e.g. l1_packs/russian_onsets.json) into
+ * ReconstructClient.kt's L4 block once literature is sourced. Mirrored
+ * TODO lives at lavrentiy.py reconstruct() at the top of `if layer >= 4`.
  */
 object L1PackHelper {
 
