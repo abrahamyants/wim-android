@@ -29,6 +29,7 @@ class BouncerActivity : AppCompatActivity() {
 
     private var hasAdvancedFromPermissions = false
     private var chosenTier = "free"
+    private var autoSendAcked = false
     private lateinit var limelight: Typeface
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,10 +106,38 @@ class BouncerActivity : AppCompatActivity() {
             showPage(R.id.pageRecon)
         }
         findViewById<View>(R.id.btnNextToFinal).setOnClickListener {
-            // Set Limelight font on final logo
+            showPage(R.id.pageAutoSend)
+        }
+
+        // Auto-send acknowledgment row — toggle the checkbox state, enable Next
+        // only after the user explicitly acknowledges. Clicking Next without
+        // the checkbox does nothing.
+        val ackRow = findViewById<LinearLayout>(R.id.autoSendAck)
+        val ackBox = findViewById<TextView>(R.id.autoSendCheck)
+        val nextBtn = findViewById<View>(R.id.btnAutoSendNext)
+        ackRow.setOnClickListener {
+            autoSendAcked = !autoSendAcked
+            if (autoSendAcked) {
+                ackBox.text = "☑"
+                ackBox.setTextColor(ContextCompat.getColor(this, R.color.green_active))
+                nextBtn.alpha = 1.0f
+            } else {
+                ackBox.text = "☐"
+                ackBox.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
+                nextBtn.alpha = 0.4f
+            }
+        }
+        nextBtn.setOnClickListener {
+            if (!autoSendAcked) return@setOnClickListener
+            // Bump the disclaimer count past the runtime threshold so the bubble
+            // skips the runtime confirmation popup entirely. The acknowledgment
+            // here is the only consent gate we need — tapping the green bubble
+            // is itself an explicit action.
+            WimApp.prefs.edit().putInt("auto_send_disclaimer_count", 99).apply()
             findViewById<TextView>(R.id.finalLogo).typeface = limelight
             showPage(R.id.pageFinal)
         }
+
         findViewById<View>(R.id.btnLaunchBubble).setOnClickListener {
             launchBubbleOnboarding()
         }
@@ -165,7 +194,7 @@ class BouncerActivity : AppCompatActivity() {
 
     private val allPages = listOf(
         R.id.pagePermissions, R.id.pageTier, R.id.pageTone,
-        R.id.pageBubble, R.id.pageRecon, R.id.pageFinal
+        R.id.pageBubble, R.id.pageRecon, R.id.pageAutoSend, R.id.pageFinal
     )
 
     private fun showPage(pageId: Int) {
@@ -198,7 +227,8 @@ class BouncerActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (currentPage()) {
-                    R.id.pageFinal -> showPage(R.id.pageRecon)
+                    R.id.pageFinal -> showPage(R.id.pageAutoSend)
+                    R.id.pageAutoSend -> showPage(R.id.pageRecon)
                     R.id.pageRecon -> showPage(R.id.pageBubble)
                     R.id.pageBubble -> showPage(if (chosenTier == "free") R.id.pageTier else R.id.pageTone)
                     R.id.pageTone -> showPage(R.id.pageTier)

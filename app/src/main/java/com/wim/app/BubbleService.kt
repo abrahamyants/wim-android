@@ -791,18 +791,11 @@ class BubbleService : Service() {
     }
 
     private fun handleSendConfirmTap() {
-        val count = WimApp.autoSendDisclaimerCount()
-        if (count < 3) {
-            showSendDisclaimer(
-                onConfirm = {
-                    WimApp.prefs.edit().putInt("auto_send_disclaimer_count", count + 1).apply()
-                    actuallySend()
-                },
-                onCancel = { setBubbleIdle() }
-            )
-        } else {
-            actuallySend()
-        }
+        // Auto-send consent is handled once at onboarding (BouncerActivity's
+        // pageAutoSend acknowledgment row sets auto_send_disclaimer_count to
+        // 99). No runtime popup — tapping the green bubble is itself the
+        // deliberate action. The 3.5 s green-bubble timeout is the cancel path.
+        actuallySend()
     }
 
     private fun actuallySend() {
