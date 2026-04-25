@@ -1718,3 +1718,36 @@ After the multilingual L4 merge documented above, the rest of the day was a per-
 - Backend Cloud Function on `bakers-agent` GCP still doesn't know about `language_code` (dead path now since multilingual is disabled client-side)
 - Worktree cleanup (`wim-android-l4-rewrite`, `wim-android-vosk` — branches merged, workspaces on disk)
 - Auto-send disclaimer overlay verification on a fresh install
+
+Session 13 — April 25, 2026 (Bubble menu redesign + Anthropic key rotation)
+===========================================================================
+
+UI rebuild of the bubble's overflow menu — speech-bubble shape with a downward tail pointing at the floating bubble, per-theme color matching the bubble bezel — plus an Anthropic key rotation forced by George disabling the previous key. Detailed play-by-play in `SESSION_LOG_2026-04-25.md`.
+
+### Key changes
+
+- **`CommentBubbleDrawable.kt` added** — custom `Drawable` rendering a rounded rectangle with a downward-pointing tail at bottom-center. Three palette presets (BRONZE / ALUMINUM / GUNMETAL) define `fill`, `stroke`, `primaryText`, `secondaryText`, `accent`, `sliderTrack` per theme. Code-built path (not a vector XML) so corner radius and tail proportions stay pixel-correct as menu height varies with content.
+- **Menu layout rewritten.** `bubble_menu.xml` lost `alpha="0.88"`, the `menu_bg` reference, and the 4-cell I/II/III/IV layer row. Width 220 → 240 dp to fit the new long button text. Layer selector is now 3 stacked full-width buttons: **Transcription / Reconstruction / Speech Disfluency Nuancing** mapped to layers 1/2/4 (L3 Profile dropped from menu, still reachable via Settings).
+- **`BubbleService.showMenu()` rewritten** to apply the per-theme `CommentBubbleDrawable`, tint sliders/switch via `ColorStateList.valueOf(palette.accent)`, and recolor every named label per palette role.
+- **Menu now follows the bubble.** New `updateMenuPositionFromBubble()` helper anchors the tail tip to the bubble's top center; hooked into the bubble drag `ACTION_MOVE` handler, `moveBubbleTo()` (the dock-pickup pipe), and the `parkIntoDock` `ValueAnimator` listener.
+- **Anthropic key rotated.** Old `sk-proj-`-prefixed key disabled by George; new `sk-ant-api03-` key set on the device pref via `WimTestReceiver` `set_pref` action and stored as `wim-anthropic-api-key` v1 in GCP Secret Manager on the `bakers-agent` project. No source edits — wim-android reads the key from SharedPreferences at runtime.
+
+### Files added / modified
+
+**New:** `app/src/main/java/com/wim/app/CommentBubbleDrawable.kt`, `SESSION_LOG_2026-04-25.md`.
+
+**Modified:** `app/src/main/res/layout/bubble_menu.xml`, `app/src/main/java/com/wim/app/BubbleService.kt`.
+
+### Wrong calls / corrections (this session)
+
+- **Read the wrong repo** when George said "go and read the code — engine and dashboard." Pattern-matched to Lavrentiy desktop and read 15,617 lines of the wrong codebase. Pivoted after pushback and read all 18,300+ lines of wim-android.
+- **7 minutes of over-planning** before writing the bubble menu file. George interrupted: "this is the simplest task. ? why????".
+- **Claimed the menu rebuild was "done" without on-device interaction.** Build + install ≠ feature works. George opened it; double-tap was broken; regression got logged instead of fixed.
+- **Grepped bakers-agent for the Anthropic key rotation.** WiM has nothing to do with bakers-agent's Pinterest/SEO files. George corrected: "just put the new key at wim related things — wjy are you checking pinterest idiot".
+
+### Punch list carried into next session
+
+- **REGRESSION: double-tap stopped opening the menu** after the speech-bubble redesign. First task next session — pull logcat at the moment of the double-tap, find what `showMenu()` is throwing or silently no-oping on.
+- Bubble menu visual checks not done: tail-tip alignment to the bubble's top edge, "Speech Disfluency Nuancing" wrap behavior at 11 sp on 240 dp width, theme-switch flicker (currently dismiss + re-show), bronze accent (`#8B0000`) legibility against bronze fill (palette colors chosen blind, not sampled from the bezel gradient).
+- **Cloud Function consuming `wim-anthropic-api-key` from Secret Manager.** Right now WiM hits Anthropic directly from the device using the local pref; the Secret Manager entry is just a backup-of-record. Per the architecture decision ("WiM signed-in is the only user path"), the production path should be: Google sign-in → Cloud Function → Cloud Function pulls from Secret Manager → Cloud Function calls `api.anthropic.com`. Server-side rotation then becomes a single `gcloud secrets versions add` instead of an adb broadcast.
+- All Session 12 carryover items (Whisper-1 multi-pass, L4 Sonnet end-to-end test, Cloud Function `language_code`, worktree cleanup, auto-send disclaimer verification) still open.
