@@ -300,18 +300,18 @@ class BubbleService : Service() {
                 val z = event.values[2]
                 val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
 
-                if (gForce > 2.5 && WimApp.prefs.getBoolean("shake_enabled", true)) {
+                if (gForce > 3.0 && WimApp.prefs.getBoolean("shake_enabled", true)) {
                     val now = System.currentTimeMillis()
-                    // A single physical shake oscillates the accelerometer
-                    // multiple times in 20-80ms. Debounce so only one of those
-                    // oscillations counts as a "shake" event. Without this, a
-                    // single jolt reads as 2+ shakes and fires the double-shake
-                    // toggle on what the user feels as one shake.
-                    if (now - lastShakeTime < 200) {
+                    // A single physical shake oscillates the accelerometer for
+                    // ~300-450ms with multiple peaks above the threshold.
+                    // Debounce 500ms so only the first peak of a single shake
+                    // counts; otherwise a single jolt reads as 2+ shakes and
+                    // fires the double-shake toggle on one wrist flick.
+                    if (now - lastShakeTime < 500) {
                         lastShakeTime = now
                         return
                     }
-                    if (now - lastShakeTime > 800) {
+                    if (now - lastShakeTime > 1200) {
                         shakeCount = 1
                     } else {
                         shakeCount++

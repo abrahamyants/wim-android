@@ -1208,7 +1208,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Shake to hide/show"
+                    android:text="Double shake to hide/show"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
