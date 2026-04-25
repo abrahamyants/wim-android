@@ -1868,6 +1868,14 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                             val cx = loc[0] + tapped.width / 2
                             val cy = loc[1] + tapped.height / 2
                             pickUpBubble(key, tapped, cx, cy)
+                        } else {
+                            // Drag finished — if the user released over any
+                            // dock slot, magnetic-snap the bubble into it.
+                            // Same-slot release re-parks (returns the bubble
+                            // to its original home). Different-slot release
+                            // both parks AND swaps the theme. Single-gesture
+                            // pickup-and-redock without lifting the finger.
+                            BubbleService.instance?.tryDockSnap()
                         }
                         true
                     }

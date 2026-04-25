@@ -1219,6 +1219,21 @@ class BubbleService : Service() {
     fun refreshBubbleTheme() = applyBubbleTheme()
 
     /**
+     * Public entry point for MainActivity's slot drag handler: at the end of
+     * a drag-out-from-slot gesture, check the bubble's current position
+     * against the published dock rects and park into whichever slot the
+     * user released over (if any). Lets the same single-gesture pickup
+     * become a re-dock without the user ever lifting and re-grabbing the
+     * bubble. Returns true if a park happened.
+     */
+    fun tryDockSnap(): Boolean {
+        val params = bubbleParams ?: return false
+        val snap = checkDockSnap(params) ?: return false
+        parkIntoDock(snap.first, snap.second, params)
+        return true
+    }
+
+    /**
      * Returns (theme, slot-center-point) if the bubble's current position
      * lands inside one of MainActivity's dock slot rects, else null. The
      * bubble's notional center is params.x + bubbleWidth/2 / params.y + bubbleHeight/2.
