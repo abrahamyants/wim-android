@@ -435,17 +435,12 @@ object ReconstructClient {
     /**
      * Falcon validation: binary meaning-preservation check.
      *
-     * Routing (April 24, 2026 evening):
-     *   - L4 with `anthropic_api_key` set → SKIPPED. Reconstruction ran on
-     *     Sonnet 4.6 with extended thinking, which self-validates during the
-     *     reasoning trace. Running a smaller-model Falcon afterward is
-     *     structurally weak ("smaller checks bigger"). Leak filter and length
-     *     guard (post-reconstruction, free regex/math) still run.
-     *   - L4 without Anthropic key → GPT-4o (Sonnet path didn't run, GPT-4o
-     *     doesn't reason before answering, so a separate validator helps).
-     *   - L2 / L3 with Anthropic key → Claude Haiku 4.5 (cross-provider QA,
-     *     ~0.4-0.8 s — faster than GPT and structurally a stronger check than
-     *     GPT-checking-itself).
+     * Routing:
+     *   - L4 → SKIPPED unconditionally. Sonnet 4.6 extended thinking self-validates
+     *     during reasoning. GPT-4o fallback (no Anthropic key) runs unvalidated by
+     *     design — same-provider Falcon is structurally weak. Leak filter + length
+     *     guard still run post-reconstruction.
+     *   - L2 / L3 with Anthropic key → Claude Haiku 4.5 (cross-provider QA, ~0.4-0.8 s).
      *   - L2 / L3 without Anthropic key → GPT-4o.
      *
      * Returns true on any error so a flaky validator never blocks reconstruction.
@@ -459,14 +454,12 @@ object ReconstructClient {
         languageCode: String = "en"
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            val anthropicKey = WimApp.anthropicApiKey()
-
-            // L4 + Sonnet path: skip Falcon entirely. Extended thinking already
-            // self-validated during reasoning. Saves ~1-2 s and ~$0.01 per L4 call.
-            if (layer >= 4 && anthropicKey.isNotBlank()) {
+            // L4: skip Falcon entirely. Sonnet ET self-validates; GPT-4o fallback runs unvalidated.
+            if (layer >= 4) {
                 return@withContext true
             }
 
+            val anthropicKey = WimApp.anthropicApiKey()
             val systemPrompt = buildFalconSystemPrompt(layer, tone, onsetWeights, languageCode)
             val userMessage = "Original: $rawText\nReconstruction: $cleanText"
             val openaiKey = WimApp.apiKey()

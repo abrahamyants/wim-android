@@ -1,246 +1,281 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Vintage hi-fi control plate.
+     Concept: the menu is the inside of the bubble's chassis pulled open.
+     - Layer / Reset / Settings = engraved nameplates
+     - Color picker = three tiny replicas of the bubble bezel itself
+     - Sliders = real fader knobs (vertical, on the side)
+     - Section labels = engraved panel titles
+     - Reset Timer + Settings flank the speech-bubble tail at the bottom -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/menuRoot"
-    android:layout_width="240dp"
+    android:layout_width="220dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:elevation="14dp"
     android:paddingStart="14dp"
-    android:paddingEnd="14dp"
+    android:paddingEnd="12dp"
     android:paddingTop="12dp"
     android:paddingBottom="22dp">
 
-    <!-- Opacity slider -->
+    <!-- TOP ROW: chips/colors on the left, vertical sliders on the right -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- LEFT COLUMN: nameplates + color picker -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Live transcript toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/menuLiveLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="LIVE"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.20" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/menuLiveToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- LAYER section label -->
+            <TextView
+                android:id="@+id/menuLayerLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="LAYER"
+                android:textSize="11sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:letterSpacing="0.30"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Layer engraved nameplates -->
+            <TextView
+                android:id="@+id/menuLayer1"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:text="TRANSCRIPTION"
+                android:textSize="10sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.18"
+                android:background="@drawable/nameplate_bg"
+                android:layout_marginBottom="3dp" />
+
+            <TextView
+                android:id="@+id/menuLayer2"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:text="RECONSTRUCTION"
+                android:textSize="10sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.16"
+                android:background="@drawable/nameplate_bg"
+                android:layout_marginBottom="3dp" />
+
+            <TextView
+                android:id="@+id/menuLayer4"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:text="DISFLUENCY"
+                android:textSize="10sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.20"
+                android:background="@drawable/nameplate_bg"
+                android:layout_marginBottom="12dp" />
+
+            <!-- COLOR section label -->
+            <TextView
+                android:id="@+id/menuColorLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="COLOR"
+                android:textSize="11sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:letterSpacing="0.30"
+                android:layout_marginBottom="6dp" />
+
+            <!-- Color picker = 3 mini bubble-bezel replicas -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <View
+                    android:id="@+id/menuThemeBronze"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/color_indicator_bronze"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="Bronze" />
+                <View
+                    android:id="@+id/menuThemeAluminum"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/color_indicator_silver"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="Silver" />
+                <View
+                    android:id="@+id/menuThemeGunmetal"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/color_indicator_gold"
+                    android:contentDescription="Gold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- RIGHT COLUMN: vertical fader sliders -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:layout_marginStart="10dp"
+            android:gravity="top">
+
+            <!-- Opacity fader -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/menuOpacityLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="OP"
+                    android:textSize="9sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.20"
+                    android:layout_marginBottom="2dp" />
+
+                <com.wim.app.VerticalSeekBar
+                    android:id="@+id/menuOpacitySeek"
+                    android:layout_width="26dp"
+                    android:layout_height="170dp"
+                    android:min="20"
+                    android:max="100"
+                    android:progress="70"
+                    android:thumb="@drawable/fader_thumb"
+                    android:splitTrack="false"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp" />
+
+                <TextView
+                    android:id="@+id/menuOpacityValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="70"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:layout_marginTop="0dp" />
+            </LinearLayout>
+
+            <!-- Size fader -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:layout_marginStart="2dp">
+
+                <TextView
+                    android:id="@+id/menuSizeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SZ"
+                    android:textSize="9sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.20"
+                    android:layout_marginBottom="2dp" />
+
+                <com.wim.app.VerticalSeekBar
+                    android:id="@+id/menuSizeSeek"
+                    android:layout_width="26dp"
+                    android:layout_height="170dp"
+                    android:min="70"
+                    android:max="150"
+                    android:progress="110"
+                    android:thumb="@drawable/fader_thumb"
+                    android:splitTrack="false"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp" />
+
+                <TextView
+                    android:id="@+id/menuSizeValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="110"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:layout_marginTop="0dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- BOTTOM ROW: Reset Timer (left) + tail-gap + Settings (right).
+         The speech-bubble tail emerges between them at the bottom-center,
+         visually separating the two tertiary actions. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="4dp">
+        android:layout_marginTop="10dp">
 
         <TextView
-            android:id="@+id/menuOpacityLabel"
+            android:id="@+id/menuResetTimer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Opacity"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
+            android:text="RESET TIMER"
+            android:textSize="11sp"
+            android:fontFamily="@font/josefin_sans"
             android:textStyle="bold"
-            android:layout_marginEnd="6dp"
-            android:minWidth="56dp" />
+            android:letterSpacing="0.18"
+            android:padding="4dp" />
 
-        <SeekBar
-            android:id="@+id/menuOpacitySeek"
+        <Space
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:min="20"
-            android:max="100"
-            android:progress="70" />
+            android:layout_height="0dp" />
 
         <TextView
-            android:id="@+id/menuOpacityValue"
+            android:id="@+id/menuOpenSettings"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="70%"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
+            android:text="SETTINGS"
+            android:textSize="11sp"
+            android:fontFamily="@font/josefin_sans"
             android:textStyle="bold"
-            android:layout_marginStart="4dp"
-            android:minWidth="34dp"
-            android:gravity="end" />
+            android:letterSpacing="0.22"
+            android:padding="4dp" />
     </LinearLayout>
-
-    <!-- Size slider -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="4dp">
-
-        <TextView
-            android:id="@+id/menuSizeLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Size"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:layout_marginEnd="6dp"
-            android:minWidth="56dp" />
-
-        <SeekBar
-            android:id="@+id/menuSizeSeek"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:min="70"
-            android:max="150"
-            android:progress="110" />
-
-        <TextView
-            android:id="@+id/menuSizeValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="110%"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:layout_marginStart="4dp"
-            android:minWidth="34dp"
-            android:gravity="end" />
-    </LinearLayout>
-
-    <!-- Live transcript toggle -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
-
-        <TextView
-            android:id="@+id/menuLiveLabel"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Live transcribe"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold" />
-
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/menuLiveToggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
-
-    <!-- Layer selector — vertical stack: Transcription / Reconstruction / Speech Disfluency Nuancing -->
-    <TextView
-        android:id="@+id/menuLayerLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Layer"
-        android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:layout_marginBottom="2dp" />
-
-    <TextView
-        android:id="@+id/menuLayer1"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:text="Transcription"
-        android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
-        android:gravity="center" />
-
-    <TextView
-        android:id="@+id/menuLayer2"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:text="Reconstruction"
-        android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
-        android:gravity="center" />
-
-    <TextView
-        android:id="@+id/menuLayer4"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:text="Speech Disfluency Nuancing"
-        android:textSize="11sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:letterSpacing="0.06"
-        android:gravity="center"
-        android:layout_marginBottom="6dp" />
-
-    <!-- Bubble color -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
-
-        <TextView
-            android:id="@+id/menuColorLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Color"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:layout_marginEnd="6dp"
-            android:minWidth="56dp" />
-
-        <TextView
-            android:id="@+id/menuThemeBronze"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="24dp"
-            android:text="Bronze"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:gravity="center" />
-        <TextView
-            android:id="@+id/menuThemeAluminum"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="24dp"
-            android:text="Silver"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:gravity="center" />
-        <TextView
-            android:id="@+id/menuThemeGunmetal"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="24dp"
-            android:text="Gunmetal"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:gravity="center" />
-    </LinearLayout>
-
-    <!-- Divider -->
-    <View
-        android:id="@+id/menuDivider"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginBottom="4dp" />
-
-    <!-- Reset Timer -->
-    <TextView
-        android:id="@+id/menuResetTimer"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:text="Reset Timer"
-        android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
-        android:gravity="center" />
-
-    <!-- Open Settings -->
-    <TextView
-        android:id="@+id/menuOpenSettings"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:text="Settings"
-        android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
-        android:gravity="center" />
-
 </LinearLayout>

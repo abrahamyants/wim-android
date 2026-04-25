@@ -1814,27 +1814,42 @@ class BubbleService : Service() {
         menuView!!.background = CommentBubbleDrawable(
             fillColor = palette.fill,
             strokeColor = palette.stroke,
-            displayMetrics = resources.displayMetrics
+            displayMetrics = resources.displayMetrics,
+            backgroundStyle = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
         )
 
-        // Apply palette to text views
+        // On-FILL text color (section labels, slider labels/values, Reset, Settings)
+        // adapts per theme so it stays readable against the menu surface:
+        //   Bronze hex / Silver hex → dark grey
+        //   Gunmetal carbon weave   → brand cream
+        // Chips (engraved nameplates) have their own dark background, so chip
+        // text stays brand cream universally regardless of theme.
+        val brandCream = 0xFFC8B48A.toInt()
+        val brandCreamBright = 0xFFE6D4B0.toInt()
+        val onFillText = when (WimApp.bubbleTheme()) {
+            "gunmetal" -> brandCream
+            "bronze" -> 0xFF1F1208.toInt()    // deep brown — strong contrast on bronze hex
+            else -> 0xFF0A0A12.toInt()        // near-black — strong contrast on silver hex
+        }
+        val onFillTextBright = when (WimApp.bubbleTheme()) {
+            "gunmetal" -> brandCreamBright
+            else -> 0xFF000000.toInt()        // pure black for slider values
+        }
         fun colorAs(id: Int, color: Int) {
             menuView!!.findViewById<TextView>(id)?.setTextColor(color)
         }
-        colorAs(R.id.menuOpacityLabel, palette.secondaryText)
-        colorAs(R.id.menuOpacityValue, palette.primaryText)
-        colorAs(R.id.menuSizeLabel, palette.secondaryText)
-        colorAs(R.id.menuSizeValue, palette.primaryText)
-        colorAs(R.id.menuLiveLabel, palette.secondaryText)
-        colorAs(R.id.menuLayerLabel, palette.secondaryText)
-        colorAs(R.id.menuColorLabel, palette.secondaryText)
-        colorAs(R.id.menuResetTimer, palette.secondaryText)
-        colorAs(R.id.menuOpenSettings, palette.accent)
-
-        // Divider — translucent secondaryText
-        menuView!!.findViewById<View>(R.id.menuDivider)?.setBackgroundColor(
-            (palette.secondaryText and 0x00FFFFFF.toInt()) or 0x33000000.toInt()
-        )
+        // Section labels — sit on the menu fill
+        colorAs(R.id.menuLiveLabel, onFillText)
+        colorAs(R.id.menuLayerLabel, onFillText)
+        colorAs(R.id.menuColorLabel, onFillText)
+        // Slider mini-labels (OP / SZ) + bottom value readouts
+        colorAs(R.id.menuOpacityLabel, onFillText)
+        colorAs(R.id.menuOpacityValue, onFillTextBright)
+        colorAs(R.id.menuSizeLabel, onFillText)
+        colorAs(R.id.menuSizeValue, onFillTextBright)
+        // Reset Timer + Settings — wrapper-less, sit on the menu fill
+        colorAs(R.id.menuResetTimer, onFillText)
+        colorAs(R.id.menuOpenSettings, onFillTextBright)
 
         val mParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -1861,7 +1876,7 @@ class BubbleService : Service() {
         val opacitySeek = menuView!!.findViewById<SeekBar>(R.id.menuOpacitySeek)
         val opacityValue = menuView!!.findViewById<TextView>(R.id.menuOpacityValue)
         opacitySeek.progress = opacity
-        opacityValue.text = "$opacity%"
+        opacityValue.text = "$opacity"
         opacitySeek.thumbTintList = accentTint
         opacitySeek.progressTintList = accentTint
         opacitySeek.progressBackgroundTintList = trackTint
@@ -1869,7 +1884,7 @@ class BubbleService : Service() {
         opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val pct = progress.coerceIn(20, 100)
-                opacityValue.text = "$pct%"
+                opacityValue.text = "$pct"
                 WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
                 updateBubbleAppearance()
             }
@@ -1880,7 +1895,7 @@ class BubbleService : Service() {
         val sizeSeek = menuView!!.findViewById<SeekBar>(R.id.menuSizeSeek)
         val sizeValue = menuView!!.findViewById<TextView>(R.id.menuSizeValue)
         sizeSeek.progress = size
-        sizeValue.text = "$size%"
+        sizeValue.text = "$size"
         sizeSeek.thumbTintList = accentTint
         sizeSeek.progressTintList = accentTint
         sizeSeek.progressBackgroundTintList = trackTint
@@ -1888,7 +1903,7 @@ class BubbleService : Service() {
         sizeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val pct = progress.coerceIn(70, 150)
-                sizeValue.text = "$pct%"
+                sizeValue.text = "$pct"
                 WimApp.prefs.edit().putInt("bubble_size", pct).apply()
                 updateBubbleAppearance()
                 // Bubble grew/shrank — re-anchor menu tail to new bubble top
@@ -1919,32 +1934,39 @@ class BubbleService : Service() {
             R.id.menuLayer4 to 4
         ).map { (id, layerVal) -> menuView!!.findViewById<TextView>(id) to layerVal }
         val currentLayer = WimApp.layer()
+        // Engraved nameplate chips use the state_selected layer of nameplate_bg
+        // for the active visual (maroon fill + cream highlight border). Text
+        // brightens to brandCreamBright when active.
         layerEntries.forEach { (btn, layerVal) ->
-            btn.setTextColor(if (layerVal == currentLayer) palette.accent else palette.secondaryText)
+            val isActive = layerVal == currentLayer
+            btn.isSelected = isActive
+            btn.setTextColor(if (isActive) brandCreamBright else brandCream)
             btn.setOnClickListener {
                 WimApp.prefs.edit().putInt("layer", layerVal).apply()
-                layerEntries.forEach { (b, _) -> b.setTextColor(palette.secondaryText) }
-                btn.setTextColor(palette.accent)
+                layerEntries.forEach { (b, _) ->
+                    b.isSelected = false
+                    b.setTextColor(brandCream)
+                }
+                btn.isSelected = true
+                btn.setTextColor(brandCreamBright)
                 updateIdleDisplay()
             }
         }
 
-        // Bubble color selector — bronze (default) / aluminum / gunmetal
+        // Bubble color picker — three tiny replicas of the bubble bezel itself.
+        // Selecting one literally swaps the floating bubble's metal. The selector
+        // drawables flip to a cream glow ring on state_selected.
         val themeBtns = mapOf(
-            "bronze" to menuView!!.findViewById<TextView>(R.id.menuThemeBronze),
-            "aluminum" to menuView!!.findViewById<TextView>(R.id.menuThemeAluminum),
-            "gunmetal" to menuView!!.findViewById<TextView>(R.id.menuThemeGunmetal)
+            "bronze" to menuView!!.findViewById<View>(R.id.menuThemeBronze),
+            "aluminum" to menuView!!.findViewById<View>(R.id.menuThemeAluminum),
+            "gunmetal" to menuView!!.findViewById<View>(R.id.menuThemeGunmetal)
         )
         val currentTheme = WimApp.bubbleTheme()
         themeBtns.forEach { (themeKey, btn) ->
-            btn.setTextColor(
-                if (themeKey == currentTheme) palette.accent
-                else palette.secondaryText
-            )
+            btn.isSelected = (themeKey == currentTheme)
             btn.setOnClickListener {
                 WimApp.prefs.edit().putString("bubble_theme", themeKey).apply()
                 applyBubbleTheme()
-                // Re-render menu in the new palette without losing the open state
                 dismissMenu()
                 showMenu()
             }
@@ -1975,9 +1997,30 @@ class BubbleService : Service() {
             }
         }
 
+        // Measure the menu synchronously so initial x/y land on the bubble's
+        // top-center before the first frame renders. With OVERLAY windows
+        // post-layout positioning fires unreliably; without this the menu
+        // ends up at (0,0) — behind the status bar — and looks like it
+        // didn't open at all.
+        menuView!!.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val mW0 = menuView!!.measuredWidth
+        val mH0 = menuView!!.measuredHeight
+        val bp0 = bubbleParams
+        val bv0 = bubbleView
+        if (bp0 != null && bv0 != null && mW0 > 0 && mH0 > 0) {
+            val bubbleWidth = if (bp0.width > 0) bp0.width else bv0.width
+            val bubbleHeight = if (bp0.height > 0) bp0.height else bv0.height
+            val bezelTopOffset = (bubbleHeight * 0.20).toInt()
+            val tailOverlap = (4 * resources.displayMetrics.density).toInt()
+            mParams.x = bp0.x + bubbleWidth / 2 - mW0 / 2
+            mParams.y = bp0.y - mH0 + bezelTopOffset + tailOverlap
+        }
+
         windowManager?.addView(menuView, mParams)
-        // Width/height are 0 until Android lays the view out — defer real
-        // positioning to the first layout pass so bubble-relative math works.
+        // Refine after final layout in case wrap_content settled differently.
         menuView!!.post { updateMenuPositionFromBubble() }
     }
 
@@ -1998,10 +2041,17 @@ class BubbleService : Service() {
         if (mWidth == 0 || mHeight == 0) return
         // Prefer params.width — bv.width can lag a frame after a size change
         val bubbleWidth = if (bp.width > 0) bp.width else bv.width
+        val bubbleHeight = if (bp.height > 0) bp.height else bv.height
         val bubbleCenterX = bp.x + bubbleWidth / 2
         val bubbleTop = bp.y
+        // Bubble window is 120dp; visible bezel inside is 72dp centered → ~20% top
+        // padding before the bezel. Push menu down by that padding so the tail tip
+        // lands ON the bezel circle, not the invisible window edge above it. Plus
+        // a small overlap so the tail visually merges into the bezel.
+        val bezelTopOffset = (bubbleHeight * 0.20).toInt()
+        val tailOverlap = (4 * resources.displayMetrics.density).toInt()
         mParams.x = bubbleCenterX - mWidth / 2
-        mParams.y = bubbleTop - mHeight
+        mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
         try { windowManager?.updateViewLayout(mView, mParams) } catch (_: Exception) {}
     }
 
@@ -2024,9 +2074,11 @@ class BubbleService : Service() {
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding(20, 12, 20, 12)
+            // Grow as you speak: starts at 1 line, expands up to 3, no truncation.
+            minLines = 1
             maxLines = 3
-            ellipsize = android.text.TextUtils.TruncateAt.END
-            text = "..."
+            ellipsize = null
+            text = ""
         }
         liveTextView = tv
 
@@ -2049,7 +2101,7 @@ class BubbleService : Service() {
     }
 
     private fun updateLiveTranscript(text: String) {
-        liveTextView?.text = text.ifBlank { "..." }
+        liveTextView?.text = text
     }
 
     fun showPipelineStage(stage: String, detail: String) {
@@ -2062,8 +2114,9 @@ class BubbleService : Service() {
                 textSize = 12f
                 typeface = android.graphics.Typeface.MONOSPACE
                 setPadding(20, 12, 20, 12)
+                minLines = 1
                 maxLines = 3
-                ellipsize = android.text.TextUtils.TruncateAt.END
+                ellipsize = null
             }
             liveTextView = tv
             val ltParams = WindowManager.LayoutParams(

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Engraved nameplate — selector for layer/button chips. Default = recessed
+     dark plate. Active = warm copper-gold filled with cream highlight border
+     (the WiM brand combo). Both have a subtle top highlight and bottom shadow
+     line to read as raised/inset metal. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:startColor="#FF7A1F1F"
+                        android:centerColor="#FF5C1414"
+                        android:endColor="#FF3A0A0A"
+                        android:angle="270" />
+                    <corners android:radius="3dp" />
+                    <stroke android:width="1dp" android:color="#FFC8B48A" />
+                </shape>
+            </item>
+            <!-- Inner top highlight line for raised feel -->
+            <item android:top="1dp" android:left="2dp" android:right="2dp" android:bottom="22dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#33FFE6C8" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:startColor="#FF1E1E22"
+                        android:centerColor="#FF14141A"
+                        android:endColor="#FF0A0A10"
+                        android:angle="270" />
+                    <corners android:radius="3dp" />
+                    <stroke android:width="0.5dp" android:color="#33C8B48A" />
+                </shape>
+            </item>
+            <!-- Top edge highlight (engraved-into-metal feel) -->
+            <item android:top="1dp" android:left="3dp" android:right="3dp" android:bottom="23dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#1AFFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

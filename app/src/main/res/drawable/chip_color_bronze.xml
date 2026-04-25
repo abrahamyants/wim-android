@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Color picker pill — bronze. state_selected = active (thicker cream outline) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FFE0A35E"
+                android:centerColor="#FFCD7F32"
+                android:endColor="#FF8B4513"
+                android:angle="135" />
+            <corners android:radius="20dp" />
+            <stroke android:width="2dp" android:color="#FFF0E8D8" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FFE0A35E"
+                android:centerColor="#FFCD7F32"
+                android:endColor="#FF8B4513"
+                android:angle="135" />
+            <corners android:radius="20dp" />
+            <stroke android:width="1dp" android:color="#FFB55050" />
+        </shape>
+    </item>
+</selector>

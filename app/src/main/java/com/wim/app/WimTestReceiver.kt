@@ -84,6 +84,20 @@ class WimTestReceiver : BroadcastReceiver() {
                 "toggle_daf"        -> handleToggleDaf(context, intent)
                 "dump_a11y_tree"    -> handleDumpA11yTree(context)
                 "clear_sessions"    -> handleClearSessions(context)
+                "live_show"         -> {
+                    // Test-only: force the live transcript bar visible with arbitrary
+                    // text so the layout can be verified without speech input.
+                    val text = intent.getStringExtra("text") ?: "test"
+                    val bubble = BubbleService.instance
+                    if (bubble == null) {
+                        writeResult(context, JSONObject().put("error", "BubbleService not running"))
+                    } else {
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            bubble.showPipelineStage("LIVE", text)
+                        }
+                        writeResult(context, JSONObject().put("status", "ok"))
+                    }
+                }
                 "click_send"        -> {
                     // Test-only entry to fire the auto-send click directly,
                     // bypassing the bubble. Returns status so we can verify

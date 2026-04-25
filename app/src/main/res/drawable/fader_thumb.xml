@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Square fader thumb for vertical sliders. Matches the toggle-style square
+     pads used elsewhere in the bubble menu. Width/height are interpreted in
+     pre-rotation frame (the SeekBar rotates the CANVAS, not the drawable's
+     intrinsic dimensions) — a square shape stays square through rotation. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Square knob body -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FFE0D4B0"
+                android:centerColor="#FFC8B48A"
+                android:endColor="#FF8A7656"
+                android:angle="270" />
+            <corners android:radius="3dp" />
+            <stroke android:width="0.7dp" android:color="#FF1A0F08" />
+            <size android:width="20dp" android:height="20dp" />
+        </shape>
+    </item>
+    <!-- Center indicator line (2dp band at vertical middle of 20dp thumb) -->
+    <item android:top="9dp" android:bottom="9dp" android:left="3dp" android:right="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFB55050" />
+        </shape>
+    </item>
+    <!-- Top highlight strip (3dp band at top of 20dp thumb) -->
+    <item android:top="2dp" android:bottom="15dp" android:left="3dp" android:right="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#66FFFFFF" />
+        </shape>
+    </item>
+</layer-list>
