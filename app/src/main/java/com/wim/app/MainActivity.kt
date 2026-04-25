@@ -1227,6 +1227,72 @@ class MainActivity : AppCompatActivity() {
     // ── Guide — inline collapsible section ──────────
 
     /**
+     * Render a static, non-interactive copy of the floating bubble
+     * (`bubble.xml`) for use in Guide cards. Scales the 120dp layout to
+     * the requested size, applies the chosen theme's bezel + knob drawables,
+     * sets the label text and (optionally) color. Touch handling is
+     * stripped — these are purely visual.
+     *
+     * @param theme  "bronze" | "aluminum" | "gunmetal"
+     * @param label  "IDLE" / "REC" / "PROC" / "SEND" / etc.
+     * @param labelColor optional ARGB int; defaults to a state-appropriate color when null
+     * @param scale  fraction of the original 120dp (0.45f → ~54dp wide)
+     */
+    private fun makeBubblePreview(
+        theme: String,
+        label: String,
+        labelColor: Int? = null,
+        scale: Float = 0.6f,
+    ): android.view.View {
+        val dp = resources.displayMetrics.density
+        val sizePx = (120 * dp * scale).toInt()
+        val container = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
+        }
+        try {
+            val bubble = layoutInflater.inflate(R.layout.bubble, container, false)
+            bubble.layoutParams = FrameLayout.LayoutParams(
+                (120 * dp).toInt(), (120 * dp).toInt(),
+                android.view.Gravity.CENTER,
+            )
+            bubble.scaleX = scale
+            bubble.scaleY = scale
+            bubble.isClickable = false
+            bubble.isFocusable = false
+            val bezelDrawable = when (theme) {
+                "aluminum" -> R.drawable.bubble_bezel_aluminum
+                "gunmetal" -> R.drawable.bubble_bezel_gunmetal
+                else -> R.drawable.bubble_bg_idle
+            }
+            val knobDrawable = when (theme) {
+                "aluminum" -> R.drawable.bubble_knob_aluminum
+                "gunmetal" -> R.drawable.bubble_knob_gunmetal
+                else -> R.drawable.bubble_inner_knob
+            }
+            bubble.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
+            bubble.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
+            bubble.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+                text = label
+                val resolvedColor = labelColor ?: when (label) {
+                    "REC" -> 0xFFFF6B6B.toInt()
+                    "PROC" -> 0xFFFFB74D.toInt()
+                    "SEND" -> 0xFF5AD15F.toInt()
+                    else -> if (theme == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+                }
+                setTextColor(resolvedColor)
+            }
+            container.addView(bubble)
+        } catch (_: Exception) {
+            container.addView(TextView(this).apply {
+                text = "(preview)"
+                setTextColor(0xFF888888.toInt())
+                textSize = 9f
+            })
+        }
+        return container
+    }
+
+    /**
      * Build the in-app Guide. Each section is a collapsible card with a
      * title + subtitle header and an HTML body that toggles on tap. Some
      * cards also embed a real visual: the "Bubble" card inflates the
@@ -1251,6 +1317,49 @@ class MainActivity : AppCompatActivity() {
             val visual: (() -> android.view.View)? = null,
         )
 
+        // Helper: build a horizontal row of bubble previews with optional caption labels.
+        fun bubbleRow(
+            previews: List<Pair<android.view.View, String?>>,
+            scaleHint: Float = 0.6f,
+        ): android.view.View {
+            val sizePx = (120 * dp * scaleHint).toInt()
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = (10 * dp).toInt()
+                    bottomMargin = (4 * dp).toInt()
+                }
+            }
+            previews.forEachIndexed { i, (preview, caption) ->
+                val cell = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        sizePx, LinearLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        if (i > 0) marginStart = (8 * dp).toInt()
+                    }
+                }
+                cell.addView(preview)
+                if (!caption.isNullOrBlank()) {
+                    cell.addView(TextView(this).apply {
+                        text = caption
+                        setTextColor(dimColor)
+                        textSize = 9f
+                        typeface = android.graphics.Typeface.MONOSPACE
+                        gravity = android.view.Gravity.CENTER
+                        setPadding(0, (4 * dp).toInt(), 0, 0)
+                    })
+                }
+                row.addView(cell)
+            }
+            return row
+        }
+
         val sections = listOf(
             GuideSection(
                 "What happens when you tap",
@@ -1271,7 +1380,22 @@ class MainActivity : AppCompatActivity() {
 &#8226; LLM leak guard: catches "I'm sorry, I can't help" responses.<br>
 &#8226; Length guard: if AI output is more than 2.5&#215; the input length, it fabricated &#8212; we use the cleaned raw text instead.<br><br>
 <b>6. Paste.</b><br>The final text is injected into the app you're in via Android's accessibility service.<br><br>
-<b>7. Learning (L3+).</b><br>After WiM sees the same correction 3 times, it auto-adds it to your profile. Over time L1 and L3 get smarter for you specifically."""
+<b>7. Learning (L3+).</b><br>After WiM sees the same correction 3 times, it auto-adds it to your profile. Over time L1 and L3 get smarter for you specifically.""",
+                visual = {
+                    // The bubble's life cycle — what you see on screen as the
+                    // pipeline runs. Same theme as the user's selection so it
+                    // matches the bubble they're looking at every day.
+                    val theme = WimApp.bubbleTheme()
+                    bubbleRow(
+                        listOf(
+                            makeBubblePreview(theme, "IDLE", scale = 0.45f) to "1. tap",
+                            makeBubblePreview(theme, "REC", scale = 0.45f) to "2. speak",
+                            makeBubblePreview(theme, "PROC", scale = 0.45f) to "3. process",
+                            makeBubblePreview(theme, "SEND", scale = 0.45f) to "4. tap to send",
+                        ),
+                        scaleHint = 0.45f,
+                    )
+                },
             ),
 
             GuideSection(
@@ -1285,48 +1409,11 @@ class MainActivity : AppCompatActivity() {
 <b>Double shake the phone</b> &#8212; Show or hide the bubble.<br><br>
 <b>States:</b> IDLE (resting) &#8226; REC (recording) &#8226; PROC (processing) &#8226; SEND (auto-send ready, green).""",
                 visual = {
-                    // Inflate the actual bubble layout so the user sees the
-                    // exact control with the exact theme they have selected.
-                    val container = FrameLayout(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            (130 * dp).toInt(),
-                        ).apply { topMargin = (8 * dp).toInt() }
-                    }
-                    try {
-                        val bubble = layoutInflater.inflate(R.layout.bubble, container, false)
-                        // Sit it center, no touch handling — purely visual.
-                        bubble.layoutParams = FrameLayout.LayoutParams(
-                            (120 * dp).toInt(), (120 * dp).toInt(),
-                            android.view.Gravity.CENTER,
-                        )
-                        bubble.isClickable = false
-                        bubble.isFocusable = false
-                        // Apply the user's theme so this matches their bubble.
-                        val theme = WimApp.bubbleTheme()
-                        val bezelDrawable = when (theme) {
-                            "aluminum" -> R.drawable.bubble_bezel_aluminum
-                            "gunmetal" -> R.drawable.bubble_bezel_gunmetal
-                            else -> R.drawable.bubble_bg_idle
-                        }
-                        val knobDrawable = when (theme) {
-                            "aluminum" -> R.drawable.bubble_knob_aluminum
-                            "gunmetal" -> R.drawable.bubble_knob_gunmetal
-                            else -> R.drawable.bubble_inner_knob
-                        }
-                        bubble.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
-                        bubble.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
-                        bubble.findViewById<TextView>(R.id.bubbleLabel)?.text = "IDLE"
-                        container.addView(bubble)
-                    } catch (e: Exception) {
-                        // If inflation fails, fall back to a tiny note rather than crashing the guide.
-                        container.addView(TextView(this).apply {
-                            text = "(bubble preview unavailable)"
-                            setTextColor(dimColor)
-                            textSize = 10f
-                        })
-                    }
-                    container
+                    val theme = WimApp.bubbleTheme()
+                    bubbleRow(
+                        listOf(makeBubblePreview(theme, "IDLE", scale = 0.85f) to "your bubble"),
+                        scaleHint = 0.85f,
+                    )
                 },
             ),
 
@@ -1336,8 +1423,17 @@ class MainActivity : AppCompatActivity() {
                 """Three bubble color variants &#8212; <b>Bronze</b>, <b>Aluminum</b>, <b>Gunmetal</b> &#8212; live in the dock at the bottom of this screen, between the Guide and your profile.<br><br>
 <b>Pick one:</b> press a slot. The bubble appears at your finger.<br>
 <b>Drag it out:</b> hold and drag &#8212; the floating bubble follows.<br>
-<b>Magnetic dock-back:</b> drop the bubble over any slot, it snaps in. Drop on a different slot and the theme switches.<br><br>
-The current bubble's theme is what you see in the preview above."""
+<b>Magnetic dock-back:</b> drop the bubble over any slot, it snaps in. Drop on a different slot and the theme switches.""",
+                visual = {
+                    bubbleRow(
+                        listOf(
+                            makeBubblePreview("bronze", "IDLE", scale = 0.55f) to "bronze",
+                            makeBubblePreview("aluminum", "IDLE", scale = 0.55f) to "aluminum",
+                            makeBubblePreview("gunmetal", "IDLE", scale = 0.55f) to "gunmetal",
+                        ),
+                        scaleHint = 0.55f,
+                    )
+                },
             ),
 
             GuideSection(
@@ -1367,7 +1463,14 @@ You can override anywhere: <b>Settings &#8594; Tone</b>. Two tones: Casual and P
 &#8226; Tap the green bubble &#8212; WiM clicks the app's Send button for you.<br>
 &#8226; Don't tap, or wait 3 seconds, or tap outside &#8212; auto-send cancels and you can edit the text first.<br><br>
 Works in Google Messages, Samsung Messages, Gmail, WhatsApp, Telegram, Signal, and more.<br><br>
-Turn off in <b>Settings &#8594; Auto-send</b>."""
+Turn off in <b>Settings &#8594; Auto-send</b>.""",
+                visual = {
+                    val theme = WimApp.bubbleTheme()
+                    bubbleRow(
+                        listOf(makeBubblePreview(theme, "SEND", scale = 0.85f) to "tap to send"),
+                        scaleHint = 0.85f,
+                    )
+                },
             ),
 
             GuideSection(
