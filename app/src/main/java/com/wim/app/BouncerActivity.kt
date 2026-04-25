@@ -63,12 +63,13 @@ class BouncerActivity : AppCompatActivity() {
             }
         }
 
-        // Tier choice handlers
-        // Tier choice handlers
+        // Tier choice handlers — onboarding never writes the `layer` pref. The
+        // post-onboarding default is L1 (WimApp.layer() falls back to 1). The
+        // user opts into higher layers via the layer buttons on MainActivity
+        // when they're ready. Tone preferences ARE saved here.
         findViewById<LinearLayout>(R.id.optionFree).setOnClickListener {
             chosenTier = "free"
             WimApp.prefs.edit()
-                .putInt("layer", 1)
                 .putString("tone", "casual")
                 .apply()
             showPage(R.id.pageBubble)
@@ -81,21 +82,18 @@ class BouncerActivity : AppCompatActivity() {
         // Tone choice handlers
         findViewById<LinearLayout>(R.id.optionWork).setOnClickListener {
             WimApp.prefs.edit()
-                .putInt("layer", 4)
                 .putString("tone", "professional")
                 .apply()
             showPage(R.id.pageBubble)
         }
         findViewById<LinearLayout>(R.id.optionPersonal).setOnClickListener {
             WimApp.prefs.edit()
-                .putInt("layer", 4)
                 .putString("tone", "casual")
                 .apply()
             showPage(R.id.pageBubble)
         }
         findViewById<LinearLayout>(R.id.optionBoth).setOnClickListener {
             WimApp.prefs.edit()
-                .putInt("layer", 4)
                 .putString("tone", "casual")
                 .apply()
             showPage(R.id.pageBubble)
@@ -109,31 +107,35 @@ class BouncerActivity : AppCompatActivity() {
             showPage(R.id.pageAutoSend)
         }
 
-        // Auto-send acknowledgment row — toggle the checkbox state, enable Next
-        // only after the user explicitly acknowledges. Clicking Next without
-        // the checkbox does nothing.
+        // Auto-send acknowledgment row — checkbox = single consent gate. If
+        // the user ticks it, auto-send is enabled and the runtime popup
+        // disclaimer is permanently dismissed. Skipping (Next without tick)
+        // leaves auto-send off — they can still turn it on later in Settings.
+        // Next is always enabled; the checkbox is optional, not a gate.
         val ackRow = findViewById<LinearLayout>(R.id.autoSendAck)
         val ackBox = findViewById<TextView>(R.id.autoSendCheck)
         val nextBtn = findViewById<View>(R.id.btnAutoSendNext)
+        nextBtn.alpha = 1.0f // optional consent — Next always actionable
         ackRow.setOnClickListener {
             autoSendAcked = !autoSendAcked
             if (autoSendAcked) {
                 ackBox.text = "☑"
                 ackBox.setTextColor(ContextCompat.getColor(this, R.color.green_active))
-                nextBtn.alpha = 1.0f
             } else {
                 ackBox.text = "☐"
                 ackBox.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
-                nextBtn.alpha = 0.4f
             }
         }
         nextBtn.setOnClickListener {
-            if (!autoSendAcked) return@setOnClickListener
-            // Bump the disclaimer count past the runtime threshold so the bubble
-            // skips the runtime confirmation popup entirely. The acknowledgment
-            // here is the only consent gate we need — tapping the green bubble
-            // is itself an explicit action.
-            WimApp.prefs.edit().putInt("auto_send_disclaimer_count", 99).apply()
+            if (autoSendAcked) {
+                // Single act of consent: enable auto-send + dismiss the runtime
+                // disclaimer counter for life. User can still flip it off in
+                // Settings → Auto-send.
+                WimApp.prefs.edit()
+                    .putBoolean("auto_send_enabled", true)
+                    .putInt("auto_send_disclaimer_count", 99)
+                    .apply()
+            }
             findViewById<TextView>(R.id.finalLogo).typeface = limelight
             showPage(R.id.pageFinal)
         }
