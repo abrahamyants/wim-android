@@ -103,11 +103,30 @@ class WimApp : Application() {
         // wantMoonshine check returns false and the L1 path falls through to
         // Android SpeechRecognizer (the chirpy fallback).
         if (useMoonshine() && !MoonshineModelDownloader.isInstalled(this)) {
+            val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            // One-time toast at app launch so the user knows what's happening
+            // when they hear a chirp on their first sub-minute recording.
+            mainHandler.post {
+                android.widget.Toast.makeText(
+                    this,
+                    "Speech model downloading… (~30 s on Wi-Fi)",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
             appScope.launch {
                 android.util.Log.i("WiM", "Auto-downloading Moonshine BASE model (~141 MB)...")
                 MoonshineModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
-                    if (progress.stage == "Ready" || progress.stage == "Downloaded") {
-                        android.util.Log.i("WiM", "Moonshine model ${progress.stage}")
+                    if (progress.stage == "Ready") {
+                        android.util.Log.i("WiM", "Moonshine model Ready")
+                        mainHandler.post {
+                            android.widget.Toast.makeText(
+                                this@WimApp,
+                                "Speech model ready — no more chirp",
+                                android.widget.Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    } else if (progress.stage == "Downloaded") {
+                        android.util.Log.i("WiM", "Moonshine model Downloaded (unpacking…)")
                     }
                 }
             }

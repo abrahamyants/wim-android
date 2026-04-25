@@ -1047,6 +1047,14 @@ class BubbleService : Service() {
             })
         } else {
             Log.w(TAG, "Moonshine model not ready — using Android SpeechRecognizer (offline-pinned)")
+            // Surface the fallback so the user understands why this recording
+            // chirped / is slower. Self-limits — once the 141 MB model lands,
+            // this branch becomes unreachable.
+            android.widget.Toast.makeText(
+                this,
+                "Speech model still downloading — using fallback for now",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
             onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
