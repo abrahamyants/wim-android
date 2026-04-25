@@ -1986,6 +1986,33 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
 
         // Speech section removed — layer selection covers this
 
+        // ── L1 / first language ──
+        // profile_l1 = "" or "en" → no pack (native English path).
+        // profile_l1 = "russian" | "spanish" | "mandarin" → L1PackHelper loads the
+        // matching JSON and ReconstructClient injects its prompt block at L2/L3.
+        // Source of truth is this Profile pref; do NOT create a parallel key.
+        val savedL1 = prefs.getString("profile_l1", "") ?: ""
+        val l1LanguageGroup = overlay.findViewById<View>(R.id.profileL1LanguageGroup)
+        val nativeIsEnglish = savedL1.isBlank() || savedL1 == "en"
+        l1LanguageGroup?.visibility = if (nativeIsEnglish) View.GONE else View.VISIBLE
+        val l1NativeIds = listOf(R.id.l1NativeYes, R.id.l1NativeNo)
+        val l1NativeValues = listOf("yes", "no")
+        val savedNative = if (nativeIsEnglish) "yes" else "no"
+        setupProfileGroup(overlay, l1NativeIds, l1NativeValues, "profile_l1_native", savedNative) { _, value ->
+            if (value == "yes") {
+                prefs.edit().putString("profile_l1", "en").apply()
+                l1LanguageGroup?.visibility = View.GONE
+            } else {
+                l1LanguageGroup?.visibility = View.VISIBLE
+                // Don't auto-set profile_l1 — wait for the language tap so we never
+                // load a pack the user hasn't actually picked.
+            }
+        }
+        val l1LangIds = listOf(R.id.l1Russian, R.id.l1Spanish, R.id.l1Mandarin, R.id.l1Other)
+        val l1LangValues = listOf("russian", "spanish", "mandarin", "other")
+        val savedLangChoice = if (savedL1 in l1LangValues) savedL1 else ""
+        setupProfileGroup(overlay, l1LangIds, l1LangValues, "profile_l1", savedLangChoice)
+
         // ── Work hours ──
         val hoursIds = listOf(R.id.hoursMorning, R.id.hoursDay, R.id.hoursEvening, R.id.hoursFlexible)
         val hoursValues = listOf("morning", "nine_to_five", "evening", "flexible")
