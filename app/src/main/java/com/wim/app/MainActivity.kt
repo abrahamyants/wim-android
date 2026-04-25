@@ -1226,63 +1226,220 @@ class MainActivity : AppCompatActivity() {
 
     // ── Guide — inline collapsible section ──────────
 
+    /**
+     * Build the in-app Guide. Each section is a collapsible card with a
+     * title + subtitle header and an HTML body that toggles on tap. Some
+     * cards also embed a real visual: the "Bubble" card inflates the
+     * actual `bubble.xml` layout (same one BubbleService uses) so the user
+     * sees the precise control they're going to use, in their selected
+     * theme.
+     */
     private fun buildGuideContent() {
         val container = findViewById<LinearLayout>(R.id.contentGuide) ?: return
         val dp = resources.displayMetrics.density
         val creamColor = 0xFFC8B48A.toInt()
-        val copperColor = 0xFFC49A6C.toInt()
         val bodyColor = getColor(R.color.text_primary)
         val dimColor = getColor(R.color.text_dim)
 
-        val sections = listOf(
-            Triple("How It Works", "The full pipeline, start to finish", """<b>1. You tap the bubble and speak.</b><br>Android's built-in speech recognition runs on your phone. No audio leaves the device. No network required for this step. Free.<br><br><b>2. Voice shortcuts expand.</b><br>If you set up shortcuts (e.g. "my email" → your full address), they're swapped in before anything else happens.<br><br><b>3. Rule-based cleanup (no AI).</b><br>A filter strips obvious disfluencies:<br>• Repeated syllables: "p-p-p-pop" → "pop"<br>• Repeated words: "I I I want" → "I want" (but "had had", "bye bye" are kept)<br>• Fillers: um, uh, like, you know<br>• False starts and prolongations<br>This happens instantly on-device.<br><br><b>4. What happens next depends on your Layer:</b><br><br><b>Layer I</b> — Cleaned text + your learned corrections (words WiM has previously fixed for you) are pasted directly. No GPT, no network, no cost.<br><br><b>Layer II</b> — GPT rewrites with your tone setting (casual/professional/friend/formal) and situation context (default/high-stress/reading). Takes ~1-2 seconds. Uses the backend if signed in, otherwise your API key.<br><br><b>Layer III</b> — Everything in II, plus your personal vocabulary and correction history are fed to GPT so it uses words you prefer.<br><br><b>Layer IV</b> — Full stutter-aware engine. If you have an API key, your audio is also sent to Whisper (better than on-device ASR for disfluent speech). GPT gets a clinical prompt with disfluency taxonomy, your personal phoneme difficulty map, and avoidance patterns.<br><br><b>5. Safety check (L2+).</b><br>A second GPT call verifies the reconstruction preserves your meaning. Numbers and dollar amounts are double-checked. If anything looks wrong, the original cleaned text is used instead.<br><br><b>6. Text is pasted.</b><br>The final text is injected into whatever app you're typing in via Android's accessibility service.<br><br><b>7. WiM learns (L3+).</b><br>After 3 times of seeing the same word get replaced, WiM auto-adds it to your corrections. Over time, Layer I and III get smarter for you specifically. Corrections you stop using get cleaned out automatically."""),
-            Triple("The Bubble", "Your floating control center", """<b>Tap</b> — Start recording. Tap again to stop.<br><br><b>Hold</b> — Record while held, release to process.<br><br><b>Double-tap</b> — Open settings menu.<br><br><b>Drag</b> — Move anywhere on screen.<br><br><b>Drag to bottom</b> — Hide the bubble.<br><br><b>Shake phone twice</b> — Show/hide the bubble.<br><br><b>Bezel tap (left/right)</b> — Toggle work/personal mode."""),
-            Triple("Layers", "What each layer does", """<b>I. Transcribe</b> — On-device + disfluency filter. Free, instant.<br><br><b>II. Reconstruct</b> — GPT cleans grammar, applies tone. ~1-2s.<br><br><b>III. Profile</b> — Plus your vocabulary and corrections. Learns over time.<br><br><b>IV. Stutter</b> — Full clinical mode. Stronger prompts, phoneme map, avoidance detection."""),
-            Triple("Smart Tone", "Automatic context detection", """WiM detects which app you're in:<br><br><b>Work apps</b> (Gmail, Slack, Teams) → Professional<br><b>Personal apps</b> (WhatsApp, Messenger) → Casual<br><br>Four tones: Casual, Professional, Friend, Formal."""),
-            Triple("Situations", "Context-aware adjustments", """<b>Default</b> — Everyday use. Balanced cleanup.<br><b>High Stress</b> — Calls, presentations. Aggressive cleanup.<br><b>Reading</b> — Reading aloud. Light touch."""),
-            Triple("DAF", "Delayed Auditory Feedback", """Plays your voice back with a delay (30-300ms). A well-known fluency technique — hearing yourself on a delay can reduce stuttering severity."""),
-            Triple("Having Trouble?", "If the bubble disappears", """<b>Bubble gone?</b> Open the app — it restarts automatically.<br><br><b>Keeps disappearing?</b> Your phone is killing WiM. Fix:<br>Settings → Battery → Never sleeping apps → add What I Meant.<br><br><b>Text not pasting?</b> Make sure a text field is active before you speak.""")
+        // Section data: (title, subtitle, html body, visualBuilder?). The
+        // visualBuilder is invoked when the section expands; it returns a
+        // View to drop above the body text. null = text-only card.
+        data class GuideSection(
+            val title: String,
+            val subtitle: String,
+            val body: String,
+            val visual: (() -> android.view.View)? = null,
         )
 
-        for ((title, subtitle, body) in sections) {
+        val sections = listOf(
+            GuideSection(
+                "What happens when you tap",
+                "The pipeline, top to bottom",
+                """<b>1. You tap the bubble and speak.</b><br>The mic captures your voice locally. No audio leaves the phone for Layer I.<br><br>
+<b>2. Speech-to-text.</b><br>
+&#8226; <b>Layer I, II, III</b> &#8212; Moonshine runs on your phone. Free, no internet, no chirp.<br>
+&#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes per-segment confidence the clinical prompt needs).<br><br>
+<b>3. Rule cleanup (no AI).</b><br>
+&#8226; "p-p-pop" &#8594; "pop"<br>
+&#8226; "I I I want" &#8594; "I want" (but "bye bye", "had had" are kept)<br>
+&#8226; um / uh / like / you know stripped<br>
+&#8226; Whisper hallucinations like "thanks for watching" stripped<br><br>
+<b>4. Reconstruction (Layer II+).</b><br>
+&#8226; <b>L2/L3</b> &#8212; GPT-4o rewrites in your tone. Claude Haiku 4.5 then verifies the meaning didn't change.<br>
+&#8226; <b>L4</b> &#8212; Claude Sonnet 4.6 with extended thinking. Reasons through stuttering patterns; no separate verifier needed (the reasoning trace self-validates).<br><br>
+<b>5. Output filters.</b><br>
+&#8226; LLM leak guard: catches "I'm sorry, I can't help" responses.<br>
+&#8226; Length guard: if AI output is more than 2.5&#215; the input length, it fabricated &#8212; we use the cleaned raw text instead.<br><br>
+<b>6. Paste.</b><br>The final text is injected into the app you're in via Android's accessibility service.<br><br>
+<b>7. Learning (L3+).</b><br>After WiM sees the same correction 3 times, it auto-adds it to your profile. Over time L1 and L3 get smarter for you specifically."""
+            ),
+
+            GuideSection(
+                "The Bubble",
+                "Your floating control",
+                """<b>Tap</b> &#8212; Start recording. Tap again to stop.<br><br>
+<b>Hold</b> &#8212; Record while held, release to process.<br><br>
+<b>Double-tap</b> &#8212; Open the bubble menu (opacity, size, theme, live transcript).<br><br>
+<b>Drag</b> &#8212; Move it anywhere.<br><br>
+<b>Drag to bottom</b> &#8212; Hide the bubble.<br><br>
+<b>Double shake the phone</b> &#8212; Show or hide the bubble.<br><br>
+<b>States:</b> IDLE (resting) &#8226; REC (recording) &#8226; PROC (processing) &#8226; SEND (auto-send ready, green).""",
+                visual = {
+                    // Inflate the actual bubble layout so the user sees the
+                    // exact control with the exact theme they have selected.
+                    val container = FrameLayout(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            (130 * dp).toInt(),
+                        ).apply { topMargin = (8 * dp).toInt() }
+                    }
+                    try {
+                        val bubble = layoutInflater.inflate(R.layout.bubble, container, false)
+                        // Sit it center, no touch handling — purely visual.
+                        bubble.layoutParams = FrameLayout.LayoutParams(
+                            (120 * dp).toInt(), (120 * dp).toInt(),
+                            android.view.Gravity.CENTER,
+                        )
+                        bubble.isClickable = false
+                        bubble.isFocusable = false
+                        // Apply the user's theme so this matches their bubble.
+                        val theme = WimApp.bubbleTheme()
+                        val bezelDrawable = when (theme) {
+                            "aluminum" -> R.drawable.bubble_bezel_aluminum
+                            "gunmetal" -> R.drawable.bubble_bezel_gunmetal
+                            else -> R.drawable.bubble_bg_idle
+                        }
+                        val knobDrawable = when (theme) {
+                            "aluminum" -> R.drawable.bubble_knob_aluminum
+                            "gunmetal" -> R.drawable.bubble_knob_gunmetal
+                            else -> R.drawable.bubble_inner_knob
+                        }
+                        bubble.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
+                        bubble.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
+                        bubble.findViewById<TextView>(R.id.bubbleLabel)?.text = "IDLE"
+                        container.addView(bubble)
+                    } catch (e: Exception) {
+                        // If inflation fails, fall back to a tiny note rather than crashing the guide.
+                        container.addView(TextView(this).apply {
+                            text = "(bubble preview unavailable)"
+                            setTextColor(dimColor)
+                            textSize = 10f
+                        })
+                    }
+                    container
+                },
+            ),
+
+            GuideSection(
+                "Bubble themes",
+                "Three coats on the rack",
+                """Three bubble color variants &#8212; <b>Bronze</b>, <b>Aluminum</b>, <b>Gunmetal</b> &#8212; live in the dock at the bottom of this screen, between the Guide and your profile.<br><br>
+<b>Pick one:</b> press a slot. The bubble appears at your finger.<br>
+<b>Drag it out:</b> hold and drag &#8212; the floating bubble follows.<br>
+<b>Magnetic dock-back:</b> drop the bubble over any slot, it snaps in. Drop on a different slot and the theme switches.<br><br>
+The current bubble's theme is what you see in the preview above."""
+            ),
+
+            GuideSection(
+                "Layers",
+                "What each layer does",
+                """<b>I. Transcribe</b> &#8212; Moonshine on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
+<b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
+<b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
+<b>IV. Stutter</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
+            ),
+
+            GuideSection(
+                "Smart Tone",
+                "Auto + manual",
+                """WiM detects what app you're in and matches the tone:<br><br>
+<b>Work apps</b> (Gmail, Slack, Teams, LinkedIn) &#8594; Professional<br>
+<b>Personal apps</b> (WhatsApp, Messenger, Telegram) &#8594; Casual<br><br>
+You can override anywhere: <b>Settings &#8594; Tone</b>. Two tones: Casual and Professional. Tone only affects Layer II and up &#8212; Layer I has no AI, no tone."""
+            ),
+
+            GuideSection(
+                "Auto-send",
+                "Tap green to send",
+                """When auto-send is on (you opted in during onboarding):<br><br>
+&#8226; Speak. The text lands in the compose field.<br>
+&#8226; The bubble turns <b>green</b> for 3 seconds, label says SEND.<br>
+&#8226; Tap the green bubble &#8212; WiM clicks the app's Send button for you.<br>
+&#8226; Don't tap, or wait 3 seconds, or tap outside &#8212; auto-send cancels and you can edit the text first.<br><br>
+Works in Google Messages, Samsung Messages, Gmail, WhatsApp, Telegram, Signal, and more.<br><br>
+Turn off in <b>Settings &#8594; Auto-send</b>."""
+            ),
+
+            GuideSection(
+                "DAF",
+                "Delayed auditory feedback",
+                """Plays your voice back through your earpiece with a 30-300 ms delay. A documented fluency technique &#8212; hearing yourself on delay can reduce stuttering severity.<br><br>
+On in <b>Settings &#8594; DAF</b>. Use the slider to tune the delay."""
+            ),
+
+            GuideSection(
+                "Privacy + Cloud",
+                "What's saved, who can see it",
+                """<b>Always local, never sent:</b> the audio itself. Always.<br><br>
+<b>Local:</b> your settings, profile, console log. Stored on the phone in private app storage.<br><br>
+<b>Cloud (Firestore, only if you sign in):</b> the text of each recording (raw + clean), tone, layer, timing, success/failure flags. Per session, ~1 KB. Used so your sessions and profile sync to a new phone when you sign in.<br><br>
+<b>Toggle off:</b> Settings &#8594; Backup sessions to cloud.<br>
+<b>Delete everything:</b> Profile &#8594; Delete data. Hard delete on the cloud, signs you out, immediate."""
+            ),
+
+            GuideSection(
+                "Having trouble?",
+                "Common fixes",
+                """<b>Bubble gone?</b> Open the app &#8212; it restarts automatically. Or double-shake the phone.<br><br>
+<b>Keeps disappearing?</b> Battery optimization is killing WiM in the background. Fix: phone Settings &#8594; Battery &#8594; Never sleeping apps &#8594; add What I Meant.<br><br>
+<b>Text not pasting?</b> Make sure a text field is active before you speak. Some apps refuse to accept programmatic text &#8212; try the keyboard's clipboard paste instead.<br><br>
+<b>Heard a chirp?</b> Means the Moonshine model isn't downloaded yet, or you turned it off. The app falls back to Android's recognizer (which chirps). Settings &#8594; check the speech model."""
+            ),
+        )
+
+        for (section in sections) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setBackgroundResource(R.drawable.card_bg)
                 setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), (10 * dp).toInt())
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = (4 * dp).toInt() }
             }
 
-            val headerRow = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-            }
+            val headerRow = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
             headerRow.addView(TextView(this).apply {
-                text = title
+                text = section.title
                 setTextColor(creamColor)
                 textSize = 13f
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             })
             headerRow.addView(TextView(this).apply {
-                text = subtitle
+                text = section.subtitle
                 setTextColor(dimColor)
                 textSize = 10f
             })
             card.addView(headerRow)
 
-            val bodyView = TextView(this).apply {
-                text = android.text.Html.fromHtml(body, android.text.Html.FROM_HTML_MODE_COMPACT)
+            val bodyContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = android.view.View.GONE
+                setPadding(0, (8 * dp).toInt(), 0, 0)
+            }
+            section.visual?.invoke()?.let { bodyContainer.addView(it) }
+            bodyContainer.addView(TextView(this).apply {
+                text = android.text.Html.fromHtml(section.body, android.text.Html.FROM_HTML_MODE_COMPACT)
                 setTextColor(bodyColor)
                 textSize = 11f
                 setLineSpacing(0f, 1.3f)
-                setPadding(0, (8 * dp).toInt(), 0, 0)
-                visibility = android.view.View.GONE
-            }
-            card.addView(bodyView)
+            })
+            card.addView(bodyContainer)
 
             card.setOnClickListener {
-                bodyView.visibility = if (bodyView.visibility == android.view.View.GONE) android.view.View.VISIBLE else android.view.View.GONE
+                bodyContainer.visibility =
+                    if (bodyContainer.visibility == android.view.View.GONE) android.view.View.VISIBLE
+                    else android.view.View.GONE
             }
 
             container.addView(card)
