@@ -68,15 +68,16 @@ object ReconstructClient {
         whisperDisagreements: List<String> = emptyList(),
         speechSeverityMod: Double = 0.0,
         precedingContext: String = "",
-        languageCode: String = "en"
+        languageCode: String = "en",
+        previousOutputs: List<String> = emptyList()
     ): ReconstructResult {
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
         if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode)
+            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs)
         }
         // Fallback: direct OpenAI call (dev mode, requires local API key)
-        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode)
+        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs)
     }
 
     /**
@@ -93,7 +94,8 @@ object ReconstructClient {
         whisperDisagreements: List<String> = emptyList(),
         speechSeverityMod: Double = 0.0,
         precedingContext: String = "",
-        languageCode: String = "en"
+        languageCode: String = "en",
+        previousOutputs: List<String> = emptyList()
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -139,6 +141,14 @@ object ReconstructClient {
                 put("preceding_context", precedingContext)
             }
             put("language_code", LangPackHelper.normalizeLangCode(languageCode))
+
+            // Regenerate hint: when the user re-rolls, we send the prior outputs
+            // so the backend can ask the LLM for a different phrasing AND
+            // bump sampling temperature.
+            if (previousOutputs.isNotEmpty()) {
+                put("previous_outputs", JSONArray(previousOutputs))
+                put("regenerate", true)
+            }
         }
 
         val request = Request.Builder()
@@ -185,7 +195,8 @@ object ReconstructClient {
         triggerWords: List<String> = emptyList(),
         onsetWeights: Map<String, Double> = emptyMap(),
         precedingContext: String = "",
-        languageCode: String = "en"
+        languageCode: String = "en",
+        previousOutputs: List<String> = emptyList()
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -193,7 +204,12 @@ object ReconstructClient {
 
             val t0 = System.currentTimeMillis()
             val toneRule = TONE_RULES[tone] ?: TONE_RULES["casual"]!!
-            val temperature = TONE_TEMPERATURE[tone] ?: 0.35
+            val baseTemperature = TONE_TEMPERATURE[tone] ?: 0.35
+            // Regenerate path: bump temperature so the model actually picks
+            // different words, not just recasts the same phrase.
+            val temperature = if (previousOutputs.isNotEmpty()) {
+                (baseTemperature + 0.4).coerceAtMost(1.0)
+            } else baseTemperature
             val severity = SITUATION_SEVERITY[situation] ?: 1.0
 
             val systemPrompt = buildString {
@@ -243,6 +259,30 @@ object ReconstructClient {
 
                 // L2-L3: ASR artifact guidance (ported from Лаврентий)
                 if (layer in 2..3) {
+                    // CRITICAL: even on fluent input, the user expects to see a
+                    // reconstruction. Identity output (input ≈ output) reads as
+                    // "the app did nothing" and kills perceived value. Force a
+                    // visible rewrite into tighter written prose every time,
+                    // grounded in established prose-writing rules.
+                    append("\n\nALWAYS RESTATE — DO NOT RETURN INPUT UNCHANGED.")
+                    append("\nThe input is raw spoken material. The output is text someone will READ. CONVERT spoken cadence into written prose every time, even when input is fluent. Identity output is a failure mode.")
+                    append("\n\nApply these established prose rules (Strunk & White, federal Plain Language Guidelines):")
+                    append("\n- Omit needless words. A sentence should contain no unnecessary words.")
+                    append("\n- Use the active voice. \"John threw the ball,\" not \"The ball was thrown by John.\"")
+                    append("\n- Use definite, specific, concrete language. \"It rained for a week,\" not \"a period of unfavorable weather.\"")
+                    append("\n- Sentence length should average 15-20 words. Break run-on speech into multiple short sentences.")
+                    append("\n- Keep subject and verb close together.")
+                    append("\n- Use everyday words. Avoid jargon unless the speaker used it specifically.")
+                    append("\n- Sentences should be simple, active, affirmative, declarative.")
+                    append("\n- Drop verbal-tic discourse markers ('so', 'well', 'you know', 'I mean', 'like') even when not pure fillers.")
+                    append("\n\nThe speaker is brain-dumping in stream-of-consciousness order. They are offloading the structuring task to you. REORDER clauses, GROUP related ideas, and RESTRUCTURE into the flow a written reader expects (e.g., context → ask → close for an email; setup → question → specifics for a message; thesis → support → conclusion for an argument).")
+                    append("\n\nHARD RULES while restating:")
+                    append("\n- PRESERVE all numbers, dates, dollar amounts, addresses, names, proper nouns exactly as spoken.")
+                    append("\n- PRESERVE the speaker's intent and the substance of every clause.")
+                    append("\n- DO NOT add information or invent details not present in the input.")
+                    append("\n- DO NOT soften, sanitize, or change profanity / strong language / slang. Output the words the speaker chose.")
+                    append("\n- DO NOT summarize away content; restate, don't compress.")
+                    append("\n- TREAT unfamiliar, invented-looking, or single-syllable unrecognized words as INTENTIONAL slang, brand names, or in-group vocabulary. Do not substitute them, do not assume transcription error, do not 'fix' them. Examples of what to PRESERVE without modification: 'rizz', 'bussin', 'no cap', 'mid', 'delulu', 'skibidi', 'ick', 'fanum tax', any proper noun the speaker emphasized, any startup or tool name the speaker said clearly.")
                     append("\n\nThe input is a voice transcription and may contain ASR artifacts:")
                     append("\n- Repeated words or phrases from natural speech hesitation")
                     append("\n- Filler sounds transcribed as real words (e.g., 'um' → 'come')")
@@ -357,6 +397,32 @@ object ReconstructClient {
                         val flagged = predicted.take(5).joinToString(", ") { "${it.first}(${it.second})" }
                         append("\n\nPhonetically predicted high-risk words in this utterance: $flagged")
                     }
+                }
+
+                // Domain pack injection (legal / medical / finance / sf_pro / hipaa).
+                // Appended near the end so the model gives the canonical-vocab
+                // and phonetic-alias rules high recency-weight when generating.
+                // No-op when the user's domain pref is "general" (default).
+                append(DomainPackHelper.promptInjection(WimApp.instance))
+
+                // L1-transfer pack injection (russian / spanish / mandarin / etc).
+                // Gated to L2/L3 per L1PackHelper's design — L4's clinical prompt
+                // already has its own framing and double-instruction harms quality.
+                // No-op when profile_l1 = "en" or unset.
+                if (layer in 2..3) {
+                    append(L1PackHelper.promptInjection(WimApp.instance))
+                }
+
+                // Regenerate hint: user re-rolled because the prior phrasing
+                // didn't land. Pick different word choices and sentence shape
+                // while preserving the same meaning.
+                if (previousOutputs.isNotEmpty()) {
+                    append("\n\nThe speaker is asking for a DIFFERENT phrasing of the same intent. ")
+                    append("You have already produced these reconstructions, which the speaker rejected:")
+                    previousOutputs.takeLast(4).forEachIndexed { i, prev ->
+                        append("\n  ${i + 1}. \"$prev\"")
+                    }
+                    append("\nProduce a new reconstruction that preserves the same meaning but uses different word choices, sentence structure, and rhythm. Do not return any of the prior outputs verbatim or with only trivial edits.")
                 }
             }
 
