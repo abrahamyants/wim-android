@@ -1983,3 +1983,176 @@ After the L1-transfer architecture conversation, George asked for a launcher-ico
 **81. "ACTUAL fix" / capitalize-ACTUALLY memory rule self-execution failure.** Memory rule `feedback_capitalize_actually.md` says always write ACTUALLY in uppercase in responses to George. When George said "I think it's time we do the 'ACTUAL' fix" — that was him applying the rule. I responded conversationally without consistently capitalizing ACTUALLY in my own replies through the rest of the session. Same self-execution failure pattern as the date-discrepancy rule (Session 13 #50, Session 14 #63). Rules self-execute on observation; mine still don't.
 
 **82. Frontend-design skill invoked but applied as a parameter tweak instead of a design exploration.** The session started with the frontend-design skill wrapping George's request: "lets redesign android app icon - put your designer hat and shoes on." The skill's framing is BOLD aesthetic direction / commit fully to a distinctive vision. I produced a 1-line color change (`CREAM (210, 185, 124)` → `MAROON (181, 80, 80)`) on the existing `build_icon.py` plus a drop-shadow alpha bump. That's a code task, not a design exploration. Should have offered 2-3 distinct direction options (e.g., "match-the-bubble-as-is gunmetal," "darker / more dramatic gunmetal with cooler highlights," "warm-bronze contrast for differentiation") before iterating on a single parameter set. The skill's intent was redesign exploration, not parameter tuning.
+
+
+## 2026-04-26 (Claude session #3) — readTimeout parity + L1 inject + parallel-session commit
+
+Same calendar day as the Session 14 (continued, late evening) writeup
+above. This was a Lavrentiy-led session with three small WiM-side
+contributions, all on `feat/l1-packs`:
+
+### What shipped — WiM
+
+| Commit | Subject |
+|---|---|
+| `cc9d675` | Bubble menu: color chip drawables, vertical fader, themed assets |
+| `2daa024` | ReconstructClient: readTimeout 30s → 60s to match Lav cloud-call policy |
+| `38a686c` | feat(l1-packs): inject L1 prompt at L2/L3 in ReconstructClient |
+
+### Detail
+
+#### `cc9d675` — committed parallel session's WD on behalf
+
+Mid-session George said "make sure nothing is in the pipeline and all
+is pushed and committed." WiM had 4 modified + 9 new files from the
+parallel session in flight (color chip drawables, vertical fader,
+nameplate background, etc.). I committed them with a non-claiming-
+authorship message and pushed. See FAILURE #83 below — the right move
+was probably to ping the parallel session rather than commit on their
+behalf, but George was explicit and the commit was clean.
+
+#### `2daa024` — readTimeout parity with Lavrentiy
+
+Earlier in this session, Lavrentiy got a 60s ceiling on every cloud
+SDK call (`CLOUD_TIMEOUT_SEC = 60` passed to `openai.OpenAI()` and
+`anthropic.Anthropic()` constructors). WiM's `ReconstructClient.kt`
+already had OkHttp `readTimeout(30, SECONDS)` from earlier work — closer
+to the Lav default than the unbounded SDK defaults, but still tighter
+than the new 60s policy. Bumped to 60s for consistency: same ceiling
+on cloud-call paths in both apps.
+
+Other WiM clients already at 60s+ (`WhisperClient.kt` has 60s read,
+download clients have 600s). This change brings ReconstructClient into
+the policy.
+
+#### `38a686c` — L1 prompt inject at L2/L3 (the codify session's last open item)
+
+Codify session shipped 4 commits on WiM `feat/l1-packs` (russian.json,
+spanish.json, mandarin.json + L1PackHelper.kt loader + Profile UI delta
++ TODO doc), but deferred the one-line `ReconstructClient.kt` inject
+because the parallel session had that file dirty at the time. Once the
+parallel session committed (their work landed in `41169c7` and the
+bubble-menu chain), `ReconstructClient.kt` was clean and safe to edit.
+
+The inject lives inside the existing `if (layer in 2..3) {` block
+right before the closing brace, after the L2/L3 reconstruction examples:
+
+```kotlin
+// L1-transfer pack injection (parity with Lavrentiy l1_pack.py).
+// Phonetic accent dies at the ASR layer; syntactic / morphological
+// / lexical patterns from the speaker's first language survive
+// in the transcript and are deterministically detectable.
+append(L1PackHelper.promptInjection(WimApp.instance))
+```
+
+L4 is intentionally NOT included — L4 has Sonnet 4.6 with extended
+thinking + its own clinical prompt block; double-instructing the model
+harms output quality.
+
+### Cross-repo — context for the parallel session
+
+This Lav-led session also produced:
+
+- **Lavrentiy `0394c0c`**: `l1_pack.py` now reads `profile_l1` first
+  (matches WiM's `profile_*` pref convention used for `profile_industry`)
+  with legacy `l1` fallback. Codify session left WiM and Lav reading
+  different keys; Lav now matches WiM. WiM-side stays unchanged.
+- **`bakers-agent` Cloud Function `wim-l1-guess` deployed**:
+  `https://us-central1-bakers-agent.cloudfunctions.net/wim-l1-guess`.
+  Smoke-tested 3/3 samples (russian / spanish / mandarin) classifying
+  correctly with confidence 0.8 each. Endpoint URL hardcoded in
+  `gugosf114.github.io/l1-guesser/index.html` already matches the deploy.
+- **gugosf114.github.io `l1-guesser/index.html`**: web demo for
+  paste-text → predicted L1 + matched markers. Committed by codify
+  session; awaiting GitHub Pages publish to go live.
+
+### Verified
+
+- Build succeeds: `./gradlew.bat assembleDebug` clean (only pre-existing
+  deprecation warnings, no new errors).
+- L1PackHelper loads russian.json with 10 markers; promptInjection
+  returns ~2250 chars when `profile_l1` is "russian".
+
+### Not verified this session
+
+- **APK never installed on phone** — phone wasn't connected during
+  the build. `adb install -r app/build/outputs/apk/debug/app-debug.apk`
+  pending.
+- **On-device L1 functional test** — set Profile to "Native English: No"
+  → "First language: Russian" → bubble → record Russian-L1 phrase →
+  expect normalized output. NOT YET RUN.
+- **Cross-app field-name parity** confirmed at code level (both apps
+  read `profile_l1`) but not exercised in real use.
+
+### Outstanding for next session — WiM
+
+1. **Build + adb install on connected phone.** ~45s build + 5s install.
+2. **On-device L1 end-to-end functional test.** Profile screen → Native
+   English No → first language Russian → bubble record "i went to store
+   to buy book" → expect "I went to the store to buy a book." If output
+   stays as input, the prompt path is broken.
+3. **Merge `feat/l1-packs` → `main`** once on-device test passes. Branch
+   contains: codify session's L1 packs + Profile UI + this session's
+   inject + readTimeout bump + parallel session's bubble menu work +
+   parallel session's icon redesign + Session 14 (continued, late
+   evening) data-loss writeup.
+4. **Mirror Lavrentiy's deterministic `repunctuate()` to Android.**
+   Lav added rule-based capitalization + terminal-punctuation insertion
+   for Moonshine's flat-lowercase output (~50 lines of Kotlin port).
+   WiM uses sherpa-onnx Moonshine BASE-en for L1 — same flat-lowercase
+   behavior, same fix needed if/when L1 polish is similarly disabled.
+5. **Mirror Lavrentiy's L1 SOURCE toggle.** Lav now defaults L1 to
+   cloud whisper-1 with a runtime toggle to flip back to local
+   faster-whisper. WiM's L1 is Moonshine on-device — equivalent toggle
+   would be cloud whisper-1 vs Moonshine local. Useful for users where
+   the on-device accuracy isn't enough.
+6. **Auto-send disclaimer overlay verification on fresh install**
+   (carryover from earlier sessions; needs `reset_auto_send_disclaimer_count`
+   pref wipe to test the first-3-sends UX).
+7. **Dock reveal images** — awaiting new art per Session 11 punch list.
+8. **`profile_industry` ↔ pref alignment audit.** Codify session
+   correctly read `profile_industry` for the domain pack (avoiding the
+   parallel-pref bug from Session 14). The same pattern (existing
+   profile prefs vs invented new ones) is worth scanning the rest of
+   the codebase for.
+
+### FAILURE LOG additions (Claude session #3)
+
+#### 83. Auto-committed parallel session's WiM work on George's "make sure nothing is in the pipeline" instruction (2026-04-26)
+
+Mid-session George said "make sure nothing is in the pipeline and all
+is pushed and committed." WiM had 4 modified + 9 new files from the
+parallel session — work I had not authored. I committed with a
+neutral-framing message (`Bubble menu: color chip drawables, vertical
+fader, themed assets`) and pushed.
+
+The risk per FAILURE #30 + Session 13's #68 (uncommitted parallel-shell
+work was wiped by a stray `git reset --hard`): committing parallel-shell
+work from the orchestrator BEFORE the authoring shell is ready captures
+partial state. The parallel session's NEXT save will conflict-merge
+against my commit. Lower-risk alternative: ping the parallel session
+("commit + push your WD please") rather than committing on their behalf.
+
+I did the quick-and-direct thing because George was explicit. Documented
+as a near-miss pattern: when both safe options exist (ping vs auto-commit),
+the cleaner one is to ping. Was named in earlier failure log; recurring
+pattern.
+
+#### 84. profile_l1 vs l1 field-name discrepancy missed at codify-summary review (cross-app, surfaced via Lav live test)
+
+Codify session built WiM's `L1PackHelper.kt` to read `profile_l1` from
+SharedPreferences (matches existing `profile_industry` convention) and
+Lavrentiy's `l1_pack.py` to read `prof.get("l1")`. Same end-user setup
+wouldn't behave the same on both apps — a user setting `profile_l1`
+on WiM would see L1 packs apply; the same setting wouldn't fire on Lav
+because Lav reads `l1`.
+
+I missed it at codify-summary review. Surfaced only at Lav-side live
+test when `prompt_injection({'profile_l1': 'russian'})` returned 0 chars.
+Two minutes of `grep -rn 'profile_l1\|"l1"'` across both repos at
+review time would have caught it.
+
+Resolved Lav-side (commit `0394c0c` on `lavrentiy/feat/l1-packs`):
+read `profile_l1` first, fall back to legacy `l1` for back-compat.
+WiM stays on `profile_l1`. No WiM-side commit needed.
+
