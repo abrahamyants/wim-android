@@ -67,6 +67,7 @@ class WimTestReceiver : BroadcastReceiver() {
                 "set_layer"         -> handleSetLayer(context, intent)
                 "set_situation"     -> handleSetSituation(context, intent)
                 "inject_raw"        -> handleInjectRaw(context, intent)
+                "inject_raw_file"   -> handleInjectRawFile(context, intent)
                 "inject_audio"      -> handleInjectAudio(context, intent)
                 "get_state"         -> handleGetState(context)
                 "get_last_result"   -> handleGetLastResult(context)
@@ -188,6 +189,39 @@ class WimTestReceiver : BroadcastReceiver() {
             .put("status", "injected")
             .put("raw_text", rawText)
             .put("note", "Result will be available via get_last_result after pipeline completes (~1-5s)"))
+    }
+
+    private fun handleInjectRawFile(context: Context, intent: Intent) {
+        val path = intent.getStringExtra("path")
+        if (path.isNullOrBlank()) {
+            writeResult(context, JSONObject().put("error", "Missing path"))
+            return
+        }
+        val file = File(path)
+        if (!file.exists()) {
+            writeResult(context, JSONObject().put("error", "File not found: $path"))
+            return
+        }
+        val rawText = try { file.readText().trim() } catch (e: Exception) {
+            writeResult(context, JSONObject().put("error", "Read failed: ${e.message}"))
+            return
+        }
+        if (rawText.isBlank()) {
+            writeResult(context, JSONObject().put("error", "File is empty"))
+            return
+        }
+        val bubble = BubbleService.instance ?: run {
+            writeResult(context, JSONObject().put("error", "BubbleService not running"))
+            return
+        }
+        lastResult = null
+        Log.i(TAG, "Injecting raw text from file (${rawText.length} chars): ${rawText.take(80)}...")
+        bubble.processTextForTest(rawText)
+        writeResult(context, JSONObject()
+            .put("status", "injected")
+            .put("path", path)
+            .put("char_count", rawText.length)
+            .put("note", "Result will be available via get_last_result after pipeline completes (~1-15s)"))
     }
 
     private fun handleInjectAudio(context: Context, intent: Intent) {
