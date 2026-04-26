@@ -299,6 +299,12 @@ object ReconstructClient {
                     append("\n  OUT: 'I think we should probably move the meeting'")
                     append("\n  IN:  'The, uh, what's it called, the database needs updating'")
                     append("\n  OUT: 'The database needs updating'")
+
+                    // L1-transfer pack injection (parity with Lavrentiy l1_pack.py).
+                    // Phonetic accent dies at the ASR layer; syntactic / morphological
+                    // / lexical patterns from the speaker's first language survive
+                    // in the transcript and are deterministically detectable.
+                    append(L1PackHelper.promptInjection(WimApp.instance))
                 }
 
                 // L4: Language-parameterized speech-disfluency prompt
