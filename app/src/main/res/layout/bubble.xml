@@ -93,6 +93,21 @@
             android:clickable="false"
             android:focusable="false" />
 
+        <!-- Regenerate icon — 6 o'clock on the bezel ring. Hidden by default;
+             revealed after a successful reconstruction paste so the user can
+             re-roll the phrasing without re-recording. -->
+        <ImageView
+            android:id="@+id/bezelRegen"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="2dp"
+            android:src="@drawable/ic_regen"
+            android:contentDescription="Regenerate"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true" />
+
         <!-- Inner sunken well -->
         <FrameLayout
             android:id="@+id/bubbleInner"
