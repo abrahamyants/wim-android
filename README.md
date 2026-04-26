@@ -2163,3 +2163,39 @@ Resolved Lav-side (commit `0394c0c` on `lavrentiy/feat/l1-packs`):
 read `profile_l1` first, fall back to legacy `l1` for back-compat.
 WiM stays on `profile_l1`. No WiM-side commit needed.
 
+### Pre-compaction context (cross-session arc, parallel-session WiM commits)
+
+This Lavrentiy-led session arc had **one compaction** (line 2033 of the
+JSONL). Pre-compaction the orchestrator turn discussed several WiM
+threads in parallel with the WiM session that was actively committing:
+
+- **WiM bubble menu access redesign**: replace double-tap (conflicts
+  with single-tap recording) with drag-to-top-edge gesture + a
+  notification "MENU" action button. Kill double-tap entirely.
+  Landed in parallel-session commit `952a7b8 feat(bubble): live
+  transcribe fix, permission alert, gesture cleanup, trailing space,
+  auto-send default`. Code-level details + the relevant
+  `OnTouchListener` diff are preserved in the JSONL pre-compaction
+  summary at
+  `~/.claude/projects/C--Windows-System32/3743ea0f-4139-42fa-b066-77436ca8b5ad.jsonl`
+  line 2033.
+- **WiM bubble menu slider thumb display value**: experimental work
+  attempting to render the current value on the slider thumb itself
+  via `VerticalSeekBar.onDraw()`. Reverted to value-below-slider after
+  George said it didn't work. Not in any commit (reverted in working
+  tree pre-compaction); only context lives in the JSONL summary.
+- **WiM app icon redesign — gunmetal match**: a longer arc that
+  produced parallel-session commits `a8b7800 chore(icon): refresh app
+  launcher icon + add icon build tooling`, `c01886a feat(bubble): add
+  regenerate icon primitive at 6 o'clock on bezel`, and ultimately
+  `3c2cd2d icon(launcher): WM cream→maroon + Session 14 evening log +
+  data-loss writeup`. Full design-direction context (Sony stereo
+  volume knob inspiration, "flat but raised, NOT curved/hemispherical"
+  constraint, gunmetal palette specs) preserved in the JSONL summary.
+  The `## Session 14 (continued, late evening)` writeup above is the
+  parallel session's own account of how that arc landed (including the
+  data-loss event).
+
+Full pre-compaction context lives in the JSONL at the line above if a
+future session needs the deeper decision trail.
+
