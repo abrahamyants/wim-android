@@ -232,12 +232,12 @@ def build(size: int) -> Image.Image:
 
     text_shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     ts = ImageDraw.Draw(text_shadow)
-    ts.text((tx + max(1, size // 400), ty + max(2, size // 200)), "WM", font=fnt, fill=(0, 0, 0, 150))
-    text_shadow = text_shadow.filter(ImageFilter.GaussianBlur(radius=max(1.0, size * 0.005)))
+    ts.text((tx + max(1, size // 400), ty + max(2, size // 200)), "WM", font=fnt, fill=(0, 0, 0, 210))
+    text_shadow = text_shadow.filter(ImageFilter.GaussianBlur(radius=max(1.2, size * 0.006)))
     img = Image.alpha_composite(img, text_shadow)
 
     d = ImageDraw.Draw(img)
-    d.text((tx, ty), "WM", font=fnt, fill=(*CREAM, 255))
+    d.text((tx, ty), "WM", font=fnt, fill=(*MAROON, 255))
 
     return img
 
