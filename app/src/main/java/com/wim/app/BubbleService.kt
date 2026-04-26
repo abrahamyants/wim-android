@@ -32,8 +32,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class BubbleService : Service() {
@@ -73,6 +75,7 @@ class BubbleService : Service() {
     private var menuParams: WindowManager.LayoutParams? = null
     private var liveTextView: TextView? = null
     private var liveTextParams: WindowManager.LayoutParams? = null
+    private var liveTextContainer: android.widget.FrameLayout? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
     private var singleTapRunnable: Runnable? = null
@@ -81,6 +84,25 @@ class BubbleService : Service() {
     private var isWorkMode = false  // false=personal, true=work
     private var isClarifierActive = false
     private var clarifierCallback: ((Boolean?) -> Unit)? = null
+
+    // Regenerate state — set after a successful L2/L3/L4 paste so the user can
+    // re-roll the phrasing by tapping the regenerate icon on the lower bezel.
+    // Cleared when stale (after timeout) or after the user records again.
+    private data class RegenContext(
+        val rawText: String,
+        val correctedText: String,
+        val tone: String,
+        val layer: Int,
+        val situation: String,
+        val precedingContext: String,
+        val languageCode: String,
+        val rateGapDetected: Boolean,
+    )
+    private var lastRegenCtx: RegenContext? = null
+    private val previousOutputs = mutableListOf<String>()
+    private var isRegenAvailable: Boolean = false
+    private var regenHideJob: Job? = null
+    private var isRegenInFlight: Boolean = false
     private val clarifierTimeout = Runnable {
         if (clarifierRetryCount < 1) {
             // First timeout — retry
@@ -300,18 +322,18 @@ class BubbleService : Service() {
                 val z = event.values[2]
                 val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
 
-                if (gForce > 3.0 && WimApp.prefs.getBoolean("shake_enabled", true)) {
+                if (gForce > 2.4 && WimApp.prefs.getBoolean("shake_enabled", true)) {
                     val now = System.currentTimeMillis()
                     // A single physical shake oscillates the accelerometer for
                     // ~300-450ms with multiple peaks above the threshold.
-                    // Debounce 500ms so only the first peak of a single shake
+                    // Debounce 350ms so only the first peak of a single shake
                     // counts; otherwise a single jolt reads as 2+ shakes and
                     // fires the double-shake toggle on one wrist flick.
-                    if (now - lastShakeTime < 500) {
+                    if (now - lastShakeTime < 350) {
                         lastShakeTime = now
                         return
                     }
-                    if (now - lastShakeTime > 1200) {
+                    if (now - lastShakeTime > 1500) {
                         shakeCount = 1
                     } else {
                         shakeCount++
@@ -320,13 +342,14 @@ class BubbleService : Service() {
 
                     if (shakeCount >= 2) {
                         shakeCount = 0
-                        // Double-shake: toggle bubble visibility
-                        if (bubbleView != null) {
-                            hideBubble()
-                            try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-                        } else {
-                            showBubble()
-                            try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        // Double-shake: open the bubble menu. Hide-by-shake removed
+                        // because drag-to-bottom (hide) and WM icon click (summon)
+                        // already cover that, freeing this gesture for menu open.
+                        try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        // Make sure the bubble exists; menu anchors to it.
+                        if (bubbleView == null) showBubble()
+                        timerHandler.post {
+                            if (menuView != null) dismissMenu() else showMenu()
                         }
                     }
                 }
@@ -335,7 +358,7 @@ class BubbleService : Service() {
             override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
         }
 
-        sensorManager?.registerListener(shakeListener, accelerometer, android.hardware.SensorManager.SENSOR_DELAY_UI)
+        sensorManager?.registerListener(shakeListener, accelerometer, android.hardware.SensorManager.SENSOR_DELAY_GAME)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -351,6 +374,10 @@ class BubbleService : Service() {
                 }
             }
             "HIDE" -> hideBubble()
+            "OPEN_MENU" -> {
+                if (bubbleView == null) showBubble()
+                if (menuView != null) dismissMenu() else showMenu()
+            }
             "TOGGLE_RECORDING" -> {
                 if (bubbleView == null) showBubble()
                 if (isRecording) stopAndProcess() else startListening()
@@ -436,6 +463,12 @@ class BubbleService : Service() {
 
         Log.i(TAG, "Showing bubble")
         updateNotification("Voice dictation active")
+
+        // Check non-blocking permissions (accessibility, mic). Bubble appears
+        // either way but inject/record will silently fail if missing — alert
+        // loudly so the user knows to fix it instead of thinking the app is
+        // broken. Reinstalling the APK wipes accessibility every time.
+        timerHandler.postDelayed({ alertOnMissingPermissions() }, 600)
         val inflater = LayoutInflater.from(this)
         bubbleView = inflater.inflate(R.layout.bubble, null)
         // Kill touch sounds on every view in the bubble hierarchy
@@ -579,9 +612,12 @@ class BubbleService : Service() {
                             return@setOnTouchListener true
                         }
 
+                        // Drag-to-top menu trigger removed — replaced by triple-tap
+                        // because drag-to-top fired accidentally during normal drags.
+                        val dp = resources.displayMetrics.density
+
                         // Check if dragged to bottom edge — hide bubble
                         val screenHeight = resources.displayMetrics.heightPixels
-                        val dp = resources.displayMetrics.density
                         val hideZone = screenHeight - (80 * dp).toInt()
                         val almostZone = screenHeight - (200 * dp).toInt()
                         if (params.y > hideZone) {
@@ -626,6 +662,16 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
 
+                    // REGEN: tap on the lower-bezel regen icon re-rolls the
+                    // last reconstruction with a "different phrasing" hint.
+                    // Takes precedence over the work/life toggle so the bottom
+                    // half of the bezel is unambiguously the regen affordance
+                    // while the icon is visible.
+                    if (isRegenAvailable && !isRecording && dist < outerR && ty > outerR * 0.45 && tapDuration < 300) {
+                        performRegen()
+                        return@setOnTouchListener true
+                    }
+
                     if (!isRecording && dist > innerR && dist < outerR && tapDuration < 300) {
                         try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                         if (isClarifierActive) {
@@ -656,24 +702,10 @@ class BubbleService : Service() {
                         lastTapTime = 0L
                         stopAndProcess()
                     } else if (!isRecording) {
-                        val now = System.currentTimeMillis()
-                        if (now - lastTapTime < DOUBLE_TAP_TIMEOUT) {
-                            // Double-tap: cancel pending single-tap, show/hide menu
-                            lastTapTime = 0L
-                            singleTapRunnable?.let { timerHandler.removeCallbacks(it) }
-                            singleTapRunnable = null
-                            if (menuView != null) dismissMenu() else showMenu()
-                        } else {
-                            // First tap: wait for possible second tap before starting
-                            lastTapTime = now
-                            singleTapRunnable = Runnable {
-                                if (!isRecording) {
-                                    startPulseRings()
-                                    startListening()
-                                }
-                            }
-                            timerHandler.postDelayed(singleTapRunnable!!, DOUBLE_TAP_TIMEOUT)
-                        }
+                        // Single tap = start recording (instant). Menu opens via
+                        // double-shake. Hide via drag-to-bottom. Summon via WM icon.
+                        startPulseRings()
+                        startListening()
                     }
                     true
                 }
@@ -769,6 +801,86 @@ class BubbleService : Service() {
             setBubbleSendReady()
         } else {
             setBubbleIdle()
+        }
+    }
+
+    private fun showRegenIcon() {
+        val view = bubbleView ?: return
+        val icon = view.findViewById<android.widget.ImageView>(R.id.bezelRegen) ?: return
+        icon.alpha = 0f
+        icon.visibility = View.VISIBLE
+        icon.animate().alpha(1f).setDuration(200).start()
+        isRegenAvailable = true
+        regenHideJob?.cancel()
+        regenHideJob = scope.launch {
+            delay(8000)
+            hideRegenIcon()
+        }
+    }
+
+    private fun hideRegenIcon() {
+        val view = bubbleView ?: return
+        val icon = view.findViewById<android.widget.ImageView>(R.id.bezelRegen) ?: return
+        icon.animate().alpha(0f).setDuration(150).withEndAction {
+            icon.visibility = View.GONE
+        }.start()
+        isRegenAvailable = false
+        regenHideJob?.cancel()
+        regenHideJob = null
+    }
+
+    private fun performRegen() {
+        if (isRegenInFlight) return
+        val ctx = lastRegenCtx ?: return
+        val accessibility = WimAccessibilityService.instance ?: run {
+            Toast.makeText(this, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
+            return
+        }
+        isRegenInFlight = true
+        hideRegenIcon()
+        try { vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+        ConsoleLog.log("Regenerating L${ctx.layer}...", "info")
+
+        scope.launch {
+            try {
+                val profile = WimApp.profile()
+                val vocabulary = profile.getVocabulary()
+                val corrections = profile.getCorrections()
+                val fillerWords = profile.getFillerWords()
+                val result = ReconstructClient.reconstruct(
+                    rawText = ctx.correctedText,
+                    tone = ctx.tone,
+                    layer = ctx.layer,
+                    situation = ctx.situation,
+                    vocabulary = vocabulary,
+                    corrections = corrections,
+                    fillerWords = fillerWords,
+                    triggerWords = profile.getTriggerWords(),
+                    onsetWeights = profile.getOnsetWeights(),
+                    covertProfile = profile.getCovertProfile(),
+                    speechSeverityMod = if (ctx.rateGapDetected) 0.3 else 0.0,
+                    precedingContext = ctx.precedingContext,
+                    languageCode = ctx.languageCode,
+                    previousOutputs = previousOutputs.toList(),
+                )
+                val newText = result.cleanText.trim()
+                if (newText.isBlank() || previousOutputs.contains(newText)) {
+                    ConsoleLog.log("Regen returned same/blank — keeping original", "warn")
+                    Toast.makeText(this@BubbleService, "No fresh phrasing this time", Toast.LENGTH_SHORT).show()
+                    showRegenIcon()
+                    return@launch
+                }
+                accessibility.replaceLastInjected(newText)
+                previousOutputs.add(newText)
+                ConsoleLog.log("Regen: ${result.reconMs}ms -> \"${newText.take(80)}\"", "out")
+                showRegenIcon()
+            } catch (e: Exception) {
+                Log.e(TAG, "Regen error: ${e.message}", e)
+                ConsoleLog.log("Regen failed: ${e.message?.take(60)}", "error")
+                showRegenIcon()
+            } finally {
+                isRegenInFlight = false
+            }
         }
     }
 
@@ -915,6 +1027,12 @@ class BubbleService : Service() {
 
     private fun startListening() {
         if (isRecording) return
+
+        // Stale regen state: a fresh recording invalidates the cached
+        // reconstruction context.
+        if (isRegenAvailable) hideRegenIcon()
+        lastRegenCtx = null
+        previousOutputs.clear()
 
         // Safety: refuse to record into password/sensitive fields
         if (WimAccessibilityService.isPasswordField) {
@@ -2068,6 +2186,7 @@ class BubbleService : Service() {
         if (!enabled) return
         if (liveTextView != null) return
 
+        val barWidthPx = (220 * resources.displayMetrics.density).toInt()
         val tv = TextView(this).apply {
             setBackgroundColor(0xFF222226.toInt())
             setTextColor(0xFFD4D0C8.toInt())
@@ -2079,25 +2198,41 @@ class BubbleService : Service() {
             maxLines = 3
             ellipsize = null
             text = ""
+            // Make the TextView fill its parent FrameLayout horizontally so it
+            // gets the full bar width regardless of text content length.
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
         liveTextView = tv
 
+        // FrameLayout root sized to the bar width gives TextView a definite parent
+        // to MATCH_PARENT against. Adding the TextView directly to WindowManager
+        // lets it shrink to content width despite WindowManager.LayoutParams.width.
+        val container = android.widget.FrameLayout(this).apply {
+            addView(tv)
+        }
+        liveTextContainer = container
+
         val bp = bubbleParams ?: return
+        val screenW = resources.displayMetrics.widthPixels
         val ltParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            barWidthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            width = (220 * resources.displayMetrics.density).toInt()
-            x = bp.x - 40
-            y = bp.y - 70
+            // Center on bubble, then clamp to keep the full 220dp bar on-screen.
+            val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
+            x = (bubbleCenterX - barWidthPx / 2).coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
+            y = (bp.y - 130).coerceAtLeast(0)
         }
         liveTextParams = ltParams
 
-        windowManager?.addView(tv, ltParams)
+        windowManager?.addView(container, ltParams)
     }
 
     private fun updateLiveTranscript(text: String) {
@@ -2108,6 +2243,7 @@ class BubbleService : Service() {
         if (liveTextView == null) {
             // Force-show the transcript bar for pipeline display
             val bp = bubbleParams ?: return
+            val barWidthPx = (220 * resources.displayMetrics.density).toInt()
             val tv = TextView(this).apply {
                 setBackgroundColor(0xFF222226.toInt())
                 setTextColor(0xFFD4D0C8.toInt())
@@ -2117,22 +2253,29 @@ class BubbleService : Service() {
                 minLines = 1
                 maxLines = 3
                 ellipsize = null
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                )
             }
             liveTextView = tv
+            val container = android.widget.FrameLayout(this).apply { addView(tv) }
+            liveTextContainer = container
+            val screenW = resources.displayMetrics.widthPixels
             val ltParams = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                barWidthPx,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                width = (220 * resources.displayMetrics.density).toInt()
-                x = bp.x - 40
-                y = bp.y - 70
+                val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
+                x = (bubbleCenterX - barWidthPx / 2).coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
+                y = (bp.y - 130).coerceAtLeast(0)
             }
             liveTextParams = ltParams
-            try { windowManager?.addView(tv, ltParams) } catch (_: Exception) {}
+            try { windowManager?.addView(container, ltParams) } catch (_: Exception) {}
         }
         val styled = android.text.SpannableStringBuilder()
         styled.append(stage, android.text.style.ForegroundColorSpan(0xFFC8B48A.toInt()), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -2142,11 +2285,12 @@ class BubbleService : Service() {
     }
 
     private fun hideLiveTranscript() {
-        liveTextView?.let {
+        liveTextContainer?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
-            liveTextView = null
-            liveTextParams = null
         }
+        liveTextContainer = null
+        liveTextView = null
+        liveTextParams = null
     }
 
     private fun setBubbleProcessing() {
@@ -2572,6 +2716,20 @@ class BubbleService : Service() {
 
                 if (WimAccessibilityService.instance != null) {
                     WimAccessibilityService.instance!!.injectText(outputText)
+                    // Cache so the user can re-roll on the bezel without re-recording.
+                    lastRegenCtx = RegenContext(
+                        rawText = correctedText,
+                        correctedText = correctedText,
+                        tone = tone,
+                        layer = layer,
+                        situation = situation,
+                        precedingContext = precedingContext,
+                        languageCode = primaryLanguage,
+                        rateGapDetected = rateGap.gapDetected,
+                    )
+                    previousOutputs.clear()
+                    previousOutputs.add(outputText)
+                    showRegenIcon()
                 } else {
                     Log.e(TAG, "No accessibility service instance!")
                     Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
@@ -2685,17 +2843,73 @@ class BubbleService : Service() {
             this, 0, showIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
+        // Notification-shade quick action — opens the bubble menu without
+        // having to interact with the bubble itself. Conflict-free with
+        // every gesture on the bubble.
+        val menuIntent = Intent(this, BubbleService::class.java).apply { action = "OPEN_MENU" }
+        val menuPending = android.app.PendingIntent.getService(
+            this, 1, menuIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("What I Meant")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentIntent(pendingIntent)
+            .addAction(android.R.drawable.ic_menu_preferences, "MENU", menuPending)
             .build()
     }
 
     private fun updateNotification(text: String) {
         val nm = getSystemService(NotificationManager::class.java)
         nm.notify(NOTIFICATION_ID, buildNotification(text))
+    }
+
+    /**
+     * True if WiM's accessibility service is enabled. Reinstalling the APK
+     * silently revokes accessibility on Samsung — without this check the
+     * bubble appears normally but inject and auto-send fail invisibly.
+     */
+    private fun isAccessibilityEnabled(): Boolean {
+        val flat = android.provider.Settings.Secure.getString(
+            contentResolver,
+            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        val ours = "$packageName/${WimAccessibilityService::class.java.name}"
+        val oursShort = "$packageName/.WimAccessibilityService"
+        return flat.split(":").any { it.equals(ours, ignoreCase = true) || it.equals(oursShort, ignoreCase = true) }
+    }
+
+    private fun hasMicPermission(): Boolean =
+        androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Surfaces missing-permission state so the user is never confused about
+     * why the bubble "looks fine but does nothing." Toast + label badge on
+     * the bubble + notification text update.
+     */
+    private fun alertOnMissingPermissions() {
+        val missing = mutableListOf<String>()
+        if (!isAccessibilityEnabled()) missing += "Accessibility"
+        if (!hasMicPermission()) missing += "Mic"
+        if (missing.isEmpty()) return
+
+        val label = missing.joinToString(" + ")
+        val msg = "WiM needs $label permission — settings → accessibility → What I Meant"
+        Log.w(TAG, "Permissions missing: $label")
+        try {
+            android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {}
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "FIX"
+            setTextColor(0xFFE05050.toInt())
+        }
+        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            text = "PERM"
+            setTextColor(0xFFE05050.toInt())
+        }
+        updateNotification("Missing $label permission — tap MENU then Settings")
     }
 
     override fun onDestroy() {

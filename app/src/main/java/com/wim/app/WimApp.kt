@@ -71,7 +71,7 @@ class WimApp : Application() {
          * each individual send. Per-app whitelist lives in
          * WimAccessibilityService.SUPPORTED_AUTOSEND_APPS.
          */
-        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", false)
+        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
 
         /**
          * How many times the disclaimer has been shown + confirmed. Three

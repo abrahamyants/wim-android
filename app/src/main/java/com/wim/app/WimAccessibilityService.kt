@@ -24,6 +24,13 @@ class WimAccessibilityService : AccessibilityService() {
 
     private var recordingUnsub: (() -> Unit)? = null
 
+    // Tracking of the last successful injectText, so a regenerate can replace
+    // *exactly* what was pasted rather than appending a second copy. Reset on
+    // every fresh inject. -1 means "no valid range stored".
+    private var lastInjectStart: Int = -1
+    private var lastInjectEnd: Int = -1
+    private var lastInjectedExact: String = ""
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -211,6 +218,13 @@ class WimAccessibilityService : AccessibilityService() {
                 }
             }
         }
+        // Trailing space — gives the cursor breathing room from the last letter
+        // (the blinking caret abutting a glyph reads as glitchy) AND ensures the
+        // next inject lands cleanly separated. Skip if text already ends in
+        // whitespace or punctuation that already implies a break.
+        if (finalText.isNotEmpty() && !finalText.last().let { it == ' ' || it == '\n' || it == '\t' }) {
+            finalText = "$finalText "
+        }
         // Use ACTION_SET_TEXT to avoid clipboard sound on Android 13+
         val currentText = existing
         val insertPos = if (currentText.isEmpty()) {
@@ -227,6 +241,9 @@ class WimAccessibilityService : AccessibilityService() {
         val setOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
         if (setOk) {
             Log.i("WiM", "injectText: ACTION_SET_TEXT ok (${finalText.length} chars)")
+            lastInjectStart = insertPos
+            lastInjectEnd = insertPos + finalText.length
+            lastInjectedExact = finalText
         } else {
             Log.w("WiM", "injectText: ACTION_SET_TEXT failed — falling back to clipboard+PASTE")
             val clip = android.content.ClipData.newPlainText("wim", finalText)
@@ -240,6 +257,55 @@ class WimAccessibilityService : AccessibilityService() {
                 android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    /**
+     * Replace the most recently injected text with [replacement]. Returns true
+     * if the replacement landed cleanly. If the user has edited the field
+     * since the last inject (so our saved range no longer matches), the
+     * replacement falls back to a normal append via [injectText] so we never
+     * clobber the user's edits.
+     */
+    fun replaceLastInjected(replacement: String): Boolean {
+        if (lastInjectStart < 0 || lastInjectEnd < lastInjectStart) {
+            injectText(replacement); return false
+        }
+        var node = activeTextField
+        if (node != null && !node.refresh()) node = null
+        if (node == null) node = findFocusedEditableAcrossWindows()
+        if (node == null) {
+            injectText(replacement); return false
+        }
+        val current = node.text?.toString().orEmpty()
+        if (lastInjectEnd > current.length ||
+            current.substring(lastInjectStart, lastInjectEnd) != lastInjectedExact) {
+            // Field state diverged from our snapshot — give up on in-place edit.
+            injectText(replacement); return false
+        }
+        // Reapply smart-spacing using the same rules as injectText so the
+        // replacement reads identically to a fresh inject.
+        var spaced = replacement
+        if (lastInjectStart > 0) {
+            val before = current[lastInjectStart - 1]
+            if (before != ' ' && before != '\n' && before != '\t') spaced = " $spaced"
+        }
+        if (spaced.isNotEmpty() && spaced.last().let { it != ' ' && it != '\n' && it != '\t' }) {
+            spaced = "$spaced "
+        }
+        val combined = current.substring(0, lastInjectStart) + spaced + current.substring(lastInjectEnd)
+        val args = android.os.Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, combined)
+        }
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        if (ok) {
+            lastInjectEnd = lastInjectStart + spaced.length
+            lastInjectedExact = spaced
+            Log.i("WiM", "replaceLastInjected: ok (${spaced.length} chars)")
+        } else {
+            Log.w("WiM", "replaceLastInjected: SET_TEXT failed — appending instead")
+            injectText(replacement)
+        }
+        return ok
     }
 
     /**
