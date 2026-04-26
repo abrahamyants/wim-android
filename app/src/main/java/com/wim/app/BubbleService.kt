@@ -140,8 +140,15 @@ class BubbleService : Service() {
 
     companion object {
         private const val TAG = "WiM"
-        private const val CHANNEL_ID = "wim_bubble"
+        // Two channels: routine foreground-service status (no badge, no sound,
+        // user trains to ignore) vs permission-broken alerts (badge ON, user
+        // sees a real signal). Single channel previously meant the launcher
+        // icon always carried a "1" badge regardless of whether anything
+        // actually needed attention.
+        private const val CHANNEL_ID = "wim_bubble"            // routine status, no badge
+        private const val ALERT_CHANNEL_ID = "wim_bubble_alert" // permission-missing alerts, badge ON
         private const val NOTIFICATION_ID = 1
+        private const val ALERT_NOTIFICATION_ID = 2
         var instance: BubbleService? = null
             private set
 
@@ -2824,17 +2831,31 @@ class BubbleService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        val nm = getSystemService(NotificationManager::class.java)
+        // Routine status — required for the foreground service to exist, but
+        // suppressed at the launcher (no badge, no sound, low importance).
+        val statusChannel = NotificationChannel(
             CHANNEL_ID,
             "WiM Voice Dictation",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Keeps the voice dictation bubble active"
             setSound(null, null)
             enableVibration(false)
+            setShowBadge(false)
         }
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(channel)
+        // Permission/error alerts — badge ON, higher importance so the user
+        // notices when accessibility / mic / overlay permission is missing.
+        val alertChannel = NotificationChannel(
+            ALERT_CHANNEL_ID,
+            "WiM Permission Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Shown when WiM needs a permission to function"
+            setShowBadge(true)
+        }
+        nm.createNotificationChannel(statusChannel)
+        nm.createNotificationChannel(alertChannel)
     }
 
     private fun buildNotification(text: String = "Voice dictation active"): Notification {
@@ -2856,6 +2877,8 @@ class BubbleService : Service() {
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentIntent(pendingIntent)
+            .setBadgeIconType(Notification.BADGE_ICON_NONE)
+            .setNumber(0)
             .addAction(android.R.drawable.ic_menu_preferences, "MENU", menuPending)
             .build()
     }
@@ -2863,6 +2886,37 @@ class BubbleService : Service() {
     private fun updateNotification(text: String) {
         val nm = getSystemService(NotificationManager::class.java)
         nm.notify(NOTIFICATION_ID, buildNotification(text))
+    }
+
+    /**
+     * Permission-broken alert. Routes through the high-importance alert
+     * channel so the launcher icon shows a real badge — the user sees a
+     * signal that's distinct from the routine "service is running" state.
+     * Cleared by [clearPermissionAlert] once permissions are restored.
+     */
+    private fun showPermissionAlert(missingLabel: String) {
+        val openSettings = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val pi = android.app.PendingIntent.getActivity(
+            this, 100, openSettings,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val notif = Notification.Builder(this, ALERT_CHANNEL_ID)
+            .setContentTitle("WiM needs a permission")
+            .setContentText("Missing $missingLabel — tap to fix")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .setBadgeIconType(Notification.BADGE_ICON_SMALL)
+            .setNumber(1)
+            .build()
+        getSystemService(NotificationManager::class.java)
+            .notify(ALERT_NOTIFICATION_ID, notif)
+    }
+
+    private fun clearPermissionAlert() {
+        getSystemService(NotificationManager::class.java).cancel(ALERT_NOTIFICATION_ID)
     }
 
     /**
@@ -2893,7 +2947,12 @@ class BubbleService : Service() {
         val missing = mutableListOf<String>()
         if (!isAccessibilityEnabled()) missing += "Accessibility"
         if (!hasMicPermission()) missing += "Mic"
-        if (missing.isEmpty()) return
+        if (missing.isEmpty()) {
+            // All permissions granted — clear any stale alert so the launcher
+            // badge goes away the moment the user fixes the permission.
+            clearPermissionAlert()
+            return
+        }
 
         val label = missing.joinToString(" + ")
         val msg = "WiM needs $label permission — settings → accessibility → What I Meant"
@@ -2909,7 +2968,9 @@ class BubbleService : Service() {
             text = "PERM"
             setTextColor(0xFFE05050.toInt())
         }
-        updateNotification("Missing $label permission — tap MENU then Settings")
+        // Route through the high-importance alert channel — launcher badge ON,
+        // distinct from the routine status notification.
+        showPermissionAlert(label)
     }
 
     override fun onDestroy() {
