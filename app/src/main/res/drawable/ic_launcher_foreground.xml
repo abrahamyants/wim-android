@@ -1,53 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Fresh design. The bezel circle extends beyond the safe zone so the
-    adaptive icon mask crops it — orange background peeks through only
-    as a thin ring at the edge, exactly like the floating bubble.
-    Dark well is wider for visibility at small size.
--->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- BEZEL — fills most of the icon, mask crops the edge -->
     <path
-        android:fillColor="#FFD0D0D6"
-        android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
+        android:fillColor="#28292D"
+        android:pathData="M54,14 A40,40 0 1,0 54,94 A40,40 0 1,0 54,14 Z" />
 
-    <!-- INNER BEZEL — slightly darker ring -->
     <path
-        android:fillColor="#FFC0C0C8"
-        android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0" />
+        android:strokeWidth="1.5"
+        android:strokeColor="#C55858"
+        android:pathData="M54,18 A36,36 0 1,0 54,90 A36,36 0 1,0 54,18 Z" />
 
-    <!-- SHADOW WELL — wide dark ring, clearly visible -->
     <path
-        android:fillColor="#FF3A3A44"
-        android:pathData="M54,54m-29,0a29,29 0,1 1,58 0a29,29 0,1 1,-58 0" />
+        android:fillColor="#1B1C20"
+        android:pathData="M54,19 A35,35 0 1,0 54,89 A35,35 0 1,0 54,19 Z" />
 
-    <!-- KNOB RIM -->
     <path
-        android:fillColor="#FFBBBBC2"
-        android:pathData="M54,53m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
+        android:fillColor="#34353A"
+        android:pathData="M54,28 A26,26 0 1,0 54,80 A26,26 0 1,0 54,28 Z" />
 
-    <!-- KNOB FACE -->
     <path
-        android:fillColor="#FFCDCDD2"
-        android:pathData="M54,52m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+        android:strokeWidth="1"
+        android:strokeColor="#202125"
+        android:pathData="M54,28.5 A25.5,25.5 0 1,0 54,79.5 A25.5,25.5 0 1,0 54,28.5 Z" />
 
-    <!-- WM LETTERFORMS — only orange element -->
+    <!-- WM in cream — known-good Limelight-derived letterforms (same paths
+         used by the privacy-policy footer logo). Sized + translated to sit
+         centered on the knob face (knob center 54,54, radius 26). -->
     <group
-        android:translateX="36"
-        android:translateY="44"
-        android:scaleX="0.011"
-        android:scaleY="0.011">
+        android:translateX="34.5"
+        android:translateY="44.5"
+        android:scaleX="0.0106"
+        android:scaleY="0.0106">
         <path
-            android:fillColor="#FFEE5A24"
+            android:fillColor="#FFD2B97C"
             android:pathData="M1931 97Q1931 112 1924 134Q1900 199 1881 247L1351 1534L974 692L583 1534L-9 64H539L820 813L1201 0L1556 811L1806 224Q1819 191 1828 159L1845 98Q1856 53 1893.5 53.0Q1931 53 1931 97Z" />
         <path
-            android:fillColor="#FFEE5A24"
+            android:fillColor="#FFD2B97C"
             android:pathData="M1777 1444Q1782 1413 1796.0 1387.0Q1810 1361 1816.5 1348.0Q1823 1335 1830 1319L1868 1231L2279 0L2721 854L3150 0L3663 1479H3126L2878 715L2494 1515L2090 795L1950 1232Q1917 1305 1903.0 1356.0Q1889 1407 1880 1435Q1860 1498 1814 1494Q1795 1492 1785.0 1477.0Q1775 1462 1777 1444Z" />
     </group>
-
 </vector>
