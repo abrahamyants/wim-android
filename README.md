@@ -1865,3 +1865,60 @@ A complete, brutal accounting of what I (Claude) got wrong this session, in roug
 **54. Did not verify the gradle build was using the right JDK after setting JAVA_HOME.** Just trusted that Android Studio's JBR works for this project. Could have verified Java version (`java -version`) against the project's `targetSdk` requirements before kicking off a 4-minute build.
 
 **55. Did not save a "common Windows paths" memory after hitting JAVA_HOME / gradlew.bat / adb path issues three times.** Each of these is a recurring Windows / Android-SDK location that would benefit from a saved memory. Did not write one. Will hit the same issues next session.
+
+---
+
+## Session 14 — April 26, 2026 (Bubble menu hi-fi redesign + live transcribe fix)
+
+Continuation of Session 13's bubble menu work. Headline: fixed the double-tap menu regression, dropped Falcon at L4 (matches Lavrentiy), then went into a full design overhaul (vintage hi-fi control plate concept) and chased a live-transcribe bar that was being silently obscured by the bubble itself.
+
+Full play-by-play in `SESSION_LOG_2026-04-26.md`. Headline items:
+
+- **L4 Falcon dropped unconditionally.** `ReconstructClient.kt` no longer runs same-provider Falcon (GPT-4o validating GPT-4o) when no Anthropic key. Sonnet 4.6 ET self-validates during reasoning.
+- **Bubble menu redesign — vintage hi-fi control plate.** Concept: the menu is the *inside* of the bubble's chassis pulled open. Hand-drawn speech-bubble outline (DiscretePathEffect dual-stroke) frames a polished engineered interior.
+  - **Color picker** = three 34dp mini-replicas of the bubble bezel itself (bronze radial / brushed silver / polished gold). User literally picks which bubble to wear. Renamed "Gunmetal" → "Gold" in label; pref key stays `"gunmetal"` for backwards-compat.
+  - **Layer chips** = engraved nameplates (`nameplate_bg.xml`, dark gradient + top highlight). Active state via `state_selected` selector layer (warm copper-gold + cream highlight border). Font: Josefin Sans bold caps with letter-spacing.
+  - **Vertical fader sliders** (`VerticalSeekBar.kt`) — rotated `AppCompatSeekBar` with custom `fader_thumb.xml` (square brushed-metal knob with maroon center indicator).
+  - **Per-theme background patterns** via `BitmapShader`: bronze hex honeycomb, silver hex honeycomb, dark rectangular brick weave for gunmetal/gold. Hex tiles drawn with 3×3 hex neighborhood for seamless REPEAT tiling.
+  - **Per-theme on-fill text color**: dark brown / near-black / brand cream — adapted to luminance of the surface beneath each label.
+  - **Reset Timer + Settings** flank the speech-bubble tail at the bottom (no wrappers), giving the tail a visual job as separator.
+  - Menu position math: `bezelTopOffset = bubbleHeight * 0.20` + `tailOverlap = 4dp` so the tail tip lands ON the bezel circle, not above it on empty bubble window padding.
+  - Synchronous menu measurement BEFORE `addView` fixes the Session 13 regression where the menu opened at (0,0) and looked like nothing happened.
+- **Live transcribe overlay fixed.** Pre-existing 3-bug stack — `ellipsize=END` showing "...", TextView shrinking to content width despite WindowManager 660px window, and bubble overlay obscuring the bar at z-order. Fix: removed ellipsize, wrapped TextView in `FrameLayout` container with `MATCH_PARENT`, lifted bar `y = bp.y - 130` to clear the bubble entirely. Same fix in both `showLiveTranscript()` and `showPipelineStage()`.
+- **Tooling**: new `scripts/screenshot.sh` — `adb shell screencap` → `pull` → Pillow shrink to 1500px JPG. Shipped after debugging git-bash binary-redirect mangling, MSYS path conversion, and bash/Python `/tmp` divergence on Windows. New `live_show` test action in `WimTestReceiver` for headless menu/transcript verification.
+
+### Punch list at session pause
+
+- Live transcribe with REAL recording not yet on-device-verified (only via headless test broadcast).
+- Orphan drawables `chip_color_bronze.xml` / `chip_color_silver.xml` / `chip_color_gold.xml` from abandoned pill-chip iteration — still on disk, unreferenced, cleanup pending.
+- All Session 14 work uncommitted as of session pause.
+- Anthropic-via-CF-proxy still pending (architectural debt from Session 12).
+- Disclaimer overlay UX still unvalidated (carryover).
+
+## Wrong calls / corrections (Session 14)
+
+**56. Iterated through chip styling 4× before getting Josefin Sans right.** Started monospace bold, switched to Limelight (the WiM logo font), George rejected ("don't use the broadway logo font"). Should have asked which font from `res/font/` BEFORE picking — would have saved one rebuild round. The answer was sitting in `app/src/main/res/font/josefin_sans.ttf` the whole time.
+
+**57. Lifted the L4 Falcon edit to "match Lavrentiy" without verifying Lavrentiy's actual code.** Read the parallel session's README *claim* about Lavrentiy and acted on it. The framing in my message implied Lavrentiy was the source of truth when actually I was reading the README's claim, not the source. Fix happened to be correct but the reasoning chain was sloppy.
+
+**58. Spent 4 iterations debugging the live transcribe bar before realizing the bubble was obscuring it.** Should have run `dumpsys window windows` ON THE FIRST screenshot mismatch instead of guessing about ellipsize / minLines / minimumWidth / FrameLayout wrapping. The window dump immediately showed `frame=[420,1024][1080,1139]` — full 660px width — proving the layout was correct and the bug was z-order/overlap with the bubble. Process failure: diagnosed at the rendering layer when system tools could've answered in one query.
+
+**59. Did not test the bubble redesign with the bubble in floating state before iterating.** Each round I rebuilt + installed, but the bubble was sometimes in dock state when I tried to open the menu, making the "menu didn't appear" feedback ambiguous. Caused at least one round of confused back-and-forth. Force-stop + monkey relaunch puts the bubble in dock state by default; I needed to also fire `trigger_bubble show` to re-float it before testing menu paths.
+
+**60. Failed to read the parallel session's modifications to `VerticalSeekBar.kt` and `bubble_menu.xml` before continuing my edits.** System reminders notified me intentionally; I treated them as informational only. Should have re-read both files to understand what state the parallel session had left them in, then layered my changes on top deliberately. Worked out OK this time but a larger parallel-session change could have produced a merge conflict I'd discover at build time.
+
+**61. The "live transcribe didn't change" diagnosis took multiple rounds because I assumed George's test path was identical to mine.** He was testing through the recording flow + recognizer partial transcripts; my headless test went through `showPipelineStage`. Both code paths needed the same fix but I should have asked WHICH path he was testing on the first reply, not the third.
+
+**62. Position math for menu tail-on-bezel computed from a hardcoded 20% ratio.** `bezelTopOffset = bubbleHeight * 0.20` works because the bubble window is 120dp and the bezel is 72dp centered (= 24dp top padding = 20%). If the bubble layout ever changes those proportions, this breaks silently. Should be derived from the bezel View's actual position within the bubble window, not from a magic ratio.
+
+**63. Did not flag the date discrepancy when George said "0/26".** System date is 2026-04-25; he asked for "0/26" which I interpreted as 04/26 (one day forward). Filed under that without confirming. Same failure as Session 13 #50 — explicit memory rule, still missed it. The rule self-execution is failing.
+
+**64. Bronze background "too much" feedback acted on without asking what specifically was too much.** I assumed George meant the dark-bg + bronze-outlines combo was overwhelming, swapped for mid-bronze fill matching the silver structure. He confirmed it was right, but I had no signal beforehand — could have gone the wrong direction with no recourse besides another round.
+
+**65. Did not commit any of Session 14's work as I went.** All changes are uncommitted local modifications at session pause. Should have batched logical chunks (Falcon edit → menu position fix → screenshot helper → menu redesign → live transcribe fix). Will be one giant commit when it lands, which is harder to bisect later if a regression surfaces.
+
+**66. Test broadcast `live_show` writes a JSON to `test_result.json` but logs no warning when `BubbleService.instance` is null.** Debug-only path (gated by `BuildConfig.DEBUG`) so not user-facing, but a logcat warning would make headless testing easier to diagnose without pulling files.
+
+**67. Rebuilt + installed without verifying APK timestamp matched my expectation when the live transcribe bar still showed as before after 3 iterations.** Should have done `adb shell pm path com.wim.app` + check inode/timestamp to confirm the new APK was on device, not just trust "Success" output. The APK was fresh; the bug was real; but the verification habit is missing — would have saved time pursuing wrong theories on subsequent iterations.
+
+**68. The `hideLiveTranscript()` cleanup change is silent.** Old code: `liveTextView?.let { removeView(it) }`. New code: `liveTextContainer?.let { removeView(it) }` and nulls all three fields including `liveTextView`. If any code path was reading `liveTextView` post-hide for any reason, behavior shifts. No call sites verified before the rewrite.
