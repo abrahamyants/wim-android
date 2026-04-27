@@ -194,8 +194,42 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
             bubble.showPipelineStage("💡", "You can turn them off in Settings.")
         }
 
-        // ── Act 11: Finale ──
+        // ── Act 11: Clarifier preview (Phase 7 step 42) ──
+        // Teach the cycle UX inside the onboarding parade, so the first
+        // real flag the user sees isn't surprising.
         t += 3000
+        step(t) {
+            bubble.showPipelineStage("? Sometimes I'm not sure", "I'll ask. Tap left = yes, right = no.")
+        }
+        t += 3000
+        step(t) {
+            // Synthetic single-flag clarifier — bubble label flips to
+            // DUNKEN?, time slot to 1/1. The user can tap to dismiss
+            // (the cycle exits cleanly via cancelForNewRecording on next
+            // recording, or auto-dismisses in 3s).
+            bubble.triggerClarifierForTest(
+                listOf(
+                    FlaggedWord(
+                        originalWord = "Dunken",
+                        candidates = listOf("Dankeschön"),
+                        rangeStart = 0,
+                        rangeEnd = 6,
+                        uncertaintyScore = 0.95,
+                    ),
+                ),
+            )
+        }
+        t += 3500
+        step(t) {
+            // Force-exit if the user hasn't tapped — onboarding shouldn't
+            // hang on the demo flag.
+            ClarifierController.dismissAll()
+            TranscriptBarController.clear(TranscriptBarController.Priority.CLARIFIER)
+            bubble.setBubbleIdlePublic()
+        }
+
+        // ── Act 12: Finale ──
+        t += 1500
         step(t) {
             bubble.showPipelineStage("☕", "Spill your coffee. Stutter your words. I don't judge.")
         }
