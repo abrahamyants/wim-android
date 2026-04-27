@@ -58,6 +58,12 @@ class BubbleService : Service() {
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
     private var moonshineEngine: MoonshineEngine? = null
+    private var whisperLocalEngine: WhisperLocalEngine? = null
+    private var bubblePersona: BubblePersona? = null
+    private var bubbleAffect: BubbleAffect? = null
+    /** Active onboarding demo (Phase 7). Tap handler skips it on touch. */
+    private var activeDemoScript: BubbleDemoScript? = null
+    private var activeDemoFinish: (() -> Unit)? = null
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
@@ -177,6 +183,60 @@ class BubbleService : Service() {
     fun dismissMenuPublic() = dismissMenu()
     fun hideLiveTranscriptPublic() = hideLiveTranscript()
 
+    /**
+     * Synthetic clarifier entry — spec §6 Phase 2 EARLIEST DEMO MILESTONE.
+     * Called from `WimTestReceiver` via `trigger_clarifier` broadcast.
+     * Bypasses ASR + Clarifier.evaluate; the cycle UX is exercised
+     * directly with caller-supplied flagged words.
+     */
+    fun triggerClarifierForTest(flags: List<FlaggedWord>) {
+        if (!BuildConfig.DEBUG) return
+        // Force-set FSM into Injected so the Injected→Clarifying transition
+        // is legal per spec §1 matrix.
+        BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
+        enterClarifierCycle(flags, autoSendEligible = false)
+    }
+
+    /**
+     * Wire-up for the Clarifier cycle. Called from `processText` after a
+     * successful inject when [Clarifier.evaluate] returned ≥1 flag (Phase 2
+     * step 16 — currently invoked by tests only; production gating arrives
+     * with word timings in Phase 4).
+     */
+    private fun enterClarifierCycle(flags: List<FlaggedWord>, autoSendEligible: Boolean) {
+        ClarifierController.enter(
+            flaggedWords = flags,
+            injectedText = WimAccessibilityService.lastInjectedTextSnapshot(),
+            autoSendEligible = autoSendEligible,
+            onLabelUpdate = { flagged, idx, total -> paintClarifierLabel(flagged, idx, total) },
+            onExit = { eligible ->
+                // Release the clarifier's hold on the transcript bar so the
+                // next pipeline run can write to it.
+                TranscriptBarController.clear(TranscriptBarController.Priority.CLARIFIER)
+                // Restore the bubble's normal post-inject UI.
+                if (eligible) setBubbleSendReady() else setBubbleIdle()
+            },
+        )
+    }
+
+    /** Spec §2 row 5: clarifier owns bubbleLabel + bubbleTime exclusively
+     *  while [BubbleState.Clarifying]. Format: `DUNKEN?` + `1/3`. */
+    private fun paintClarifierLabel(flag: FlaggedWord, idx: Int, total: Int) {
+        val view = bubbleView ?: return
+        val gold = 0xFFC8B48A.toInt()
+        view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "${flag.originalWord.uppercase().take(8)}?"
+            setTextColor(gold)
+        }
+        view.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            text = "${idx + 1}/$total"
+            setTextColor(gold)
+        }
+        // Top candidate hint via TranscriptBarController — preempts STAGE.
+        val hint = "did you mean → ${flag.candidates.firstOrNull() ?: "?"}"
+        TranscriptBarController.show(TranscriptBarController.Priority.CLARIFIER, hint)
+    }
+
     // ── Test automation entry points (WimTestReceiver) ─────────────────────
 
     /**
@@ -206,10 +266,13 @@ class BubbleService : Service() {
         recordingStartTime = System.currentTimeMillis()
         scope.launch {
             try {
-                // L4 uses whisper-1 (preserves more disfluencies + the verbose_json
-                // confidence signals the clinical prompt depends on). L1-L3 stay
-                // on the newer gpt-4o-transcribe.
-                val whisperModel = if (WimApp.layer() >= 4) "whisper-1" else "gpt-4o-transcribe"
+                // L4 uses whisper-1; L1-cloud uses whisper-1; L2/L3 cloud
+                // fallback stays on gpt-4o-transcribe.
+                val whisperModel = when {
+                    WimApp.layer() >= 4 -> "whisper-1"
+                    WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
+                    else -> "gpt-4o-transcribe"
+                }
                 val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
                 Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
@@ -267,7 +330,36 @@ class BubbleService : Service() {
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
         moonshineEngine = MoonshineEngine(this)
+        whisperLocalEngine = WhisperLocalEngine(this)
         sessionHistory = SessionHistory(this)
+        // FSM observer — Phase 1 routes pipeline-stage labels through it.
+        // Phase 3 layers the affect catalog on top.
+        bubblePersona = BubblePersona().also { it.bind(scope) }
+        // Phase 3 affects: RESTING / LEANING_FORWARD / TA_DA / HEAD_TILT
+        // + clarifier trigger pulse + approve/reject flashes.
+        bubbleAffect = BubbleAffect(
+            bubbleViewProvider = { bubbleView },
+            vibrator = vibrator,
+        ).also { it.bind(scope) }
+
+        // Clarifier voice commands — claim 12(ii). Spec §2 row 3 priority:
+        // claim only when state is Clarifying; primary dictation otherwise.
+        VoiceCommandRouter.register("clarifier") { utterance ->
+            if (BubbleStateBus.current() !is BubbleState.Clarifying) return@register false
+            val token = utterance.trim().lowercase().split(Regex("\\s+")).firstOrNull().orEmpty()
+            when (token) {
+                "yes", "approve", "ok", "confirm" -> {
+                    ClarifierController.approve(); true
+                }
+                "no", "reject", "cancel", "nope" -> {
+                    ClarifierController.reject(); true
+                }
+                "next", "skip" -> {
+                    ClarifierController.next(); true
+                }
+                else -> false
+            }
+        }
         createNotificationChannel()
         setupBluetoothSco()
         val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -398,14 +490,19 @@ class BubbleService : Service() {
             "ONBOARDING" -> {
                 showOnboardingOverlay()
                 showBubble()
-                // Run the bubble's live demo script — the bubble introduces itself
+                // Run the bubble's live demo script — the bubble introduces itself.
+                // Skip-on-tap (Phase 7 step 43) — cache the script + its onComplete
+                // so the tap handler can short-circuit if the user has seen enough.
                 timerHandler.postDelayed({
-                    BubbleDemoScript {
-                        // Demo complete — remove overlay, bubble is idle
+                    val finish: () -> Unit = {
+                        activeDemoScript = null
+                        activeDemoFinish = null
                         removeOnboardingOverlay()
                         showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
                         timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
-                    }.start()
+                    }
+                    activeDemoFinish = finish
+                    activeDemoScript = BubbleDemoScript(finish).also { it.start() }
                 }, 800)
             }
         }
@@ -571,6 +668,7 @@ class BubbleService : Service() {
                                 isRecording = false
                                 onDeviceRecognizer?.stop()
                                 moonshineEngine?.stop()
+                                whisperLocalEngine?.stop()
                                 audioRecorder?.stop()
                                 audioRecorder = null
                                 dafPlayer?.stop()
@@ -603,6 +701,16 @@ class BubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     timerHandler.removeCallbacks(startRecordingRunnable)
+                    // Phase 7 step 43 — skip-on-tap: an active onboarding demo
+                    // is short-circuited by any tap, so users who don't want
+                    // the tour aren't held hostage to it.
+                    if (activeDemoScript != null) {
+                        activeDemoScript?.cancel()
+                        activeDemoScript = null
+                        activeDemoFinish?.invoke()
+                        activeDemoFinish = null
+                        return@setOnTouchListener true
+                    }
                     if (isDragging) {
                         // Snap back to normal
                         val scale = WimApp.bubbleSize() / 100f
@@ -681,6 +789,19 @@ class BubbleService : Service() {
 
                     if (!isRecording && dist > innerR && dist < outerR && tapDuration < 300) {
                         try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        // FSM clarifier (per-word, spec §6 Phase 2) — left = approve,
+                        // right = reject. Wins over the legacy work/life clarifier
+                        // because the FSM is the single source of truth.
+                        if (BubbleStateBus.current() is BubbleState.Clarifying) {
+                            if (tx < 0) {
+                                bubbleAffect?.emitApproveFlash()
+                                ClarifierController.approve()
+                            } else {
+                                bubbleAffect?.emitRejectFlash()
+                                ClarifierController.reject()
+                            }
+                            return@setOnTouchListener true
+                        }
                         if (isClarifierActive) {
                             // Clarifier mode — left = ✓ yes, right = ✕ no
                             dismissClarifier(tx < 0)
@@ -893,6 +1014,7 @@ class BubbleService : Service() {
 
     private fun setBubbleSendReady() {
         val view = bubbleView ?: return
+        BubbleStateBus.advance(BubbleState.SendReady)
         isSendReady = true
         stopPulseRings()
         hideLiveTranscript()
@@ -1035,6 +1157,14 @@ class BubbleService : Service() {
     private fun startListening() {
         if (isRecording) return
 
+        // Spec §1: Clarifying → Listening is a legal transition (user always
+        // wins). Tear down the clarifier cleanly before the new recording
+        // claims the bubble's UX surface.
+        if (BubbleStateBus.current() is BubbleState.Clarifying) {
+            ClarifierController.cancelForNewRecording()
+            TranscriptBarController.clear(TranscriptBarController.Priority.CLARIFIER)
+        }
+
         // Stale regen state: a fresh recording invalidates the cached
         // reconstruction context.
         if (isRegenAvailable) hideRegenIcon()
@@ -1055,6 +1185,7 @@ class BubbleService : Service() {
         }
 
         isRecording = true
+        BubbleStateBus.advance(BubbleState.Listening(System.currentTimeMillis()))
         lastRawText = ""
         finalizedSegments = ""
         processed = false
@@ -1097,19 +1228,19 @@ class BubbleService : Service() {
         }
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
-        // Cloud-ASR fallback: capture audio for gpt-4o-transcribe ONLY when no
-        // local engine (Moonshine) is going to produce the L1 text. When
-        // a local engine is live, its final text is the ASR output for ALL
-        // layers — GPT-4o reconstruction (L2+) can handle local-ASR WER fine,
-        // and local engines preserve disfluencies that cloud ASR pre-smooths.
-        // Audio stays on device at L2+ when a local engine is on.
-        // L4 always captures WAV regardless of Moonshine state — the L4 ASR
-        // is cloud Whisper-1 (verbose_json) for the per-segment confidence
-        // signals the clinical prompt depends on. L2/L3 only capture WAV
-        // when Moonshine isn't ready (cloud fallback for ASR).
+        // ASR routing for this session:
+        //   L4 always cloud whisper-1 (clinical needs verbose_json segments).
+        //   L1 user-toggleable via `l1_cloud_asr`:
+        //     - false (default) → local whisper-tiny.en via WhisperLocalEngine.
+        //     - true → cloud whisper-1 (audio leaves device).
+        //   L2/L3 stays on whisperLocalEngine when ready, falls back to cloud
+        //   gpt-4o-transcribe via AudioRecorder when not.
+        // AudioRecorder fires when ANY of the cloud paths above will run.
         val isL4 = WimApp.layer() >= 4
-        val wantMoonshineLive = WimApp.useMoonshine() && (moonshineEngine?.isReady() == true) && !isL4
-        if ((isL4 || (!wantMoonshineLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
+        val l1Cloud = WimApp.l1CloudAsr()
+        val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
+        val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
+        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
@@ -1154,28 +1285,30 @@ class BubbleService : Service() {
         }
 
         // Pick the engine.
-        //   L4: no live engine — AudioRecorder above is capturing WAV; Whisper-1
+        //   L4: no live engine — AudioRecorder above is capturing WAV; whisper-1
         //       runs post-stop (the clinical prompt needs verbose_json confidence
-        //       signals only Whisper provides). Live transcript bar stays empty.
-        //   L1/L2/L3: cascade.
-        //     1. Moonshine BASE-en (sherpa-onnx) — primary, fully local, no chirp.
-        //     2. Android SpeechRecognizer (Google's TTS service on Samsung) —
-        //        fallback when Moonshine model isn't ready, pinned offline.
+        //       signals only Whisper-1 provides). Live transcript bar stays empty.
+        //   L1 cloud path (l1_cloud_asr=true): WAV captured, whisper-1 on stop.
+        //   L1 local / L2 / L3: whisper-tiny.en via WhisperLocalEngine (sherpa-onnx).
+        //   Fallback when whisper-tiny model isn't ready: Android SpeechRecognizer.
         if (isL4) {
-            Log.i(TAG, "L4 mode: WAV captured, no live ASR (Whisper-1 runs post-stop)")
+            Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording for clinical reconstruction…")
-        } else if (moonshineEngine?.isReady() == true) {
-            Log.i(TAG, "Using Moonshine engine (local-only, BASE-en sherpa-onnx)")
-            moonshineEngine?.start(object : MoonshineEngine.ResultListener {
+        } else if (l1NeedsCloud) {
+            Log.i(TAG, "L1 cloud mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
+            updateLiveTranscript("Recording (cloud ASR)…")
+        } else if (whisperLocalEngine?.isReady() == true) {
+            Log.i(TAG, "Using whisper-tiny.en engine (local, sherpa-onnx)")
+            whisperLocalEngine?.start(object : WhisperLocalEngine.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
                 override fun onSoundEvent(label: String) = handleSound(label)
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
         } else {
-            Log.w(TAG, "Moonshine model not ready — using Android SpeechRecognizer (offline-pinned)")
+            Log.w(TAG, "whisper-tiny model not ready — using Android SpeechRecognizer (offline-pinned)")
             // Surface the fallback so the user understands why this recording
-            // chirped / is slower. Self-limits — once the 141 MB model lands,
+            // chirped / is slower. Self-limits — once the ~40 MB model lands,
             // this branch becomes unreachable.
             android.widget.Toast.makeText(
                 this,
@@ -1202,6 +1335,7 @@ class BubbleService : Service() {
         // (3–10s on cloud Whisper, 15–70s on whisper.cpp) and users think the
         // button didn't register.
         setBubbleProcessing()
+        BubbleStateBus.advance(BubbleState.Transcribing(System.currentTimeMillis()))
         dafPlayer?.stop()
         dafPlayer = null
 
@@ -1209,9 +1343,10 @@ class BubbleService : Service() {
         val wavFile = audioRecorder?.stop()
         audioRecorder = null
         
-        // Stop whichever engine was running this session; cheap defensive calls on both.
+        // Stop whichever engine was running this session; cheap defensive calls on all.
         onDeviceRecognizer?.stop()
         moonshineEngine?.stop()
+        whisperLocalEngine?.stop()
 
         updateLiveTranscript("Transcribing...")
 
@@ -1219,8 +1354,14 @@ class BubbleService : Service() {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
                 try {
-                    // L4 uses whisper-1; L1-L3 stay on gpt-4o-transcribe.
-                    val whisperModel = if (WimApp.layer() >= 4) "whisper-1" else "gpt-4o-transcribe"
+                    // L4 uses whisper-1; L1-cloud uses whisper-1; L2/L3 cloud
+                    // fallback stays on gpt-4o-transcribe (parity gap flagged
+                    // for follow-up).
+                    val whisperModel = when {
+                        WimApp.layer() >= 4 -> "whisper-1"
+                        WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
+                        else -> "gpt-4o-transcribe"
+                    }
                     val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
@@ -1229,6 +1370,7 @@ class BubbleService : Service() {
                     }
                     if (whisperResult.wasFullyHallucinated) {
                         Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
+                        BubbleStateBus.advance(BubbleState.Failed(FailReason.HALLUCINATED))
                         showPipelineStage("∅ Silence", "Nothing to transcribe")
                         timerHandler.postDelayed({ setBubbleIdle() }, 1500)
                     } else {
@@ -1241,6 +1383,7 @@ class BubbleService : Service() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Whisper failed: ${e.message}")
+                    BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                     showPipelineStage("Error", "Transcription failed")
                     timerHandler.postDelayed({ setBubbleIdle() }, 2000)
                 } finally {
@@ -1463,6 +1606,9 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleIdle() {
+        // FSM: drop to Idle (force-set so we don't fight the transition
+        // matrix on cancel/cleanup paths from arbitrary prior states).
+        BubbleStateBus.reset()
         stopPulseRings()
         hideLiveTranscript()
         maybeShowTip()
@@ -2051,6 +2197,26 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
         }
 
+        // L1 SRC toggle — off = local whisper-tiny.en, on = cloud whisper-1
+        val l1AsrToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuL1AsrToggle)
+        l1AsrToggle.isChecked = WimApp.l1CloudAsr()
+        l1AsrToggle.thumbTintList = accentTint
+        l1AsrToggle.trackTintList = android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(palette.stroke, palette.sliderTrack)
+        )
+        l1AsrToggle.scaleX = 0.75f
+        l1AsrToggle.scaleY = 0.75f
+        l1AsrToggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("l1_cloud_asr", checked).apply()
+            android.widget.Toast.makeText(
+                this,
+                if (checked) "L1 ASR: Cloud (whisper-1)" else "L1 ASR: Local (whisper-tiny)",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+        }
+        colorAs(R.id.menuL1AsrLabel, onFillText)
+
         // Layer selector — 3 buttons mapped to layers 1/2/4. Profile (L3) is
         // dropped from the menu by design; access via Settings.
         val layerEntries = listOf(
@@ -2266,6 +2432,10 @@ class BubbleService : Service() {
                 )
             }
             liveTextView = tv
+            // FSM observer's stage labels write through TranscriptBarController.
+            // Existing showPipelineStage callers continue to set text directly
+            // with Spannable styling — last writer wins, both are consistent.
+            TranscriptBarController.bind { text -> liveTextView?.text = text }
             val container = android.widget.FrameLayout(this).apply { addView(tv) }
             liveTextContainer = container
             val screenW = resources.displayMetrics.widthPixels
@@ -2298,6 +2468,7 @@ class BubbleService : Service() {
         liveTextContainer = null
         liveTextView = null
         liveTextParams = null
+        TranscriptBarController.unbind()
     }
 
     private fun setBubbleProcessing() {
@@ -2487,6 +2658,9 @@ class BubbleService : Service() {
             }
         }
 
+        // FSM: ASR text in hand, entering disfluency-strip phase.
+        BubbleStateBus.advance(BubbleState.Stripping(System.currentTimeMillis()))
+
         // Strip Whisper block hallucinations — applies to ALL layers
         val deHallucinated = DisfluencyFilter.stripBlockHallucinations(expandedText, lastWhisperLowConf)
         if (deHallucinated != expandedText) {
@@ -2521,6 +2695,9 @@ class BubbleService : Service() {
 
         if (layer < 2) {
             // L1: disfluency-filtered text + profile corrections (no GPT needed)
+            // FSM: L1 still goes through Reconstructing → Verified → Injected;
+            // the "reconstruction" is deterministic (PhoneticMatcher + Repunctuate).
+            BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
             Log.i(TAG, "L1 mode, applying profile corrections then injecting")
             val corrections = profile.getCorrections()
             val sessionNum = sessionHistory?.count() ?: 0
@@ -2541,12 +2718,20 @@ class BubbleService : Service() {
             // Double Metaphone. Catches misheard loanwords / proper nouns that
             // aren't in the explicit corrections map yet.
             l1Text = PhoneticMatcher.correct(l1Text, profile.getVocabulary(), profile.getOnsetWeights())
+            // Deterministic capitalization + terminal punctuation. Idempotent
+            // on already-punctuated text. Mirrors lavrentiy.py repunctuate().
+            l1Text = Repunctuate.apply(l1Text)
+            // FSM: L1 has no Falcon — the deterministic pass is "trusted by
+            // construction." Verified → Injected before the actual paste so
+            // observers see the right transition order.
+            BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
             if (stripped > 0 || l1Text != preCleaned) {
                 val corrCount = if (l1Text != preCleaned) " + corrections" else ""
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
             }
             ConsoleLog.log("-> \"${l1Text.take(80)}${if (l1Text.length > 80) "..." else ""}\"  [${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w]", "out")
             WimAccessibilityService.instance?.injectText(l1Text)
+            BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             val totalMs = System.currentTimeMillis() - recordingStartTime
             ConsoleLog.log("[L1] paste_clean | ${totalMs}ms (asr:${asrMs})", "info")
             sessionHistory?.record(
@@ -2584,6 +2769,9 @@ class BubbleService : Service() {
         }
 
         // L2+: reconstruct via GPT (with pre-cleaned input)
+        // FSM: enter ReadingContext (audience-context detection runs while
+        // the precedingContext is gathered via accessibility look-behind).
+        BubbleStateBus.advance(BubbleState.ReadingContext(System.currentTimeMillis()))
         if (stripped > 0) {
             showPipelineStage("\u2713 $stripped disfluencies removed", "${rawWordCount}w \u2192 ${cleanWordCount}w")
         }
@@ -2650,6 +2838,20 @@ class BubbleService : Service() {
                 ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                 Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
                 val primaryLanguage = "en"
+                // Format the rate-gap signal as a model-visible prompt note.
+                // Includes the actual numbers (wps, baseline, ratio percent)
+                // so the model sees the diagnostic, not just the severity bump.
+                val compressionRatioNote = if (rateGap.gapDetected) {
+                    val wpsStr = "%.2f".format(rateGap.wps)
+                    val baselineStr = rateGap.baselineWps?.let { "%.2f".format(it) } ?: "?"
+                    val ratioPct = ((rateGap.ratio ?: 0.0) * 100).toInt()
+                    "Speaker produced $wpsStr words/sec vs their baseline of $baselineStr wps " +
+                        "($ratioPct% of baseline). Low ratio = ASR likely dropped content during " +
+                        "blocks, extended pauses, or pre-smoothing where intended words did not " +
+                        "surface in the transcription. Reconstruct with the assumption that some " +
+                        "intended words are MISSING from the input — supply them from semantic context."
+                } else ""
+                BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer))
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -2666,6 +2868,8 @@ class BubbleService : Service() {
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext,
                     languageCode = primaryLanguage,
+                    compressionRatioNote = compressionRatioNote,
+                    audiencePackage = WimAccessibilityService.currentForegroundPackage,
                 )
                 turboTaxJob?.cancel()
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
@@ -2716,6 +2920,7 @@ class BubbleService : Service() {
 
                 val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
                 val falconLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
+                BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
                 showPipelineStage(falconLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
 
                 // Brief pause so user can see the final stage
@@ -2723,6 +2928,8 @@ class BubbleService : Service() {
 
                 if (WimAccessibilityService.instance != null) {
                     WimAccessibilityService.instance!!.injectText(outputText)
+                    val injectCue = if (previousOutputs.isNotEmpty()) SuccessCue.REGEN_SUCCESS else SuccessCue.PASTE
+                    BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), injectCue))
                     // Cache so the user can re-roll on the bezel without re-recording.
                     lastRegenCtx = RegenContext(
                         rawText = correctedText,
@@ -2785,6 +2992,36 @@ class BubbleService : Service() {
                         put("risk_flags", org.json.JSONArray(reconResult.riskFlags))
                         put("wer", (sessionHistory?.computeWer(rawText, outputText) ?: 0f).toDouble())
                         put("disfluencies_stripped", stripped)
+                    }
+                }
+
+                // Phase 4 wiring — clarifier check on the just-completed
+                // reconstruction. wordConfidences is populated upstream by
+                // MultiPassDecoder when the L4 path wires it (Phase 5 work);
+                // until then this evaluates against an empty list and produces
+                // zero flags (the under-flag invariant holds — claim 11(c)).
+                val clarifierPkg = WimAccessibilityService.currentForegroundPackage
+                if (WimApp.isClarifierAllowed(clarifierPkg)) {
+                    val wordConfidences: List<Clarifier.WordConfidence> = emptyList()
+                    val flags = Clarifier.evaluate(
+                        finalText = outputText,
+                        wordConfidences = wordConfidences,
+                        vocabulary = vocabulary,
+                        onsetWeights = profile.getOnsetWeights(),
+                        recentSwaps = ClarifierController.recentSwapsSnapshot(),
+                        candidateProvider = if (WimApp.predictionsEnabled()) PredictionEngine else null,
+                        contextPkg = clarifierPkg,
+                        threshold = WimApp.clarifierSensitivityThreshold(),
+                    )
+                    if (flags.isNotEmpty()) {
+                        val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
+                        val autoSendOn = WimApp.autoSendEnabled()
+                        enterClarifierCycle(
+                            flags = flags,
+                            autoSendEligible = autoSendOn && supported,
+                        )
+                        return@launch  // Cycle owns post-inject UX; onExit fires
+                                       // setBubbleSendReady or setBubbleIdle.
                     }
                 }
 
@@ -2985,6 +3222,15 @@ class BubbleService : Service() {
         hideBubble()
         onDeviceRecognizer?.destroy()
         moonshineEngine?.destroy()
+        whisperLocalEngine?.destroy()
+        bubblePersona?.unbind()
+        bubblePersona = null
+        bubbleAffect?.unbind()
+        bubbleAffect = null
+        TranscriptBarController.unbind()
+        IdleTimer.cancelAll()
+        VoiceCommandRouter.unregister("clarifier")
+        ClarifierController.reset()
         scope.cancel()
         super.onDestroy()
     }

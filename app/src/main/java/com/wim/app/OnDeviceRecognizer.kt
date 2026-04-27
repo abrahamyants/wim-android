@@ -81,6 +81,15 @@ class OnDeviceRecognizer(private val context: Context) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull() ?: ""
                 Log.d(TAG, "Final result: $text")
+                // Route through VoiceCommandRouter first — clarifier handler
+                // claims "next/yes/no/skip/swap" while in BubbleState.Clarifying.
+                // If a handler claims, the dictation pipeline is short-circuited.
+                val claimed = VoiceCommandRouter.dispatch(text)
+                if (claimed != null) {
+                    Log.d(TAG, "Voice command claimed by: $claimed")
+                    if (keepListening) listenIntent?.let { recognizer?.startListening(it) }
+                    return
+                }
                 listener?.onFinalResult(text)
                 // Auto-restart to keep listening until user taps stop
                 if (keepListening) {

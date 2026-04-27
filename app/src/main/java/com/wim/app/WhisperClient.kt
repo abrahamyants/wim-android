@@ -126,6 +126,7 @@ object WhisperClient {
         language: String = "en",
         patienceMode: Boolean = false,
         model: String = "gpt-4o-transcribe",
+        temperature: Double = 0.0,
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -137,7 +138,7 @@ object WhisperClient {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("model", model)
                 .addFormDataPart("language", language)
-                .addFormDataPart("temperature", "0")
+                .addFormDataPart("temperature", temperature.toString())
                 .addFormDataPart("response_format", "verbose_json")
                 .addFormDataPart(
                     "file", audioFile.name,

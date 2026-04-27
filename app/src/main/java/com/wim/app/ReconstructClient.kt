@@ -69,15 +69,49 @@ object ReconstructClient {
         speechSeverityMod: Double = 0.0,
         precedingContext: String = "",
         languageCode: String = "en",
-        previousOutputs: List<String> = emptyList()
+        previousOutputs: List<String> = emptyList(),
+        compressionRatioNote: String = "",
+        audiencePackage: String? = null
     ): ReconstructResult {
+        // Persistent learning state machine (RejectionStore + StyleExamples):
+        //
+        //   - Non-empty previousOutputs → current call is a regenerate.
+        //     Prior reconstruction was REJECTED. Capture into RejectionStore.
+        //     Drop the pending StyleExamples pair (it was the rejected one).
+        //
+        //   - Empty previousOutputs → current call is a fresh dictation.
+        //     Prior reconstruction was implicitly ACCEPTED (no regenerate
+        //     fired before this). Promote pending pair to StyleExamples.
+        //
+        // After reconstruction returns, this call's (raw, output) gets
+        // staged as the new pending pair — next call decides its fate.
+        val pending = StyleExamples.pendingPair
+        if (previousOutputs.isNotEmpty()) {
+            RejectionStore.record(previousOutputs.last())
+            StyleExamples.pendingPair = null
+        } else {
+            if (pending != null) {
+                StyleExamples.record(pending.first, pending.second)
+            }
+            StyleExamples.pendingPair = null
+        }
+
         // If signed in, use backend proxy (server holds API key)
         val idToken = AuthManager.getIdToken()
-        if (idToken != null) {
-            return reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs)
+        val result = if (idToken != null) {
+            reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
+        } else {
+            // Fallback: direct OpenAI call (dev mode, requires local API key)
+            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
         }
-        // Fallback: direct OpenAI call (dev mode, requires local API key)
-        return reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs)
+
+        // Stage this reconstruction's (raw, output) pair as PENDING. The
+        // next reconstruct() call decides whether it gets promoted to
+        // accepted (StyleExamples) or dropped (was a regenerate target).
+        if (result.cleanText.isNotBlank()) {
+            StyleExamples.pendingPair = rawText to result.cleanText
+        }
+        return result
     }
 
     /**
@@ -95,7 +129,9 @@ object ReconstructClient {
         speechSeverityMod: Double = 0.0,
         precedingContext: String = "",
         languageCode: String = "en",
-        previousOutputs: List<String> = emptyList()
+        previousOutputs: List<String> = emptyList(),
+        compressionRatioNote: String = "",
+        audiencePackage: String? = null
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -116,6 +152,13 @@ object ReconstructClient {
             profile.put("trigger_words", JSONArray(triggerWords))
             profile.put("onset_weights", JSONObject(onsetWeights as Map<*, *>))
             profile.put("covert_profile", JSONObject(covertProfile as Map<*, *>))
+            // L1-transfer pack key — backend uses this to inject the speaker's
+            // L1 patterns at L2/L3 (russian/spanish/mandarin/...). Empty or "en"
+            // = native speaker, no injection.
+            val profileL1 = WimApp.prefs.getString("profile_l1", "") ?: ""
+            if (profileL1.isNotBlank() && profileL1 != "en") {
+                profile.put("profile_l1", profileL1)
+            }
             if (profile.length() > 0) put("profile", profile)
 
             // Whisper confidence signals (match Lavrentiy behavior at all paid layers)
@@ -141,6 +184,43 @@ object ReconstructClient {
                 put("preceding_context", precedingContext)
             }
             put("language_code", LangPackHelper.normalizeLangCode(languageCode))
+            // Rate-gap note: pre-formatted string (caller has wordCount,
+            // audioDurationSec, and the baseline). When non-empty it's
+            // appended to the L2/L3 prompt by the backend (or skipped
+            // gracefully if the backend version doesn't yet read it).
+            if (compressionRatioNote.isNotBlank()) {
+                put("compression_ratio_note", compressionRatioNote)
+            }
+            // Audience-context: foreground app package name from the
+            // accessibility service. Backend formats the READER block
+            // server-side using the same AudienceContext mapping; if
+            // the backend version doesn't yet read it, ignored gracefully.
+            if (!audiencePackage.isNullOrBlank()) {
+                put("audience_package", audiencePackage)
+            }
+            // Persistent rejection history: outputs the user has rejected
+            // across sessions (last 10). Backend can inject as negative
+            // few-shot examples; ignored gracefully if not consumed.
+            val rejectionHistory = RejectionStore.recent()
+            if (rejectionHistory.isNotEmpty()) {
+                put("rejection_history", JSONArray(rejectionHistory))
+            }
+            // Persistent style examples: (raw, accepted_output) pairs the
+            // user has implicitly accepted by NOT hitting regenerate.
+            // Positive few-shot counterpart to rejection_history. Backend
+            // can inject as positive examples; ignored gracefully if not
+            // consumed.
+            val styleExamples = StyleExamples.recent()
+            if (styleExamples.isNotEmpty()) {
+                val arr = JSONArray()
+                styleExamples.forEach { ex ->
+                    arr.put(JSONObject().apply {
+                        put("raw", ex.raw)
+                        put("output", ex.output)
+                    })
+                }
+                put("style_examples", arr)
+            }
 
             // Regenerate hint: when the user re-rolls, we send the prior outputs
             // so the backend can ask the LLM for a different phrasing AND
@@ -196,7 +276,9 @@ object ReconstructClient {
         onsetWeights: Map<String, Double> = emptyMap(),
         precedingContext: String = "",
         languageCode: String = "en",
-        previousOutputs: List<String> = emptyList()
+        previousOutputs: List<String> = emptyList(),
+        compressionRatioNote: String = "",
+        audiencePackage: String? = null
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -233,6 +315,15 @@ object ReconstructClient {
                     append("\"\nUse this only to disambiguate words and match the speaker's running topic.")
                 }
 
+                // Audience-context: READER block formatted from the foreground
+                // app's package name (captured by WimAccessibilityService).
+                // Tunes brevity, formality, and structure to the actual
+                // medium and recipient — not just the user's chosen tone.
+                // Patent claim line: "voice transcription post-processor that
+                // conditions reconstruction style on real-time foreground-app
+                // metadata." See AudienceContext.kt for the mapping.
+                append(AudienceContext.formatReaderBlock(audiencePackage))
+
                 // Situation severity context (ported from lavrentiy.py aggression_note logic)
                 if (severity >= 1.4) {
                     append("\n\nSpeaker is in a HIGH-STRESS context (phone/presentation/interview). ")
@@ -241,6 +332,17 @@ object ReconstructClient {
                 } else if (severity <= 0.6) {
                     append("\n\nSpeaker is in a low-stress context. Expect near-fluent speech. ")
                     append("Be conservative — minor cleanup only.")
+                }
+
+                // Rate-gap note: pre-formatted by caller (BubbleService) using
+                // RateGapDetector output. Surfaces the ASR-derived word/audio
+                // ratio when it diverges from the user's baseline. Low ratio
+                // = ASR likely dropped content (Samsung pre-smoothing, blocks,
+                // extended pauses). Information-only signal; lets the model
+                // see the diagnostic numbers, not just feel the severity bump.
+                if (compressionRatioNote.isNotBlank()) {
+                    append("\n\n\u26A0 COMPRESSION GAP — ")
+                    append(compressionRatioNote)
                 }
 
                 // L3+ profile context: vocabulary and corrections
@@ -254,6 +356,38 @@ object ReconstructClient {
                         corrections.forEach { (wrong, right) ->
                             append("\"$wrong\" -> \"$right\", ")
                         }
+                    }
+                    // Persistent rejection history — cross-session counterpart
+                    // to the within-session regenerate-as-negative block at
+                    // the end of buildString. Outputs the user has previously
+                    // rejected by hitting regenerate. The model uses these as
+                    // STYLE-LEVEL negative examples — not "don't use these
+                    // exact words" but "don't produce structurally/rhythmically
+                    // similar text." Lower-priority than the within-session
+                    // hint (which is an active, hot signal); included only
+                    // when L3+ where the heavier prompt context lives.
+                    val priorRejections = RejectionStore.recent()
+                    if (priorRejections.isNotEmpty()) {
+                        append("\n\nPERSISTENT REJECTION HISTORY (recent reconstructions this user rejected — DO NOT echo back, use only to avoid producing structurally similar text):")
+                        priorRejections.forEachIndexed { i, prev ->
+                            append("\n  ${i + 1}. \"$prev\"")
+                        }
+                        append("\nThese don't fit this user's voice. Pick distinctively different word choices, sentence shapes, and rhythm. Variety in style across these examples beats imitation of any single one.")
+                    }
+
+                    // Style examples — positive counterpart to rejection
+                    // history. Pairs the user implicitly accepted (didn't
+                    // regenerate). Few-shot pressure toward this user's
+                    // demonstrated voice. Lower-priority hint than
+                    // vocabulary/corrections (those are EXACT preferences;
+                    // these are STYLE preferences). DO NOT echo back.
+                    val styleExamples = StyleExamples.recent()
+                    if (styleExamples.isNotEmpty()) {
+                        append("\n\nUSER STYLE EXAMPLES (recent reconstructions this user accepted as final — apply same style choices when relevant; DO NOT echo back):")
+                        styleExamples.forEachIndexed { i, ex ->
+                            append("\n  ${i + 1}. Raw: \"${ex.raw}\" → Output: \"${ex.output}\"")
+                        }
+                        append("\nThis user's voice across these examples is the target. Match sentence rhythm, comma placement, contraction usage, and overall tone — not specific words.")
                     }
                 }
 
@@ -274,7 +408,7 @@ object ReconstructClient {
                     append("\n- Keep subject and verb close together.")
                     append("\n- Use everyday words. Avoid jargon unless the speaker used it specifically.")
                     append("\n- Sentences should be simple, active, affirmative, declarative.")
-                    append("\n- Drop verbal-tic discourse markers ('so', 'well', 'you know', 'I mean', 'like') even when not pure fillers.")
+                    append("\n- Drop verbal-tic discourse markers ('so', 'well', 'you know', 'like') even when not pure fillers.")
                     append("\n\nThe speaker is brain-dumping in stream-of-consciousness order. They are offloading the structuring task to you. REORDER clauses, GROUP related ideas, and RESTRUCTURE into the flow a written reader expects (e.g., context → ask → close for an email; setup → question → specifics for a message; thesis → support → conclusion for an argument).")
                     append("\n\nHARD RULES while restating:")
                     append("\n- PRESERVE all numbers, dates, dollar amounts, addresses, names, proper nouns exactly as spoken.")
@@ -283,6 +417,20 @@ object ReconstructClient {
                     append("\n- DO NOT soften, sanitize, or change profanity / strong language / slang. Output the words the speaker chose.")
                     append("\n- DO NOT summarize away content; restate, don't compress.")
                     append("\n- TREAT unfamiliar, invented-looking, or single-syllable unrecognized words as INTENTIONAL slang, brand names, or in-group vocabulary. Do not substitute them, do not assume transcription error, do not 'fix' them. Examples of what to PRESERVE without modification: 'rizz', 'bussin', 'no cap', 'mid', 'delulu', 'skibidi', 'ick', 'fanum tax', any proper noun the speaker emphasized, any startup or tool name the speaker said clearly.")
+
+                    // SELF-CORRECTION CANONICAL OVERWRITE — when the speaker
+                    // says "I mean", "actually", "no wait", etc., what FOLLOWS
+                    // is canonical and what came BEFORE should be discarded.
+                    // Crucial for stutterers (covert revision is core stuttering
+                    // behavior — replacing feared words mid-sentence). 'I mean'
+                    // was intentionally removed from the discourse-marker drop
+                    // list above so this rule wins.
+                    append("\n\nSELF-CORRECTION — CANONICAL OVERWRITE:")
+                    append("\nWhen the speaker uses 'I mean', 'actually', 'no wait', 'scratch that', 'let me rephrase', or similar mid-sentence revision markers, treat the content AFTER the marker as canonical and DISCARD the content before it. This is intentional self-correction, not disfluency.")
+                    append("\nExample: 'the meeting at 3pm, I mean 4pm' → 'the meeting at 4pm' (NOT '3pm 4pm', NOT '3pm').")
+                    append("\nExample: 'I'm going to the s-s-s-the place' → 'I'm going to the place' (covert revision past a hard onset).")
+                    append("\nExample: 'let's go to Italian, actually let's go to Thai' → 'let's go to Thai'.")
+
                     append("\n\nThe input is a voice transcription and may contain ASR artifacts:")
                     append("\n- Repeated words or phrases from natural speech hesitation")
                     append("\n- Filler sounds transcribed as real words (e.g., 'um' → 'come')")

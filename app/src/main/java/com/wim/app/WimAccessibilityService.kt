@@ -20,6 +20,23 @@ class WimAccessibilityService : AccessibilityService() {
         /** True if the currently focused text field is a password/sensitive field. */
         var isPasswordField: Boolean = false
             private set
+        /**
+         * Foreground app's package name as captured from the most recent
+         * accessibility event. Read by ReconstructClient at reconstruction
+         * time to format the READER block (audience-context plumbing —
+         * see AudienceContext.kt). Null until the first window-state
+         * change after service start.
+         */
+        var currentForegroundPackage: String? = null
+            private set
+
+        /**
+         * Snapshot of the most recently injected text (with leading/trailing
+         * pad as it landed in the host field). Empty when no injection has
+         * happened yet. Used by [ClarifierController] to track edits across
+         * approve/reject swaps.
+         */
+        fun lastInjectedTextSnapshot(): String = instance?.lastInjectedExact.orEmpty()
     }
 
     private var recordingUnsub: (() -> Unit)? = null
@@ -30,6 +47,10 @@ class WimAccessibilityService : AccessibilityService() {
     private var lastInjectStart: Int = -1
     private var lastInjectEnd: Int = -1
     private var lastInjectedExact: String = ""
+    /** Whitespace that injectText prepended to the caller's text (smart-spacing).
+     *  swapWordInLastInjection adds this to caller-supplied ranges when they are
+     *  relative to the reconstruction (no leading space) instead of [lastInjectedExact]. */
+    private var lastInjectedLeadingPad: Int = 0
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -88,6 +109,11 @@ class WimAccessibilityService : AccessibilityService() {
                 }
                 // Auto-detect context and switch tone
                 val pkg = event.packageName?.toString() ?: return
+                // Cache the package for reconstruction-time READER-block
+                // formatting. AudienceContext.formatReaderBlock() reads this
+                // during ReconstructClient.reconstruct() to tune the model
+                // for the active app's audience and medium expectations.
+                currentForegroundPackage = pkg
                 autoSwitchTone(pkg)
             }
         }
@@ -244,6 +270,9 @@ class WimAccessibilityService : AccessibilityService() {
             lastInjectStart = insertPos
             lastInjectEnd = insertPos + finalText.length
             lastInjectedExact = finalText
+            // Trimmed view used by [swapWordInLastInjection] when the
+            // caller's range is relative to the unpadded reconstruction.
+            lastInjectedLeadingPad = finalText.length - finalText.trimStart().length
         } else {
             Log.w("WiM", "injectText: ACTION_SET_TEXT failed — falling back to clipboard+PASTE")
             val clip = android.content.ClipData.newPlainText("wim", finalText)
@@ -304,6 +333,69 @@ class WimAccessibilityService : AccessibilityService() {
         } else {
             Log.w("WiM", "replaceLastInjected: SET_TEXT failed — appending instead")
             injectText(replacement)
+        }
+        return ok
+    }
+
+    /**
+     * Swap a single word range inside the most recent injection — spec §6
+     * Phase 2 step 13, claim 11(e). Returns true if the swap landed.
+     *
+     * [rangeStart] / [rangeEnd] are character offsets within the
+     * RECONSTRUCTION (the unpadded text passed to [injectText]). Internally
+     * the method shifts by [lastInjectedLeadingPad] to land in the padded
+     * [lastInjectedExact] coordinate space, then by [lastInjectStart] to
+     * land in absolute field coordinates.
+     *
+     * Defensive: if the field has been edited since the last inject (range
+     * doesn't match), the swap is refused — we never clobber the user's
+     * own edits.
+     */
+    fun swapWordInLastInjection(rangeStart: Int, rangeEnd: Int, replacement: String): Boolean {
+        if (lastInjectStart < 0 || lastInjectEnd < lastInjectStart) {
+            Log.w("WiM", "swapWord: no recent injection to edit")
+            return false
+        }
+        if (rangeStart < 0 || rangeEnd <= rangeStart) {
+            Log.w("WiM", "swapWord: invalid range $rangeStart..$rangeEnd")
+            return false
+        }
+        var node = activeTextField
+        if (node != null && !node.refresh()) node = null
+        if (node == null) node = findFocusedEditableAcrossWindows()
+        if (node == null) {
+            Log.w("WiM", "swapWord: no focused field")
+            return false
+        }
+        val current = node.text?.toString().orEmpty()
+        // Verify our snapshot still matches the field text.
+        if (lastInjectEnd > current.length ||
+            current.substring(lastInjectStart, lastInjectEnd) != lastInjectedExact
+        ) {
+            Log.w("WiM", "swapWord: field state diverged — refusing to edit")
+            return false
+        }
+        // Shift caller-supplied (reconstruction-relative) coords into absolute
+        // field coords via the leading-pad adjustment.
+        val absStart = lastInjectStart + lastInjectedLeadingPad + rangeStart
+        val absEnd = lastInjectStart + lastInjectedLeadingPad + rangeEnd
+        if (absEnd > lastInjectEnd) {
+            Log.w("WiM", "swapWord: range $rangeStart..$rangeEnd extends past last injection")
+            return false
+        }
+        val combined = current.substring(0, absStart) + replacement + current.substring(absEnd)
+        val args = android.os.Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, combined)
+        }
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        if (ok) {
+            // Shift the saved range to reflect the new injection length.
+            val delta = replacement.length - (absEnd - absStart)
+            lastInjectEnd += delta
+            lastInjectedExact = combined.substring(lastInjectStart, lastInjectEnd)
+            Log.i("WiM", "swapWord: ok ($absStart..$absEnd → \"${replacement.take(40)}\")")
+        } else {
+            Log.w("WiM", "swapWord: ACTION_SET_TEXT failed")
         }
         return ok
     }

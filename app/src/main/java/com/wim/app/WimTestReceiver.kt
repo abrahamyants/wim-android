@@ -108,6 +108,7 @@ class WimTestReceiver : BroadcastReceiver() {
                         .put("status", if (ok) "ok" else "failed"))
                     Log.i(TAG, "click_send: ${if (ok) "ok" else "failed"}")
                 }
+                "trigger_clarifier" -> handleTriggerClarifier(context, intent)
                 else -> writeResult(context, JSONObject().put("error", "Unknown action: $action"))
             }
         } catch (e: Exception) {
@@ -534,5 +535,54 @@ class WimTestReceiver : BroadcastReceiver() {
         Log.i(TAG, "test_chirp: calling playSoundEffect on inner knob")
         view.findViewById<android.view.View>(R.id.bubbleInner)?.playSoundEffect(android.view.SoundEffectConstants.CLICK)
         Log.i(TAG, "test_chirp: done — check CHIRP_MONITOR logs for audio playback")
+    }
+
+    /**
+     * Synthetic clarifier trigger — spec §6 Phase 2 EARLIEST DEMO MILESTONE.
+     * Fires the cycle UX without needing real per-word ASR confidence.
+     *
+     *   adb shell am broadcast -a com.wim.app.TEST_ACTION \
+     *     --es action trigger_clarifier \
+     *     --es words "Dunken,thanks|Dankeschön,Danke;quick,fast|fast,rapid"
+     *
+     * The `words` string is a `;`-separated list of flags. Each flag is
+     * `original,start,end|cand1,cand2,...`. start/end can be omitted, in
+     * which case the receiver locates the word in [lastInjectedExact].
+     */
+    private fun handleTriggerClarifier(context: Context, intent: Intent) {
+        val bubble = BubbleService.instance ?: run {
+            writeResult(context, JSONObject().put("error", "BubbleService not running"))
+            return
+        }
+        val raw = intent.getStringExtra("words")
+            ?: "Dunken|Dankeschön,Danke"
+        val flags = raw.split(';').mapNotNull { rec ->
+            val parts = rec.split('|')
+            if (parts.size != 2) return@mapNotNull null
+            val originalSpec = parts[0].split(',').map { it.trim() }
+            val original = originalSpec.getOrNull(0)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val start = originalSpec.getOrNull(1)?.toIntOrNull() ?: 0
+            val end = originalSpec.getOrNull(2)?.toIntOrNull() ?: original.length
+            val candidates = parts[1].split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            if (candidates.isEmpty()) null
+            else FlaggedWord(
+                originalWord = original,
+                candidates = candidates,
+                rangeStart = start,
+                rangeEnd = end,
+                uncertaintyScore = 0.95,
+            )
+        }
+        if (flags.isEmpty()) {
+            writeResult(context, JSONObject().put("error", "no flags parsed from words=\"$raw\""))
+            return
+        }
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            bubble.triggerClarifierForTest(flags)
+        }
+        writeResult(context, JSONObject()
+            .put("status", "ok")
+            .put("flag_count", flags.size))
+        Log.i(TAG, "trigger_clarifier: ${flags.size} flag(s) handed to bubble")
     }
 }

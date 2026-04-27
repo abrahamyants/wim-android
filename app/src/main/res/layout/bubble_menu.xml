@@ -55,6 +55,31 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
+            <!-- L1 SRC toggle: off = local whisper-tiny, on = cloud whisper-1 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/menuL1AsrLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="L1 SRC"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.20" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/menuL1AsrToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
             <!-- LAYER section label -->
             <TextView
                 android:id="@+id/menuLayerLabel"

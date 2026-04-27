@@ -57,6 +57,59 @@ class WimApp : Application() {
         fun useMoonshine(): Boolean = prefs.getBoolean("use_moonshine", true)
 
         /**
+         * L1 ASR source toggle. FALSE = local whisper-tiny.en (default,
+         * private, ~40 MB on-device). TRUE = cloud whisper-1 (paid OpenAI
+         * call, no on-device model). Mirrors Lavrentiy desktop's L1 SOURCE
+         * panel. Set via the bubble-menu L1 SRC switch.
+         */
+        fun l1CloudAsr(): Boolean = prefs.getBoolean("l1_cloud_asr", false)
+
+        /**
+         * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps
+         * "low" / "medium" / "high" → [Clarifier.UNCERTAINTY_THRESHOLD]
+         * adjustments. Default = medium (0.55, the canonical threshold).
+         *
+         *   low    → 0.70 (only the most uncertain word ever flags)
+         *   medium → 0.55 (default — under-flag bias)
+         *   high   → 0.40 (catches more, occasional false positive)
+         */
+        fun clarifierSensitivityThreshold(): Double = when (
+            prefs.getString("clarifier_sensitivity", "medium") ?: "medium"
+        ) {
+            "low" -> 0.70
+            "high" -> 0.40
+            else -> 0.55
+        }
+
+        /**
+         * Per-app no-flag list per spec §6 Phase 4 step 29. Newline-
+         * separated package names; the clarifier is suppressed when the
+         * foreground app's package matches any entry. Use case: code
+         * editors, terminals, password managers — apps where the user
+         * does NOT want a "did you mean" prompt.
+         */
+        fun clarifierBlacklistedApps(): Set<String> {
+            val raw = prefs.getString("clarifier_blacklist_apps", "") ?: ""
+            return raw.split('\n')
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .toSet()
+        }
+
+        fun isClarifierAllowed(pkg: String?): Boolean {
+            if (pkg.isNullOrBlank()) return true
+            return pkg !in clarifierBlacklistedApps()
+        }
+
+        /**
+         * Anticipatory prediction toggle per spec §6 Phase 5 step 35.
+         * When false, [PredictionEngine] is not consulted (no chip,
+         * no sentence-boundary candidates feeding the clarifier). Default
+         * true — surfaces value early; user can disable in MainActivity.
+         */
+        fun predictionsEnabled(): Boolean = prefs.getBoolean("predictions_enabled", true)
+
+        /**
          * Gemma local reconstruction for L2/L3. When the model is installed,
          * reconstruction runs on-device via MediaPipe LLM Inference instead
          * of cloud GPT-4o. L4 stays cloud regardless. Default ON — if the
@@ -98,14 +151,16 @@ class WimApp : Application() {
         // hardcoded English defaults in DisfluencyFilter and the English
         // baseline in PhoneticRisk are the only paths that run. Re-enable
         // by calling LangPack.loadFromPrefs(this) here.
-        // Auto-download the Moonshine BASE-en model on first launch (~141 MB
-        // compressed → ~141 MB on disk). Until the model lands, BubbleService's
-        // wantMoonshine check returns false and the L1 path falls through to
-        // Android SpeechRecognizer (the chirpy fallback).
-        if (useMoonshine() && !MoonshineModelDownloader.isInstalled(this)) {
+        // Auto-download the whisper-tiny.en model on first launch (~40 MB
+        // compressed). Until the model lands, BubbleService's L1 path falls
+        // through to Android SpeechRecognizer (the chirpy fallback). Only
+        // fires when l1_cloud_asr=false (local mode); cloud users skip the
+        // download entirely.
+        // Moonshine's prior auto-download was retired here; MoonshineEngine.kt
+        // and MoonshineModelDownloader.kt remain on disk pending Whisper-tiny
+        // verification on real voice (delete in a follow-up commit).
+        if (!l1CloudAsr() && !WhisperLocalModelDownloader.isInstalled(this)) {
             val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-            // One-time toast at app launch so the user knows what's happening
-            // when they hear a chirp on their first sub-minute recording.
             mainHandler.post {
                 android.widget.Toast.makeText(
                     this,
@@ -114,10 +169,10 @@ class WimApp : Application() {
                 ).show()
             }
             appScope.launch {
-                android.util.Log.i("WiM", "Auto-downloading Moonshine BASE model (~141 MB)...")
-                MoonshineModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
+                android.util.Log.i("WiM", "Auto-downloading whisper-tiny.en model (~40 MB)...")
+                WhisperLocalModelDownloader.downloadAndUnpack(this@WimApp) { progress ->
                     if (progress.stage == "Ready") {
-                        android.util.Log.i("WiM", "Moonshine model Ready")
+                        android.util.Log.i("WiM", "whisper-tiny.en model Ready")
                         mainHandler.post {
                             android.widget.Toast.makeText(
                                 this@WimApp,
@@ -126,7 +181,7 @@ class WimApp : Application() {
                             ).show()
                         }
                     } else if (progress.stage == "Downloaded") {
-                        android.util.Log.i("WiM", "Moonshine model Downloaded (unpacking…)")
+                        android.util.Log.i("WiM", "whisper-tiny.en model Downloaded (unpacking…)")
                     }
                 }
             }
