@@ -19,19 +19,22 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      # The Unix gradlew shell wrapper was never committed to this repo
+      # (only gradlew.bat is tracked). gradle/actions/setup-gradle@v4
+      # installs gradle directly on the Linux runner using the version
+      # we declare here, so we can call gradle without ./gradlew. The
+      # version matches gradle/wrapper/gradle-wrapper.properties.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle.kts') }}
+          gradle-version: '8.11.1'
+          cache-read-only: false
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: gradle testDebugUnitTest
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
