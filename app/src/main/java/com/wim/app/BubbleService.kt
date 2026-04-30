@@ -3110,10 +3110,12 @@ class BubbleService : Service() {
             if (sessionNum > 0 && sessionNum % 30 == 0) {
                 profile.decayStaleCorrections(sessionNum)
             }
-            // Phonetic-neighbor correction against user vocabulary using
-            // Double Metaphone. Catches misheard loanwords / proper nouns that
-            // aren't in the explicit corrections map yet.
-            l1Text = PhoneticMatcher.correct(l1Text, profile.getVocabulary(), profile.getOnsetWeights())
+            // PhoneticMatcher intentionally NOT called at L1 (Lav parity —
+            // lavrentiy.py phonetic_match gate `2 <= layer <= 3`). At L1 the
+            // swap goes straight to paste with no validator, so a wrong-
+            // direction Metaphone collision lands directly in the user's
+            // text field. The swap pays off only when GPT sees the cleaner
+            // input, which is L2/L3.
             // Deterministic capitalization + terminal punctuation. Idempotent
             // on already-punctuated text. Mirrors lavrentiy.py repunctuate().
             l1Text = Repunctuate.apply(l1Text)
@@ -3187,8 +3189,12 @@ class BubbleService : Service() {
         }
         // Phonetic-neighbor correction before GPT — gives the reconstruction
         // prompt a cleaner input, reduces round-trip cost of "fix this word"
-        // when the fix is just a phonetic neighbor of vocabulary.
-        correctedText = PhoneticMatcher.correct(correctedText, profile.getVocabulary(), profile.getOnsetWeights())
+        // when the fix is just a phonetic neighbor of vocabulary. Gated to
+        // L2/L3 only (Lav parity); at L4 Sonnet ext-think reasons through
+        // phonetic context with the rich onset_weights prompt block instead.
+        if (layer in 2..3) {
+            correctedText = PhoneticMatcher.correct(correctedText, profile.getVocabulary(), profile.getOnsetWeights())
+        }
 
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
