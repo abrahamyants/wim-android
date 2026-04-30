@@ -2785,3 +2785,268 @@ repositioning. Two changes:
   nameplate is the right placement; should have proposed that on
   first design pass.
 
+## Session 18 — April 30, 2026 (afternoon/evening: clarifier wired live, hotword, deploy, icon polish)
+
+Same calendar day as Session 17, second dispatch. Three threads: (1)
+finishing the partial bubble-unified-build features so the clarifier
+is a real visible product on real recordings, (2) backend deploy +
+Play Store copy unblocking actual submission, (3) interaction + icon
+polish for "the bubble is the app" credibility. Full writeup in
+`SESSION_LOG_2026-04-30.md` continuation section.
+
+### Backend + store
+
+- **`wim-reconstruct` Cloud Function deployed** — Command Mode now
+  works for every signed-in user, not just dev with a local OpenAI
+  key. URL `wim-reconstruct-qfv7mm5hva-uc.a.run.app`, state ACTIVE.
+- **Play Store copy rewrite** — 4 files (`long_description`,
+  `short_description`, `press_release_draft`, `title_variants`)
+  switched `stutter` / `people who stutter` / `stuttering community`
+  → `speech disfluency` / `people with speech disfluencies` /
+  `speech-disfluency community`. Char counts re-verified against
+  Play Store 30-char title / 80-char short-description limits.
+
+### Bubble interaction
+
+- **Tap toggle fixed for real** — removed the press-and-hold runnable
+  entirely. There is no hold-mode now; tap once = record, tap twice
+  = stop. The 150ms hold race was turning normal 200-300ms presses
+  into REC-then-immediately-PROC.
+- **Double-tap → menu** with a 300ms detection window. Single-tap
+  recording-start is deferred so a second tap can pre-empt and run
+  `showMenu()`.
+- **Edge-to-edge clamp** — `FLAG_LAYOUT_NO_LIMITS` plus bezel-aware
+  position clamps using actual 72dp bezel base (was incorrectly
+  120dp). 1.15× taffy headroom included so a fast drag doesn't punch
+  the bezel past the edge. Drag-to-bottom hide finally reachable.
+- **Default spawn centered** — was hardcoded `x=900` on a 1080-wide
+  screen so 95% of the bubble appeared off-screen on first install.
+  Now computed from live display metrics.
+- **Shake detector rebuilt** as rising-edge detection (was time-based
+  debounce that kept refreshing inside a single sustained shake;
+  `shakeCount` never advanced past 1). 280ms quiet-time gap required
+  between discrete shake events.
+- **Settings toggles**: shake to summon/hide (default on), "Hey WiM"
+  hotword (default off).
+
+### "Hey WiM" hotword
+
+- New `HotwordListener` — continuous on-device `SpeechRecognizer`
+  loop, phrase-matches "hey wim" + common phonetic mishears (hey win,
+  hey when, hey wem). Pins Google's `RecognitionService` so Samsung's
+  chirp-emitting OEM service can't hijack.
+- **Mic-conflict fix**: `AudioRecorder.primeBuffer()` holds the mic
+  exclusively via `AudioRecord(MIC)`, blocking `SpeechRecognizer`
+  from acquiring the same source. Hotword listener releases the
+  pre-roll buffer before starting. Symptom when skipped: hotword
+  listener starts, never fires partials, never fires errors — a
+  dead-quiet recognizer session.
+
+### Bubble visuals
+
+- **Recording knob = red, processing knob = green** (gold experiment
+  reverted per operator). Labels stay cream-gold `#FFD580` so they
+  read on either knob.
+- **Bronze IDLE label = deep espresso** `#1F1208` (was washed-out
+  gray on warm copper). Aluminum + gunmetal unchanged.
+- **Pipeline-stage colors theme-aware** — bronze + aluminum now get
+  dark text instead of hardcoded cream (which was invisible on those
+  themes). Live transcript already followed `palette.primaryText`.
+- **L1 source picker (LOCAL / CLOUD)** inlined as a sub-row under
+  TRANSCRIPTION in the bubble menu (was an `AlertDialog`). Active
+  source highlighted via `nameplate_bg` selected state.
+- **Bubble-size slider works during/after drag** —
+  `bezel.animate().cancel()` before applying the new scale. In-flight
+  taffy stretch / snap-back animations were overwriting the slider's
+  value the instant after we set it.
+
+### Permissions / dashboard
+
+- **5 permissions in the overlay** — added Battery + Notifications
+  back in (was 3). Per-row green/red coloring with `✓` suffix when
+  granted. PERMISSIONS dashboard tile only goes green when ALL FIVE
+  granted.
+- **TEXT TO SPEECH section moved into Settings overlay** — frees a
+  row of dashboard real estate so Sessions panel can sit expanded by
+  default without bouncing.
+- **Sign-in tile horizontal margins removed** — full-width like
+  Sessions / Permissions, height kept at 36dp per operator's "change
+  the length not the height."
+- **Layer / Tone tile labels** at 14sp section-header style; subtitle
+  showing current value (L2 / Casual) preserved at 13sp.
+
+### Quick Settings tile
+
+- Click behavior: tap to summon the bubble (was toggle recording).
+  Recording lives in the bubble; the QS tile's job is bringing it
+  back when hidden. Tile state mirrors bubble visibility.
+- New `ic_qs_tile_wm.xml` drawable — WM letterforms in a square
+  viewport, single-color so Android's QS tint owns the final color
+  (was blank).
+
+### User Profile overlay
+
+- Title: USER PROFILE (was YOUR PROFILE).
+- Add-rows for Vocabulary / Corrections / Triggers use new
+  `card_bg_input` drawable (maroon card + 3dp orange left accent
+  bar) — matches the selected-chip palette for visual consistency.
+- **Clarifier sensitivity** 3-button selector (low/medium/high → 0.70
+  / 0.55 / 0.40 thresholds).
+- **Clarifier no-flag apps** chip group + "ADD CURRENT APP" button —
+  user pops to Chase/1Password/Signal, returns to WiM, taps button.
+  Captures `currentForegroundPackage` from the accessibility service
+  so user never needs to know the package name.
+
+### Launcher icon
+
+- **WM letterforms recolored** maroon → brand cream-gold `#C8B48A`
+  via Python+PIL pixel-level hue-shift across all 5 mipmap densities.
+  Three iterations before settling on the brand value (initial
+  cream → acid gold → brand `#C8B48A`).
+- **Dish lightened** ~×1.32 (two ×1.15 passes) on dark-gray pixels.
+- **Knob lightened** ×1.15 on mid-gray pixels.
+- **Thin maroon border** (`#C55858`, ~1.5dp) painted at the dish
+  outer edge for clean squircle/circle/round mask outline.
+
+### Multi-pass clarifier — actually fires now
+
+- `MultiPassDecoder` runs three whisper-1 passes (temperatures 0.0 /
+  0.4 / 0.8) on the recorded WAV. Cross-pass word-position
+  disagreement counts populate `wordConfidences`.
+- **Triggered on every L2+ recording** — not just L4. The L4-only
+  cost gate from the spec was a design weakness: 90% of users are on
+  L2/L3, gating to L4 makes the clarifier invisible to them. Cost
+  digestible at the $3.99 tier (~$0.07/day per active user worst
+  case).
+- WAV file lifecycle restructured (`lastWavFile` field) so it
+  survives past WhisperClient's transcription and reaches the
+  clarifier check. Cleaned up in `setBubbleIdle`.
+- `Clarifier.evaluate(...)` now gets real `wordConfidences` instead
+  of `emptyList()`. Cap stays at 3 flags max (claim 11(c)).
+- Failure-tolerant: `MultiPassDecoder` exception → empty confidences
+  → zero flags → reconstruction proceeds normally.
+
+### PredictionEngine wired both ways
+
+- **Adaptive learning**: after every successful inject,
+  `recordPredictionsFromOutput(pkg, outputText)` walks the text,
+  finds sentence boundaries, records (last 3 words → first word of
+  next sentence) into `PredictionEngine.recordCompletion`. Per-app
+  history accumulates over time.
+- **Visible chip** in the bubble menu: `→ PROFESSIONAL · email`,
+  `→ CASUAL · friends or family`, etc. Populated at menu-open time
+  from `PredictionEngine.predictForContext(currentForegroundPackage)`.
+  Hidden when sub-0.55 confidence, unknown app, or predictions off.
+
+### Word highlight via accessibility selection
+
+- New `WimAccessibilityService.highlightFlaggedWord(start, end)` —
+  sets the host app's native text selection over the flagged word's
+  range. Host app renders its own selection (blue handles / yellow
+  highlight). Free word-level visual feedback without an overlay
+  window.
+- `clearHighlight()` collapses to a zero-width cursor at end of
+  injection.
+- Wired in `ClarifierController.emitLabelUpdate` (per cycle index)
+  and cleared in `exit()` / `cancelForNewRecording()`. Same coordinate
+  conversion (`lastInjectedLeadingPad` + `lastInjectStart`) as
+  `swapWordInLastInjection`.
+
+### BezelStageArcView
+
+- New 188-line custom `View` drawing four arc segments around the
+  bezel (12-3 / 3-6 / 6-9 / 9-12 o'clock). Each arc is a 78° sweep
+  with a 12° gap, stroke width = 6% of view side, rounded caps.
+- Lights up sequentially as the pipeline runs: 0 Transcribing → 1
+  Reconstructing → 2 Verifying → 3 Injecting. All-dim on Idle. 220ms
+  cross-fade between bright and dim.
+- Theme-aware: arc color follows
+  `CommentBubbleDrawable.paletteFor(theme).secondaryText`.
+- Wired at `BubbleStateBus.advance(...)` transition points via a
+  `setStageArc(stage)` helper.
+
+### Files modified Session 18
+
+- `app/src/main/AndroidManifest.xml` — QS tile icon + summon-mode
+- `app/src/main/java/com/wim/app/BubbleService.kt` — most of the work
+- `app/src/main/java/com/wim/app/HotwordListener.kt` *(new)*
+- `app/src/main/java/com/wim/app/MainActivity.kt` — perms, sensitivity,
+  no-flag list
+- `app/src/main/java/com/wim/app/WimAccessibilityService.kt` —
+  highlight / clearHighlight
+- `app/src/main/java/com/wim/app/WimTileService.kt` — summon behavior
+- `app/src/main/java/com/wim/app/ClarifierController.kt` — highlight
+  wiring
+- `app/src/main/java/com/wim/app/BezelStageArcView.kt` *(new)*
+- `app/src/main/res/drawable/bubble_inner_processing.xml` *(new)*
+- `app/src/main/res/drawable/card_bg_input.xml` *(new)* + night variant
+- `app/src/main/res/drawable/color_indicator_gunmetal.xml` *(new)*
+- `app/src/main/res/drawable/ic_qs_tile_wm.xml` *(new)*
+- `app/src/main/res/layout/activity_main.xml` — perms, TTS-in-Settings,
+  sign-in width, hotword toggle
+- `app/src/main/res/layout/bubble.xml` — stage arc view
+- `app/src/main/res/layout/bubble_menu.xml` — L1 source sub-row,
+  prediction chip
+- `app/src/main/res/layout/profile_overlay.xml` — sensitivity, no-flag
+- `app/src/main/res/mipmap-{m,h,x,xx,xxx}hdpi/ic_launcher_foreground.png`
+  — pixel-level recolor
+- 7 new L1 packs in `app/src/main/assets/l1_packs/` from a parallel
+  agent (arabic, farsi, french, german, hindi, japanese, korean)
+
+### Wrong calls / corrections (Session 18)
+
+- **#99 — Tap-toggle "fix" #1 didn't actually fix the bug.** First
+  pass kept `stopAndProcess()` whenever `isRecording=true`. Second
+  pass removed press-and-hold mode entirely. Should have done that
+  on the first attempt.
+- **#100 — Drag-zone visual indicator bands covered the bubble at
+  edges**, made the bubble visually unable to reach the edge.
+  Operator: "remove that and revert back to how it was."
+- **#101 — Bezel edge-clamp formula used 120dp base.** Actual XML
+  layout is 72dp. Over-permissive clamp; bubble could overshoot
+  edges.
+- **#102 — `FLAG_LAYOUT_NO_LIMITS` removed all clamping including
+  sides.** Operator: "It goes to the sides also. The sides, we don't
+  need that." Added bezel-aware position clamps.
+- **#103 — Hotword listener fired silently.** No partials, no errors,
+  dead session for ~10s. Cause: `AudioRecorder.primeBuffer()` holds
+  the mic exclusively. Fix: release pre-roll AudioRecorder before
+  starting hotword.
+- **#104 — Launcher icon adaptive-icon swap (PNG → vector) changed
+  too much.** Operator: "Revert back immediately, you stupid fucking
+  idiot!" Reverted, did pixel-level recolor on the PNG instead.
+- **#105 — Acid gold WM was over-saturated.** Operator: "I know I
+  said acid yellow, but I was making a point because can you just
+  pick our gold color." Reset to brand cream-gold `#C8B48A`.
+- **#107 — Multi-pass clarifier shipped L4-only despite the design
+  weakness being obvious.** Spec said L4-only as cost-conservatism.
+  Operator pushed back: "90% of users will be L2/L3, the clarifier
+  becomes invisible." Should have proposed L2+ on first pass.
+- **#108 — Bubble knob colors went gold-then-revert.** Tried unifying
+  recording + processing as gold; operator wanted recording=red,
+  processing=green with labels in gold.
+- **#109 — Initial REC/PROC label color was copper_gold `#8A5A2F`.**
+  Hard to read on red/green knob backgrounds. Bumped to cream-gold
+  `#FFD580`.
+- **#110 — Default bubble spawn hardcoded `x=900`.** On 1080-wide
+  screen, ~95% of bubble appeared off-screen on first install.
+- **#111 — Shake detector kept refreshing `lastShakeTime` mid-shake.**
+  Single sustained shake never advanced `shakeCount` past 1. Rebuilt
+  as rising-edge state machine with quiet-time gap requirement.
+
+### Open at Session 18 end
+
+1. Phone-side validation of multi-pass clarifier on a real disfluent
+   recording.
+2. Phone-side validation of WordHighlightView in compose-style apps
+   (Gmail, Slack, Signal).
+3. Phone-side validation of BezelStageArcView visual transitions.
+4. **Twist mode (#92)** — exists in code but never tested. Deferred
+   for separate dispatch per operator.
+5. Privacy policy URL — operator handling.
+6. Fresh-install onboarding device verification — never run.
+7. Patent prior-art keyword search + claim-by-claim review of
+   US20250246187A1 — pending from Session 15. Operator pasted a
+   refresh of the patent thread late this session for separate
+   dispatch.
+
