@@ -1994,6 +1994,14 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         findViewById<TextView>(R.id.micPermLabel)?.text =
             if (micOk) "Microphone ✓" else "Microphone"
 
+        // PERMISSIONS tile label color: green when all three are granted,
+        // red the moment any one is missing. Chevron tracks the same state
+        // so the row reads at a glance from across the screen.
+        val allPermsOk = overlayOk && accessibilityOk && micOk
+        val tileColor = if (allPermsOk) 0xFF40A065.toInt() else 0xFFEF4444.toInt()
+        findViewById<TextView>(R.id.tilePermissionsLabel)?.setTextColor(tileColor)
+        findViewById<TextView>(R.id.tilePermissionsChevron)?.setTextColor(tileColor)
+
         val statusText = findViewById<TextView>(R.id.statusText)
         // statusBulb removed
         // nightMode check removed

@@ -82,14 +82,6 @@ class BubbleService : Service() {
     private var liveTextView: TextView? = null
     private var liveTextParams: WindowManager.LayoutParams? = null
     private var liveTextContainer: android.widget.FrameLayout? = null
-    // Drag-zone visual indicators — slim gold bands at top (▲ MENU) and
-    // bottom (▼ HIDE) of the screen, shown only while the bubble is being
-    // dragged. Bright when bubble is in the trigger zone, faint otherwise.
-    // FLAG_NOT_TOUCHABLE so they're purely visual and don't intercept drags.
-    private var topZoneView: View? = null
-    private var topZoneParams: WindowManager.LayoutParams? = null
-    private var bottomZoneView: View? = null
-    private var bottomZoneParams: WindowManager.LayoutParams? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
     private var singleTapRunnable: Runnable? = null
@@ -624,7 +616,15 @@ class BubbleService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            // FLAG_LAYOUT_IN_SCREEN + FLAG_LAYOUT_NO_LIMITS lets the bubble
+            // travel into the status-bar and nav-bar regions (true edge-to-
+            // edge movement). Without these, the OS clamps the window to
+            // the safe area and the bezel visually stops ~6-10% short of
+            // the actual screen edges.
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -712,9 +712,6 @@ class BubbleService : Service() {
                                 setBubbleIdle()
                                 startedOnThisPress = false
                             }
-                            // Reveal the top (▲ MENU) and bottom (▼ HIDE) drag zones
-                            // so the user can SEE where the trigger thresholds are.
-                            showZoneIndicators()
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
@@ -762,12 +759,35 @@ class BubbleService : Service() {
                             }
                         }
 
+                        // Clamp bubble position so the visible bezel can touch
+                        // each screen edge but never travel past it. Window is
+                        // a fixed 180dp container; the bezel layout is 72dp and
+                        // gets scaled by bubbleSize (and briefly by taffy
+                        // stretch during drag, up to +15%). Allowing the
+                        // WINDOW to extend off-screen by exactly `insetPx`
+                        // puts the bezel edge flush with the screen edge.
+                        // Taffy headroom (1.15x) is baked in so a fast drag
+                        // doesn't briefly punch the bezel past the edge.
+                        val clampDensity = resources.displayMetrics.density
+                        val sizeScaleClamp = WimApp.bubbleSize().coerceIn(70, 150) / 100f
+                        val taffyScaleMax = 1.15f
+                        val effectiveBezelDp = 72f * sizeScaleClamp * taffyScaleMax
+                        val insetClampPx =
+                            ((180f - effectiveBezelDp).coerceAtLeast(0f) / 2f * clampDensity).toInt()
+                        val windowClampPx = (180 * clampDensity).toInt()
+                        val screenWClamp = resources.displayMetrics.widthPixels
+                        val screenHClamp = resources.displayMetrics.heightPixels
+                        params.x = params.x.coerceIn(
+                            -insetClampPx,
+                            screenWClamp - windowClampPx + insetClampPx
+                        )
+                        params.y = params.y.coerceIn(
+                            -insetClampPx,
+                            screenHClamp - windowClampPx + insetClampPx
+                        )
+
                         windowManager?.updateViewLayout(bubbleView, params)
                         updateMenuPositionFromBubble()
-                        // Brighten the corresponding zone band when the bubble
-                        // crosses into the trigger threshold — visual confirmation
-                        // that releasing here will fire menu-open or hide.
-                        updateZoneIndicators(params.y)
 
                         // Taffy: stretch in drag direction
                         val speed = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
@@ -798,9 +818,6 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
                     if (isDragging) {
-                        // Drag is over — fade out the zone indicator bands
-                        // regardless of where the bubble landed.
-                        hideZoneIndicators()
                         // Snap back to normal
                         val scale = WimApp.bubbleSize() / 100f
                         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
@@ -816,18 +833,25 @@ class BubbleService : Service() {
                             return@setOnTouchListener true
                         }
 
-                        // Drag-to-top of screen → open menu. Symmetric with
-                        // drag-to-bottom-to-hide. Tight 40dp threshold (was 80dp)
-                        // requires the bubble to be jammed close to the top edge,
-                        // which dramatically cuts accidental menu opens during
-                        // normal repositioning. The visible MENU/HIDE bands give
-                        // the user direct sight of where the trigger lives.
+                        // Drag-to-top of screen → open menu; drag-to-bottom →
+                        // hide. Triggers fire on the visible BEZEL position
+                        // (not the window's outer rect) so they remain
+                        // reachable after the bezel-edge clamp above and so
+                        // visual feedback matches what the user perceives.
                         val dp = resources.displayMetrics.density
                         val menuZone = (MENU_TRIGGER_DP * dp).toInt()
                         val screenHeight = resources.displayMetrics.heightPixels
                         val hideZone = screenHeight - (HIDE_TRIGGER_DP * dp).toInt()
                         val almostZone = screenHeight - (200 * dp).toInt()
-                        if (params.y < menuZone) {
+                        // Trigger insets use the AT-REST bezel (no taffy) since
+                        // the bubble is already released; taffy doesn't apply.
+                        val triggerSizeScale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
+                        val triggerInsetPx =
+                            ((180f - 72f * triggerSizeScale).coerceAtLeast(0f) / 2f * dp).toInt()
+                        val triggerWindowPx = (180 * dp).toInt()
+                        val bezelTop = params.y + triggerInsetPx
+                        val bezelBottom = params.y + triggerWindowPx - triggerInsetPx
+                        if (bezelTop < menuZone) {
                             if (menuView != null) {
                                 dismissMenu()
                             } else {
@@ -857,13 +881,13 @@ class BubbleService : Service() {
                             }
                             return@setOnTouchListener true
                         }
-                        if (params.y > hideZone) {
+                        if (bezelBottom > hideZone) {
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
                         } else if (checkCommandModePickup()) {
                             // Bubble dropped on highlighted text — command mode
                             return@setOnTouchListener true
-                        } else if (params.y > almostZone) {
+                        } else if (bezelBottom > almostZone) {
                             // Close but not enough — coach the user
                             val nudges = listOf(
                                 Pair("Hey!", "Put your back into it! Drag me all the way down."),
@@ -1016,8 +1040,6 @@ class BubbleService : Service() {
         isSendReady = false
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         dismissSendDisclaimer()
-        // Drag-zone bands belong to a live drag — kill them with the bubble.
-        hideZoneIndicators()
         bubbleView?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
             bubbleView = null
@@ -2274,143 +2296,11 @@ class BubbleService : Service() {
         Log.i(TAG, "updateBubbleAppearance: size=${sizePct}% opacity=${opacityPct}% bezelScale=$scale (window fixed)")
     }
 
-    // ────────────────── Drag-zone indicator zones ──────────────────
     // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
-    // (hide bubble). 40dp at top is intentionally tight — the bubble's
-    // top edge must be very close to the screen top before menu fires.
+    // (hide bubble). 40dp top keeps the menu trigger from firing during
+    // normal repositioning.
     private val MENU_TRIGGER_DP = 40
     private val HIDE_TRIGGER_DP = 80
-
-    private fun makeZoneIndicator(label: String, isTop: Boolean): FrameLayout {
-        val dp = resources.displayMetrics.density
-        val container = FrameLayout(this)
-        val bandColor = 0xC4A574.toInt()  // bronze accent
-        val gradColors = if (isTop) {
-            intArrayOf(0xCC000000.toInt() or bandColor, 0x00000000 or bandColor)
-        } else {
-            intArrayOf(0x00000000 or bandColor, 0xCC000000.toInt() or bandColor)
-        }
-        val band = View(this).apply {
-            background = android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                gradColors
-            )
-        }
-        container.addView(band, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        ))
-        val labelView = TextView(this).apply {
-            text = label
-            setTextColor(0xFF1A1A1A.toInt())
-            textSize = 12f
-            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
-            letterSpacing = 0.32f
-            includeFontPadding = false
-        }
-        val labelLP = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            (if (isTop) Gravity.TOP else Gravity.BOTTOM) or Gravity.CENTER_HORIZONTAL
-        )
-        // Push the label past the status bar (top) / nav bar (bottom) so it
-        // never sits hidden behind a system bar. 40dp clears both.
-        val pad = (40 * dp).toInt()
-        if (isTop) labelLP.topMargin = pad else labelLP.bottomMargin = pad
-        container.addView(labelView, labelLP)
-        container.alpha = 0f
-        return container
-    }
-
-    private fun showZoneIndicators() {
-        val wm = windowManager ?: return
-        if (topZoneView != null && bottomZoneView != null) return
-        val dp = resources.displayMetrics.density
-        val bandHeightTop = ((MENU_TRIGGER_DP + 28) * dp).toInt()
-        val bandHeightBottom = ((HIDE_TRIGGER_DP + 28) * dp).toInt()
-        val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-
-        if (topZoneView == null) {
-            val v = makeZoneIndicator("▲   M E N U", isTop = true)
-            val lp = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                bandHeightTop,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                flags,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                x = 0
-                y = 0
-            }
-            try { wm.addView(v, lp) } catch (_: Exception) {}
-            topZoneView = v
-            topZoneParams = lp
-            v.animate().alpha(0.55f).setDuration(180).start()
-        }
-        if (bottomZoneView == null) {
-            val v = makeZoneIndicator("▼   H I D E", isTop = false)
-            val lp = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                bandHeightBottom,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                flags,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.BOTTOM or Gravity.START
-                x = 0
-                y = 0
-            }
-            try { wm.addView(v, lp) } catch (_: Exception) {}
-            bottomZoneView = v
-            bottomZoneParams = lp
-            v.animate().alpha(0.55f).setDuration(180).start()
-        }
-    }
-
-    private fun hideZoneIndicators() {
-        val wm = windowManager ?: return
-        topZoneView?.let { v ->
-            v.animate().alpha(0f).setDuration(160).withEndAction {
-                try { wm.removeView(v) } catch (_: Exception) {}
-            }.start()
-        }
-        topZoneView = null
-        topZoneParams = null
-        bottomZoneView?.let { v ->
-            v.animate().alpha(0f).setDuration(160).withEndAction {
-                try { wm.removeView(v) } catch (_: Exception) {}
-            }.start()
-        }
-        bottomZoneView = null
-        bottomZoneParams = null
-    }
-
-    private fun updateZoneIndicators(bubbleY: Int) {
-        val dp = resources.displayMetrics.density
-        val menuZone = (MENU_TRIGGER_DP * dp).toInt()
-        val screenH = resources.displayMetrics.heightPixels
-        val hideZone = screenH - (HIDE_TRIGGER_DP * dp).toInt()
-
-        // Match the trigger checks exactly: brighten the moment a release would fire.
-        val topInZone = bubbleY < menuZone
-        val bottomInZone = bubbleY > hideZone
-        val targetTop = if (topInZone) 1f else 0.55f
-        val targetBottom = if (bottomInZone) 1f else 0.55f
-        topZoneView?.let { v ->
-            if (kotlin.math.abs(v.alpha - targetTop) > 0.02f) {
-                v.animate().alpha(targetTop).setDuration(120).start()
-            }
-        }
-        bottomZoneView?.let { v ->
-            if (kotlin.math.abs(v.alpha - targetBottom) > 0.02f) {
-                v.animate().alpha(targetBottom).setDuration(120).start()
-            }
-        }
-    }
 
     private fun showMenu() {
         if (menuView != null) return
@@ -2930,11 +2820,15 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleProcessing() {
-        // Bezel stays in theme color; only the LABEL flips to amber "PROC".
-        // Inner knob keeps whatever active drawable startListening set.
+        // Bezel stays in theme color. Knob flips from recording-red to a
+        // green processing glow so the user can see at a glance that the
+        // mic is no longer hot — audio is being reconstructed, not captured.
+        // Pulse animation from startListening continues for visual continuity.
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "PROC"
-            setTextColor(0xFFFFA000.toInt())
+            setTextColor(0xFF40A065.toInt())
         }
     }
 
@@ -2973,18 +2867,20 @@ class BubbleService : Service() {
 
         scope.launch {
             try {
-                val systemPrompt = "You are a text transformation assistant. The user highlighted some text and spoke a command to modify it. Apply the command and return ONLY the transformed text, nothing else. Preserve the meaning. Do not add explanations, quotes, or prefixes."
-                val userContent = "TEXT:\n$source\n\nCOMMAND: $command"
-
                 val apiKey = WimApp.apiKey()
                 val idToken = AuthManager.getIdToken()
 
+                // Signed-in path: backend handles OpenAI key + tier + rate
+                // limiting (action=command on wim-reconstruct). Fall back to
+                // direct OpenAI only when no Firebase auth is present (dev).
                 val result: String? = if (idToken != null) {
-                    // Use backend proxy — we'll repurpose reconstruct endpoint with raw=source, a synthetic layer
-                    // Simpler: go direct through OpenAI with the user's key, or build a proper cmd endpoint later
-                    if (apiKey.isNotBlank()) callOpenAiTransform(apiKey, systemPrompt, userContent) else null
+                    callBackendCommandTransform(idToken, source, command)
+                } else if (apiKey.isNotBlank()) {
+                    val systemPrompt = "You are a text transformation assistant. The user highlighted some text and spoke a command to modify it. Apply the command and return ONLY the transformed text, nothing else. Preserve the meaning. Do not add explanations, quotes, or prefixes."
+                    val userContent = "TEXT:\n$source\n\nCOMMAND: $command"
+                    callOpenAiTransform(apiKey, systemPrompt, userContent)
                 } else {
-                    if (apiKey.isNotBlank()) callOpenAiTransform(apiKey, systemPrompt, userContent) else null
+                    null
                 }
 
                 if (result.isNullOrBlank()) {
@@ -3013,6 +2909,48 @@ class BubbleService : Service() {
                 timerHandler.postDelayed({ setBubbleIdle() }, 2000)
             } finally {
                 clearCommandPickup()
+            }
+        }
+    }
+
+    /**
+     * Signed-in Command Mode path: POST {action: "command", source, command}
+     * to the wim-reconstruct Cloud Function. Backend uses its own OpenAI key,
+     * applies tier + daily-rate limits, returns {"transformed": "..."} or
+     * {"error": "..."}. Returns null on any non-200 / network failure so
+     * the caller can show "✕ Failed".
+     */
+    private suspend fun callBackendCommandTransform(
+        idToken: String,
+        source: String,
+        command: String
+    ): String? {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val http = okhttp3.OkHttpClient.Builder()
+                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                val body = org.json.JSONObject().apply {
+                    put("action", "command")
+                    put("source", source)
+                    put("command", command)
+                }
+                val req = okhttp3.Request.Builder()
+                    .url("https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct")
+                    .addHeader("Authorization", "Bearer $idToken")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                val resp = http.newCall(req).execute()
+                val respBody = resp.body?.string() ?: return@withContext null
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "CMD backend ${resp.code}: ${respBody.take(200)}")
+                    return@withContext null
+                }
+                org.json.JSONObject(respBody).optString("transformed").takeIf { it.isNotBlank() }
+            } catch (e: Exception) {
+                Log.e(TAG, "CMD backend exception: ${e.message}")
+                null
             }
         }
     }
