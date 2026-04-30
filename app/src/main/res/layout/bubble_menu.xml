@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="0dp">
 
                 <TextView
                     android:id="@+id/menuLiveLabel"
@@ -55,30 +55,8 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <!-- L1 SRC toggle: off = local whisper-tiny, on = cloud whisper-1 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
-
-                <TextView
-                    android:id="@+id/menuL1AsrLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="L1 SRC"
-                    android:textSize="12sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.20" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/menuL1AsrToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
+            <!-- L1 CLOUD toggle moved to a sub-menu opened by tapping the
+                 TRANSCRIPTION layer nameplate. Frees a whole row from this menu. -->
 
             <!-- LAYER section label -->
             <TextView
@@ -90,7 +68,7 @@
                 android:fontFamily="@font/josefin_sans"
                 android:textStyle="bold"
                 android:letterSpacing="0.30"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="2dp" />
 
             <!-- Layer engraved nameplates -->
             <TextView
@@ -130,47 +108,47 @@
                 android:gravity="center"
                 android:letterSpacing="0.20"
                 android:background="@drawable/nameplate_bg"
-                android:layout_marginBottom="12dp" />
-
-            <!-- COLOR section label -->
-            <TextView
-                android:id="@+id/menuColorLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="COLOR"
-                android:textSize="11sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:letterSpacing="0.30"
                 android:layout_marginBottom="6dp" />
 
-            <!-- Color picker = 3 mini bubble-bezel replicas -->
+            <!-- COLOR row — label + 3 swatches inline (saves vertical space) -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center">
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/menuColorLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="COLOR"
+                    android:textSize="11sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.30" />
 
                 <View
                     android:id="@+id/menuThemeBronze"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
                     android:background="@drawable/color_indicator_bronze"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="6dp"
                     android:contentDescription="Bronze" />
                 <View
                     android:id="@+id/menuThemeAluminum"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
                     android:background="@drawable/color_indicator_silver"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="6dp"
                     android:contentDescription="Silver" />
                 <View
                     android:id="@+id/menuThemeGunmetal"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:background="@drawable/color_indicator_gold"
-                    android:contentDescription="Gold" />
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:background="@drawable/color_indicator_gunmetal"
+                    android:layout_marginStart="6dp"
+                    android:contentDescription="Gunmetal" />
             </LinearLayout>
         </LinearLayout>
 
@@ -267,30 +245,14 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- BOTTOM ROW: Reset Timer (left) + tail-gap + Settings (right).
-         The speech-bubble tail emerges between them at the bottom-center,
-         visually separating the two tertiary actions. -->
+    <!-- BOTTOM ROW: Settings (right-aligned). Reset Timer removed
+         (timer relocated to Sessions console next to "Today" header). -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="end"
         android:layout_marginTop="10dp">
-
-        <TextView
-            android:id="@+id/menuResetTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="RESET TIMER"
-            android:textSize="11sp"
-            android:fontFamily="@font/josefin_sans"
-            android:textStyle="bold"
-            android:letterSpacing="0.18"
-            android:padding="4dp" />
-
-        <Space
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="0dp" />
 
         <TextView
             android:id="@+id/menuOpenSettings"

@@ -175,12 +175,47 @@ class ProfileManager(private val prefs: SharedPreferences) {
         saveProfile()
     }
 
+    fun removeCorrection(from: String) {
+        if (corrections.remove(from.lowercase()) != null) {
+            saveProfile()
+        }
+    }
+
     fun addVocabulary(word: String) {
         val w = word.trim()
         if (w.isNotEmpty() && w !in vocabulary) {
             vocabulary.add(w)
             saveProfile()
         }
+    }
+
+    fun removeVocabulary(word: String) {
+        if (vocabulary.remove(word.trim())) {
+            saveProfile()
+        }
+    }
+
+    /** Add a trigger word — written to the profile JSON's trigger_words array. */
+    fun addTriggerWord(word: String) {
+        val w = word.trim()
+        if (w.isEmpty()) return
+        val current = getTriggerWords().toMutableList()
+        if (w in current) return
+        current.add(w)
+        writeTriggerWords(current)
+    }
+
+    fun removeTriggerWord(word: String) {
+        val w = word.trim()
+        val current = getTriggerWords().toMutableList()
+        if (current.remove(w)) writeTriggerWords(current)
+    }
+
+    private fun writeTriggerWords(words: List<String>) {
+        val json = prefs.getString(PREF_KEY, null)
+        val obj = if (json != null) JSONObject(json) else JSONObject()
+        obj.put("trigger_words", org.json.JSONArray(words))
+        prefs.edit().putString(PREF_KEY, obj.toString()).apply()
     }
 
     fun getFillerWords(): List<String> = fillerWords.toList()

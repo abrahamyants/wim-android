@@ -33,6 +33,12 @@ class CommentBubbleDrawable(
     tailWidthDp: Float = 44f,
     tailHeightDp: Float = 22f,
     strokeWidthDp: Float = 2.2f,
+    /**
+     * Draw the dual wobble outline (ghost + main stroke). Default OFF —
+     * the bubble menu wants borderless. The live transcript bar enables
+     * this for the hand-drawn "two lines" look.
+     */
+    private val drawOutline: Boolean = false,
 ) : Drawable() {
 
     enum class BackgroundStyle { FLAT, BRONZE, SILVER, CARBON_FIBER }
@@ -86,25 +92,10 @@ class CommentBubbleDrawable(
     private var cachedFiberTile: Bitmap? = null
 
     private fun shaderForBounds(w: Int, h: Int): Shader? {
-        if (backgroundStyle == BackgroundStyle.FLAT) return null
-        val key = w * 31 + h
-        if (key == cachedShaderKey && cachedShader != null) return cachedShader
-        cachedShaderKey = key
-        cachedShader = when (backgroundStyle) {
-            BackgroundStyle.FLAT -> null
-            BackgroundStyle.BRONZE -> hexShader(
-                bgColor = 0xFFB78758.toInt(),         // mid-warm bronze fill (matches silver structure)
-                hexStroke = 0xFF6E4A1F.toInt(),       // dark bronze outline
-                hexHighlight = 0x66FFFFFF.toInt()     // bright rim highlight (same as silver)
-            )
-            BackgroundStyle.SILVER -> hexShader(
-                bgColor = 0xFFA8A8B0.toInt(),         // mid silver fill
-                hexStroke = 0xFF606068.toInt(),       // dark grey outline
-                hexHighlight = 0x66FFFFFF.toInt()     // bright rim highlight
-            )
-            BackgroundStyle.CARBON_FIBER -> carbonWeaveShader()
-        }
-        return cachedShader
+        // Per George 2026-04-30: menu background is now solid color matching
+        // the bubble bezel — no hex/weave pattern overlay. The fillColor
+        // passed via constructor (palette.fill) is the per-theme color.
+        return null
     }
 
     // Honeycomb hex tile — pointy-top hexes in offset rows. Background fill +
@@ -269,8 +260,10 @@ class CommentBubbleDrawable(
         canvas.restore()
 
         canvas.drawPath(path, fillPaint)
-        canvas.drawPath(path, ghostPaint)
-        canvas.drawPath(path, strokePaint)
+        if (drawOutline) {
+            canvas.drawPath(path, ghostPaint)
+            canvas.drawPath(path, strokePaint)
+        }
     }
 
     override fun setAlpha(alpha: Int) {
@@ -306,8 +299,11 @@ class CommentBubbleDrawable(
             val sliderTrack: Int,
         )
 
+        // Menu background fill colors at ~50% alpha (0x80) per George 2026-04-30:
+        // background only, the floating bubble itself stays opaque (user controls
+        // bubble opacity via the OP slider).
         val BRONZE = Palette(
-            fill = 0xFFC4A574.toInt(),       // mid-warm copper (used as fallback if shader fails)
+            fill = 0xC0C4A574.toInt(),       // mid-warm copper @ 50% alpha
             stroke = 0xFFB55050.toInt(),     // maroon (matches bubble bezel stroke)
             primaryText = 0xFF1F1208.toInt(),
             secondaryText = 0xFF4A2F18.toInt(),
@@ -316,7 +312,7 @@ class CommentBubbleDrawable(
         )
 
         val ALUMINUM = Palette(
-            fill = 0xFFC8C8CE.toInt(),       // brushed silver mid-tone
+            fill = 0xC0C8C8CE.toInt(),       // brushed silver @ 50% alpha
             stroke = 0xFFB55050.toInt(),
             primaryText = 0xFF1A1A20.toInt(),
             secondaryText = 0xFF45454F.toInt(),
@@ -325,7 +321,7 @@ class CommentBubbleDrawable(
         )
 
         val GUNMETAL = Palette(
-            fill = 0xFF2E2E36.toInt(),       // dark brushed steel
+            fill = 0xC02E2E36.toInt(),       // dark brushed steel @ 50% alpha
             stroke = 0xFFB55050.toInt(),
             primaryText = 0xFFF0E8D8.toInt(),
             secondaryText = 0xFFC8B48A.toInt(), // brand cream

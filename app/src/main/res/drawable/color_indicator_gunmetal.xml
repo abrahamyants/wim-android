@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tiny replica of the gunmetal bubble bezel. Selecting this picks Gunmetal theme.
+     Mirrors color_indicator_bronze structure with gunmetal palette
+     (#7A7C85 → #2E2E36 outer, #5A5A64 → #38383E inner). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <layer-list>
+            <!-- Outer glow ring — cream highlight when active -->
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="#FFF0E8D8" />
+                    <size android:width="34dp" android:height="34dp" />
+                </shape>
+            </item>
+            <!-- Gunmetal bezel inset 2dp -->
+            <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="18dp"
+                        android:centerX="0.42"
+                        android:centerY="0.38"
+                        android:startColor="#FF7A7C85"
+                        android:endColor="#FF2E2E36" />
+                    <stroke android:width="1dp" android:color="#FFB55050" />
+                </shape>
+            </item>
+            <!-- Inner well — darker steel -->
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="14dp"
+                        android:centerX="0.45"
+                        android:centerY="0.40"
+                        android:startColor="#FF5A5A64"
+                        android:endColor="#FF1E1E24" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="18dp"
+                        android:centerX="0.42"
+                        android:centerY="0.38"
+                        android:startColor="#FF7A7C85"
+                        android:endColor="#FF2E2E36" />
+                    <stroke android:width="1dp" android:color="#FFB55050" />
+                    <size android:width="34dp" android:height="34dp" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="14dp"
+                        android:centerX="0.45"
+                        android:centerY="0.40"
+                        android:startColor="#FF5A5A64"
+                        android:endColor="#FF1E1E24" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

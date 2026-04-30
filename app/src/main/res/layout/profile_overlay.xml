@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Iron Curtain — full-screen profile overlay, slides in from right -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F0222228"
@@ -328,7 +329,7 @@
                     <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
-                <!-- VOCABULARY -->
+                <!-- VOCABULARY — wrap-flow chips, all visible (no scroll) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -339,23 +340,55 @@
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
-                <EditText
-                    android:id="@+id/profileVocabulary"
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/vocabChips"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="preferred words, one per line"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:padding="10dp"
-                    android:inputType="textMultiLine"
-                    android:minLines="2"
-                    android:maxLines="5"
-                    android:layout_marginBottom="16dp" />
+                    app:singleLine="false"
+                    app:chipSpacingHorizontal="4dp"
+                    app:chipSpacingVertical="2dp"
+                    android:layout_marginBottom="6dp" />
 
-                <!-- CORRECTIONS -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                    <EditText
+                        android:id="@+id/vocabAddInput"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="36dp"
+                        android:hint="add a word"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:inputType="text"
+                        android:imeOptions="actionDone"
+                        android:maxLines="1" />
+                    <TextView
+                        android:id="@+id/vocabAddBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="ADD"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginStart="4dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- CORRECTIONS — wrap-flow chips ("wrong → right") -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -366,23 +399,80 @@
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
-                <EditText
-                    android:id="@+id/profileCorrections"
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/corrChips"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="wrong=right, one per line"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:padding="10dp"
-                    android:inputType="textMultiLine"
-                    android:minLines="2"
-                    android:maxLines="5"
-                    android:layout_marginBottom="16dp" />
+                    app:singleLine="false"
+                    app:chipSpacingHorizontal="4dp"
+                    app:chipSpacingVertical="2dp"
+                    android:layout_marginBottom="6dp" />
 
-                <!-- TRIGGER WORDS -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                    <EditText
+                        android:id="@+id/corrAddFrom"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="36dp"
+                        android:hint="wrong"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:inputType="text"
+                        android:imeOptions="actionNext"
+                        android:maxLines="1" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="→"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:gravity="center"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp" />
+                    <EditText
+                        android:id="@+id/corrAddTo"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="36dp"
+                        android:hint="right"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:inputType="text"
+                        android:imeOptions="actionDone"
+                        android:maxLines="1" />
+                    <TextView
+                        android:id="@+id/corrAddBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="ADD"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginStart="4dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- TRIGGER WORDS — wrap-flow chips -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -393,21 +483,53 @@
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
-                <EditText
-                    android:id="@+id/profileTriggers"
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/triggerChips"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="words you block on, one per line"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/card_bg"
-                    android:padding="10dp"
-                    android:inputType="textMultiLine"
-                    android:minLines="2"
-                    android:maxLines="5"
-                    android:layout_marginBottom="20dp" />
+                    app:singleLine="false"
+                    app:chipSpacingHorizontal="4dp"
+                    app:chipSpacingVertical="2dp"
+                    android:layout_marginBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+                    <EditText
+                        android:id="@+id/triggerAddInput"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="36dp"
+                        android:hint="add a trigger word"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/card_bg"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:inputType="text"
+                        android:imeOptions="actionDone"
+                        android:maxLines="1" />
+                    <TextView
+                        android:id="@+id/triggerAddBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="ADD"
+                        android:textColor="@color/copper_gold"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:layout_marginStart="4dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
 
                 <!-- YOUR DATA (GDPR/CCPA rights) — only shown when signed in -->
                 <LinearLayout

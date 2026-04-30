@@ -2634,3 +2634,154 @@ are editing parallel filesystems invisible from
 is a slice, not the whole picture. Worth flagging in any future
 "is the working tree clean?" assertion.
 
+## Session 17 — April 30, 2026 (WiM end-to-end UX overhaul: frozen layout, bubble visuals, drag zones)
+
+Single long day, one `/compact` mid-session. Reorganized MainActivity
+into a frozen-top + scrolling-middle + frozen-bottom layout, redesigned
+the bubble menu, fixed bubble-resize drift, rebuilt the pipeline-stage
+animation as three stacked premium effects, rerouted live transcript
+through Google ASR (chirp accepted), converted profile vocabulary /
+corrections / triggers to chip pills, and closed by tightening the
+drag-to-top menu trigger and adding visual zone indicators during drag.
+Full session-log writeup at `SESSION_LOG_2026-04-30.md`.
+
+### MainActivity overhaul
+
+- **Frozen top + frozen bottom + scrolling middle** in
+  `activity_main.xml`. Top = brand plate + statsRow (today header,
+  timer, ↺ reset). Middle = expandable section content. Bottom =
+  Sign-in card + Footer (Profile · WM logo · Privacy · Guide).
+  `ViewCompat.setOnApplyWindowInsetsListener` on `frozenBottom`
+  handles the Samsung nav bar.
+- **Dual tile rows** — Layer + Tone share one row, Permissions +
+  Settings share another. Halves first-paint vertical clutter.
+- **Section overlays via reparenting** — header taps reparent
+  `contentLayer` / `contentTone` / `contentPermissions` /
+  `contentSettings` / `contentGuide` into a slide-in full-screen
+  overlay with title row + `✕` close. Footer Guide tap reparents
+  the rich `buildGuideContent` output (not a placeholder).
+- **Profile overlay → chip pills.** `profile_overlay.xml` Vocabulary
+  / Corrections / Triggers replaced `EditText` lists with `ChipGroup`
+  + add row. New `ProfileManager` helpers: `removeVocabulary`,
+  `removeCorrection`, `addTriggerWord`, `removeTriggerWord`,
+  `writeTriggerWords`. Pills are styled `card_bg` to match
+  Work/Life/Industry selectors.
+- **Sessions panel default-expanded.** Today header + timer scaled
+  50% larger (15sp / 21sp).
+
+### Bubble menu redesign
+
+- **COLOR row inline** — `LAYER` label + three swatches (26dp each)
+  horizontal. Reclaims ~80dp of menu height.
+- **`color_indicator_gunmetal.xml`** created — third theme is
+  gunmetal, not gold. Mirrors the bronze/aluminum drawable pattern.
+- **L1 CLOUD row removed** from top level. Replaced with a sub-menu:
+  tap the `TRANSCRIPTION` nameplate → `AlertDialog` (TYPE_APPLICATION_OVERLAY)
+  L1 Source picker (Local Whisper / API Whisper).
+- **Menu background 25% less transparent.** (User correction:
+  the request was about the menu, not the bubble itself —
+  bubble opacity reverted to 100% default.)
+
+### Bubble visual fixes
+
+- **Bubble-size slider works again.** Window is now FIXED at 180dp;
+  only the bezel scales (`scaleX/scaleY`) with center pivot. Was
+  resizing the window itself, causing center drift that masked the
+  scale visually.
+- **SEND-ready countdown** — inner knob shows `Ns` (5 → 0) for
+  5000ms after tap-to-inject; `sendReadyTickRunnable` updates every
+  250ms. `bubbleTime` is `visibility="gone"` by default — only
+  visible during the countdown. Session timer guarded by
+  `if (isSendReady) return` so it doesn't overwrite the countdown
+  text mid-tick.
+- **Recording / Processing preserve theme.** Removed
+  `setBackgroundResource(R.drawable.bubble_bg_recording)` and
+  `bubble_bg_processing` calls. Bezel keeps bronze / aluminum /
+  gunmetal at all times; only the inner knob and label change.
+- **`CommentBubbleDrawable`** — added `drawOutline: Boolean = false`
+  param; `shaderForBounds` returns `null` (no hex/weave overlay);
+  palette fill alpha bumped from `0x80` → `0xC0` (50% → 75% opaque).
+
+### Pipeline-stage animation rebuild
+
+L2/L3/L4 turbo-text was bouncing between 2 and 4 lines. Now locked
+to **3 lines** (`minLines = maxLines = 3`) with three stacked
+animations running simultaneously:
+
+1. Tape reel — `◉⊚⊙⊚` cycling top-line indicator
+2. Typewriter dots — second-line `…` builds and clears
+3. Breathing color — fill animates between theme tone and +12%
+   lightness, 1.6s cycle
+
+Cross-fade between stage labels. No layout pass per update because
+text length stays constant. User picked **all three** ("heaviest but
+unmissable"). No measurable latency hit.
+
+### Live transcript routing
+
+`whisper-tiny` doesn't emit partials. When LIVE is on AND not L4
+AND L1-pack doesn't need cloud, route through Android
+`SpeechRecognizer` (`OnDeviceRecognizer`) which emits partials.
+Live-transcript bar grows from 2 → 6 lines as text streams.
+Trade-off: Google ASR chirp returns when LIVE is on (Samsung's
+mandatory `partial_results` chirp). Accepted; chunked-whisper
+streaming proposed and declined as too CPU-heavy.
+
+### Drag-zone indicators + menu-trigger tightening
+
+User reported the drag-to-top menu trigger fired during normal
+repositioning. Two changes:
+
+- **Threshold tightened**: top trigger 80dp → 40dp. Constants
+  `MENU_TRIGGER_DP = 40`, `HIDE_TRIGGER_DP = 80` shared between
+  `updateZoneIndicators` and the ACTION_UP trigger check so visual
+  and trigger stay in lockstep.
+- **Visual zone indicators** — slim bronze gradient bands fade in
+  only while dragging. Top: `▲   M E N U` (68dp tall). Bottom:
+  `▼   H I D E` (108dp tall). Default 0.55 alpha (faint marker);
+  animate to 1.0 the moment the bubble's top crosses into the
+  trigger zone — bright = release here will fire. Bands use
+  `FLAG_NOT_TOUCHABLE | FLAG_LAYOUT_NO_LIMITS` so they're purely
+  visual; cleaned up in `hideBubble()` and `onDestroy()`.
+
+### Files modified Session 17
+
+- `app/src/main/java/com/wim/app/BubbleService.kt` (largest delta)
+- `app/src/main/java/com/wim/app/CommentBubbleDrawable.kt`
+- `app/src/main/java/com/wim/app/MainActivity.kt`
+- `app/src/main/java/com/wim/app/ProfileManager.kt`
+- `app/src/main/res/layout/activity_main.xml`
+- `app/src/main/res/layout/bubble.xml`
+- `app/src/main/res/layout/bubble_menu.xml`
+- `app/src/main/res/layout/profile_overlay.xml`
+- `app/src/main/res/drawable/color_indicator_gunmetal.xml` *(new)*
+
+### Wrong calls / corrections (Session 17)
+
+- **#92 — First bubble-resize fix kept window-resize scaling.** Only
+  bezel-scale + fixed window worked. Should have been the first move.
+- **#93 — `● Recording…` placeholder for live transcript.** User
+  wanted live TEXT, not a recording-state status label. Reflexive
+  voice-app pattern that misses WiM's whole pitch.
+- **#94 — Pipeline animation 2↔4 line bounce shipped at all.**
+  Layout-pass-per-update was visible the first frame of the first
+  L2 test.
+- **#95 — Referenced `color_indicator_gold` without verifying it
+  existed.** Created `color_indicator_gunmetal.xml` only after the
+  user pointed out the third theme is gunmetal. Should have read
+  the existing `color_indicator_*.xml` files before writing the
+  reference.
+- **#96 — Drag-to-top 80dp threshold wasn't tested with the user's
+  normal repositioning gesture.** Symmetric with the bottom (which
+  IS reasonable at 80dp because pulling off-screen is deliberate),
+  but the top is where users naturally drift while moving the bubble.
+  Asymmetry of *intent* vs *gesture range* missed before shipping.
+- **#97 — `bubbleTime` countdown vs session-timer race wasn't caught
+  at write time.** Two runnables writing the same TextView, no
+  guard. Should have grep'd `bubbleTime` references before adding
+  a third writer.
+- **#98 — Menu's `L1 CLOUD` row shipped twice as a top-level toggle
+  before being removed entirely.** Sub-menu via `TRANSCRIPTION`
+  nameplate is the right placement; should have proposed that on
+  first design pass.
+

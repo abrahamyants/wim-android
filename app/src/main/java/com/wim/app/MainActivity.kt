@@ -50,6 +50,27 @@ class MainActivity : AppCompatActivity() {
     private var consoleUnsub: (() -> Unit)? = null
     private var showingConsole = false
 
+    // Session timer (relocated from bubble — shown next to the "Today" header
+    // in the Sessions list, with a reset button beside it).
+    private var todayTimerView: TextView? = null
+    private val sessionTimerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val sessionTimerTick = object : Runnable {
+        override fun run() {
+            updateTodayTimer()
+            sessionTimerHandler.postDelayed(this, 1000)
+        }
+    }
+    private fun updateTodayTimer() {
+        val tv = todayTimerView ?: return
+        val start = WimApp.prefs.getLong("session_start_time", 0L)
+        if (start <= 0L) { tv.text = "0:00"; return }
+        val elapsed = (System.currentTimeMillis() - start) / 1000
+        val capped = elapsed.coerceAtMost(99 * 60 + 59)
+        val mins = capped / 60
+        val secs = capped % 60
+        tv.text = "%d:%02d".format(mins, secs)
+    }
+
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
@@ -178,7 +199,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ── Sessions (collapsible) ───────────────────────
-        setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = false)
+        // Force-set expanded once so existing users with a saved "false"
+        // see the new default-open behavior. They can still collapse later.
+        WimApp.prefs.edit().putBoolean("sessions_section", true).apply()
+        setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = true)
         // Apply maroon background + grille mesh overlay
         val sessionsPanel = findViewById<FrameLayout>(R.id.sessionsPanel)
         val panelBg = getDrawable(R.drawable.sessions_panel_bg)!!
@@ -457,13 +481,15 @@ class MainActivity : AppCompatActivity() {
             if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
         }
 
-        // ── Double-shake toggle ──
-        val shakeToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.shakeToggle)
-        shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", true)
-        styleToggle(shakeToggle!!)
-        shakeToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()
+        // ── Bubble color picker (replaces the dock + shake toggle) ──
+        val applyTheme: (String) -> Unit = { theme ->
+            WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+            BubbleService.instance?.refreshBubbleTheme()
+            android.widget.Toast.makeText(this, "Bubble color: $theme", android.widget.Toast.LENGTH_SHORT).show()
         }
+        findViewById<android.view.View>(R.id.colorBronze)?.setOnClickListener { applyTheme("bronze") }
+        findViewById<android.view.View>(R.id.colorAluminum)?.setOnClickListener { applyTheme("aluminum") }
+        findViewById<android.view.View>(R.id.colorGunmetal)?.setOnClickListener { applyTheme("gunmetal") }
 
         // ── Cloud backup toggle ──
         val cloudToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.cloudBackupToggle)
@@ -592,6 +618,10 @@ class MainActivity : AppCompatActivity() {
         // We also refresh now in case the bubble state changed while paused.
         BubbleService.onBubbleVisibilityChanged = { runOnUiThread { refreshDockGhost() } }
         refreshDockGhost()
+        // Start the session timer ticker (updates the "Today" header timer
+        // every second). Stops in onPause.
+        sessionTimerHandler.removeCallbacks(sessionTimerTick)
+        sessionTimerHandler.post(sessionTimerTick)
     }
 
     override fun onPause() {
@@ -602,6 +632,7 @@ class MainActivity : AppCompatActivity() {
         // Drop the coat-rack callback so the service doesn't hold this
         // activity after it's gone.
         BubbleService.onBubbleVisibilityChanged = null
+        sessionTimerHandler.removeCallbacks(sessionTimerTick)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -730,6 +761,9 @@ class MainActivity : AppCompatActivity() {
         val yesterday = dateFormat.format(java.util.Date(System.currentTimeMillis() - 86400000))
         var lastDateLabel = ""
 
+        // Reset our reference each render — old views get GC'd.
+        todayTimerView = null
+
         for (session in sessions) {
             val sessionDate = dateFormat.format(java.util.Date(session.timestamp))
             if (sessionDate != lastDateLabel) {
@@ -739,15 +773,54 @@ class MainActivity : AppCompatActivity() {
                     yesterday -> "Yesterday"
                     else -> SimpleDateFormat("MMMM d", Locale.getDefault()).format(java.util.Date(session.timestamp))
                 }
-                val header = TextView(this).apply {
-                    text = label
-                    setTextColor(getColor(R.color.copper_gold))
-                    textSize = 10f
-                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-                    letterSpacing = 0.1f
-                    setPadding((4 * dpScale).toInt(), (8 * dpScale).toInt(), 0, (4 * dpScale).toInt())
+                if (label == "Today") {
+                    // Horizontal row: "Today" + timer + reset (↺) button
+                    val row = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        setPadding((4 * dpScale).toInt(), (8 * dpScale).toInt(), (4 * dpScale).toInt(), (4 * dpScale).toInt())
+                    }
+                    val labelTv = TextView(this).apply {
+                        text = "Today"
+                        setTextColor(getColor(R.color.copper_gold))
+                        textSize = 15f
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                        letterSpacing = 0.1f
+                    }
+                    val timerTv = TextView(this).apply {
+                        text = "0:00"
+                        setTextColor(getColor(R.color.copper_gold))
+                        textSize = 15f
+                        typeface = Typeface.MONOSPACE
+                        setPadding((10 * dpScale).toInt(), 0, 0, 0)
+                    }
+                    val resetBtn = TextView(this).apply {
+                        text = "↺"
+                        setTextColor(getColor(R.color.copper_gold))
+                        textSize = 21f
+                        setPadding((10 * dpScale).toInt(), 0, (4 * dpScale).toInt(), 0)
+                        setOnClickListener {
+                            WimApp.prefs.edit().putLong("session_start_time", System.currentTimeMillis()).apply()
+                            updateTodayTimer()
+                        }
+                    }
+                    row.addView(labelTv)
+                    row.addView(timerTv)
+                    row.addView(resetBtn)
+                    container.addView(row)
+                    todayTimerView = timerTv
+                    updateTodayTimer()
+                } else {
+                    val header = TextView(this).apply {
+                        text = label
+                        setTextColor(getColor(R.color.copper_gold))
+                        textSize = 10f
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                        letterSpacing = 0.1f
+                        setPadding((4 * dpScale).toInt(), (8 * dpScale).toInt(), 0, (4 * dpScale).toInt())
+                    }
+                    container.addView(header)
                 }
-                container.addView(header)
             }
             val card = buildSessionCard(session, timeFormat, dpScale)
             container.addView(card)
@@ -1108,6 +1181,13 @@ class MainActivity : AppCompatActivity() {
         )
         setHeaderWithBadge(R.id.headerLayer, "LAYER", layerNames[WimApp.layer()] ?: layerNames[1]!!)
         setHeaderWithBadge(R.id.headerTone, "TONE", toneNames[WimApp.tone()] ?: toneNames["casual"]!!)
+        // Update the compact dual-tile values too
+        val layerLabel = (layerNames[WimApp.layer()] ?: "transcribe").trim()
+            .replaceFirstChar { it.uppercase() }
+        val toneLabel = (toneNames[WimApp.tone()] ?: "casual").trim()
+            .replaceFirstChar { it.uppercase() }
+        findViewById<TextView>(R.id.tileLayerValue)?.text = layerLabel
+        findViewById<TextView>(R.id.tileToneValue)?.text = toneLabel
     }
 
     private fun setupVuDoubleTapReset(vuId: Int, prefKey: String) {
@@ -1551,6 +1631,92 @@ On in <b>Settings &#8594; DAF</b>. Use the slider to tune the delay."""
 
     // ── Operations Manual (old overlay — kept for reference) ──────────
 
+    // Guide overlay state — track contentGuide's original parent + index so
+    // we can put it back when the overlay is dismissed.
+    private var guideOverlay: View? = null
+    private var guideContentOriginalParent: android.view.ViewGroup? = null
+    private var guideContentOriginalIndex: Int = -1
+
+    /**
+     * Open the inline GUIDE content (built by buildGuideContent) as a
+     * full-screen overlay. Reparents R.id.contentGuide into the overlay so
+     * we don't duplicate the rich section data — it's the SAME guide the
+     * user used to see inline.
+     */
+    private fun showGuideOverlay() {
+        if (guideOverlay != null) return
+        val contentGuide = findViewById<LinearLayout>(R.id.contentGuide) ?: return
+        val rootFrame = findViewById<FrameLayout>(android.R.id.content)
+        val dp = resources.displayMetrics.density
+
+        val originalParent = contentGuide.parent as? android.view.ViewGroup
+        if (originalParent != null) {
+            guideContentOriginalParent = originalParent
+            guideContentOriginalIndex = originalParent.indexOfChild(contentGuide)
+            originalParent.removeView(contentGuide)
+        }
+        contentGuide.visibility = View.VISIBLE
+
+        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bgColor = if (isNight) 0xFF1A1A1E.toInt() else 0xFFE8E8EC.toInt()
+
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(bgColor)
+            isClickable = true
+            setPadding(0, (40 * dp).toInt(), 0, 0)
+        }
+
+        val scroll = android.widget.ScrollView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setPadding((16 * dp).toInt(), (40 * dp).toInt(), (16 * dp).toInt(), (24 * dp).toInt())
+            addView(contentGuide, android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+        }
+        overlay.addView(scroll)
+
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            textSize = 22f
+            setTextColor(getColor(R.color.copper_gold))
+            setPadding((20 * dp).toInt(), (12 * dp).toInt(), (20 * dp).toInt(), (12 * dp).toInt())
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.END }
+            setOnClickListener { dismissGuideOverlay() }
+        }
+        overlay.addView(closeBtn)
+
+        rootFrame.addView(overlay, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+        guideOverlay = overlay
+    }
+
+    private fun dismissGuideOverlay() {
+        val overlay = guideOverlay ?: return
+        val contentGuide = overlay.findViewById<LinearLayout>(R.id.contentGuide)
+
+        if (contentGuide != null) {
+            (contentGuide.parent as? android.view.ViewGroup)?.removeView(contentGuide)
+            contentGuide.visibility = View.GONE
+            val parent = guideContentOriginalParent
+            if (parent != null && guideContentOriginalIndex >= 0) {
+                parent.addView(contentGuide, guideContentOriginalIndex)
+            }
+        }
+        (overlay.parent as? android.view.ViewGroup)?.removeView(overlay)
+        guideOverlay = null
+        guideContentOriginalParent = null
+        guideContentOriginalIndex = -1
+    }
+
     private fun showGuide() {
         val dp = resources.displayMetrics.density
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -1850,6 +2016,155 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         findViewById<View>(R.id.profileStrip)?.setOnClickListener {
             showProfileOverlay()
         }
+        // Footer Profile (left of WM tile) + Footer Guide (right of WM tile)
+        // — moved here from the top brand plate per George 2026-04-30.
+        // Guide opens an OVERLAY (not the in-page section, which is now hidden).
+        findViewById<View>(R.id.footerProfile)?.setOnClickListener {
+            showProfileOverlay()
+        }
+        findViewById<View>(R.id.footerGuide)?.setOnClickListener {
+            showGuideOverlay()
+        }
+        // Push the frozen bottom (Sign-in + Footer) ABOVE the Android
+        // navigation bar — without this, on edge-to-edge devices the
+        // nav bar overlays the bottom of our footer.
+        findViewById<View>(R.id.frozenBottom)?.let { fb ->
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(fb) { v, insets ->
+                val sysBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout())
+                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, sysBars.bottom)
+                insets
+            }
+            androidx.core.view.ViewCompat.requestApplyInsets(fb)
+        }
+
+        // Dual-tile rows — Layer/Tone + Permissions/Settings.
+        // Tap a tile → reparents the (hidden) section into a slide-in overlay.
+        findViewById<View>(R.id.tileLayer)?.setOnClickListener {
+            openSectionOverlay(R.id.contentLayer, "LAYER")
+        }
+        findViewById<View>(R.id.tileTone)?.setOnClickListener {
+            openSectionOverlay(R.id.contentTone, "TONE")
+        }
+        findViewById<View>(R.id.tilePermissions)?.setOnClickListener {
+            openSectionOverlay(R.id.contentPermissions, "PERMISSIONS")
+        }
+        findViewById<View>(R.id.tileSettings)?.setOnClickListener {
+            openSectionOverlay(R.id.contentSettings, "SETTINGS")
+        }
+    }
+
+    // Section-overlay state — track the original parent + index for the
+    // currently-shown section so we can put it back on dismiss.
+    private var sectionOverlay: View? = null
+    private var sectionContentView: View? = null
+    private var sectionContentParent: android.view.ViewGroup? = null
+    private var sectionContentIndex: Int = -1
+    private var sectionContentOriginalVisibility: Int = View.GONE
+
+    /**
+     * Generic section overlay — reparents an existing in-layout content
+     * view into a full-screen overlay for the duration of viewing. On
+     * dismiss the content goes back to its original parent + index.
+     */
+    private fun openSectionOverlay(contentResId: Int, title: String) {
+        if (sectionOverlay != null) return
+        val content = findViewById<View>(contentResId) ?: return
+        val rootFrame = findViewById<FrameLayout>(android.R.id.content)
+        val dp = resources.displayMetrics.density
+
+        val originalParent = content.parent as? android.view.ViewGroup ?: return
+        sectionContentView = content
+        sectionContentParent = originalParent
+        sectionContentIndex = originalParent.indexOfChild(content)
+        sectionContentOriginalVisibility = content.visibility
+        originalParent.removeView(content)
+        content.visibility = View.VISIBLE
+
+        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bgColor = if (isNight) 0xFF1A1A1E.toInt() else 0xFFE8E8EC.toInt()
+
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(bgColor)
+            isClickable = true
+            elevation = 16f * dp
+        }
+
+        // Header bar with title + close
+        val headerBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding((20 * dp).toInt(), (40 * dp).toInt(), (20 * dp).toInt(), (16 * dp).toInt())
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val titleTv = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(getColor(R.color.copper_gold))
+            typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.BOLD)
+            letterSpacing = 0.18f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            textSize = 22f
+            setTextColor(getColor(R.color.copper_gold))
+            setPadding((12 * dp).toInt(), (4 * dp).toInt(), (12 * dp).toInt(), (4 * dp).toInt())
+            setOnClickListener { dismissSectionOverlay() }
+        }
+        headerBar.addView(titleTv)
+        headerBar.addView(closeBtn)
+
+        val scroll = android.widget.ScrollView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setPadding((16 * dp).toInt(), 0, (16 * dp).toInt(), (24 * dp).toInt())
+        }
+        val scrollContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        scrollContent.addView(headerBar, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        scrollContent.addView(content, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        scroll.addView(scrollContent)
+        overlay.addView(scroll)
+
+        // Slide in from right
+        overlay.translationX = rootFrame.width.toFloat()
+        rootFrame.addView(overlay, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+        overlay.animate().translationX(0f).setDuration(220).start()
+
+        sectionOverlay = overlay
+    }
+
+    private fun dismissSectionOverlay() {
+        val overlay = sectionOverlay ?: return
+        val content = sectionContentView ?: return
+        overlay.animate().translationX(overlay.width.toFloat()).setDuration(180).withEndAction {
+            (content.parent as? android.view.ViewGroup)?.removeView(content)
+            content.visibility = sectionContentOriginalVisibility
+            val parent = sectionContentParent
+            if (parent != null && sectionContentIndex >= 0) {
+                parent.addView(content, sectionContentIndex)
+            }
+            (overlay.parent as? android.view.ViewGroup)?.removeView(overlay)
+            sectionOverlay = null
+            sectionContentView = null
+            sectionContentParent = null
+            sectionContentIndex = -1
+        }.start()
     }
 
     private fun showProfileOverlay() {
@@ -2019,43 +2334,104 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val savedHours = prefs.getString("profile_hours", "nine_to_five") ?: "nine_to_five"
         setupProfileGroup(overlay, hoursIds, hoursValues, "profile_hours", savedHours)
 
-        // ── Profile editor: vocabulary, corrections, triggers ──
+        // ── Profile editor: vocabulary, corrections, triggers — card-bg pills ──
+        // Each pill matches the Work/Life/Industry/Hours selector aesthetic
+        // (card_bg + text_dim + monospace 11sp). Tap anywhere on a pill removes
+        // it. Pills wrap into multiple rows as needed (ChipGroup handles flow).
         val profile = WimApp.profile()
-        val vocabField = overlay.findViewById<EditText>(R.id.profileVocabulary)
-        vocabField?.setText(profile.getVocabulary().joinToString("\n"))
-        vocabField?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                val words = vocabField.text.toString().split("\n").map { it.trim() }.filter { it.isNotBlank() }
-                words.forEach { profile.addVocabulary(it) }
+        val pillDp = resources.displayMetrics.density
+
+        fun makePill(label: String, onTap: () -> Unit): View {
+            return TextView(this).apply {
+                text = "$label  ✕"
+                setTextColor(getColor(R.color.text_dim))
+                textSize = 11f
+                typeface = android.graphics.Typeface.MONOSPACE
+                setBackgroundResource(R.drawable.card_bg)
+                setPadding((10 * pillDp).toInt(), (8 * pillDp).toInt(), (10 * pillDp).toInt(), (8 * pillDp).toInt())
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onTap() }
             }
         }
 
-        val correctionsField = overlay.findViewById<EditText>(R.id.profileCorrections)
-        val corrText = profile.getCorrections().entries.joinToString("\n") { "${it.key}=${it.value}" }
-        correctionsField?.setText(corrText)
-        correctionsField?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                for (line in correctionsField.text.toString().split("\n")) {
-                    val parts = line.split("=", limit = 2)
-                    if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
-                        profile.addCorrection(parts[0].trim(), parts[1].trim())
-                    }
-                }
+        // VOCABULARY pills
+        val vocabChips = overlay.findViewById<com.google.android.material.chip.ChipGroup>(R.id.vocabChips)
+        val vocabAddInput = overlay.findViewById<EditText>(R.id.vocabAddInput)
+        val vocabAddBtn = overlay.findViewById<TextView>(R.id.vocabAddBtn)
+        fun renderVocab() {
+            vocabChips?.removeAllViews()
+            profile.getVocabulary().forEach { word ->
+                vocabChips?.addView(makePill(word) {
+                    profile.removeVocabulary(word)
+                    renderVocab()
+                })
             }
         }
+        renderVocab()
+        val addVocab: () -> Unit = {
+            val w = vocabAddInput?.text?.toString()?.trim().orEmpty()
+            if (w.isNotEmpty()) {
+                profile.addVocabulary(w)
+                vocabAddInput?.setText("")
+                renderVocab()
+            }
+        }
+        vocabAddBtn?.setOnClickListener { addVocab() }
+        vocabAddInput?.setOnEditorActionListener { _, _, _ -> addVocab(); true }
 
-        val triggersField = overlay.findViewById<EditText>(R.id.profileTriggers)
-        triggersField?.setText(profile.getTriggerWords().joinToString("\n"))
-        triggersField?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                val words = triggersField.text.toString().split("\n").map { it.trim() }.filter { it.isNotBlank() }
-                // Save triggers to SharedPreferences profile JSON
-                val json = prefs.getString("profile_json", null)
-                val obj = if (json != null) org.json.JSONObject(json) else org.json.JSONObject()
-                obj.put("trigger_words", org.json.JSONArray(words))
-                prefs.edit().putString("profile_json", obj.toString()).apply()
+        // CORRECTIONS pills ("from → to")
+        val corrChips = overlay.findViewById<com.google.android.material.chip.ChipGroup>(R.id.corrChips)
+        val corrAddFrom = overlay.findViewById<EditText>(R.id.corrAddFrom)
+        val corrAddTo = overlay.findViewById<EditText>(R.id.corrAddTo)
+        val corrAddBtn = overlay.findViewById<TextView>(R.id.corrAddBtn)
+        fun renderCorr() {
+            corrChips?.removeAllViews()
+            profile.getCorrections().forEach { (from, to) ->
+                corrChips?.addView(makePill("$from → $to") {
+                    profile.removeCorrection(from)
+                    renderCorr()
+                })
             }
         }
+        renderCorr()
+        val addCorr: () -> Unit = {
+            val from = corrAddFrom?.text?.toString()?.trim().orEmpty()
+            val to = corrAddTo?.text?.toString()?.trim().orEmpty()
+            if (from.isNotEmpty() && to.isNotEmpty()) {
+                profile.addCorrection(from, to)
+                corrAddFrom?.setText("")
+                corrAddTo?.setText("")
+                renderCorr()
+            }
+        }
+        corrAddBtn?.setOnClickListener { addCorr() }
+        corrAddTo?.setOnEditorActionListener { _, _, _ -> addCorr(); true }
+
+        // TRIGGER WORDS pills
+        val triggerChips = overlay.findViewById<com.google.android.material.chip.ChipGroup>(R.id.triggerChips)
+        val triggerAddInput = overlay.findViewById<EditText>(R.id.triggerAddInput)
+        val triggerAddBtn = overlay.findViewById<TextView>(R.id.triggerAddBtn)
+        fun renderTriggers() {
+            triggerChips?.removeAllViews()
+            profile.getTriggerWords().forEach { word ->
+                triggerChips?.addView(makePill(word) {
+                    profile.removeTriggerWord(word)
+                    renderTriggers()
+                })
+            }
+        }
+        renderTriggers()
+        val addTrigger: () -> Unit = {
+            val w = triggerAddInput?.text?.toString()?.trim().orEmpty()
+            if (w.isNotEmpty()) {
+                profile.addTriggerWord(w)
+                triggerAddInput?.setText("")
+                renderTriggers()
+            }
+        }
+        triggerAddBtn?.setOnClickListener { addTrigger() }
+        triggerAddInput?.setOnEditorActionListener { _, _, _ -> addTrigger(); true }
     }
 
     private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String, onSelect: ((Int, String) -> Unit)? = null) {

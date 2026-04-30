@@ -82,6 +82,14 @@ class BubbleService : Service() {
     private var liveTextView: TextView? = null
     private var liveTextParams: WindowManager.LayoutParams? = null
     private var liveTextContainer: android.widget.FrameLayout? = null
+    // Drag-zone visual indicators — slim gold bands at top (▲ MENU) and
+    // bottom (▼ HIDE) of the screen, shown only while the bubble is being
+    // dragged. Bright when bubble is in the trigger zone, faint otherwise.
+    // FLAG_NOT_TOUCHABLE so they're purely visual and don't intercept drags.
+    private var topZoneView: View? = null
+    private var topZoneParams: WindowManager.LayoutParams? = null
+    private var bottomZoneView: View? = null
+    private var bottomZoneParams: WindowManager.LayoutParams? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
     private var singleTapRunnable: Runnable? = null
@@ -129,6 +137,14 @@ class BubbleService : Service() {
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
         override fun run() {
+            // Skip writing when SEND-ready is active — that state owns the
+            // bubbleTime TextView for its countdown. Without this guard the
+            // session timer flickers in between countdown ticks (5 → session
+            // time → 4 → session time → 3 …).
+            if (isSendReady) {
+                timerHandler.postDelayed(this, 1000)
+                return
+            }
             // Timer tracks full session duration; caps at 99:59 to prevent 3-digit overflow
             val elapsed = (System.currentTimeMillis() - sessionStartTime) / 1000
             val timeView = bubbleView?.findViewById<TextView>(R.id.bubbleTime)
@@ -311,7 +327,15 @@ class BubbleService : Service() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
         instance = this
-        sessionStartTime = System.currentTimeMillis()
+        // Restore session start from prefs if present, else start fresh now.
+        // MainActivity's Sessions header reads this prefs key for the timer.
+        val storedStart = WimApp.prefs.getLong("session_start_time", 0L)
+        if (storedStart > 0L) {
+            sessionStartTime = storedStart
+        } else {
+            sessionStartTime = System.currentTimeMillis()
+            WimApp.prefs.edit().putLong("session_start_time", sessionStartTime).apply()
+        }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
         audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
@@ -407,7 +431,12 @@ class BubbleService : Service() {
 
     private fun setupShakeDetector() {
         sensorManager = getSystemService(android.hardware.SensorManager::class.java)
-        val accelerometer = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) ?: return
+        val accelerometer = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER)
+        if (accelerometer == null) {
+            Log.w(TAG, "shake: no accelerometer sensor available")
+            return
+        }
+        Log.i(TAG, "shake: setupShakeDetector starting, accelerometer=${accelerometer.name}")
 
         shakeListener = object : android.hardware.SensorEventListener {
             override fun onSensorChanged(event: android.hardware.SensorEvent) {
@@ -421,7 +450,12 @@ class BubbleService : Service() {
                 val z = event.values[2]
                 val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
 
-                if (gForce > 2.4 && WimApp.prefs.getBoolean("shake_enabled", true)) {
+                // Asymmetric thresholds — first shake hard enough to prevent
+                // accidents (set down phone, pocket movement), follow-up easier.
+                // Tuned to George's actual shake force.
+                val threshold = if (shakeCount == 0) 2.8 else 2.3
+                if (gForce > 1.5) Log.i(TAG, "shake gForce=${"%.2f".format(gForce)} count=$shakeCount threshold=$threshold")
+                if (gForce > threshold && WimApp.prefs.getBoolean("shake_enabled", true)) {
                     val now = System.currentTimeMillis()
                     // A single physical shake oscillates the accelerometer for
                     // ~300-450ms with multiple peaks above the threshold.
@@ -441,14 +475,15 @@ class BubbleService : Service() {
 
                     if (shakeCount >= 2) {
                         shakeCount = 0
-                        // Double-shake: open the bubble menu. Hide-by-shake removed
-                        // because drag-to-bottom (hide) and WM icon click (summon)
-                        // already cover that, freeing this gesture for menu open.
+                        // Double-shake: TOGGLE bubble visibility (hide ↔ show).
+                        // Menu opening moved to double-tap on bubble.
                         try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-                        // Make sure the bubble exists; menu anchors to it.
-                        if (bubbleView == null) showBubble()
                         timerHandler.post {
-                            if (menuView != null) dismissMenu() else showMenu()
+                            if (bubbleView == null) {
+                                showBubble()
+                            } else {
+                                hideBubble()
+                            }
                         }
                     }
                 }
@@ -677,11 +712,62 @@ class BubbleService : Service() {
                                 setBubbleIdle()
                                 startedOnThisPress = false
                             }
+                            // Reveal the top (▲ MENU) and bottom (▼ HIDE) drag zones
+                            // so the user can SEE where the trigger thresholds are.
+                            showZoneIndicators()
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
+
+                        // Magnetic pull toward dock slots — feels like the dock
+                        // grabs the bubble when you drag close. Strong inverse
+                        // pull, max 80% per frame at point-blank range.
+                        val rects = dockSlotRects
+                        val viewWMagnet = bubbleView?.width ?: 0
+                        val viewHMagnet = bubbleView?.height ?: 0
+                        if (rects != null && !rects.isEmpty() && viewWMagnet > 0) {
+                            val bubbleCx = params.x + viewWMagnet / 2
+                            val bubbleCy = params.y + viewHMagnet / 2
+                            val dpDensity = resources.displayMetrics.density
+                            val pullRangePx = 400f * dpDensity
+                            val hardSnapPx = 140f * dpDensity
+                            var nearestDist = Float.MAX_VALUE
+                            var nearestSx = 0
+                            var nearestSy = 0
+                            for ((_, rect) in rects) {
+                                val sx = rect.centerX()
+                                val sy = rect.centerY()
+                                val ddx = (sx - bubbleCx).toFloat()
+                                val ddy = (sy - bubbleCy).toFloat()
+                                val d = kotlin.math.sqrt(ddx * ddx + ddy * ddy)
+                                if (d < pullRangePx && d < nearestDist) {
+                                    nearestDist = d
+                                    nearestSx = sx
+                                    nearestSy = sy
+                                }
+                            }
+                            if (nearestDist < pullRangePx) {
+                                val targetX = nearestSx - viewWMagnet / 2
+                                val targetY = nearestSy - viewHMagnet / 2
+                                val pull: Float = if (nearestDist < hardSnapPx) {
+                                    // Within hard-snap radius: full lock onto slot
+                                    1f
+                                } else {
+                                    // Linear falloff from 1.0 at hardSnapPx to 0.35 at pullRangePx
+                                    val norm = (pullRangePx - nearestDist) / (pullRangePx - hardSnapPx)
+                                    (0.35f + norm * 0.6f).coerceIn(0.35f, 1f)
+                                }
+                                params.x = (params.x + (targetX - params.x) * pull).toInt()
+                                params.y = (params.y + (targetY - params.y) * pull).toInt()
+                            }
+                        }
+
                         windowManager?.updateViewLayout(bubbleView, params)
                         updateMenuPositionFromBubble()
+                        // Brighten the corresponding zone band when the bubble
+                        // crosses into the trigger threshold — visual confirmation
+                        // that releasing here will fire menu-open or hide.
+                        updateZoneIndicators(params.y)
 
                         // Taffy: stretch in drag direction
                         val speed = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
@@ -712,6 +798,9 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
                     if (isDragging) {
+                        // Drag is over — fade out the zone indicator bands
+                        // regardless of where the bubble landed.
+                        hideZoneIndicators()
                         // Snap back to normal
                         val scale = WimApp.bubbleSize() / 100f
                         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
@@ -727,14 +816,47 @@ class BubbleService : Service() {
                             return@setOnTouchListener true
                         }
 
-                        // Drag-to-top menu trigger removed — replaced by triple-tap
-                        // because drag-to-top fired accidentally during normal drags.
+                        // Drag-to-top of screen → open menu. Symmetric with
+                        // drag-to-bottom-to-hide. Tight 40dp threshold (was 80dp)
+                        // requires the bubble to be jammed close to the top edge,
+                        // which dramatically cuts accidental menu opens during
+                        // normal repositioning. The visible MENU/HIDE bands give
+                        // the user direct sight of where the trigger lives.
                         val dp = resources.displayMetrics.density
-
-                        // Check if dragged to bottom edge — hide bubble
+                        val menuZone = (MENU_TRIGGER_DP * dp).toInt()
                         val screenHeight = resources.displayMetrics.heightPixels
-                        val hideZone = screenHeight - (80 * dp).toInt()
+                        val hideZone = screenHeight - (HIDE_TRIGGER_DP * dp).toInt()
                         val almostZone = screenHeight - (200 * dp).toInt()
+                        if (params.y < menuZone) {
+                            if (menuView != null) {
+                                dismissMenu()
+                            } else {
+                                // Snap bubble to a clearly visible spot so the user
+                                // sees BOTH the bubble and the menu it anchors. Animates
+                                // from drop point to (centered, ~220dp from top of screen).
+                                val view = bubbleView
+                                if (view != null) {
+                                    val targetX = (resources.displayMetrics.widthPixels - view.width) / 2
+                                    val targetY = (340 * dp).toInt()
+                                    val startX = params.x
+                                    val startY = params.y
+                                    val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                                        duration = 220
+                                        interpolator = android.view.animation.DecelerateInterpolator(1.6f)
+                                        addUpdateListener { a ->
+                                            val t = a.animatedValue as Float
+                                            params.x = (startX + (targetX - startX) * t).toInt()
+                                            params.y = (startY + (targetY - startY) * t).toInt()
+                                            try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+                                            updateMenuPositionFromBubble()
+                                        }
+                                    }
+                                    anim.start()
+                                }
+                                showMenu()
+                            }
+                            return@setOnTouchListener true
+                        }
                         if (params.y > hideZone) {
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
@@ -830,8 +952,8 @@ class BubbleService : Service() {
                         lastTapTime = 0L
                         stopAndProcess()
                     } else if (!isRecording) {
-                        // Single tap = start recording (instant). Menu opens via
-                        // double-shake. Hide via drag-to-bottom. Summon via WM icon.
+                        // Single tap = start recording. Menu via drag-to-top.
+                        // Hide via drag-to-bottom. Summon via WM icon or shake.
                         startPulseRings()
                         startListening()
                     }
@@ -848,11 +970,18 @@ class BubbleService : Service() {
 
         val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
         val density = resources.displayMetrics.density
-        val baseWindowDp = 120
-        val newWindowPx = (baseWindowDp * density * scale).toInt()
+        // Window held at MAX size (= 120dp * 1.5 = 180dp) so the bezel can scale
+        // up freely without clipping. Empty area outside the bezel is invisible
+        // (transparent overlay). Resizing now happens entirely via bezel scale.
+        val maxWindowDp = 180
+        val newWindowPx = (maxWindowDp * density).toInt()
         params.width = newWindowPx
         params.height = newWindowPx
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+            if (it.width > 0) {
+                it.pivotX = it.width / 2f
+                it.pivotY = it.height / 2f
+            }
             it.scaleX = scale
             it.scaleY = scale
         }
@@ -887,6 +1016,8 @@ class BubbleService : Service() {
         isSendReady = false
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         dismissSendDisclaimer()
+        // Drag-zone bands belong to a live drag — kill them with the bubble.
+        hideZoneIndicators()
         bubbleView?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
             bubbleView = null
@@ -907,7 +1038,17 @@ class BubbleService : Service() {
     // fire ACTION_CLICK on the app's Send button. Auto-reverts to IDLE
     // after SEND_READY_TIMEOUT_MS.
     private var isSendReady = false
-    private val SEND_READY_TIMEOUT_MS = 3500L
+    private val SEND_READY_TIMEOUT_MS = 5000L
+    private var sendReadyExpiresAt = 0L
+    private val sendReadyTickRunnable = object : Runnable {
+        override fun run() {
+            if (!isSendReady) return
+            val remaining = ((sendReadyExpiresAt - System.currentTimeMillis() + 999) / 1000)
+                .coerceAtLeast(0).coerceAtMost(99)
+            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "${remaining}s"
+            if (remaining > 0) timerHandler.postDelayed(this, 250)
+        }
+    }
     private val revertSendReadyRunnable = Runnable {
         if (isSendReady) {
             isSendReady = false
@@ -1023,10 +1164,16 @@ class BubbleService : Service() {
             text = "SEND"
             setTextColor(0xFF5AD15F.toInt())
         }
+        // Live countdown under the SEND label — ticks every 250ms, shows "Ns"
+        // remaining before auto-cancel.
         view.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            text = "TAP"
+            visibility = View.VISIBLE
+            text = "${SEND_READY_TIMEOUT_MS / 1000}s"
             setTextColor(0xFF5AD15F.toInt())
         }
+        sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
+        timerHandler.removeCallbacks(sendReadyTickRunnable)
+        timerHandler.post(sendReadyTickRunnable)
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
         ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
@@ -1208,9 +1355,8 @@ class BubbleService : Service() {
         showLiveTranscript()
         Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
-        // Visual: recording state — bezel glows red, inner well lights up
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-            ?.setBackgroundResource(R.drawable.bubble_bg_recording)
+        // Visual: recording state — only the INNER KNOB lights up, the bezel
+        // (the dish around the knob) stays in the user's selected theme color.
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -1265,10 +1411,24 @@ class BubbleService : Service() {
         }
         val handleFinal: (String) -> Unit = { text ->
             Log.i(TAG, "Final ASR: $text")
-            if (text.isNotBlank()) {
+            val trimmed = text.trim()
+            // Whisper-family ASR hallucinates single chars / pure punctuation
+            // on near-silent or very short audio (e.g. "(", ".", "[BLANK_AUDIO]").
+            // Discard before they pollute lastRawText / get pasted.
+            val isHallucination = trimmed.isBlank() ||
+                trimmed.length <= 2 ||
+                trimmed in setOf(
+                    "(", ")", "[", "]", "...", "(.)", "[.]",
+                    "[BLANK_AUDIO]", "[silence]", "[Silence]", "[blank_audio]",
+                    "Thank you.", "Thanks for watching.", "you", "You",
+                ) ||
+                trimmed.all { !it.isLetterOrDigit() }
+            if (!isHallucination) {
                 finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
                 lastRawText = finalizedSegments
                 updateLiveTranscript(lastRawText)
+            } else {
+                Log.i(TAG, "Discarding hallucinated/empty ASR: '$trimmed'")
             }
         }
         val handleSound: (String) -> Unit = { label ->
@@ -1291,12 +1451,27 @@ class BubbleService : Service() {
         //   L1 cloud path (l1_cloud_asr=true): WAV captured, whisper-1 on stop.
         //   L1 local / L2 / L3: whisper-tiny.en via WhisperLocalEngine (sherpa-onnx).
         //   Fallback when whisper-tiny model isn't ready: Android SpeechRecognizer.
+        // LIVE preview override: whisper-tiny + whisper-1 don't stream partials.
+        // If the user has LIVE on at L1 local, route through Android's
+        // SpeechRecognizer instead — it streams partials but is less accurate
+        // and chirps. Trade-off accepted in exchange for actually-live text.
+        val liveOn = WimApp.prefs.getBoolean("live_transcript", false)
+        val l1LocalLiveOverride = liveOn && !isL4 && !l1NeedsCloud
+
         if (isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording for clinical reconstruction…")
         } else if (l1NeedsCloud) {
             Log.i(TAG, "L1 cloud mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording (cloud ASR)…")
+        } else if (l1LocalLiveOverride) {
+            Log.i(TAG, "LIVE on — routing L1 to Android SpeechRecognizer for real-time partials")
+            onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
+                override fun onPartialResult(text: String) = handlePartial(text)
+                override fun onFinalResult(text: String) = handleFinal(text)
+                override fun onSoundEvent(label: String) = handleSound(label)
+                override fun onError(errorCode: Int) = handleError(errorCode)
+            })
         } else if (whisperLocalEngine?.isReady() == true) {
             Log.i(TAG, "Using whisper-tiny.en engine (local, sherpa-onnx)")
             whisperLocalEngine?.start(object : WhisperLocalEngine.ResultListener {
@@ -1326,6 +1501,22 @@ class BubbleService : Service() {
 
     private fun stopAndProcess() {
         if (processed) return
+        // Reject accidental quick double-taps that capture <200ms of audio.
+        // Whisper-tiny hallucinates "(" or similar from such clips. Below this
+        // threshold the recording can't be a real intent.
+        val recordingDurationMs = System.currentTimeMillis() - recordingStartTime
+        if (recordingDurationMs < 200) {
+            Log.w(TAG, "Recording too short (${recordingDurationMs}ms) — discarding, no processing")
+            processed = true
+            isRecording = false
+            audioRecorder?.stop(); audioRecorder = null
+            onDeviceRecognizer?.stop()
+            moonshineEngine?.stop()
+            whisperLocalEngine?.stop()
+            dafPlayer?.stop(); dafPlayer = null
+            setBubbleIdle()
+            return
+        }
         Log.i(TAG, "Stop requested, processing audio immediately...")
         processed = true
         isRecording = false
@@ -1348,7 +1539,10 @@ class BubbleService : Service() {
         moonshineEngine?.stop()
         whisperLocalEngine?.stop()
 
-        updateLiveTranscript("Transcribing...")
+        // Force the bar to appear during pipeline work so the user sees what's
+        // happening (transcribe → reconstruct → falcon → inject) even when
+        // LIVE toggle is off. Subsequent stages overwrite this.
+        showPipelineStage("⏳ Transcribing", "Sending audio to Whisper")
 
         if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
@@ -1514,9 +1708,10 @@ class BubbleService : Service() {
         val cx = params.x + view.width / 2
         val cy = params.y + view.height / 2
         for ((theme, rect) in rects) {
-            // Generous pull radius — rect grown by half its width on each side.
-            // Makes the snap feel magnetic rather than pixel-precise.
-            val pad = (rect.width() * 0.4f).toInt()
+            // Wide release-snap radius — bubble within 80% of slot width on
+            // any side counts. Pairs with the active magnet during drag for
+            // a "really fucking strong" pull.
+            val pad = (rect.width() * 0.8f).toInt()
             if (cx in (rect.left - pad)..(rect.right + pad) &&
                 cy in (rect.top - pad)..(rect.bottom + pad)) {
                 return theme to android.graphics.Point(rect.centerX(), rect.centerY())
@@ -1612,6 +1807,8 @@ class BubbleService : Service() {
         stopPulseRings()
         hideLiveTranscript()
         maybeShowTip()
+        // Cancel SEND-ready countdown ticker if still running.
+        timerHandler.removeCallbacks(sendReadyTickRunnable)
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
         applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -1621,8 +1818,9 @@ class BubbleService : Service() {
             val idleColor = if (WimApp.bubbleTheme() == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
             setTextColor(idleColor)
         }
-        // Keep session timer ticking in idle (maroon)
+        // bubbleTime hidden when not in SEND-ready state.
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            visibility = View.GONE
             setTextColor(0xFF9A4040.toInt())
         }
         // Re-post timer if it was stopped (restart case)
@@ -2045,26 +2243,172 @@ class BubbleService : Service() {
     }
 
     fun updateBubbleAppearance() {
-        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
-
-        val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
-        val density = resources.displayMetrics.density
-        val baseWindowDp = 120
-        val newWindowPx = (baseWindowDp * density * scale).toInt()
-
-        bubbleParams?.let { params ->
-            params.width = newWindowPx
-            params.height = newWindowPx
-            try {
-                windowManager?.updateViewLayout(bubbleView, params)
-            } catch (_: Exception) {}
+        val view = bubbleView
+        val params = bubbleParams
+        if (view == null || params == null) {
+            Log.w(TAG, "updateBubbleAppearance skipped — bubble not visible (view=$view params=$params)")
+            return
         }
+        val opacityPct = WimApp.bubbleOpacity().coerceIn(20, 100)
+        val sizePct = WimApp.bubbleSize().coerceIn(70, 150)
+        val opacity = opacityPct / 100f
+        val scale = sizePct / 100f
 
-        // Scale the inner views to match
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
-            it.scaleX = scale
-            it.scaleY = scale
+        // Window stays fixed at MAX size (set in showBubble at 180dp = 120 * 1.5).
+        // Only the bezel (and its children: knob, label, time) are scaled. This
+        // keeps the bezel's visual center anchored to the window center across
+        // all sizes — no drift, and no clipping at max scale.
+        val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run {
+            Log.w(TAG, "updateBubbleAppearance: bezel view not found")
+            return
+        }
+        bezel.alpha = opacity
+        // Pivot at the bezel's measured center so scaling grows/shrinks
+        // around the visual center, not the top-left corner.
+        if (bezel.width > 0) {
+            bezel.pivotX = bezel.width / 2f
+            bezel.pivotY = bezel.height / 2f
+        }
+        bezel.scaleX = scale
+        bezel.scaleY = scale
+        Log.i(TAG, "updateBubbleAppearance: size=${sizePct}% opacity=${opacityPct}% bezelScale=$scale (window fixed)")
+    }
+
+    // ────────────────── Drag-zone indicator zones ──────────────────
+    // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
+    // (hide bubble). 40dp at top is intentionally tight — the bubble's
+    // top edge must be very close to the screen top before menu fires.
+    private val MENU_TRIGGER_DP = 40
+    private val HIDE_TRIGGER_DP = 80
+
+    private fun makeZoneIndicator(label: String, isTop: Boolean): FrameLayout {
+        val dp = resources.displayMetrics.density
+        val container = FrameLayout(this)
+        val bandColor = 0xC4A574.toInt()  // bronze accent
+        val gradColors = if (isTop) {
+            intArrayOf(0xCC000000.toInt() or bandColor, 0x00000000 or bandColor)
+        } else {
+            intArrayOf(0x00000000 or bandColor, 0xCC000000.toInt() or bandColor)
+        }
+        val band = View(this).apply {
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                gradColors
+            )
+        }
+        container.addView(band, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+        val labelView = TextView(this).apply {
+            text = label
+            setTextColor(0xFF1A1A1A.toInt())
+            textSize = 12f
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            letterSpacing = 0.32f
+            includeFontPadding = false
+        }
+        val labelLP = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            (if (isTop) Gravity.TOP else Gravity.BOTTOM) or Gravity.CENTER_HORIZONTAL
+        )
+        // Push the label past the status bar (top) / nav bar (bottom) so it
+        // never sits hidden behind a system bar. 40dp clears both.
+        val pad = (40 * dp).toInt()
+        if (isTop) labelLP.topMargin = pad else labelLP.bottomMargin = pad
+        container.addView(labelView, labelLP)
+        container.alpha = 0f
+        return container
+    }
+
+    private fun showZoneIndicators() {
+        val wm = windowManager ?: return
+        if (topZoneView != null && bottomZoneView != null) return
+        val dp = resources.displayMetrics.density
+        val bandHeightTop = ((MENU_TRIGGER_DP + 28) * dp).toInt()
+        val bandHeightBottom = ((HIDE_TRIGGER_DP + 28) * dp).toInt()
+        val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+
+        if (topZoneView == null) {
+            val v = makeZoneIndicator("▲   M E N U", isTop = true)
+            val lp = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                bandHeightTop,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                flags,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 0
+                y = 0
+            }
+            try { wm.addView(v, lp) } catch (_: Exception) {}
+            topZoneView = v
+            topZoneParams = lp
+            v.animate().alpha(0.55f).setDuration(180).start()
+        }
+        if (bottomZoneView == null) {
+            val v = makeZoneIndicator("▼   H I D E", isTop = false)
+            val lp = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                bandHeightBottom,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                flags,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.START
+                x = 0
+                y = 0
+            }
+            try { wm.addView(v, lp) } catch (_: Exception) {}
+            bottomZoneView = v
+            bottomZoneParams = lp
+            v.animate().alpha(0.55f).setDuration(180).start()
+        }
+    }
+
+    private fun hideZoneIndicators() {
+        val wm = windowManager ?: return
+        topZoneView?.let { v ->
+            v.animate().alpha(0f).setDuration(160).withEndAction {
+                try { wm.removeView(v) } catch (_: Exception) {}
+            }.start()
+        }
+        topZoneView = null
+        topZoneParams = null
+        bottomZoneView?.let { v ->
+            v.animate().alpha(0f).setDuration(160).withEndAction {
+                try { wm.removeView(v) } catch (_: Exception) {}
+            }.start()
+        }
+        bottomZoneView = null
+        bottomZoneParams = null
+    }
+
+    private fun updateZoneIndicators(bubbleY: Int) {
+        val dp = resources.displayMetrics.density
+        val menuZone = (MENU_TRIGGER_DP * dp).toInt()
+        val screenH = resources.displayMetrics.heightPixels
+        val hideZone = screenH - (HIDE_TRIGGER_DP * dp).toInt()
+
+        // Match the trigger checks exactly: brighten the moment a release would fire.
+        val topInZone = bubbleY < menuZone
+        val bottomInZone = bubbleY > hideZone
+        val targetTop = if (topInZone) 1f else 0.55f
+        val targetBottom = if (bottomInZone) 1f else 0.55f
+        topZoneView?.let { v ->
+            if (kotlin.math.abs(v.alpha - targetTop) > 0.02f) {
+                v.animate().alpha(targetTop).setDuration(120).start()
+            }
+        }
+        bottomZoneView?.let { v ->
+            if (kotlin.math.abs(v.alpha - targetBottom) > 0.02f) {
+                v.animate().alpha(targetBottom).setDuration(120).start()
+            }
         }
     }
 
@@ -2118,8 +2462,7 @@ class BubbleService : Service() {
         colorAs(R.id.menuOpacityValue, onFillTextBright)
         colorAs(R.id.menuSizeLabel, onFillText)
         colorAs(R.id.menuSizeValue, onFillTextBright)
-        // Reset Timer + Settings — wrapper-less, sit on the menu fill
-        colorAs(R.id.menuResetTimer, onFillText)
+        // Settings — wrapper-less, sits on the menu fill
         colorAs(R.id.menuOpenSettings, onFillTextBright)
 
         val mParams = WindowManager.LayoutParams(
@@ -2197,25 +2540,8 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
         }
 
-        // L1 SRC toggle — off = local whisper-tiny.en, on = cloud whisper-1
-        val l1AsrToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuL1AsrToggle)
-        l1AsrToggle.isChecked = WimApp.l1CloudAsr()
-        l1AsrToggle.thumbTintList = accentTint
-        l1AsrToggle.trackTintList = android.content.res.ColorStateList(
-            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-            intArrayOf(palette.stroke, palette.sliderTrack)
-        )
-        l1AsrToggle.scaleX = 0.75f
-        l1AsrToggle.scaleY = 0.75f
-        l1AsrToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("l1_cloud_asr", checked).apply()
-            android.widget.Toast.makeText(
-                this,
-                if (checked) "L1 ASR: Cloud (whisper-1)" else "L1 ASR: Local (whisper-tiny)",
-                android.widget.Toast.LENGTH_SHORT,
-            ).show()
-        }
-        colorAs(R.id.menuL1AsrLabel, onFillText)
+        // L1 ASR source moved out of the menu — now opens as a sub-menu when
+        // the TRANSCRIPTION layer nameplate is tapped (see menuLayer1 handler below).
 
         // Layer selector — 3 buttons mapped to layers 1/2/4. Profile (L3) is
         // dropped from the menu by design; access via Settings.
@@ -2241,6 +2567,10 @@ class BubbleService : Service() {
                 btn.isSelected = true
                 btn.setTextColor(brandCreamBright)
                 updateIdleDisplay()
+                // Layer 1 (Transcription) → open sub-menu picker for ASR source.
+                if (layerVal == 1) {
+                    showL1SourcePicker()
+                }
             }
         }
 
@@ -2261,12 +2591,6 @@ class BubbleService : Service() {
                 dismissMenu()
                 showMenu()
             }
-        }
-
-        menuView!!.findViewById<TextView>(R.id.menuResetTimer).setOnClickListener {
-            sessionStartTime = System.currentTimeMillis()
-            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "0:00"
-            dismissMenu()
         }
 
         menuView!!.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {
@@ -2305,7 +2629,7 @@ class BubbleService : Service() {
             val bubbleWidth = if (bp0.width > 0) bp0.width else bv0.width
             val bubbleHeight = if (bp0.height > 0) bp0.height else bv0.height
             val bezelTopOffset = (bubbleHeight * 0.20).toInt()
-            val tailOverlap = (4 * resources.displayMetrics.density).toInt()
+            val tailOverlap = 0
             mParams.x = bp0.x + bubbleWidth / 2 - mW0 / 2
             mParams.y = bp0.y - mH0 + bezelTopOffset + tailOverlap
         }
@@ -2322,6 +2646,35 @@ class BubbleService : Service() {
      * animation update listener — every place the bubble's window position
      * can change while the menu is visible.
      */
+    /**
+     * Sub-menu that pops up when the TRANSCRIPTION (Layer 1) nameplate is tapped.
+     * Lets the user choose Local (whisper-tiny on-device) or Cloud (whisper-1
+     * via OpenAI) for L1 ASR. Replaces the L1 CLOUD toggle that used to live
+     * inline in the bubble menu.
+     */
+    private fun showL1SourcePicker() {
+        val cloud = WimApp.l1CloudAsr()
+        val items = arrayOf(
+            (if (!cloud) "●  " else "    ") + "Local — whisper-tiny on phone",
+            (if (cloud) "●  " else "    ") + "Cloud — whisper-1 online (more accurate)"
+        )
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("L1 source (Transcription)")
+            .setItems(items) { d, which ->
+                val newCloud = which == 1
+                WimApp.prefs.edit().putBoolean("l1_cloud_asr", newCloud).apply()
+                android.widget.Toast.makeText(
+                    this,
+                    "L1: " + if (newCloud) "Cloud" else "Local",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+                d.dismiss()
+            }
+            .create()
+        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        dialog.show()
+    }
+
     private fun updateMenuPositionFromBubble() {
         val mView = menuView ?: return
         val mParams = menuParams ?: return
@@ -2340,7 +2693,7 @@ class BubbleService : Service() {
         // lands ON the bezel circle, not the invisible window edge above it. Plus
         // a small overlap so the tail visually merges into the bezel.
         val bezelTopOffset = (bubbleHeight * 0.20).toInt()
-        val tailOverlap = (4 * resources.displayMetrics.density).toInt()
+        val tailOverlap = 0
         mParams.x = bubbleCenterX - mWidth / 2
         mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
         try { windowManager?.updateViewLayout(mView, mParams) } catch (_: Exception) {}
@@ -2354,41 +2707,57 @@ class BubbleService : Service() {
         }
     }
 
-    private fun showLiveTranscript() {
-        val enabled = WimApp.prefs.getBoolean("live_transcript", false)
-        if (!enabled) return
+    /**
+     * Build the comment-bubble shaped transcript bar (theme-tinted, solid,
+     * borderless, anchored above the floating bubble with tail tip on the
+     * bezel top). Used by BOTH showLiveTranscript (live partials) and
+     * showPipelineStage (post-stop pipeline status). Single visual surface
+     * for everything that overlays the bubble.
+     */
+    private fun ensureTranscriptBar() {
         if (liveTextView != null) return
-
-        val barWidthPx = (220 * resources.displayMetrics.density).toInt()
+        val dp = resources.displayMetrics.density
+        val barWidthPx = (220 * dp).toInt()
+        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
+        val styleFor = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
+        val opaqueFill = (palette.fill or 0xFF000000.toInt())
+        val bgDrawable = CommentBubbleDrawable(
+            fillColor = opaqueFill,
+            strokeColor = palette.stroke,
+            displayMetrics = resources.displayMetrics,
+            backgroundStyle = styleFor,
+            drawOutline = false
+        )
         val tv = TextView(this).apply {
-            setBackgroundColor(0xFF222226.toInt())
-            setTextColor(0xFFD4D0C8.toInt())
+            setTextColor(palette.primaryText)
             textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
-            setPadding(20, 12, 20, 12)
-            // Grow as you speak: starts at 1 line, expands up to 3, no truncation.
-            minLines = 1
-            maxLines = 3
-            ellipsize = null
+            setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (22 * dp).toInt())
+            minLines = 2
+            maxLines = 6
+            ellipsize = android.text.TextUtils.TruncateAt.END
             text = ""
-            // Make the TextView fill its parent FrameLayout horizontally so it
-            // gets the full bar width regardless of text content length.
             layoutParams = android.widget.FrameLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             )
         }
         liveTextView = tv
+        TranscriptBarController.bind { text -> liveTextView?.text = text }
 
-        // FrameLayout root sized to the bar width gives TextView a definite parent
-        // to MATCH_PARENT against. Adding the TextView directly to WindowManager
-        // lets it shrink to content width despite WindowManager.LayoutParams.width.
         val container = android.widget.FrameLayout(this).apply {
+            background = bgDrawable
             addView(tv)
         }
         liveTextContainer = container
 
-        val bp = bubbleParams ?: return
+        val bp = bubbleParams ?: run {
+            Log.w(TAG, "ensureTranscriptBar: bubbleParams null — cannot position")
+            return
+        }
+        val bubbleHeight = if (bp.height > 0) bp.height else (120 * dp).toInt()
+        val bubbleTop = bp.y
+        val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
         val screenW = resources.displayMetrics.widthPixels
         val ltParams = WindowManager.LayoutParams(
             barWidthPx,
@@ -2398,70 +2767,159 @@ class BubbleService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            // Center on bubble, then clamp to keep the full 220dp bar on-screen.
-            val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
             x = (bubbleCenterX - barWidthPx / 2).coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
-            y = (bp.y - 130).coerceAtLeast(0)
+            y = (bubbleTop - (90 * dp).toInt()).coerceAtLeast(0)
         }
         liveTextParams = ltParams
+        try { windowManager?.addView(container, ltParams) } catch (_: Exception) {}
 
-        windowManager?.addView(container, ltParams)
+        val bezelTopOffset = (bubbleHeight * 0.20).toInt()
+        val anchor: () -> Unit = {
+            val measuredH = container.height.coerceAtLeast(1)
+            val newY = (bubbleTop - measuredH + bezelTopOffset).coerceAtLeast(0)
+            if (ltParams.y != newY) {
+                ltParams.y = newY
+                try { windowManager?.updateViewLayout(container, ltParams) } catch (_: Exception) {}
+            }
+        }
+        container.post(anchor)
+        container.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if ((bottom - top) != (oldBottom - oldTop)) anchor()
+        }
+    }
+
+    private fun showLiveTranscript() {
+        val enabled = WimApp.prefs.getBoolean("live_transcript", false)
+        if (!enabled) return
+        ensureTranscriptBar()
+        // Restore growable mode for live partials (vs pipeline-stage's locked 3 lines)
+        liveTextView?.minLines = 2
+        liveTextView?.maxLines = 6
+        stopStagePulse()
+        liveTextView?.text = "● Recording…"
     }
 
     private fun updateLiveTranscript(text: String) {
         liveTextView?.text = text
     }
 
+    // Pipeline-stage animation state — kept private so the renderer can poll
+    // them on each frame. Swapped on every showPipelineStage call.
+    private var stageLabel: String = ""
+    private var stageDetail: String = ""
+    private val tapeReelFrames = arrayOf("◉", "⊚", "⊙", "⊚")
+    private var tapeReelIdx = 0
+    private val dotsFrames = arrayOf("", ".", "..", "...")
+    private var dotsIdx = 0
+    private var stageColorAlpha = 1f
+    private var stageColorAlphaDir = -1
+    private val stageAnimHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     fun showPipelineStage(stage: String, detail: String) {
-        if (liveTextView == null) {
-            // Force-show the transcript bar for pipeline display
-            val bp = bubbleParams ?: return
-            val barWidthPx = (220 * resources.displayMetrics.density).toInt()
-            val tv = TextView(this).apply {
-                setBackgroundColor(0xFF222226.toInt())
-                setTextColor(0xFFD4D0C8.toInt())
-                textSize = 12f
-                typeface = android.graphics.Typeface.MONOSPACE
-                setPadding(20, 12, 20, 12)
-                minLines = 1
-                maxLines = 3
-                ellipsize = null
-                layoutParams = android.widget.FrameLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-            liveTextView = tv
-            // FSM observer's stage labels write through TranscriptBarController.
-            // Existing showPipelineStage callers continue to set text directly
-            // with Spannable styling — last writer wins, both are consistent.
-            TranscriptBarController.bind { text -> liveTextView?.text = text }
-            val container = android.widget.FrameLayout(this).apply { addView(tv) }
-            liveTextContainer = container
-            val screenW = resources.displayMetrics.widthPixels
-            val ltParams = WindowManager.LayoutParams(
-                barWidthPx,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
-                x = (bubbleCenterX - barWidthPx / 2).coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
-                y = (bp.y - 130).coerceAtLeast(0)
-            }
-            liveTextParams = ltParams
-            try { windowManager?.addView(container, ltParams) } catch (_: Exception) {}
+        // Reuse the comment-bubble shaped transcript bar. Pipeline state lives
+        // in the SAME surface as live partials. Locked to 3 lines so the bar
+        // doesn't jump between transcribe/recon/falcon calls. Cross-fades on
+        // each change. Three loading animations stack: rotating tape-reel glyph,
+        // breathing color on the stage label, typewriter dots after it.
+        ensureTranscriptBar()
+        val tv = liveTextView ?: return
+        tv.minLines = 3
+        tv.maxLines = 3
+        tv.ellipsize = android.text.TextUtils.TruncateAt.END
+
+        stageLabel = stage
+        stageDetail = detail
+        startStageAnimations()
+
+        // Cross-fade: dim → settle → restore
+        tv.animate().alpha(0.3f).setDuration(110)
+            .withEndAction {
+                renderStageFrame()
+                tv.animate().alpha(1f).setDuration(180).start()
+            }.start()
+    }
+
+    private fun renderStageFrame() {
+        val tv = liveTextView ?: return
+        val glyph = tapeReelFrames[tapeReelIdx]
+        val dots = dotsFrames[dotsIdx]
+        val labelAlpha = ((stageColorAlpha.coerceIn(0f, 1f)) * 255).toInt()
+        // Stage label color "breathes" between bright cream and dimmer cream,
+        // suggesting active processing without being distracting.
+        val baseColor = 0x00E8DCC8
+        val labelColor = (labelAlpha shl 24) or baseColor
+
+        val styled = android.text.SpannableStringBuilder().apply {
+            append("$glyph  ")
+            setSpan(android.text.style.ForegroundColorSpan(0xFFC8B48A.toInt()),
+                0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            val stageStart = length
+            append("$stageLabel$dots")
+            setSpan(android.text.style.ForegroundColorSpan(labelColor),
+                stageStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                stageStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append("\n")
+            val detailStart = length
+            append(stageDetail)
+            setSpan(android.text.style.RelativeSizeSpan(0.85f),
+                detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.ForegroundColorSpan(0xCCB8AA90.toInt()),
+                detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        val styled = android.text.SpannableStringBuilder()
-        styled.append(stage, android.text.style.ForegroundColorSpan(0xFFC8B48A.toInt()), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        styled.append("\n")
-        styled.append(detail)
-        liveTextView?.text = styled
+        tv.text = styled
+    }
+
+    // Three independent tickers driving the stage frame:
+    //   - tape reel rotates every 200ms
+    //   - typewriter dots advance every 400ms
+    //   - stage-label color breathes every 100ms (24 steps over 2.4s, sine-ish)
+    private val tapeReelTick = object : Runnable {
+        override fun run() {
+            tapeReelIdx = (tapeReelIdx + 1) % tapeReelFrames.size
+            renderStageFrame()
+            stageAnimHandler.postDelayed(this, 200)
+        }
+    }
+    private val dotsTick = object : Runnable {
+        override fun run() {
+            dotsIdx = (dotsIdx + 1) % dotsFrames.size
+            renderStageFrame()
+            stageAnimHandler.postDelayed(this, 400)
+        }
+    }
+    private val breathTick = object : Runnable {
+        override fun run() {
+            stageColorAlpha += stageColorAlphaDir * 0.04f
+            if (stageColorAlpha <= 0.55f) { stageColorAlpha = 0.55f; stageColorAlphaDir = 1 }
+            else if (stageColorAlpha >= 1f) { stageColorAlpha = 1f; stageColorAlphaDir = -1 }
+            renderStageFrame()
+            stageAnimHandler.postDelayed(this, 100)
+        }
+    }
+
+    private fun startStageAnimations() {
+        stopStagePulse()  // legacy — keep call sites that may still hit it
+        stageAnimHandler.removeCallbacks(tapeReelTick)
+        stageAnimHandler.removeCallbacks(dotsTick)
+        stageAnimHandler.removeCallbacks(breathTick)
+        tapeReelIdx = 0
+        dotsIdx = 0
+        stageColorAlpha = 1f
+        stageColorAlphaDir = -1
+        stageAnimHandler.postDelayed(tapeReelTick, 200)
+        stageAnimHandler.postDelayed(dotsTick, 400)
+        stageAnimHandler.postDelayed(breathTick, 100)
+    }
+
+    private fun stopStagePulse() {
+        stageAnimHandler.removeCallbacks(tapeReelTick)
+        stageAnimHandler.removeCallbacks(dotsTick)
+        stageAnimHandler.removeCallbacks(breathTick)
     }
 
     private fun hideLiveTranscript() {
+        stopStagePulse()
         liveTextContainer?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
         }
@@ -2472,8 +2930,8 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleProcessing() {
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-            ?.setBackgroundResource(R.drawable.bubble_bg_processing)
+        // Bezel stays in theme color; only the LABEL flips to amber "PROC".
+        // Inner knob keeps whatever active drawable startListening set.
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "PROC"
             setTextColor(0xFFFFA000.toInt())
