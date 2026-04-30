@@ -154,7 +154,7 @@ object ClarifierController {
         cycleIndex = 0
         onLabelUpdateRef = null
         onExitRef = null
-        WimAccessibilityService.instance?.clearHighlight()
+        BubbleService.instance?.hideWordHighlight()
     }
 
     /** Snapshot for diagnostics / tests. */
@@ -162,6 +162,10 @@ object ClarifierController {
     fun currentIndex(): Int = cycleIndex
     fun currentTotal(): Int = flagged.size
     fun recentSwapsSnapshot(): List<Pair<String, String>> = recentSwaps.toList()
+    /** Length (chars) of the active injection text — used by the
+     *  WordHighlightView sub-region estimator to approximate horizontal
+     *  word position without per-character bounds. */
+    fun injectionTextLength(): Int = lastInjectionText.length
 
     /** Test-only / onDestroy. */
     fun reset() {
@@ -183,11 +187,12 @@ object ClarifierController {
     private fun emitLabelUpdate() {
         val current = flagged.getOrNull(cycleIndex) ?: return
         onLabelUpdateRef?.invoke(current, cycleIndex, flagged.size)
-        // Visual word-highlight: ask the accessibility service to set the
-        // host app's text selection over the flagged word's range. The
-        // host app renders its own selection (blue/yellow), giving us
-        // word-level visual feedback without an overlay window.
-        WimAccessibilityService.instance?.highlightFlaggedWord(
+        // Patent-clean word-highlight via overlay window — claim 13's
+        // "visible-anchor underline overlay." The overlay sits over the
+        // host app's text field, FLAG_NOT_TOUCHABLE so touches pass
+        // through, leaving cursor / selection / scroll / focus state
+        // untouched (claim 1 application-context invariance).
+        BubbleService.instance?.showWordHighlight(
             rangeStart = current.rangeStart,
             rangeEnd = current.rangeEnd,
         )
@@ -207,7 +212,7 @@ object ClarifierController {
         onExitRef = null
         // Drop the host app's text selection so the user lands in a clean
         // cursor-at-end-of-inject state instead of a lingering highlight.
-        WimAccessibilityService.instance?.clearHighlight()
+        BubbleService.instance?.hideWordHighlight()
         cb?.invoke(eligible)
     }
 

@@ -51,6 +51,13 @@ class BubbleService : Service() {
     // finishes so the clarifier check can run cross-pass disagreement
     // analysis. Cleaned up in setBubbleIdle / before next recording.
     private var lastWavFile: java.io.File? = null
+
+    // Patent-clean word-highlight overlay (claim 13) — separate window
+    // positioned over the host app's focused text field while a clarifier
+    // cycle runs. Read-only on host state (no selection, no cursor move),
+    // so the wherein-clause of claim 1 stays satisfied.
+    private var wordHighlightView: WordHighlightView? = null
+    private var wordHighlightParams: WindowManager.LayoutParams? = null
     private var lastShakeTime = 0L
     private var shakeCount = 0
     // Rising-edge state for the shake detector — true while gForce is
@@ -1009,6 +1016,28 @@ class BubbleService : Service() {
 
                     try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
 
+                    // Long-press-to-defer during clarifier — the third
+                    // user-decision modality named in patent claim 1
+                    // ("approve, reject, or defer"). Tap-left = approve,
+                    // tap-right = reject, hold = defer (advance without a
+                    // decision; same effect as a voice "next" command,
+                    // but tap-accessible for users who don't engage the
+                    // voice channel for clarifier review).
+                    val pressDurationMs = System.currentTimeMillis() - downTime
+                    if (pressDurationMs >= 500L &&
+                        BubbleStateBus.current() is BubbleState.Clarifying
+                    ) {
+                        try {
+                            vibrator?.vibrate(
+                                VibrationEffect.createOneShot(
+                                    40, VibrationEffect.DEFAULT_AMPLITUDE
+                                )
+                            )
+                        } catch (_: Exception) {}
+                        ClarifierController.next()
+                        return@setOnTouchListener true
+                    }
+
                     // Tap routing:
                     //   • If recording is in flight (regardless of how it
                     //     started), tap stops it.
@@ -1106,6 +1135,7 @@ class BubbleService : Service() {
         isSendReady = false
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         dismissSendDisclaimer()
+        hideWordHighlight()
         bubbleView?.let {
             try { windowManager?.removeView(it) } catch (_: Exception) {}
             bubbleView = null
@@ -1991,6 +2021,91 @@ class BubbleService : Service() {
     /** Public alias so MainActivity can flip the listener off when the user
      *  toggles the hotword setting. */
     fun stopHotwordListenerPublic() = stopHotwordListener()
+
+    /**
+     * Show the patent-clean word-highlight overlay over the host app's
+     * focused text field. Called from `ClarifierController.emitLabelUpdate`
+     * on each cycle advance. Reads the field's screen rect from the
+     * accessibility service; positions a thin underline-bearing overlay
+     * window over it. Touches pass through (FLAG_NOT_TOUCHABLE), so the
+     * user's interaction with the host app is unaffected — claim 1
+     * application-context invariance preserved.
+     *
+     * `rangeStart` / `rangeEnd` are reserved for future per-character
+     * targeting once we have reliable per-word bounds across hosts; for
+     * now the underline spans the full field.
+     */
+    fun showWordHighlight(rangeStart: Int, rangeEnd: Int) {
+        val accessibility = WimAccessibilityService.instance ?: return
+        val rect = accessibility.focusedFieldBounds() ?: return
+        val wm = windowManager ?: return
+        // Lazily create the view + window the first time the cycle fires.
+        if (wordHighlightView == null) {
+            wordHighlightView = WordHighlightView(this)
+            wordHighlightParams = WindowManager.LayoutParams(
+                rect.width(),
+                rect.height(),
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                // FLAG_NOT_TOUCHABLE: touches pass through to the host app.
+                // FLAG_NOT_FOCUSABLE: never steals focus from the host.
+                // FLAG_LAYOUT_NO_LIMITS: allow positioning into status-bar /
+                // nav-bar regions if the field happens to extend there.
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = rect.left
+                y = rect.top
+            }
+            try {
+                wm.addView(wordHighlightView, wordHighlightParams)
+            } catch (e: Exception) {
+                Log.w(TAG, "showWordHighlight: addView failed: ${e.message}")
+                wordHighlightView = null
+                wordHighlightParams = null
+                return
+            }
+        } else {
+            // Re-position to track the current cycle's field rect.
+            val params = wordHighlightParams ?: return
+            params.x = rect.left
+            params.y = rect.top
+            params.width = rect.width()
+            params.height = rect.height()
+            try { wm.updateViewLayout(wordHighlightView, params) } catch (_: Exception) {}
+        }
+        // Sub-region horizontal estimate: most apps don't expose per-
+        // character bounds via accessibility, so we approximate the
+        // word's x-position from its character-offset ratio inside the
+        // injection. Rough but better than full-field underline; lands
+        // the highlight in the right horizontal neighborhood for
+        // single-line and most short multi-line cases.
+        val injectLen = ClarifierController.injectionTextLength()
+        if (injectLen > 0 && rangeStart >= 0 && rangeEnd > rangeStart) {
+            val fieldWidthPx = rect.width().toFloat()
+            val startFrac = (rangeStart.toFloat() / injectLen).coerceIn(0f, 1f)
+            val endFrac = (rangeEnd.toFloat() / injectLen).coerceIn(0f, 1f)
+            // Pad each side slightly so a wrapped line that puts the word
+            // at the very start of a row still gets a visible underline.
+            val pad = fieldWidthPx * 0.04f
+            val startPx = (startFrac * fieldWidthPx - pad).coerceAtLeast(0f)
+            val endPx = (endFrac * fieldWidthPx + pad).coerceAtMost(fieldWidthPx)
+            wordHighlightView?.setSubRange(startPx, endPx)
+        } else {
+            wordHighlightView?.clearSubRange()
+        }
+        Log.i(TAG, "showWordHighlight: range=$rangeStart..$rangeEnd field=$rect injectLen=$injectLen")
+    }
+
+    fun hideWordHighlight() {
+        val view = wordHighlightView ?: return
+        val wm = windowManager
+        try { wm?.removeView(view) } catch (_: Exception) {}
+        wordHighlightView = null
+        wordHighlightParams = null
+    }
 
     fun updateIdleDisplay() {
         if (isRecording || isClarifierActive) return
