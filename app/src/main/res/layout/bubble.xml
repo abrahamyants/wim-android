@@ -41,6 +41,19 @@
         android:background="@drawable/bubble_bg_idle"
         android:elevation="8dp">
 
+        <!-- Pipeline-stage arc segments that wrap the bezel. Sized slightly
+             OUTSIDE the bezel ring (negative margins) so the arcs sit flush
+             on the bezel's outer edge, not buried inside the brushed face.
+             BubbleService toggles the arcs via BezelStageArcView.setActiveStage
+             as state advances Transcribing → Reconstructing → Verifying →
+             Injecting. -->
+        <com.wim.app.BezelStageArcView
+            android:id="@+id/bubbleStageArc"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:elevation="9dp" />
+
         <!-- Clarifier: split bezel backgrounds (green left, red right) — hidden by default -->
         <View
             android:id="@+id/clarifierBgYes"

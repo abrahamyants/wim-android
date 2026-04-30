@@ -2497,6 +2497,54 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         }
         triggerAddBtn?.setOnClickListener { addTrigger() }
         triggerAddInput?.setOnEditorActionListener { _, _, _ -> addTrigger(); true }
+
+        // Clarifier sensitivity — three-state segmented control. Reuses the
+        // setupProfileGroup helper so the visual idiom matches Work/Life,
+        // Native English, etc.
+        val sensIds = listOf(R.id.clarSensLow, R.id.clarSensMedium, R.id.clarSensHigh)
+        val sensValues = listOf("low", "medium", "high")
+        val currentSens = WimApp.prefs.getString("clarifier_sensitivity", "medium") ?: "medium"
+        setupProfileGroup(overlay, sensIds, sensValues, "clarifier_sensitivity", currentSens)
+
+        // Clarifier no-flag apps — chip group + "Add current app" button.
+        // The button captures whichever foreground app the user was last in
+        // (via accessibility's `currentForegroundPackage`), so the user can
+        // pop into Chase / 1Password / Signal, return to WiM, and tap to
+        // add it without ever needing to know the package name.
+        val blacklistChips = overlay.findViewById<com.google.android.material.chip.ChipGroup>(R.id.clarBlacklistChips)
+        val blacklistAddBtn = overlay.findViewById<TextView>(R.id.clarBlacklistAddBtn)
+        fun renderBlacklist() {
+            blacklistChips?.removeAllViews()
+            WimApp.clarifierBlacklistedApps().forEach { pkg ->
+                val chip = com.google.android.material.chip.Chip(this).apply {
+                    text = pkg
+                    isCloseIconVisible = true
+                    setOnCloseIconClickListener {
+                        val updated = WimApp.clarifierBlacklistedApps() - pkg
+                        WimApp.prefs.edit().putString("clarifier_blacklist_apps", updated.joinToString("\n")).apply()
+                        renderBlacklist()
+                    }
+                }
+                blacklistChips.addView(chip)
+            }
+        }
+        renderBlacklist()
+        blacklistAddBtn?.setOnClickListener {
+            val pkg = WimAccessibilityService.currentForegroundPackage
+            if (pkg.isNullOrBlank() || pkg == packageName) {
+                Toast.makeText(this, "Switch to the app you want to add, then come back and tap again", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val current = WimApp.clarifierBlacklistedApps()
+            if (pkg in current) {
+                Toast.makeText(this, "Already added", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val updated = current + pkg
+            WimApp.prefs.edit().putString("clarifier_blacklist_apps", updated.joinToString("\n")).apply()
+            renderBlacklist()
+            Toast.makeText(this, "Added: $pkg", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String, onSelect: ((Int, String) -> Unit)? = null) {

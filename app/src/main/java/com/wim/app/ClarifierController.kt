@@ -154,6 +154,7 @@ object ClarifierController {
         cycleIndex = 0
         onLabelUpdateRef = null
         onExitRef = null
+        WimAccessibilityService.instance?.clearHighlight()
     }
 
     /** Snapshot for diagnostics / tests. */
@@ -182,6 +183,14 @@ object ClarifierController {
     private fun emitLabelUpdate() {
         val current = flagged.getOrNull(cycleIndex) ?: return
         onLabelUpdateRef?.invoke(current, cycleIndex, flagged.size)
+        // Visual word-highlight: ask the accessibility service to set the
+        // host app's text selection over the flagged word's range. The
+        // host app renders its own selection (blue/yellow), giving us
+        // word-level visual feedback without an overlay window.
+        WimAccessibilityService.instance?.highlightFlaggedWord(
+            rangeStart = current.rangeStart,
+            rangeEnd = current.rangeEnd,
+        )
     }
 
     private fun armAutoDismiss() {
@@ -196,6 +205,9 @@ object ClarifierController {
         cycleIndex = 0
         onLabelUpdateRef = null
         onExitRef = null
+        // Drop the host app's text selection so the user lands in a clean
+        // cursor-at-end-of-inject state instead of a lingering highlight.
+        WimAccessibilityService.instance?.clearHighlight()
         cb?.invoke(eligible)
     }
 

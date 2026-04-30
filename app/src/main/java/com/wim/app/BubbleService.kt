@@ -46,6 +46,11 @@ class BubbleService : Service() {
     // a recording when it hears the wake phrase. Mutually exclusive with
     // active recording (only one consumer can hold the mic).
     private var hotwordListener: HotwordListener? = null
+
+    // L4 multi-pass decoder needs the recorded WAV after reconstruction
+    // finishes so the clarifier check can run cross-pass disagreement
+    // analysis. Cleaned up in setBubbleIdle / before next recording.
+    private var lastWavFile: java.io.File? = null
     private var lastShakeTime = 0L
     private var shakeCount = 0
     // Rising-edge state for the shake detector — true while gForce is
@@ -1619,13 +1624,19 @@ class BubbleService : Service() {
         // button didn't register.
         setBubbleProcessing()
         BubbleStateBus.advance(BubbleState.Transcribing(System.currentTimeMillis()))
+        setStageArc(0)
         dafPlayer?.stop()
         dafPlayer = null
 
         // Stop audio recorder immediately (captures full audio)
         val wavFile = audioRecorder?.stop()
         audioRecorder = null
-        
+        // Track the WAV so the L4 multi-pass decoder can read it after
+        // reconstruction completes. Previous file (if any) is cleaned up
+        // in setBubbleIdle when the cycle ends.
+        lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
+        lastWavFile = wavFile
+
         // Stop whichever engine was running this session; cheap defensive calls on all.
         onDeviceRecognizer?.stop()
         moonshineEngine?.stop()
@@ -1672,9 +1683,9 @@ class BubbleService : Service() {
                     BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                     showPipelineStage("Error", "Transcription failed")
                     timerHandler.postDelayed({ setBubbleIdle() }, 2000)
-                } finally {
-                    wavFile.delete()
                 }
+                // wavFile cleanup deferred to setBubbleIdle — the L4 multi-pass
+                // decoder needs to read it AFTER reconstruction completes.
             }
         } else {
             // No wav — happens when user has no local API key (backend-only tier)
@@ -1902,6 +1913,9 @@ class BubbleService : Service() {
         BubbleStateBus.reset()
         stopPulseRings()
         hideLiveTranscript()
+        // L4 multi-pass wav is no longer needed once we're idle.
+        lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
+        lastWavFile = null
         maybeShowTip()
         // Cancel SEND-ready countdown ticker if still running.
         timerHandler.removeCallbacks(sendReadyTickRunnable)
@@ -1927,6 +1941,8 @@ class BubbleService : Service() {
         // Re-post timer if it was stopped (restart case)
         timerHandler.removeCallbacks(timerRunnable)
         timerHandler.post(timerRunnable)
+        // Pipeline arc resets — new cycle starts cleanly.
+        setStageArc(-1)
         // Resume the "Hey WiM" hotword listener now that the mic is free.
         startHotwordIfEnabled()
     }
@@ -2486,6 +2502,21 @@ class BubbleService : Service() {
         // Settings — wrapper-less, sits on the menu fill
         colorAs(R.id.menuOpenSettings, onFillTextBright)
 
+        // Anticipatory prediction chip — populated at menu-open time so
+        // it reflects whichever app the user is currently in. Hidden when
+        // PredictionEngine has nothing high-confidence to say.
+        menuView!!.findViewById<TextView>(R.id.menuPredictionChip)?.let { chip ->
+            chip.setTextColor(palette.secondaryText)
+            val pkg = WimAccessibilityService.currentForegroundPackage
+            val pred = if (WimApp.predictionsEnabled()) PredictionEngine.predictForContext(pkg) else null
+            if (pred != null) {
+                chip.text = "→ ${pred.tone.uppercase()} · ${pred.recipient}"
+                chip.visibility = View.VISIBLE
+            } else {
+                chip.visibility = View.GONE
+            }
+        }
+
         val mParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -2944,6 +2975,26 @@ class BubbleService : Service() {
         TranscriptBarController.unbind()
     }
 
+    /**
+     * Drive the bezel's stage arc — 0=Transcribing, 1=Reconstructing,
+     * 2=Verifying (Falcon), 3=Injecting. -1 resets to all dim.
+     * Theme color follows the current bubble theme so the arcs harmonize
+     * with bronze/aluminum/gunmetal palettes.
+     */
+    private fun setStageArc(stage: Int) {
+        val arc = bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc) ?: return
+        if (stage < 0) {
+            arc.reset()
+            return
+        }
+        // Map theme to a complementary arc color (warm cream-gold reads on
+        // all three bezels). Using the bubble's secondary text palette
+        // keeps consistency with the comment-bubble surface.
+        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
+        arc.setArcColor(palette.secondaryText)
+        arc.setActiveStage(stage)
+    }
+
     private fun setBubbleProcessing() {
         // Bezel stays in theme color. Knob and label both stay in copper_gold
         // — the bubble's brand color across recording AND processing — so the
@@ -2955,6 +3006,32 @@ class BubbleService : Service() {
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "PROC"
             setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
+        }
+    }
+
+    /**
+     * Walk a reconstructed output, locate sentence boundaries, and record
+     * each (last-3-words-before-period, next-word) pair into PredictionEngine.
+     * Quiet on edge cases (single-sentence output, ending punctuation,
+     * blank tokens) — we just want clean trigrams when they exist.
+     */
+    private fun recordPredictionsFromOutput(pkg: String, text: String) {
+        if (text.isBlank()) return
+        val tokens = text.split(Regex("\\s+")).filter { it.isNotBlank() }
+        for (i in 0 until tokens.size - 1) {
+            val tok = tokens[i]
+            if (tok.lastOrNull() in setOf('.', '?', '!')) {
+                val priorStart = (i - 2).coerceAtLeast(0)
+                val priorWords = tokens.subList(priorStart, i + 1)
+                val rawNext = tokens[i + 1]
+                // Strip any leading/trailing punctuation off the next word
+                // so "Maybe." doesn't end up as a different trigram seed
+                // than "maybe".
+                val nextClean = rawNext.trim('"', '\'', '(', ')', ',', '.', '!', '?', ';', ':')
+                if (nextClean.isNotBlank()) {
+                    PredictionEngine.recordCompletion(pkg, priorWords, nextClean)
+                }
+            }
         }
     }
 
@@ -3220,6 +3297,7 @@ class BubbleService : Service() {
             // FSM: L1 still goes through Reconstructing → Verified → Injected;
             // the "reconstruction" is deterministic (PhoneticMatcher + Repunctuate).
             BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
+            setStageArc(1)
             Log.i(TAG, "L1 mode, applying profile corrections then injecting")
             val corrections = profile.getCorrections()
             val sessionNum = sessionHistory?.count() ?: 0
@@ -3249,6 +3327,7 @@ class BubbleService : Service() {
             // construction." Verified → Injected before the actual paste so
             // observers see the right transition order.
             BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
+            setStageArc(2)
             if (stripped > 0 || l1Text != preCleaned) {
                 val corrCount = if (l1Text != preCleaned) " + corrections" else ""
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
@@ -3256,6 +3335,7 @@ class BubbleService : Service() {
             ConsoleLog.log("-> \"${l1Text.take(80)}${if (l1Text.length > 80) "..." else ""}\"  [${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w]", "out")
             WimAccessibilityService.instance?.injectText(l1Text)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
+            setStageArc(3)
             val totalMs = System.currentTimeMillis() - recordingStartTime
             ConsoleLog.log("[L1] paste_clean | ${totalMs}ms (asr:${asrMs})", "info")
             sessionHistory?.record(
@@ -3380,6 +3460,7 @@ class BubbleService : Service() {
                         "intended words are MISSING from the input — supply them from semantic context."
                 } else ""
                 BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer))
+                setStageArc(1)
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -3449,6 +3530,7 @@ class BubbleService : Service() {
                 val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
                 val falconLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
                 BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
+                setStageArc(2)
                 showPipelineStage(falconLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
 
                 // Brief pause so user can see the final stage
@@ -3458,6 +3540,7 @@ class BubbleService : Service() {
                     WimAccessibilityService.instance!!.injectText(outputText)
                     val injectCue = if (previousOutputs.isNotEmpty()) SuccessCue.REGEN_SUCCESS else SuccessCue.PASTE
                     BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), injectCue))
+                    setStageArc(3)
                     // Cache so the user can re-roll on the bezel without re-recording.
                     lastRegenCtx = RegenContext(
                         rawText = correctedText,
@@ -3499,6 +3582,17 @@ class BubbleService : Service() {
                     riskFlags = reconResult.riskFlags
                 )
                 SessionUpdateBus.emit()
+
+                // Adaptive learning: record sentence-boundary completions for
+                // PredictionEngine. Each (last 3 words before a sentence-end
+                // → first word of the next sentence) tuple gets stored per
+                // foreground package. Powers `candidatesForPosition` for the
+                // clarifier (claim 14: "your bubble learned how you talk to
+                // your boss in Slack") plus future on-bubble prediction chips.
+                val predPkg = WimAccessibilityService.currentForegroundPackage
+                if (WimApp.predictionsEnabled() && !predPkg.isNullOrBlank()) {
+                    recordPredictionsFromOutput(predPkg, outputText)
+                }
                 val flagStr = if (reconResult.riskFlags.isNotEmpty()) " flags:[${reconResult.riskFlags.joinToString(",")}]" else ""
                 ConsoleLog.log("[L$layer] paste_clean | ${totalMs}ms (asr:${asrMs} recon:${reconResult.reconMs})$flagStr", "info")
 
@@ -3523,14 +3617,31 @@ class BubbleService : Service() {
                     }
                 }
 
-                // Phase 4 wiring — clarifier check on the just-completed
-                // reconstruction. wordConfidences is populated upstream by
-                // MultiPassDecoder when the L4 path wires it (Phase 5 work);
-                // until then this evaluates against an empty list and produces
-                // zero flags (the under-flag invariant holds — claim 11(c)).
+                // Clarifier check on the just-completed reconstruction.
+                // Multi-pass runs on every reconstruction layer (L2 / L3 / L4)
+                // — the clarifier is the differentiating feature most users
+                // will see, so gating it cost-conservatively defeats the
+                // point. L1 has no reconstruction step, so this branch never
+                // fires for L1 anyway.
                 val clarifierPkg = WimAccessibilityService.currentForegroundPackage
                 if (WimApp.isClarifierAllowed(clarifierPkg)) {
-                    val wordConfidences: List<Clarifier.WordConfidence> = emptyList()
+                    var wordConfidences: List<Clarifier.WordConfidence> = emptyList()
+                    val wav = lastWavFile
+                    if (layer >= 2 && wav != null && wav.exists() && wav.length() > 44) {
+                        try {
+                            showPipelineStage("⟳ Reviewing", "Cross-checking unsure words")
+                            val recognizer = WhisperApiL1(
+                                model = "whisper-1",
+                                language = primaryLanguage,
+                                patienceMode = true,
+                            )
+                            val multi = MultiPassDecoder(recognizer).run(wav)
+                            wordConfidences = multi.wordConfidences
+                            Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "MultiPassDecoder failed: ${e.message} — clarifier proceeds with empty confidences")
+                        }
+                    }
                     val flags = Clarifier.evaluate(
                         finalText = outputText,
                         wordConfidences = wordConfidences,

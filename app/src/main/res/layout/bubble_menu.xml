@@ -17,6 +17,26 @@
     android:paddingTop="12dp"
     android:paddingBottom="22dp">
 
+    <!-- Anticipatory prediction chip — shown when PredictionEngine has a
+         high-confidence guess for the current foreground app + time of
+         day. Hidden when no prediction or predictions are disabled. -->
+    <TextView
+        android:id="@+id/menuPredictionChip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text=""
+        android:textSize="9sp"
+        android:fontFamily="@font/josefin_sans"
+        android:textStyle="bold"
+        android:letterSpacing="0.16"
+        android:visibility="gone" />
+
     <!-- TOP ROW: chips/colors on the left, vertical sliders on the right -->
     <LinearLayout
         android:layout_width="match_parent"

@@ -401,6 +401,61 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Highlight a word range from the most recent injection by setting the
+     * host app's native text-selection over those characters. The host app
+     * draws its own selection highlight (blue handles or yellow background,
+     * depending on theme) — gives us free word-level visual feedback for
+     * the clarifier cycle without an overlay window.
+     *
+     * [rangeStart] / [rangeEnd] are reconstruction-relative offsets, same
+     * convention as [swapWordInLastInjection]. Returns true if the
+     * selection landed.
+     */
+    fun highlightFlaggedWord(rangeStart: Int, rangeEnd: Int): Boolean {
+        if (lastInjectStart < 0 || lastInjectEnd < lastInjectStart) return false
+        if (rangeStart < 0 || rangeEnd <= rangeStart) return false
+        var node = activeTextField
+        if (node != null && !node.refresh()) node = null
+        if (node == null) node = findFocusedEditableAcrossWindows()
+        if (node == null) return false
+        val current = node.text?.toString().orEmpty()
+        // Refuse if the field has diverged from our last-injection snapshot.
+        if (lastInjectEnd > current.length ||
+            current.substring(lastInjectStart, lastInjectEnd) != lastInjectedExact
+        ) return false
+        val absStart = lastInjectStart + lastInjectedLeadingPad + rangeStart
+        val absEnd = lastInjectStart + lastInjectedLeadingPad + rangeEnd
+        if (absEnd > current.length) return false
+        val args = android.os.Bundle().apply {
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, absStart)
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, absEnd)
+        }
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
+        Log.i("WiM", "highlightFlaggedWord: $rangeStart..$rangeEnd → abs $absStart..$absEnd ok=$ok")
+        return ok
+    }
+
+    /**
+     * Clear any active text selection on the focused field. Called when the
+     * clarifier cycle exits so the user is left with a clean cursor in the
+     * normal post-injection state, not a lingering blue selection.
+     */
+    fun clearHighlight(): Boolean {
+        var node = activeTextField
+        if (node != null && !node.refresh()) node = null
+        if (node == null) node = findFocusedEditableAcrossWindows()
+        if (node == null) return false
+        // Setting selection to a zero-width range at lastInjectEnd (cursor
+        // at end of the inject) is equivalent to clearing the highlight.
+        val cursor = lastInjectEnd.coerceAtLeast(0)
+        val args = android.os.Bundle().apply {
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, cursor)
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, cursor)
+        }
+        return node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
+    }
+
+    /**
      * Iterate every accessibility-visible window and find a focused editable
      * node. Skips WiM's own overlay windows because `rootInActiveWindow` can
      * return our bubble's window, which has no editable content. Falls back
