@@ -393,7 +393,7 @@ class MainActivity : AppCompatActivity() {
         setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = false)
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
         setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
-        setupCollapsible(R.id.headerTransparency, R.id.contentTransparency, "transparency_section", defaultExpanded = false)
+        // Text-to-speech moved inside Settings overlay; no separate collapsible.
         setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
         setupCollapsible(R.id.headerGuide, R.id.contentGuide, "guide_section", defaultExpanded = false)
         buildGuideContent()
@@ -412,7 +412,6 @@ class MainActivity : AppCompatActivity() {
             R.id.headerSessions,
             R.id.headerDaf,
             R.id.headerPermissions,
-            R.id.headerTransparency,
             R.id.headerSettings,
             R.id.headerGuide
         ).forEach { applyHeaderShimmer(it) }
@@ -541,6 +540,27 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        // ── Shake to summon/hide toggle ──
+        val shakeToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.shakeToggle)
+        shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", true)
+        shakeToggle?.let { styleToggle(it) }
+        shakeToggle?.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()
+        }
+
+        // ── "Hey WiM" hotword toggle ──
+        val hotwordToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.hotwordToggle)
+        hotwordToggle?.isChecked = WimApp.prefs.getBoolean("hotword_enabled", false)
+        hotwordToggle?.let { styleToggle(it) }
+        hotwordToggle?.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("hotword_enabled", checked).apply()
+            // Reflect in the live bubble service immediately — start the
+            // listener if the bubble is currently idle, stop it if running.
+            BubbleService.instance?.let { svc ->
+                if (checked) svc.updateIdleDisplay() else svc.stopHotwordListenerPublic()
+            }
+        }
+
         // ── Dark/light mode toggle (in Settings) ──
         val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
         val isDark = AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO
@@ -582,6 +602,31 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(android.Manifest.permission.RECORD_AUDIO),
                 100
             )
+        }
+
+        findViewById<View>(R.id.batteryPermBtn)?.setOnClickListener {
+            try {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+            } catch (_: Exception) {
+                Toast.makeText(this, "Open battery settings manually", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        findViewById<View>(R.id.notifPermBtn)?.setOnClickListener {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    200
+                )
+            } else {
+                Toast.makeText(this, "Notifications already granted", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Request battery optimization exemption so Samsung/OEMs don't kill the bubble
@@ -1986,19 +2031,31 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val overlayOk = Settings.canDrawOverlays(this)
         val accessibilityOk = isAccessibilityEnabled()
         val micOk = AudioRecorder(this).hasPermission()
+        val pm = getSystemService(android.os.PowerManager::class.java)
+        val batteryOk = pm.isIgnoringBatteryOptimizations(packageName)
+        val notifOk = android.os.Build.VERSION.SDK_INT < 33 ||
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        findViewById<TextView>(R.id.overlayPermLabel)?.text =
-            if (overlayOk) "Overlay ✓" else "Overlay"
-        findViewById<TextView>(R.id.accessibilityPermLabel)?.text =
-            if (accessibilityOk) "Accessibility ✓" else "Accessibility"
-        findViewById<TextView>(R.id.micPermLabel)?.text =
-            if (micOk) "Microphone ✓" else "Microphone"
+        // Per-row labels: ✓ suffix when granted, color flips green / red.
+        // Same color codes as the dashboard tile so the visual language
+        // is consistent across the app.
+        val green = 0xFF40A065.toInt()
+        val red = 0xFFEF4444.toInt()
+        fun paint(labelId: Int, text: String, ok: Boolean) {
+            val tv = findViewById<TextView>(labelId) ?: return
+            tv.text = if (ok) "$text ✓" else text
+            tv.setTextColor(if (ok) green else red)
+        }
+        paint(R.id.overlayPermLabel, "Overlay", overlayOk)
+        paint(R.id.accessibilityPermLabel, "Accessibility", accessibilityOk)
+        paint(R.id.micPermLabel, "Microphone", micOk)
+        paint(R.id.batteryPermLabel, "Battery", batteryOk)
+        paint(R.id.notifPermLabel, "Notifications", notifOk)
 
-        // PERMISSIONS tile label color: green when all three are granted,
-        // red the moment any one is missing. Chevron tracks the same state
-        // so the row reads at a glance from across the screen.
-        val allPermsOk = overlayOk && accessibilityOk && micOk
-        val tileColor = if (allPermsOk) 0xFF40A065.toInt() else 0xFFEF4444.toInt()
+        // PERMISSIONS dashboard tile: green only when ALL FIVE are granted.
+        val allPermsOk = overlayOk && accessibilityOk && micOk && batteryOk && notifOk
+        val tileColor = if (allPermsOk) green else red
         findViewById<TextView>(R.id.tilePermissionsLabel)?.setTextColor(tileColor)
         findViewById<TextView>(R.id.tilePermissionsChevron)?.setTextColor(tileColor)
 

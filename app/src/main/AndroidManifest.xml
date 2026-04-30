@@ -72,10 +72,14 @@
                 android:value="Persistent floating overlay for voice-to-text dictation that must remain active while the user speaks into other apps" />
         </service>
 
-        <!-- Quick Settings tile: start/stop recording from shade -->
+        <!-- Quick Settings tile: tap to summon the floating bubble.
+             Tap-to-record from the QS shade was confusing — the bubble
+             itself is the recording affordance. The tile now just makes
+             sure the bubble is visible. -->
         <service
             android:name=".WimTileService"
-            android:label="WiM Record"
+            android:label="WiM"
+            android:icon="@drawable/ic_qs_tile_wm"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
             <intent-filter>

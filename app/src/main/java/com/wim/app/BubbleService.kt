@@ -42,8 +42,22 @@ class BubbleService : Service() {
 
     private var sensorManager: android.hardware.SensorManager? = null
     private var shakeListener: android.hardware.SensorEventListener? = null
+    // "Hey WiM" hotword — opt-in continuous mic listener that triggers
+    // a recording when it hears the wake phrase. Mutually exclusive with
+    // active recording (only one consumer can hold the mic).
+    private var hotwordListener: HotwordListener? = null
     private var lastShakeTime = 0L
     private var shakeCount = 0
+    // Rising-edge state for the shake detector — true while gForce is
+    // sustained above the high threshold; flips back to false only after
+    // gForce drops below the release threshold. Each false → true edge
+    // counts as one discrete shake event, but only if at least
+    // SHAKE_MIN_QUIET_MS of stillness preceded the rising edge — that
+    // prevents a single physical shake (which oscillates with brief
+    // gForce dips) from registering as two separate events.
+    private var inShakeBurst = false
+    private var shakeBurstEndTime = 0L
+    private val SHAKE_MIN_QUIET_MS = 280L
 
     private var windowManager: WindowManager? = null
     var bubbleView: View? = null
@@ -85,6 +99,16 @@ class BubbleService : Service() {
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
     private var singleTapRunnable: Runnable? = null
+    // Deferred single-tap → start recording, with the DOUBLE_TAP_TIMEOUT
+    // window allowing a second tap to pre-empt and run the double-tap
+    // action (open menu). Re-checks isRecording / isDragging so a stale
+    // tap that should have been canceled still no-ops cleanly.
+    private val deferredSingleTapAction = Runnable {
+        if (!isRecording) {
+            startPulseRings()
+            startListening()
+        }
+    }
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
     private var isWorkMode = false  // false=personal, true=work
@@ -442,34 +466,58 @@ class BubbleService : Service() {
                 val z = event.values[2]
                 val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
 
-                // Asymmetric thresholds — first shake hard enough to prevent
-                // accidents (set down phone, pocket movement), follow-up easier.
-                // Tuned to George's actual shake force.
-                val threshold = if (shakeCount == 0) 2.8 else 2.3
-                if (gForce > 1.5) Log.i(TAG, "shake gForce=${"%.2f".format(gForce)} count=$shakeCount threshold=$threshold")
-                if (gForce > threshold && WimApp.prefs.getBoolean("shake_enabled", true)) {
-                    val now = System.currentTimeMillis()
-                    // A single physical shake oscillates the accelerometer for
-                    // ~300-450ms with multiple peaks above the threshold.
-                    // Debounce 350ms so only the first peak of a single shake
-                    // counts; otherwise a single jolt reads as 2+ shakes and
-                    // fires the double-shake toggle on one wrist flick.
-                    if (now - lastShakeTime < 350) {
-                        lastShakeTime = now
+                if (!WimApp.prefs.getBoolean("shake_enabled", true)) return
+
+                // Rising-edge detection: a "shake event" is one sustained
+                // burst of high gForce, regardless of how many oscillation
+                // peaks it contains. The previous time-based debounce kept
+                // refreshing on every peak inside a continuous shake, so
+                // shakeCount never advanced past 1.
+                //
+                // Asymmetric thresholds — first shake hard enough to
+                // prevent accidents (set-down jolt, pocket movement),
+                // follow-up easier. Release threshold is comfortably
+                // below resting gravity (~1.0) so a brief pause between
+                // shakes registers reliably.
+                val highThreshold = if (shakeCount == 0) 2.6 else 2.0
+                val releaseThreshold = 1.5
+                if (gForce > 1.4) Log.i(
+                    TAG,
+                    "shake gForce=${"%.2f".format(gForce)} count=$shakeCount " +
+                            "inBurst=$inShakeBurst high=$highThreshold"
+                )
+
+                val now = System.currentTimeMillis()
+
+                if (gForce > highThreshold && !inShakeBurst) {
+                    // Reject rising edges that come too soon after the
+                    // previous burst ended — that's a mid-shake oscillation
+                    // dip, not a discrete second shake.
+                    if (shakeBurstEndTime > 0 && now - shakeBurstEndTime < SHAKE_MIN_QUIET_MS) {
+                        inShakeBurst = true
                         return
                     }
+                    // Rising edge of a new shake event.
+                    inShakeBurst = true
                     if (now - lastShakeTime > 1500) {
                         shakeCount = 1
                     } else {
                         shakeCount++
                     }
                     lastShakeTime = now
+                    Log.i(TAG, "shake EDGE shakeCount→$shakeCount")
 
                     if (shakeCount >= 2) {
                         shakeCount = 0
-                        // Double-shake: TOGGLE bubble visibility (hide ↔ show).
-                        // Menu opening moved to double-tap on bubble.
-                        try { vibrator?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        try {
+                            vibrator?.vibrate(
+                                android.os.VibrationEffect.createOneShot(
+                                    80,
+                                    android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                                )
+                            )
+                        } catch (_: Exception) {
+                        }
                         timerHandler.post {
                             if (bubbleView == null) {
                                 showBubble()
@@ -478,6 +526,11 @@ class BubbleService : Service() {
                             }
                         }
                     }
+                } else if (gForce < releaseThreshold && inShakeBurst) {
+                    // Falling edge — shake burst ended; mark the time so the
+                    // next rising edge has to wait through a real quiet gap.
+                    inShakeBurst = false
+                    shakeBurstEndTime = now
                 }
             }
 
@@ -628,8 +681,13 @@ class BubbleService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 900
-            y = 1000
+            // Default spawn: horizontally centered, ~40% from the top.
+            // Window is 180dp = ~540px on density 3; computing it here
+            // off the live display metrics so it works on any device.
+            val spawnDensity = resources.displayMetrics.density
+            val spawnWindowPx = (180 * spawnDensity).toInt()
+            x = (resources.displayMetrics.widthPixels - spawnWindowPx) / 2
+            y = (resources.displayMetrics.heightPixels * 0.4f).toInt()
         }
         bubbleParams = params
 
@@ -641,16 +699,7 @@ class BubbleService : Service() {
         var prevMoveX = 0f
         var prevMoveY = 0f
         var downTime = 0L
-        var startedOnThisPress = false
         val DRAG_THRESHOLD = 40
-        val startRecordingRunnable = Runnable {
-            if (!isDragging && !isRecording) {
-                try { vibrator?.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-                startPulseRings()
-                startListening()
-                startedOnThisPress = true
-            }
-        }
 
         // Initialize work/personal from prefs
         isWorkMode = WimApp.prefs.getBoolean("work_mode", false)
@@ -682,12 +731,10 @@ class BubbleService : Service() {
                     prevMoveY = event.rawY
                     isDragging = false
                     downTime = System.currentTimeMillis()
-                    startedOnThisPress = false
-
-                    if (!isRecording) {
-                        // Delay recording start by 150ms — if finger moves, it's a drag
-                        timerHandler.postDelayed(startRecordingRunnable, 150)
-                    }
+                    // Recording-start is now driven by ACTION_UP's deferred
+                    // single-tap action (300 ms window for double-tap
+                    // detection). No press-and-hold start: holding the
+                    // bubble does nothing on its own; release triggers it.
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -696,22 +743,13 @@ class BubbleService : Service() {
                     if (kotlin.math.abs(dx) > DRAG_THRESHOLD || kotlin.math.abs(dy) > DRAG_THRESHOLD) {
                         if (!isDragging) {
                             isDragging = true
-                            // Cancel pending recording start
-                            timerHandler.removeCallbacks(startRecordingRunnable)
-                            // If recording somehow started, cancel it
-                            if (startedOnThisPress && isRecording) {
-                                isRecording = false
-                                onDeviceRecognizer?.stop()
-                                moonshineEngine?.stop()
-                                whisperLocalEngine?.stop()
-                                audioRecorder?.stop()
-                                audioRecorder = null
-                                dafPlayer?.stop()
-                                dafPlayer = null
-                                stopPulseRings()
-                                setBubbleIdle()
-                                startedOnThisPress = false
-                            }
+                            // Drag pre-empts a queued single-tap action so a
+                            // drag-from-rest doesn't fire start-recording on
+                            // release. (Recording is now started only via
+                            // the deferredSingleTapAction timer in ACTION_UP.)
+                            timerHandler.removeCallbacks(deferredSingleTapAction)
+                            // Reset the double-tap window — a drag is not a tap.
+                            lastTapTime = 0L
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
@@ -806,7 +844,6 @@ class BubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    timerHandler.removeCallbacks(startRecordingRunnable)
                     // Phase 7 step 43 — skip-on-tap: an active onboarding demo
                     // is short-circuited by any tap, so users who don't want
                     // the tour aren't held hostage to it.
@@ -967,19 +1004,43 @@ class BubbleService : Service() {
 
                     try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
 
-                    if (startedOnThisPress && isRecording) {
-                        // Hold mode: was recording from this press, release = done
+                    // Tap routing:
+                    //   • If recording is in flight (regardless of how it
+                    //     started), tap stops it.
+                    //   • Otherwise the tap is the first half of a possible
+                    //     double-tap. We DEFER the start-recording action
+                    //     by DOUBLE_TAP_TIMEOUT (300 ms) so a second tap
+                    //     can pre-empt and run the double-tap action
+                    //     instead. The 300 ms latency is the cost of
+                    //     supporting double-tap-to-open-menu.
+                    if (isRecording) {
                         lastTapTime = 0L
+                        timerHandler.removeCallbacks(deferredSingleTapAction)
                         stopAndProcess()
-                    } else if (!startedOnThisPress && isRecording) {
-                        // Second tap: recording was running from before, stop it
-                        lastTapTime = 0L
-                        stopAndProcess()
-                    } else if (!isRecording) {
-                        // Single tap = start recording. Menu via drag-to-top.
-                        // Hide via drag-to-bottom. Summon via WM icon or shake.
-                        startPulseRings()
-                        startListening()
+                    } else {
+                        val now = System.currentTimeMillis()
+                        if (now - lastTapTime < DOUBLE_TAP_TIMEOUT) {
+                            // Second tap inside the double-tap window.
+                            lastTapTime = 0L
+                            timerHandler.removeCallbacks(deferredSingleTapAction)
+                            try {
+                                vibrator?.vibrate(
+                                    android.os.VibrationEffect.createOneShot(
+                                        70, android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                                    )
+                                )
+                            } catch (_: Exception) {}
+                            // Double-tap action: toggle the bubble menu
+                            // (drag-to-top still works as the alternative).
+                            if (menuView != null) dismissMenu() else showMenu()
+                        } else {
+                            // First tap — schedule single-tap action with
+                            // a 300 ms deferred runnable. A second tap
+                            // arriving inside that window cancels this.
+                            lastTapTime = now
+                            timerHandler.removeCallbacks(deferredSingleTapAction)
+                            timerHandler.postDelayed(deferredSingleTapAction, DOUBLE_TAP_TIMEOUT)
+                        }
                     }
                     true
                 }
@@ -1086,6 +1147,11 @@ class BubbleService : Service() {
      * behave exactly as today.
      */
     private fun onInjectComplete() {
+        // If the user has ALREADY started a new recording by the time inject
+        // finished (common when reconstruction takes longer than the user's
+        // reaction time), don't override the live recording UI with SEND or
+        // IDLE — the fresh recording owns the bubble's UX surface.
+        if (isRecording) return
         val autoSendOn = WimApp.autoSendEnabled()
         val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
         if (autoSendOn && supported && bubbleView != null) {
@@ -1326,6 +1392,10 @@ class BubbleService : Service() {
     private fun startListening() {
         if (isRecording) return
 
+        // Release the hotword listener — it owns the mic exclusively until
+        // we hand it back. Safe even if it isn't running.
+        stopHotwordListener()
+
         // Spec §1: Clarifying → Listening is a legal transition (user always
         // wins). Tear down the clarifier cleanly before the new recording
         // claims the bubble's UX surface.
@@ -1383,10 +1453,10 @@ class BubbleService : Service() {
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "REC"
-            setTextColor(0xFFEF4444.toInt())
+            setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            setTextColor(0xFFFF6B35.toInt())
+            setTextColor(0xFFFFD580.toInt())
         }
         recordingStartTime = System.currentTimeMillis()
         val pulse = AlphaAnimation(1.0f, 0.6f).apply {
@@ -1816,7 +1886,11 @@ class BubbleService : Service() {
         // managed by the recording state path.
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.let { label ->
             if (label.text == "IDLE") {
-                val idleColor = if (theme == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+                val idleColor = when (theme) {
+                    "gunmetal" -> 0xFFC8B48A.toInt()  // cream-gold on dark steel
+                    "bronze" -> 0xFF1F1208.toInt()    // deep espresso on warm copper — matches palette primaryText
+                    else -> 0xFF555560.toInt()         // dark gray on aluminum
+                }
                 label.setTextColor(idleColor)
             }
         }
@@ -1835,9 +1909,14 @@ class BubbleService : Service() {
         applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
-            // Gunmetal's dark bezel swallows the default gray. Switch to the
-            // brand cream-gold so IDLE is legible on all three themes.
-            val idleColor = if (WimApp.bubbleTheme() == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+            // Per-theme IDLE color so the label has real contrast on each
+            // bezel: cream-gold on gunmetal, deep espresso on bronze (the
+            // palette's primaryText), dark gray on aluminum.
+            val idleColor = when (WimApp.bubbleTheme()) {
+                "gunmetal" -> 0xFFC8B48A.toInt()
+                "bronze" -> 0xFF1F1208.toInt()
+                else -> 0xFF555560.toInt()
+            }
             setTextColor(idleColor)
         }
         // bubbleTime hidden when not in SEND-ready state.
@@ -1848,7 +1927,54 @@ class BubbleService : Service() {
         // Re-post timer if it was stopped (restart case)
         timerHandler.removeCallbacks(timerRunnable)
         timerHandler.post(timerRunnable)
+        // Resume the "Hey WiM" hotword listener now that the mic is free.
+        startHotwordIfEnabled()
     }
+
+    /**
+     * Start the "Hey WiM" hotword listener if the user has it enabled and
+     * we're not currently recording. Idempotent — repeated calls are safe.
+     *
+     * Critical: release any pre-primed AudioRecorder before starting. The
+     * pre-roll buffer (primed in showBubble for cloud-ASR layers) holds
+     * the mic exclusively via AudioRecord, which silently blocks
+     * SpeechRecognizer from acquiring the same source. Symptoms when
+     * skipped: hotword listener starts, never fires partials, never
+     * fires errors — a dead-quiet recognizer session.
+     */
+    private fun startHotwordIfEnabled() {
+        if (!WimApp.prefs.getBoolean("hotword_enabled", false)) return
+        if (isRecording) return
+        if (hotwordListener != null) return
+        if (audioRecorder != null) {
+            Log.i(TAG, "Releasing AudioRecorder pre-roll buffer to free mic for hotword")
+            audioRecorder?.release()
+            audioRecorder = null
+        }
+        hotwordListener = HotwordListener(this) {
+            // Hotword fired — vibrate, drop the listener (it stops itself
+            // pre-callback), and kick off a normal recording session.
+            try {
+                vibrator?.vibrate(
+                    android.os.VibrationEffect.createOneShot(
+                        60, android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
+            } catch (_: Exception) {}
+            hotwordListener = null
+            startPulseRings()
+            startListening()
+        }.also { it.start() }
+    }
+
+    private fun stopHotwordListener() {
+        hotwordListener?.stop()
+        hotwordListener = null
+    }
+
+    /** Public alias so MainActivity can flip the listener off when the user
+     *  toggles the hotword setting. */
+    fun stopHotwordListenerPublic() = stopHotwordListener()
 
     fun updateIdleDisplay() {
         if (isRecording || isClarifierActive) return
@@ -2291,9 +2417,14 @@ class BubbleService : Service() {
             bezel.pivotX = bezel.width / 2f
             bezel.pivotY = bezel.height / 2f
         }
+        // Cancel any in-flight bezel animations (taffy stretch from a prior
+        // drag, snap-back interpolator) — those keep running and overwrite
+        // the scale we set here, which masks the slider as "broken."
+        bezel.animate().cancel()
         bezel.scaleX = scale
         bezel.scaleY = scale
-        Log.i(TAG, "updateBubbleAppearance: size=${sizePct}% opacity=${opacityPct}% bezelScale=$scale (window fixed)")
+        bezel.invalidate()
+        Log.i(TAG, "updateBubbleAppearance: size=${sizePct}% opacity=${opacityPct}% bezelScale=$scale bezelW=${bezel.width} pivot=(${bezel.pivotX},${bezel.pivotY})")
     }
 
     // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
@@ -2430,9 +2561,6 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
         }
 
-        // L1 ASR source moved out of the menu — now opens as a sub-menu when
-        // the TRANSCRIPTION layer nameplate is tapped (see menuLayer1 handler below).
-
         // Layer selector — 3 buttons mapped to layers 1/2/4. Profile (L3) is
         // dropped from the menu by design; access via Settings.
         val layerEntries = listOf(
@@ -2457,11 +2585,30 @@ class BubbleService : Service() {
                 btn.isSelected = true
                 btn.setTextColor(brandCreamBright)
                 updateIdleDisplay()
-                // Layer 1 (Transcription) → open sub-menu picker for ASR source.
-                if (layerVal == 1) {
-                    showL1SourcePicker()
-                }
             }
+        }
+
+        // L1 source sub-row — LOCAL vs CLOUD, indented under TRANSCRIPTION.
+        // Active source is reflected via nameplate_bg state_selected (maroon
+        // fill + cream border) so the user sees the current setting at a
+        // glance whenever the menu is open.
+        val l1LocalBtn = menuView!!.findViewById<TextView>(R.id.menuL1Local)
+        val l1CloudBtn = menuView!!.findViewById<TextView>(R.id.menuL1Cloud)
+        fun paintL1Source() {
+            val cloud = WimApp.l1CloudAsr()
+            l1LocalBtn.isSelected = !cloud
+            l1CloudBtn.isSelected = cloud
+            l1LocalBtn.setTextColor(if (!cloud) brandCreamBright else brandCream)
+            l1CloudBtn.setTextColor(if (cloud) brandCreamBright else brandCream)
+        }
+        paintL1Source()
+        l1LocalBtn.setOnClickListener {
+            WimApp.prefs.edit().putBoolean("l1_cloud_asr", false).apply()
+            paintL1Source()
+        }
+        l1CloudBtn.setOnClickListener {
+            WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
+            paintL1Source()
         }
 
         // Bubble color picker — three tiny replicas of the bubble bezel itself.
@@ -2536,35 +2683,6 @@ class BubbleService : Service() {
      * animation update listener — every place the bubble's window position
      * can change while the menu is visible.
      */
-    /**
-     * Sub-menu that pops up when the TRANSCRIPTION (Layer 1) nameplate is tapped.
-     * Lets the user choose Local (whisper-tiny on-device) or Cloud (whisper-1
-     * via OpenAI) for L1 ASR. Replaces the L1 CLOUD toggle that used to live
-     * inline in the bubble menu.
-     */
-    private fun showL1SourcePicker() {
-        val cloud = WimApp.l1CloudAsr()
-        val items = arrayOf(
-            (if (!cloud) "●  " else "    ") + "Local — whisper-tiny on phone",
-            (if (cloud) "●  " else "    ") + "Cloud — whisper-1 online (more accurate)"
-        )
-        val dialog = android.app.AlertDialog.Builder(this)
-            .setTitle("L1 source (Transcription)")
-            .setItems(items) { d, which ->
-                val newCloud = which == 1
-                WimApp.prefs.edit().putBoolean("l1_cloud_asr", newCloud).apply()
-                android.widget.Toast.makeText(
-                    this,
-                    "L1: " + if (newCloud) "Cloud" else "Local",
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
-                d.dismiss()
-            }
-            .create()
-        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.show()
-    }
-
     private fun updateMenuPositionFromBubble() {
         val mView = menuView ?: return
         val mParams = menuParams ?: return
@@ -2734,14 +2852,21 @@ class BubbleService : Service() {
         val glyph = tapeReelFrames[tapeReelIdx]
         val dots = dotsFrames[dotsIdx]
         val labelAlpha = ((stageColorAlpha.coerceIn(0f, 1f)) * 255).toInt()
-        // Stage label color "breathes" between bright cream and dimmer cream,
-        // suggesting active processing without being distracting.
-        val baseColor = 0x00E8DCC8
-        val labelColor = (labelAlpha shl 24) or baseColor
+
+        // Theme-aware palette for the comment-bubble surface. Bronze and
+        // aluminum have LIGHT fills; light text on light fill was unreadable.
+        // Use the palette's primary/secondary text so we get dark espresso
+        // on bronze, dark navy on aluminum, cream on gunmetal — same source
+        // of truth as the live-transcript text colors.
+        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
+        val glyphRgb = palette.primaryText and 0x00FFFFFF
+        val labelRgb = palette.primaryText and 0x00FFFFFF
+        val detailColor = palette.secondaryText
+        val labelColor = (labelAlpha shl 24) or labelRgb
 
         val styled = android.text.SpannableStringBuilder().apply {
             append("$glyph  ")
-            setSpan(android.text.style.ForegroundColorSpan(0xFFC8B48A.toInt()),
+            setSpan(android.text.style.ForegroundColorSpan(0xFF000000.toInt() or glyphRgb),
                 0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             val stageStart = length
             append("$stageLabel$dots")
@@ -2754,7 +2879,7 @@ class BubbleService : Service() {
             append(stageDetail)
             setSpan(android.text.style.RelativeSizeSpan(0.85f),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.ForegroundColorSpan(0xCCB8AA90.toInt()),
+            setSpan(android.text.style.ForegroundColorSpan(detailColor),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         tv.text = styled
@@ -2820,15 +2945,16 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleProcessing() {
-        // Bezel stays in theme color. Knob flips from recording-red to a
-        // green processing glow so the user can see at a glance that the
-        // mic is no longer hot — audio is being reconstructed, not captured.
-        // Pulse animation from startListening continues for visual continuity.
+        // Bezel stays in theme color. Knob and label both stay in copper_gold
+        // — the bubble's brand color across recording AND processing — so the
+        // visual reads as one continuous "bubble is busy" affordance. The
+        // REC → PROC label change carries the state distinction; color
+        // doesn't need to do double duty.
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_processing)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "PROC"
-            setTextColor(0xFF40A065.toInt())
+            setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
         }
     }
 
@@ -3615,6 +3741,7 @@ class BubbleService : Service() {
     override fun onDestroy() {
         instance = null
         sensorManager?.unregisterListener(shakeListener)
+        stopHotwordListener()
         dismissMenu()
         hideLiveTranscript()
         dafPlayer?.stop()

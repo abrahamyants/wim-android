@@ -84,6 +84,46 @@
                 android:background="@drawable/nameplate_bg"
                 android:layout_marginBottom="3dp" />
 
+            <!-- L1 source sub-row: Local / Cloud, indented under TRANSCRIPTION.
+                 Visible whenever the menu is open; the active source is
+                 highlighted via the nameplate_bg state_selected layer. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="3dp">
+
+                <TextView
+                    android:id="@+id/menuL1Local"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="22dp"
+                    android:text="LOCAL"
+                    android:textSize="9sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:letterSpacing="0.20"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginEnd="3dp" />
+
+                <TextView
+                    android:id="@+id/menuL1Cloud"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="22dp"
+                    android:text="CLOUD"
+                    android:textSize="9sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:letterSpacing="0.20"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginStart="3dp" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/menuLayer2"
                 android:layout_width="match_parent"

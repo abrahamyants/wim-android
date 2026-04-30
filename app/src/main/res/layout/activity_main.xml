@@ -215,7 +215,7 @@
                 android:id="@+id/tileLayer"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="56dp"
+                android:layout_height="68dp"
                 android:background="@drawable/glass_panel_bg_pressable"
                 android:elevation="3dp"
                 android:clickable="true"
@@ -233,11 +233,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LAYER"
-                        android:textColor="@color/copper_gold"
-                        android:textSize="9sp"
-                        android:fontFamily="monospace"
+                        android:textColor="@color/section_header"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-light"
                         android:textStyle="bold"
-                        android:letterSpacing="0.22" />
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.12" />
 
                     <TextView
                         android:id="@+id/tileLayerValue"
@@ -264,7 +265,7 @@
                 android:id="@+id/tileTone"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="56dp"
+                android:layout_height="68dp"
                 android:background="@drawable/glass_panel_bg_pressable"
                 android:elevation="3dp"
                 android:clickable="true"
@@ -282,11 +283,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TONE"
-                        android:textColor="@color/copper_gold"
-                        android:textSize="9sp"
-                        android:fontFamily="monospace"
+                        android:textColor="@color/section_header"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-light"
                         android:textStyle="bold"
-                        android:letterSpacing="0.22" />
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.12" />
 
                     <TextView
                         android:id="@+id/tileToneValue"
@@ -320,7 +322,7 @@
                 android:id="@+id/tilePermissions"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="44dp"
+                android:layout_height="52dp"
                 android:background="@drawable/glass_panel_bg_pressable"
                 android:elevation="3dp"
                 android:clickable="true"
@@ -335,10 +337,11 @@
                     android:layout_gravity="start|center_vertical"
                     android:text="PERMISSIONS"
                     android:textColor="@color/copper_gold"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:letterSpacing="0.18" />
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.12" />
 
                 <TextView
                     android:id="@+id/tilePermissionsChevron"
@@ -355,7 +358,7 @@
                 android:id="@+id/tileSettings"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="44dp"
+                android:layout_height="52dp"
                 android:background="@drawable/glass_panel_bg_pressable"
                 android:elevation="3dp"
                 android:clickable="true"
@@ -369,10 +372,11 @@
                     android:layout_gravity="start|center_vertical"
                     android:text="SETTINGS"
                     android:textColor="@color/copper_gold"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-light"
                     android:textStyle="bold"
-                    android:letterSpacing="0.18" />
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.12" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -866,78 +870,59 @@
                 android:fontFamily="monospace" />
         </LinearLayout>
 
-        </LinearLayout>
-
-        <!-- ═══════════════════════════════════════════ -->
-        <!-- TRANSPARENCY (type-to-speak) -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextView
-            android:id="@+id/headerTransparency"
+        <LinearLayout
+            android:id="@+id/batteryPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="TEXT TO SPEECH"
-            android:textColor="@color/section_header"
-            android:textSize="14sp"
-            android:fontFamily="sans-serif-light"
-            android:elevation="4dp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.12"
-            android:textStyle="bold"
-            android:background="@drawable/glass_panel_bg_pressable"
+            android:layout_height="34dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:layout_marginBottom="8dp" />
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="2dp">
+            <TextView
+                android:id="@+id/batteryPermLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Battery"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:letterSpacing="0.04" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  keep alive in background"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/contentTransparency"
+            android:id="@+id/notifPermBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/grille_pattern_bg"
-            android:padding="4dp"
-            android:visibility="gone"
-            android:layout_marginBottom="10dp">
-
-            <!-- Type-to-speak -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="6dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
-
-                <EditText
-                    android:id="@+id/ttsInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="Type to speak aloud..."
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:background="@android:color/transparent"
-                    android:inputType="text"
-                    android:maxLines="1" />
-
-                <TextView
-                    android:id="@+id/ttsSpeak"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:text="SPEAK"
-                    android:textColor="@color/section_header"
-                    android:textSize="10sp"
-                    android:fontFamily="monospace"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp" />
-            </LinearLayout>
+            android:layout_height="34dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="2dp">
+            <TextView
+                android:id="@+id/notifPermLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notifications"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp"
+                android:letterSpacing="0.04" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  foreground service"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
 
         </LinearLayout>
 
@@ -1066,6 +1051,45 @@
                     android:layout_marginStart="10dp"
                     android:minWidth="40dp"
                     android:gravity="end" />
+            </LinearLayout>
+
+            <!-- Text-to-speech (type to hear it spoken) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="6dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2dp">
+
+                <EditText
+                    android:id="@+id/ttsInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:hint="Type to speak aloud..."
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/ttsSpeak"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:text="SPEAK"
+                    android:textColor="@color/section_header"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp" />
             </LinearLayout>
 
             <!-- Tips/reminders toggle -->
@@ -1357,6 +1381,60 @@
                     android:layout_marginStart="6dp"
                     android:minWidth="40dp"
                     android:gravity="end" />
+            </LinearLayout>
+
+            <!-- Double-shake to summon/hide bubble -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Shake to summon/hide"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/shakeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- "Hey WiM" hotword voice trigger -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="“Hey WiM” hotword"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/hotwordToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false" />
             </LinearLayout>
 
             <!-- Dark / Light mode toggle -->
@@ -1814,8 +1892,6 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:layout_marginBottom="2dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
             android:gravity="center_vertical">
 
             <ImageView
@@ -1849,8 +1925,6 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:layout_marginBottom="2dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
             android:gravity="center_vertical"
             android:visibility="gone">
 
