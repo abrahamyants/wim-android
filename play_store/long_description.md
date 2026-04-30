@@ -1,10 +1,10 @@
 ﻿# WiM: Empowering Voice-to-Text for Everyone
 
 ## What is WiM?
-WiM is a completely private, offline voice-to-text application engineered specifically to handle the nuances of human speech, including stuttering and pauses. Unlike traditional dictation apps that rely on constant internet connections and often fail to accurately transcribe non-fluent speech, WiM runs entirely on your device. It takes your spoken words, accurately transcribes them locally, and formats them into clean, polished text ready to be pasted into your favorite messaging, email, or notes apps. 
+WiM is a completely private, offline voice-to-text application engineered specifically to handle the nuances of human speech, including speech disfluencies and pauses. Unlike traditional dictation apps that rely on constant internet connections and often fail to accurately transcribe non-fluent speech, WiM runs entirely on your device. It takes your spoken words, accurately transcribes them locally, and formats them into clean, polished text ready to be pasted into your favorite messaging, email, or notes apps. 
 
 ## Who It's For
-WiM was built from the ground up for **people who stutter**, their Speech-Language Pathologists (SLPs), and anyone who finds standard voice-to-text tools frustrating, inaccurate, or intrusive. 
+WiM was built from the ground up for **people with speech disfluencies**, their Speech-Language Pathologists (SLPs), and anyone who finds standard voice-to-text tools frustrating, inaccurate, or intrusive. 
 If you have ever felt rushed by a microphone timing out, or frustrated by an app that stops listening the moment you pause to breathe or block, WiM is for you. It's also perfect for accessibility-focused users and privacy advocates who want powerful voice dictation without sacrificing their personal data to big tech clouds.
 
 ## How It Works
