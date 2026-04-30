@@ -248,6 +248,12 @@ class BubbleService : Service() {
      * with word timings in Phase 4).
      */
     private fun enterClarifierCycle(flags: List<FlaggedWord>, autoSendEligible: Boolean) {
+        // Visual cue marking the transition INTO claim 1's "bidirectional
+        // clarification state" — all four bezel arcs flash bright orange
+        // for ~320ms, then normal rendering resumes. Strengthens the
+        // claim's "entering a bidirectional clarification state" reading.
+        bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc)
+            ?.flashAllArcs(durationMs = 320L)
         ClarifierController.enter(
             flaggedWords = flags,
             injectedText = WimAccessibilityService.lastInjectedTextSnapshot(),
@@ -276,8 +282,13 @@ class BubbleService : Service() {
             text = "${idx + 1}/$total"
             setTextColor(gold)
         }
-        // Top candidate hint via TranscriptBarController — preempts STAGE.
-        val hint = "did you mean → ${flag.candidates.firstOrNull() ?: "?"}"
+        // Top candidate hint + DEFER affordance via TranscriptBarController
+        // — surfaces all three decision modalities (claim 1: approve /
+        // reject / defer) in the user-facing hint, with the gesture for
+        // each. "← yes" / "× no" map to tap-left / tap-right; "↓ hold = skip"
+        // teaches the long-press-to-defer gesture inline.
+        val candidate = flag.candidates.firstOrNull() ?: "?"
+        val hint = "did you mean → $candidate · ↓ hold = skip"
         TranscriptBarController.show(TranscriptBarController.Priority.CLARIFIER, hint)
     }
 
@@ -2061,6 +2072,18 @@ class BubbleService : Service() {
             }
             try {
                 wm.addView(wordHighlightView, wordHighlightParams)
+                // Fade-in pulse: 0 → 1.0 → 0.65 → 1.0 over ~520ms. Tells
+                // the user "the bubble is watching this field" without
+                // touching its state. Patent-clean — pure overlay alpha.
+                wordHighlightView?.alpha = 0f
+                wordHighlightView?.animate()?.alpha(1f)?.setDuration(220)
+                    ?.withEndAction {
+                        wordHighlightView?.animate()?.alpha(0.65f)?.setDuration(160)
+                            ?.withEndAction {
+                                wordHighlightView?.animate()?.alpha(1f)?.setDuration(140)
+                                    ?.start()
+                            }?.start()
+                    }?.start()
             } catch (e: Exception) {
                 Log.w(TAG, "showWordHighlight: addView failed: ${e.message}")
                 wordHighlightView = null

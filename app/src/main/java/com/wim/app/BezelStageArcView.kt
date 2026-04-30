@@ -76,6 +76,21 @@ class BezelStageArcView @JvmOverloads constructor(
         invalidate()
     }
 
+    // Clarifier-entry cue: all four arcs flash in [flashColor] at full
+    // alpha for [durationMs], then fade back to the prior dim/bright
+    // pattern. Marks the visual transition INTO BubbleState.Clarifying
+    // — claim 1's "entering a bidirectional clarification state" gets
+    // a visible cue that distinguishes it from the rest of the
+    // pipeline. No-op if a flash is already running.
+    private var flashEndsAtMs: Long = 0L
+    private var flashColor: Int = 0xFFFF6A1A.toInt() // warm orange
+
+    fun flashAllArcs(durationMs: Long = 320L, color: Int = 0xFFFF6A1A.toInt()) {
+        flashColor = color or 0xFF000000.toInt()
+        flashEndsAtMs = System.currentTimeMillis() + durationMs
+        invalidate()
+    }
+
     fun setArcColor(color: Int) {
         arcColor = color or 0xFF000000.toInt()
         invalidate()
@@ -97,6 +112,12 @@ class BezelStageArcView @JvmOverloads constructor(
         val now = System.currentTimeMillis()
         val fadeProgress = ((now - fadeStartMs).toFloat() / STAGE_FADE_MS).coerceIn(0f, 1f)
 
+        // Clarifier-entry flash: all four arcs at full bright in flashColor
+        // until flashEndsAtMs. After that boundary, normal stage rendering
+        // resumes (we keep invalidating so we re-render the moment the
+        // flash window expires).
+        val flashing = now < flashEndsAtMs
+
         for (stage in 0 until STAGE_COUNT) {
             val targetBright = stage <= activeStage
             // Cross-fade between previous and current state. We only know the
@@ -106,7 +127,9 @@ class BezelStageArcView @JvmOverloads constructor(
             val sourceAlpha = if (targetBright) DIM_ALPHA else BRIGHT_ALPHA
             val alpha = (sourceAlpha + (targetAlpha - sourceAlpha) * fadeProgress).toInt()
                 .coerceIn(0, 0xFF)
-            paint.color = (arcColor and 0x00FFFFFF) or (alpha shl 24)
+            val baseRgb = if (flashing) (flashColor and 0x00FFFFFF) else (arcColor and 0x00FFFFFF)
+            val effectiveAlpha = if (flashing) BRIGHT_ALPHA else alpha
+            paint.color = baseRgb or (effectiveAlpha shl 24)
             // Each stage owns a 90° quadrant; we draw a 78° sweep centered
             // in that quadrant so the four stages have visible gaps.
             // Start angle 0° in Android Canvas == 3 o'clock. Subtract 90 to
@@ -118,7 +141,7 @@ class BezelStageArcView @JvmOverloads constructor(
             @Suppress("UNUSED_VARIABLE") val _gap = ARC_GAP_DEG
         }
 
-        // Keep animating the fade until it finishes.
-        if (fadeProgress < 1f) postInvalidateOnAnimation()
+        // Keep animating until either the fade or the flash finishes.
+        if (fadeProgress < 1f || flashing) postInvalidateOnAnimation()
     }
 }
