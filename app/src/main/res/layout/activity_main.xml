@@ -1000,623 +1000,806 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/grille_pattern_bg"
-            android:padding="4dp"
             android:visibility="gone"
             android:layout_marginBottom="10dp">
 
-            <!-- Bubble opacity -->
+            <!-- ─────────── SIGNED IN block ─────────── -->
             <LinearLayout
+                android:id="@+id/settingsUserBlock"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@drawable/card_bg"
+                android:background="@drawable/glass_panel_bg"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginBottom="2dp">
+                android:layout_marginBottom="14dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_opacity"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:layout_marginEnd="12dp" />
-
-                <SeekBar
-                    android:id="@+id/bubbleOpacitySeek"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:min="20"
-                    android:max="100"
-                    android:thumb="@drawable/daf_seekbar_thumb"
-                    android:progressDrawable="@drawable/daf_seekbar_track"
-                    android:progress="70" />
-
-                <TextView
-                    android:id="@+id/bubbleOpacityValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="70%"
-                    android:textColor="@color/text_bright"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:textStyle="bold"
-                    android:layout_marginStart="10dp"
-                    android:minWidth="36dp"
-                    android:gravity="end" />
-            </LinearLayout>
-
-            <!-- Bubble size -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_size"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:layout_marginEnd="12dp" />
-
-                <SeekBar
-                    android:id="@+id/bubbleSizeSeek"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:min="70"
-                    android:max="150"
-                    android:thumb="@drawable/daf_seekbar_thumb"
-                    android:progressDrawable="@drawable/daf_seekbar_track"
-                    android:progress="110" />
-
-                <TextView
-                    android:id="@+id/bubbleSizeValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="100%"
-                    android:textColor="@color/text_bright"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:textStyle="bold"
-                    android:layout_marginStart="10dp"
-                    android:minWidth="40dp"
-                    android:gravity="end" />
-            </LinearLayout>
-
-            <!-- Text-to-speech (type to hear it spoken) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="6dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <EditText
-                    android:id="@+id/ttsInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="@string/settings_tts_hint"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:background="@android:color/transparent"
-                    android:inputType="text"
-                    android:maxLines="1" />
-
-                <TextView
-                    android:id="@+id/ttsSpeak"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:text="@string/settings_speak"
-                    android:textColor="@color/section_header"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:textStyle="bold"
+                    android:id="@+id/settingsUserAvatar"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:text="G"
                     android:gravity="center"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp" />
-            </LinearLayout>
-
-            <!-- Tips/reminders toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_tips"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/tipsToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <!-- App language picker (UI + spoken language) -->
-            <LinearLayout
-                android:id="@+id/appLanguageRow"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginBottom="2dp">
+                    android:textColor="@color/text_bright"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:background="@drawable/card_bg_selected" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
                     <TextView
+                        android:id="@+id/settingsUserEmail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/lang_picker_title"
-                        android:textColor="@color/text_dim"
-                        android:textSize="11sp"
+                        android:text="Signed in"
+                        android:textColor="@color/text_bright"
+                        android:textSize="12sp"
                         android:fontFamily="@font/plus_jakarta_sans" />
-
                     <TextView
+                        android:id="@+id/settingsUserTier"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/lang_picker_subtitle"
-                        android:textColor="@color/text_secondary"
+                        android:text="Free tier"
+                        android:textColor="@color/copper_gold"
                         android:textSize="9sp"
-                        android:fontFamily="@font/plus_jakarta_sans" />
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:letterSpacing="0.10"
+                        android:textAllCaps="true" />
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/appLanguageValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/lang_english"
-                    android:textColor="@color/section_header"
-                    android:textSize="12sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:paddingEnd="8dp" />
-
-                <TextView
+                    android:id="@+id/settingsUserChevron"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="›"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:fontFamily="@font/plus_jakarta_sans" />
             </LinearLayout>
 
-            <!-- Primary language -->
-            <LinearLayout
+            <!-- ─────────── BUBBLE section ─────────── -->
+            <TextView
                 android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
+                android:layout_height="wrap_content"
+                android:text="◐  BUBBLE"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.22"
+                android:fontFamily="@font/geist_bold"
+                android:paddingStart="6dp"
+                android:paddingBottom="4dp" />
+            <View
+                android:layout_width="32dp"
+                android:layout_height="1dp"
+                android:background="@color/copper_gold"
+                android:alpha="0.55"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="8dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_language"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:layout_marginEnd="8dp" />
-
-                <EditText
-                    android:id="@+id/primaryLangInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="@string/settings_lang_primary_hint"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:background="@android:color/transparent"
-                    android:inputType="text"
-                    android:maxLines="1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+"
-                    android:textColor="@color/section_header"
-                    android:textSize="14sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:textStyle="bold"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp" />
-
-                <EditText
-                    android:id="@+id/secondaryLangInput"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    android:hint="@string/settings_lang_secondary_hint"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:background="@android:color/transparent"
-                    android:inputType="text"
-                    android:maxLines="1" />
-            </LinearLayout>
-
-            <!-- Voice shortcuts -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/card_bg"
-                android:padding="12dp"
-                android:layout_marginBottom="4dp">
+                android:background="@drawable/grille_pattern_bg"
+                android:padding="6dp"
+                android:layout_marginBottom="14dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_voice_shortcuts"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:layout_marginBottom="4dp" />
-
-                <EditText
-                    android:id="@+id/shortcutsInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/settings_voice_shortcuts_hint"
-                    android:textColor="@color/text_bright"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:background="@android:color/transparent"
-                    android:inputType="textMultiLine"
-                    android:minLines="2"
-                    android:maxLines="5" />
-            </LinearLayout>
-
-            <!-- Bubble color row — three inline 28dp circle swatches showing
-                 the actual bubble colors. Selected swatch is highlighted via
-                 isSelected (paintBubbleColorRow in MainActivity sets a maroon
-                 ring + cream-gold highlight). Tap anywhere on the row → opens
-                 the picker dialog with full bubble previews (bezel + knob +
-                 tick + IDLE label). Tapping a swatch directly is a shortcut:
-                 commits that theme without opening the dialog. -->
-            <LinearLayout
-                android:id="@+id/bubbleColorRow"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_bubble_color"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans" />
-
-                <FrameLayout
-                    android:id="@+id/colorBronze"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bg_idle"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <FrameLayout
-                    android:id="@+id/colorAluminum"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bezel_aluminum"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <FrameLayout
-                    android:id="@+id/colorGunmetal"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bezel_gunmetal"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </LinearLayout>
-
-            <!-- Cloud backup toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_cloud_backup"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/cloudBackupToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <!-- Auto-send: after injection, bubble flips green; tap to click Send. -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_marginBottom="2dp">
-
+                <!-- Opacity -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
+                    android:gravity="center_vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:layout_marginBottom="2dp">
                     <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_opacity"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:layout_marginEnd="12dp" />
+                    <SeekBar
+                        android:id="@+id/bubbleOpacitySeek"
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="@string/settings_auto_send"
-                        android:textColor="@color/text_dim"
-                        android:textSize="11sp"
-                        android:fontFamily="@font/plus_jakarta_sans" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/autoSendToggle"
+                        android:min="20"
+                        android:max="100"
+                        android:thumb="@drawable/daf_seekbar_thumb"
+                        android:progressDrawable="@drawable/daf_seekbar_track"
+                        android:progress="70" />
+                    <TextView
+                        android:id="@+id/bubbleOpacityValue"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:text="70%"
+                        android:textColor="@color/text_bright"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:textStyle="bold"
+                        android:layout_marginStart="10dp"
+                        android:minWidth="36dp"
+                        android:gravity="end" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/autoSendHint"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_auto_send_apps"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:alpha="0.65"
-                    android:paddingTop="4dp" />
-            </LinearLayout>
-
-            <!-- Accent: ON = preserve speaker's voice (KEEP). OFF = polish
-                 toward Standard English (default). Drives accent_mode pref. -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_marginBottom="2dp">
-
+                <!-- Size -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_size"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:layout_marginEnd="12dp" />
+                    <SeekBar
+                        android:id="@+id/bubbleSizeSeek"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:min="70"
+                        android:max="150"
+                        android:thumb="@drawable/daf_seekbar_thumb"
+                        android:progressDrawable="@drawable/daf_seekbar_track"
+                        android:progress="110" />
+                    <TextView
+                        android:id="@+id/bubbleSizeValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="100%"
+                        android:textColor="@color/text_bright"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:textStyle="bold"
+                        android:layout_marginStart="10dp"
+                        android:minWidth="40dp"
+                        android:gravity="end" />
+                </LinearLayout>
 
+                <!-- Bubble color row -->
+                <LinearLayout
+                    android:id="@+id/bubbleColorRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="@string/settings_accent"
+                        android:text="@string/settings_bubble_color"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="@font/plus_jakarta_sans" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchAccent"
+                    <FrameLayout
+                        android:id="@+id/colorBronze"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bubble_bg_idle"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <FrameLayout
+                        android:id="@+id/colorAluminum"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bubble_bezel_aluminum"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <FrameLayout
+                        android:id="@+id/colorGunmetal"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bubble_bezel_gunmetal"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <TextView
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:text="›"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:layout_marginStart="10dp" />
                 </LinearLayout>
 
-                <TextView
+            </LinearLayout>
+
+            <!-- ─────────── LANGUAGE section ─────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🜨  LANGUAGE"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.22"
+                android:fontFamily="@font/geist_bold"
+                android:paddingStart="6dp"
+                android:paddingBottom="4dp" />
+            <View
+                android:layout_width="32dp"
+                android:layout_height="1dp"
+                android:background="@color/copper_gold"
+                android:alpha="0.55"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/grille_pattern_bg"
+                android:padding="6dp"
+                android:layout_marginBottom="14dp">
+
+                <!-- App language picker (UI + spoken language) — single source of truth -->
+                <LinearLayout
+                    android:id="@+id/appLanguageRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/lang_picker_title"
+                            android:textColor="@color/text_dim"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/lang_picker_subtitle"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="9sp"
+                            android:alpha="0.65"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/appLanguageValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lang_english"
+                        android:textColor="@color/section_header"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:paddingEnd="8dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="›"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ─────────── VOICE section ─────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="◉  VOICE"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.22"
+                android:fontFamily="@font/geist_bold"
+                android:paddingStart="6dp"
+                android:paddingBottom="4dp" />
+            <View
+                android:layout_width="32dp"
+                android:layout_height="1dp"
+                android:background="@color/copper_gold"
+                android:alpha="0.55"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/grille_pattern_bg"
+                android:padding="6dp"
+                android:layout_marginBottom="14dp">
+
+                <!-- Hey WiM hotword -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/settings_accent_subtitle"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:alpha="0.65"
-                    android:paddingTop="4dp" />
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:layout_marginBottom="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_hotword"
+                            android:textColor="@color/text_dim"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/hotwordToggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="say &quot;Hey WiM&quot; to summon — works while screen is on"
+                        android:textColor="@color/text_dim"
+                        android:textSize="9sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:alpha="0.65"
+                        android:paddingTop="4dp" />
+                </LinearLayout>
+
+                <!-- Shake to summon/hide -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_shake"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/shakeToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- Auto-send -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:layout_marginBottom="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_auto_send"
+                            android:textColor="@color/text_dim"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/autoSendToggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/autoSendHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_auto_send_apps"
+                        android:textColor="@color/text_dim"
+                        android:textSize="9sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:alpha="0.65"
+                        android:paddingTop="4dp" />
+                </LinearLayout>
+
             </LinearLayout>
 
-            <!-- DAF toggle + delay -->
+            <!-- ─────────── BEHAVIOR section ─────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="◎  BEHAVIOR"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.22"
+                android:fontFamily="@font/geist_bold"
+                android:paddingStart="6dp"
+                android:paddingBottom="4dp" />
+            <View
+                android:layout_width="32dp"
+                android:layout_height="1dp"
+                android:background="@color/copper_gold"
+                android:alpha="0.55"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="8dp" />
+
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/grille_pattern_bg"
+                android:padding="6dp"
+                android:layout_marginBottom="14dp">
 
+                <!-- Tips & reminders -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_tips"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/tipsToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- Cloud backup -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_cloud_backup"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/cloudBackupToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- Accent — keep speaker's voice (don't auto-correct) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:layout_marginBottom="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_accent"
+                            android:textColor="@color/text_dim"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchAccent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_accent_subtitle"
+                        android:textColor="@color/text_dim"
+                        android:textSize="9sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:alpha="0.65"
+                        android:paddingTop="4dp" />
+                </LinearLayout>
+
+                <!-- DAF (Delayed Auditory Feedback) — full name + sub-explanation -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:layout_marginBottom="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="Delayed Auditory Feedback"
+                            android:textColor="@color/text_dim"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/settingsDafToggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="delayed echo of your own voice — used by some people who stutter for fluency"
+                        android:textColor="@color/text_dim"
+                        android:textSize="9sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:alpha="0.65"
+                        android:paddingTop="4dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingTop="6dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Delay"
+                            android:textColor="@color/text_dim"
+                            android:textSize="10sp"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:alpha="0.7"
+                            android:layout_marginEnd="8dp" />
+                        <SeekBar
+                            android:id="@+id/settingsDafDelay"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:max="270"
+                            android:progress="70"
+                            android:thumb="@drawable/daf_seekbar_thumb"
+                            android:progressDrawable="@drawable/daf_seekbar_track" />
+                        <TextView
+                            android:id="@+id/settingsDafValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="100 ms"
+                            android:textColor="@color/text_bright"
+                            android:textSize="10sp"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:textStyle="bold"
+                            android:layout_marginStart="6dp"
+                            android:minWidth="40dp"
+                            android:gravity="end" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Dark mode -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_dark_mode"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/darkModeToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ─────────── DEVELOPER section (test/admin tools) ─────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⌘  DEVELOPER"
+                android:textColor="@color/copper_gold"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.22"
+                android:fontFamily="@font/geist_bold"
+                android:paddingStart="6dp"
+                android:paddingBottom="4dp" />
+            <View
+                android:layout_width="32dp"
+                android:layout_height="1dp"
+                android:background="@color/copper_gold"
+                android:alpha="0.55"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/grille_pattern_bg"
+                android:padding="6dp"
+                android:layout_marginBottom="14dp">
+
+                <!-- Type to speak -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="6dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <EditText
+                        android:id="@+id/ttsInput"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="match_parent"
+                        android:hint="@string/settings_tts_hint"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:background="@android:color/transparent"
+                        android:inputType="text"
+                        android:maxLines="1" />
+                    <TextView
+                        android:id="@+id/ttsSpeak"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:text="@string/settings_speak"
+                        android:textColor="@color/section_header"
+                        android:textSize="10sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp" />
+                </LinearLayout>
+
+                <!-- Voice shortcuts -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:padding="12dp"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_voice_shortcuts"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:layout_marginBottom="4dp" />
+                    <EditText
+                        android:id="@+id/shortcutsInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/settings_voice_shortcuts_hint"
+                        android:textColor="@color/text_bright"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:background="@android:color/transparent"
+                        android:inputType="textMultiLine"
+                        android:minLines="2"
+                        android:maxLines="5" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ─────────── Footer ─────────── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:paddingBottom="16dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/daf_label"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:layout_marginEnd="8dp" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/settingsDafToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-                <SeekBar
-                    android:id="@+id/settingsDafDelay"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:max="270"
-                    android:progress="70"
-                    android:thumb="@drawable/daf_seekbar_thumb"
-                    android:progressDrawable="@drawable/daf_seekbar_track"
-                    android:layout_marginStart="8dp" />
-
-                <TextView
-                    android:id="@+id/settingsDafValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="100 ms"
-                    android:textColor="@color/text_bright"
+                    android:text="WiM v1.4.0"
+                    android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="@font/plus_jakarta_sans"
-                    android:textStyle="bold"
-                    android:layout_marginStart="6dp"
-                    android:minWidth="40dp"
-                    android:gravity="end" />
-            </LinearLayout>
-
-            <!-- Double-shake to summon/hide bubble -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
+                    android:alpha="0.65" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_shake"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/shakeToggle"
+                    android:id="@+id/settingsFooterLinks"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <!-- "Hey WiM" hotword voice trigger -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_hotword"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/hotwordToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="false" />
-            </LinearLayout>
-
-            <!-- Dark / Light mode toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_dark_mode"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp"
-                    android:letterSpacing="0.04" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/darkModeToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
+                    android:text="About  ·  Support  ·  Privacy"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:alpha="0.7"
+                    android:paddingTop="4dp" />
             </LinearLayout>
 
         </LinearLayout>

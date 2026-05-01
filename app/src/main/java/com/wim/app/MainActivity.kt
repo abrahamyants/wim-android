@@ -584,16 +584,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ── Languages ──
-        val primaryLang = findViewById<EditText>(R.id.primaryLangInput)
-        val secondaryLang = findViewById<EditText>(R.id.secondaryLangInput)
-        primaryLang?.setText(WimApp.prefs.getString("primary_language", "en-US") ?: "en-US")
-        secondaryLang?.setText(WimApp.prefs.getString("secondary_language", "") ?: "")
-        primaryLang?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) WimApp.prefs.edit().putString("primary_language", primaryLang.text.toString().trim().ifBlank { "en-US" }).apply()
-        }
-        secondaryLang?.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) WimApp.prefs.edit().putString("secondary_language", secondaryLang.text.toString().trim()).apply()
-        }
+        // Removed: standalone primary/secondary language EditText row.
+        // The "App language" picker (appLanguageRow) now owns language
+        // selection — it writes the same prefs (primary_language /
+        // secondary_language) via the picker dialog. Operator flagged
+        // the inline EditText row as duplicate 2026-04-30.
 
         // ── Voice shortcuts ──
         val shortcutsInput = findViewById<EditText>(R.id.shortcutsInput)
