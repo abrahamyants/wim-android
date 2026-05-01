@@ -821,14 +821,15 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Capture pre-resume state of Permissions overlay so we can detect
         // a "user just came back from system Settings with all green" event.
-        val permissionsOverlayWasOpen = sectionOverlay != null &&
-            sectionContentView?.id == R.id.contentPermissions
+        val permissionsSurfaceWasOpen = (sectionOverlay != null &&
+            sectionContentView?.id == R.id.contentPermissions) ||
+            (currentBottomSheet != null && currentBottomSheetContentId == R.id.contentPermissions)
         updatePermissionStatus()
-        // Auto-dismiss Permissions overlay if all 5 are now green — saves
+        // Auto-dismiss Permissions surface if all 5 are now green — saves
         // the user a manual X-tap after returning from Android Settings.
         // Per operator: "third back from accessibility should land in the
         // app, not on the permissions screen — it's all green anyway."
-        if (permissionsOverlayWasOpen) {
+        if (permissionsSurfaceWasOpen) {
             val overlayOk = Settings.canDrawOverlays(this)
             val accessibilityOk = isAccessibilityEnabled()
             val micOk = AudioRecorder(this).hasPermission()
@@ -838,7 +839,8 @@ class MainActivity : AppCompatActivity() {
                 checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
             if (overlayOk && accessibilityOk && micOk && batteryOk && notifOk) {
-                dismissSectionOverlay()
+                if (sectionOverlay != null) dismissSectionOverlay()
+                currentBottomSheet?.dismiss()
             }
         }
         loadSessions()
@@ -1464,7 +1466,22 @@ class MainActivity : AppCompatActivity() {
             label.setTextColor(getColor(R.color.active_text))
         } else {
             container.setBackgroundResource(R.drawable.card_bg_pressable)
-            label.setTextColor(getColor(R.color.text_dim))
+            label.setTextColor(getColor(R.color.text_bright))
+        }
+        // Toggle the new ◉ selected-state pill based on container ID. Map
+        // is local to keep the function self-contained — adding new layers
+        // / tones only requires extending this when its row gets a pill.
+        val pillId = when (container.id) {
+            R.id.layer1 -> R.id.layer1SelectedPill
+            R.id.layer2 -> R.id.layer2SelectedPill
+            R.id.layer3 -> R.id.layer3SelectedPill
+            R.id.layer4 -> R.id.layer4SelectedPill
+            R.id.toneCasual -> R.id.toneCasualSelectedPill
+            R.id.toneProfessional -> R.id.toneProfessionalSelectedPill
+            else -> 0
+        }
+        if (pillId != 0) {
+            findViewById<TextView>(pillId)?.visibility = if (selected) View.VISIBLE else View.GONE
         }
     }
 
@@ -2242,21 +2259,24 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        // Per-row labels: ✓ suffix when granted, color flips green / red.
-        // Same color codes as the dashboard tile so the visual language
-        // is consistent across the app.
+        // Status pills on each permission row: granted = muted cream-gold
+        // "✓ GRANTED", missing = warm maroon "✗ TAP TO GRANT". Labels stay
+        // static text_bright; only the pill changes. Dashboard tile color
+        // still flips green/red for at-a-glance state.
         val green = 0xFF40A065.toInt()
         val red = 0xFFEF4444.toInt()
-        fun paint(labelId: Int, text: String, ok: Boolean) {
-            val tv = findViewById<TextView>(labelId) ?: return
-            tv.text = if (ok) "$text ✓" else text
-            tv.setTextColor(if (ok) green else red)
+        val grantedColor = 0x99C8B48A.toInt()
+        val missingColor = 0xFFD96A4A.toInt()
+        fun paintPill(pillId: Int, ok: Boolean) {
+            val tv = findViewById<TextView>(pillId) ?: return
+            tv.text = if (ok) "✓ GRANTED" else "✗ TAP TO GRANT"
+            tv.setTextColor(if (ok) grantedColor else missingColor)
         }
-        paint(R.id.overlayPermLabel, "Overlay", overlayOk)
-        paint(R.id.accessibilityPermLabel, "Accessibility", accessibilityOk)
-        paint(R.id.micPermLabel, "Microphone", micOk)
-        paint(R.id.batteryPermLabel, "Battery", batteryOk)
-        paint(R.id.notifPermLabel, "Notifications", notifOk)
+        paintPill(R.id.overlayPermStatus, overlayOk)
+        paintPill(R.id.accessibilityPermStatus, accessibilityOk)
+        paintPill(R.id.micPermStatus, micOk)
+        paintPill(R.id.batteryPermStatus, batteryOk)
+        paintPill(R.id.notifPermStatus, notifOk)
 
         // PERMISSIONS dashboard tile: green only when ALL FIVE are granted.
         val allPermsOk = overlayOk && accessibilityOk && micOk && batteryOk && notifOk
@@ -2310,18 +2330,23 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         // Dual-tile rows — Layer/Tone + Permissions/Settings.
         // Tap a tile → reparents the (hidden) section into a slide-in overlay.
         findViewById<View>(R.id.tileLayer)?.setOnClickListener {
-            openSectionOverlay(R.id.contentLayer, "LAYER")
+            openBottomSheet(R.id.contentLayer, "LAYER", 0.55f)
         }
         findViewById<View>(R.id.tileTone)?.setOnClickListener {
-            openSectionOverlay(R.id.contentTone, "TONE")
+            openBottomSheet(R.id.contentTone, "TONE", 0.40f)
         }
         findViewById<View>(R.id.tilePermissions)?.setOnClickListener {
-            openSectionOverlay(R.id.contentPermissions, "PERMISSIONS")
+            openBottomSheet(R.id.contentPermissions, "PERMISSIONS", 0.60f)
         }
         findViewById<View>(R.id.tileSettings)?.setOnClickListener {
             openSectionOverlay(R.id.contentSettings, "SETTINGS")
         }
     }
+
+    // Bottom sheet tracking — used to auto-dismiss the Permissions sheet
+    // when the user returns from Android Settings with all perms granted.
+    private var currentBottomSheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
+    private var currentBottomSheetContentId: Int = 0
 
     // Section-overlay state — track the original parent + index for the
     // currently-shown section so we can put it back on dismiss.
@@ -2435,6 +2460,131 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             sectionContentParent = null
             sectionContentIndex = -1
         }.start()
+    }
+
+    /**
+     * Bottom-sheet variant of openSectionOverlay. Reparents an existing
+     * in-layout content view into a Material BottomSheetDialog. On dismiss
+     * the content goes back to its original parent + index. heightFraction
+     * is the portion of screen height the sheet should peek at when shown.
+     */
+    private fun openBottomSheet(contentResId: Int, title: String, heightFraction: Float) {
+        val content = findViewById<View>(contentResId) ?: return
+        val originalParent = content.parent as? android.view.ViewGroup ?: return
+        val originalIndex = originalParent.indexOfChild(content)
+        val originalVisibility = content.visibility
+        val dp = resources.displayMetrics.density
+        val screenH = resources.displayMetrics.heightPixels
+
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+
+        val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bgColor = if (isNight) 0xFF1A1A1E.toInt() else 0xFFE8E8EC.toInt()
+
+        // Outer container — vertical: drag handle + header + content scroll.
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(bgColor)
+        }
+
+        // Drag handle (centered pill)
+        val dragHandle = View(this).apply {
+            val lp = LinearLayout.LayoutParams((36 * dp).toInt(), (4 * dp).toInt()).apply {
+                topMargin = (10 * dp).toInt()
+                bottomMargin = (6 * dp).toInt()
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+            }
+            layoutParams = lp
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0x33C8B48A)
+                cornerRadius = 2f * dp
+            }
+        }
+        container.addView(dragHandle)
+
+        // Header — title left, close right
+        val headerBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding((20 * dp).toInt(), (8 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt())
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val titleTv = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setTextColor(getColor(R.color.copper_gold))
+            try { typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.geist_bold) } catch (_: Exception) {}
+            letterSpacing = 0.18f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            textSize = 22f
+            setTextColor(getColor(R.color.copper_gold))
+            setPadding((12 * dp).toInt(), (4 * dp).toInt(), (12 * dp).toInt(), (4 * dp).toInt())
+            isClickable = true
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerBar.addView(titleTv)
+        headerBar.addView(closeBtn)
+        container.addView(headerBar, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
+        // Cream-gold underline (32dp at 55% alpha) — visual DNA from settings
+        val underline = View(this).apply {
+            val lp = LinearLayout.LayoutParams((32 * dp).toInt(), (1.5f * dp).toInt()).apply {
+                leftMargin = (20 * dp).toInt()
+                bottomMargin = (12 * dp).toInt()
+            }
+            layoutParams = lp
+            setBackgroundColor(0x8CC8B48A.toInt())
+        }
+        container.addView(underline)
+
+        // Reparent the content view into a scroll
+        originalParent.removeView(content)
+        content.visibility = View.VISIBLE
+
+        val scroll = android.widget.ScrollView(this).apply {
+            isFillViewport = false
+            setPadding((16 * dp).toInt(), 0, (16 * dp).toInt(), (24 * dp).toInt())
+        }
+        scroll.addView(content, android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+        container.addView(scroll, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
+        dialog.setContentView(container)
+
+        // Set peek height + expanded behavior
+        val peek = (screenH * heightFraction).toInt()
+        dialog.behavior.peekHeight = peek
+        dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = false
+
+        // Restore content on dismiss
+        dialog.setOnDismissListener {
+            (content.parent as? android.view.ViewGroup)?.removeView(content)
+            content.visibility = originalVisibility
+            if (originalIndex >= 0) {
+                originalParent.addView(content, originalIndex)
+            } else {
+                originalParent.addView(content)
+            }
+            if (currentBottomSheet === dialog) {
+                currentBottomSheet = null
+                currentBottomSheetContentId = 0
+            }
+        }
+
+        currentBottomSheet = dialog
+        currentBottomSheetContentId = contentResId
+        dialog.show()
     }
 
     private fun showProfileOverlay() {

@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F0222228"
+    android:background="#FF1A1A1E"
     android:clickable="true"
     android:focusable="true">
 
@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="6dp">
 
             <TextView
                 android:layout_width="0dp"
@@ -31,9 +31,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/profile_title"
                 android:textColor="@color/copper_gold"
-                android:textSize="16sp"
-                android:fontFamily="@font/plus_jakarta_sans"
-                android:textStyle="bold"
+                android:textSize="26sp"
+                android:fontFamily="@font/geist_bold"
+                android:textAllCaps="true"
                 android:letterSpacing="0.12" />
 
             <TextView
@@ -41,12 +41,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="✕"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/copper_gold"
                 android:textSize="22sp"
-                android:fontFamily="@font/plus_jakarta_sans"
                 android:paddingStart="16dp"
                 android:paddingEnd="4dp" />
         </LinearLayout>
+
+        <!-- Cream-gold hero underline (32dp at 55% alpha) — Settings DNA -->
+        <View
+            android:layout_width="32dp"
+            android:layout_height="1.5dp"
+            android:background="#8CC8B48A"
+            android:layout_marginBottom="20dp" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -65,11 +71,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_mostly_use_for"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="8dp" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:id="@+id/profileUsageGroup"
@@ -173,11 +187,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_industry"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="8dp" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:id="@+id/profileIndustryGroup"
@@ -248,11 +270,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_native_english"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="8dp" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:id="@+id/profileL1NativeGroup"
@@ -311,11 +341,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_work_hours"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="8dp" />
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -334,11 +372,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_vocabulary"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
                     android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/vocabChips"
@@ -393,11 +439,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_corrections"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
                     android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/corrChips"
@@ -477,11 +531,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_trigger_words"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
                     android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/triggerChips"
@@ -536,11 +598,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_clarifier_sensitivity"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
                     android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -592,11 +662,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_no_flag_apps"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.15"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.18"
+                    android:layout_marginTop="20dp"
                     android:layout_marginBottom="4dp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1.5dp"
+                    android:background="#8CC8B48A"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/clarBlacklistChips"
