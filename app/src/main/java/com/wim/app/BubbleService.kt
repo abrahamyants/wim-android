@@ -110,6 +110,13 @@ class BubbleService : Service() {
     private var liveTextContainer: android.widget.FrameLayout? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
+    // Press-and-hold threshold — 500ms is well above normal tap durations
+    // (100-300ms) so accidental brushes never trigger record. Anything
+    // shorter races with toggle-tap. Hold past this threshold = enter
+    // hold-mode and start recording; release = stop. Drag during hold cancels.
+    private val HOLD_THRESHOLD_MS = 500L
+    private var holdModeActive = false
+    private var holdStartRunnable: Runnable? = null
     private var singleTapRunnable: Runnable? = null
     // Deferred single-tap → start recording, with the DOUBLE_TAP_TIMEOUT
     // window allowing a second tap to pre-empt and run the double-tap
@@ -328,7 +335,13 @@ class BubbleService : Service() {
                     WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
                     else -> "gpt-4o-transcribe"
                 }
-                val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
+                val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
+                val whisperResult = WhisperClient.transcribe(
+                    wavFile,
+                    patienceMode = WimApp.layer() >= 4,
+                    model = whisperModel,
+                    verboseSegments = !l1CloudFastPath,
+                )
                 Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
                 if (whisperResult.wasFullyHallucinated) {
@@ -754,10 +767,30 @@ class BubbleService : Service() {
                     prevMoveY = event.rawY
                     isDragging = false
                     downTime = System.currentTimeMillis()
-                    // Recording-start is now driven by ACTION_UP's deferred
-                    // single-tap action (300 ms window for double-tap
-                    // detection). No press-and-hold start: holding the
-                    // bubble does nothing on its own; release triggers it.
+                    // Schedule press-and-hold detection. 500ms threshold
+                    // sits well above normal tap durations (100-300ms) so
+                    // accidental brushes never trigger record. Cancelled
+                    // on drag or early release. Haptic cue on activation.
+                    holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
+                    holdStartRunnable = Runnable {
+                        if (!isDragging && !isRecording && bubbleView != null) {
+                            holdModeActive = true
+                            try {
+                                vibrator?.vibrate(
+                                    android.os.VibrationEffect.createOneShot(
+                                        40, android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                                    )
+                                )
+                            } catch (_: Exception) {}
+                            // Suppress the deferred single-tap so release
+                            // doesn't double-toggle.
+                            timerHandler.removeCallbacks(deferredSingleTapAction)
+                            lastTapTime = 0L
+                            startPulseRings()
+                            startListening()
+                        }
+                    }
+                    timerHandler.postDelayed(holdStartRunnable!!, HOLD_THRESHOLD_MS)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -771,6 +804,10 @@ class BubbleService : Service() {
                             // release. (Recording is now started only via
                             // the deferredSingleTapAction timer in ACTION_UP.)
                             timerHandler.removeCallbacks(deferredSingleTapAction)
+                            // Cancel pending hold-mode trigger — user is
+                            // moving the bubble, not holding to record.
+                            holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
+                            holdStartRunnable = null
                             // Reset the double-tap window — a drag is not a tap.
                             lastTapTime = 0L
                         }
@@ -867,6 +904,19 @@ class BubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    // Cancel any pending hold-mode trigger regardless of
+                    // release path — once the finger is up, hold detection
+                    // is moot whether or not it had fired yet.
+                    holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
+                    holdStartRunnable = null
+                    // Hold-to-record release: stop and process. Bypass the
+                    // tap/double-tap toggle since the user already held to
+                    // start; release is the natural stop.
+                    if (holdModeActive) {
+                        holdModeActive = false
+                        if (isRecording) stopAndProcess()
+                        return@setOnTouchListener true
+                    }
                     // Phase 7 step 43 — skip-on-tap: an active onboarding demo
                     // is short-circuited by any tap, so users who don't want
                     // the tour aren't held hostage to it.
@@ -915,28 +965,7 @@ class BubbleService : Service() {
                             if (menuView != null) {
                                 dismissMenu()
                             } else {
-                                // Snap bubble to a clearly visible spot so the user
-                                // sees BOTH the bubble and the menu it anchors. Animates
-                                // from drop point to (centered, ~220dp from top of screen).
-                                val view = bubbleView
-                                if (view != null) {
-                                    val targetX = (resources.displayMetrics.widthPixels - view.width) / 2
-                                    val targetY = (340 * dp).toInt()
-                                    val startX = params.x
-                                    val startY = params.y
-                                    val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-                                        duration = 220
-                                        interpolator = android.view.animation.DecelerateInterpolator(1.6f)
-                                        addUpdateListener { a ->
-                                            val t = a.animatedValue as Float
-                                            params.x = (startX + (targetX - startX) * t).toInt()
-                                            params.y = (startY + (targetY - startY) * t).toInt()
-                                            try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
-                                            updateMenuPositionFromBubble()
-                                        }
-                                    }
-                                    anim.start()
-                                }
+                                snapBubbleForMenuOpen()
                                 showMenu()
                             }
                             return@setOnTouchListener true
@@ -1075,9 +1104,16 @@ class BubbleService : Service() {
                                     )
                                 )
                             } catch (_: Exception) {}
-                            // Double-tap action: toggle the bubble menu
-                            // (drag-to-top still works as the alternative).
-                            if (menuView != null) dismissMenu() else showMenu()
+                            // Double-tap action: toggle the bubble menu.
+                            // Same canonical snap as the drag-to-top path
+                            // so menu/tail orientation is identical on both
+                            // open paths.
+                            if (menuView != null) {
+                                dismissMenu()
+                            } else {
+                                snapBubbleForMenuOpen()
+                                showMenu()
+                            }
                         } else {
                             // First tap — schedule single-tap action with
                             // a 300 ms deferred runnable. A second tap
@@ -1086,6 +1122,18 @@ class BubbleService : Service() {
                             timerHandler.removeCallbacks(deferredSingleTapAction)
                             timerHandler.postDelayed(deferredSingleTapAction, DOUBLE_TAP_TIMEOUT)
                         }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    // System pulled the gesture (focus stolen, etc.). Clean
+                    // up hold-mode bookkeeping so we don't leave the bubble
+                    // in a half-recorded state.
+                    holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
+                    holdStartRunnable = null
+                    if (holdModeActive) {
+                        holdModeActive = false
+                        if (isRecording) stopAndProcess()
                     }
                     true
                 }
@@ -1519,26 +1567,16 @@ class BubbleService : Service() {
         //     - true → cloud whisper-1 (audio leaves device).
         //   L2/L3 stays on whisperLocalEngine when ready, falls back to cloud
         //   gpt-4o-transcribe via AudioRecorder when not.
-        // AudioRecorder fires when ANY of the cloud paths above will run,
-        // OR when layer >= 2 regardless of local-engine readiness — the
-        // multi-pass clarifier (L2+) needs the recorded WAV after
-        // reconstruction completes, even when whisper-tiny handled the
-        // primary transcription on-device. Without this, multi-pass has
-        // nothing to feed and the clarifier silently produces zero flags.
+        // AudioRecorder fires when ANY of the cloud paths above will run.
         val isL4 = WimApp.layer() >= 4
         val l1Cloud = WimApp.l1CloudAsr()
         val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
         val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
-        if ((isL4 || l1NeedsCloud || WimApp.layer() >= 2) && WimApp.apiKey().isNotBlank()) {
+        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
-                val purpose = when {
-                    isL4 || l1NeedsCloud -> "cloud-ASR"
-                    wantLocalLive -> "multi-pass clarifier"
-                    else -> "cloud-ASR fallback"
-                }
-                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for $purpose")
+                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for cloud-ASR fallback")
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -1698,30 +1736,6 @@ class BubbleService : Service() {
         // LIVE toggle is off. Subsequent stages overwrite this.
         showPipelineStage("⏳ Transcribing", "Sending audio to Whisper")
 
-        // If the local engine handled the primary transcription, use its
-        // text — DO NOT also re-transcribe via cloud Whisper. The WAV
-        // captured by AudioRecorder is held for multi-pass clarifier to
-        // read after reconstruction. Without this guard, my Apr-30 fix to
-        // capture WAV at L2+ caused the cloud transcription path to run
-        // redundantly and 400-out on top of the local result.
-        val stopIsL4 = WimApp.layer() >= 4
-        val stopL1NeedsCloud = WimApp.l1CloudAsr() && WimApp.layer() < 2
-        val stopUsedLocal = (whisperLocalEngine?.isReady() == true) && !stopIsL4 && !stopL1NeedsCloud
-        if (stopUsedLocal) {
-            lastWhisperLowConf = emptyList()
-            timerHandler.postDelayed({
-                val onDeviceText = lastRawText.trim()
-                if (onDeviceText.isNotBlank()) {
-                    Log.i(TAG, "Local-engine primary; deferring cloud Whisper, holding WAV for multi-pass: $onDeviceText")
-                    processText(onDeviceText)
-                } else {
-                    Log.w(TAG, "Local engine produced no text; aborting")
-                    setBubbleIdle()
-                }
-            }, 400)
-            return
-        }
-
         if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
@@ -1734,7 +1748,13 @@ class BubbleService : Service() {
                         WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
                         else -> "gpt-4o-transcribe"
                     }
-                    val whisperResult = WhisperClient.transcribe(wavFile, patienceMode = WimApp.layer() >= 4, model = whisperModel)
+                    val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
+                val whisperResult = WhisperClient.transcribe(
+                    wavFile,
+                    patienceMode = WimApp.layer() >= 4,
+                    model = whisperModel,
+                    verboseSegments = !l1CloudFastPath,
+                )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
@@ -1998,13 +2018,6 @@ class BubbleService : Service() {
         applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
-            // Reset font size + shadow that the legacy clarifier ✓/✕
-            // flash bumps to 24sp. setTextSize / setShadowLayer are
-            // sticky on the TextView; without restoring canonical
-            // sizing here, IDLE renders at 24sp inside the 44dp knob
-            // on the next idle cycle and clips to "I-D".
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
-            setShadowLayer(0f, 0f, 0f, 0)
             // Per-theme IDLE color so the label has real contrast on each
             // bezel: cream-gold on gunmetal, deep espresso on bronze (the
             // palette's primaryText), dark gray on aluminum.
@@ -2073,30 +2086,6 @@ class BubbleService : Service() {
     /** Public alias so MainActivity can flip the listener off when the user
      *  toggles the hotword setting. */
     fun stopHotwordListenerPublic() = stopHotwordListener()
-
-    /**
-     * Fire the bubble demo script as a feature parade — same script the
-     * onboarding flow uses. Triggered by dev long-press on the Profile
-     * strip. Cancels any in-flight demo, then runs the multi-act
-     * presentation: tap-to-record, hold-to-record, reconstruction
-     * before-and-after, double-tap menu, layers, situations, hide/shake,
-     * clarifier preview, finale. ~50 seconds total. Tap the bubble at
-     * any time to skip ahead (handled by the existing skip-on-tap path).
-     */
-    fun runFeatureParade() {
-        // Make sure the bubble is visible — the demo writes to it.
-        if (bubbleView == null) showBubble()
-        activeDemoScript?.cancel()
-        activeDemoFinish?.invoke()
-        val finish: () -> Unit = {
-            activeDemoScript = null
-            activeDemoFinish = null
-            hideLiveTranscript()
-            setBubbleIdle()
-        }
-        activeDemoFinish = finish
-        activeDemoScript = BubbleDemoScript(finish).also { it.start() }
-    }
 
     /**
      * Show the patent-clean word-highlight overlay over the host app's
@@ -2911,6 +2900,39 @@ class BubbleService : Service() {
     }
 
     /**
+     * Snap the floating bubble to the canonical menu-anchor position
+     * (centered horizontally, 340dp from top) over 220ms. Called from
+     * BOTH menu-open paths — drag-to-top and double-tap — so the
+     * comment-bubble orientation, tail-on-bezel landing, and animation
+     * feel are identical regardless of how the user opens the menu.
+     * Caller invokes showMenu() right after; the per-frame
+     * updateMenuPositionFromBubble() call inside the animator keeps the
+     * menu's tail tip glued to the bezel as the bubble glides into place.
+     */
+    private fun snapBubbleForMenuOpen() {
+        val view = bubbleView ?: return
+        val params = bubbleParams ?: return
+        val dp = resources.displayMetrics.density
+        val targetX = (resources.displayMetrics.widthPixels - view.width) / 2
+        val targetY = (340 * dp).toInt()
+        val startX = params.x
+        val startY = params.y
+        if (startX == targetX && startY == targetY) return
+        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 220
+            interpolator = android.view.animation.DecelerateInterpolator(1.6f)
+            addUpdateListener { a ->
+                val t = a.animatedValue as Float
+                params.x = (startX + (targetX - startX) * t).toInt()
+                params.y = (startY + (targetY - startY) * t).toInt()
+                try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+                updateMenuPositionFromBubble()
+            }
+        }
+        anim.start()
+    }
+
+    /**
      * Reposition the menu so its downward-tail tip lands on the floating
      * bubble's top center. Called from showMenu() (initial), the bubble drag
      * MOVE handler, moveBubbleTo() (dock-pickup pipe), and the parkIntoDock
@@ -2959,9 +2981,7 @@ class BubbleService : Service() {
     private fun ensureTranscriptBar() {
         if (liveTextView != null) return
         val dp = resources.displayMetrics.density
-        // Bubble surface 15% wider — accommodates the 4-line layout
-        // (1 title row + 3 body rows) with the bumped font sizing.
-        val barWidthPx = (253 * dp).toInt()
+        val barWidthPx = (220 * dp).toInt()
         val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
         val styleFor = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
         val opaqueFill = (palette.fill or 0xFF000000.toInt())
@@ -2974,15 +2994,11 @@ class BubbleService : Service() {
         )
         val tv = TextView(this).apply {
             setTextColor(palette.primaryText)
-            // Font +10% — was 12sp.
-            textSize = 13.2f
+            textSize = 12f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (22 * dp).toInt())
-            // Locked at 4 lines globally — 1 for title, 3 for body. Same
-            // height for live-transcription, pipeline-stage, demo, and
-            // clarifier hint surfaces.
-            minLines = 4
-            maxLines = 4
+            minLines = 2
+            maxLines = 6
             ellipsize = android.text.TextUtils.TruncateAt.END
             text = ""
             layoutParams = android.widget.FrameLayout.LayoutParams(
@@ -3041,8 +3057,8 @@ class BubbleService : Service() {
         if (!enabled) return
         ensureTranscriptBar()
         // Restore growable mode for live partials (vs pipeline-stage's locked 3 lines)
-        liveTextView?.minLines = 4
-        liveTextView?.maxLines = 4
+        liveTextView?.minLines = 2
+        liveTextView?.maxLines = 6
         stopStagePulse()
         liveTextView?.text = "● Recording…"
     }
@@ -3051,19 +3067,26 @@ class BubbleService : Service() {
         liveTextView?.text = text
     }
 
-    // Pipeline-stage animation state — kept private so the renderer can poll
-    // them on each frame. Swapped on every showPipelineStage call.
+    // Pipeline-stage state — premium typewriter rendering. Title is
+    // static (no flickering glyph, no breathing alpha — those read as
+    // "epileptic" per operator). Body reveals char-by-char at 22ms/char.
+    // After body finishes typing, a single ▌ cursor blinks at 500ms cycle.
     private var stageLabel: String = ""
     private var stageDetail: String = ""
-    private val tapeReelFrames = arrayOf("◉", "⊚", "⊙", "⊚")
-    private var tapeReelIdx = 0
-    private val dotsFrames = arrayOf("", ".", "..", "...")
-    private var dotsIdx = 0
-    private var stageColorAlpha = 1f
-    private var stageColorAlphaDir = -1
+    private var typewriterIdx = 0
+    private var cursorVisible = true
     private val stageAnimHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val TYPEWRITER_INTERVAL_MS = 22L
+    private val CURSOR_BLINK_MS = 500L
 
     fun showPipelineStage(stage: String, detail: String) {
+        // L1 cloud (whisper-1 API) is the silent fast path. The bubble's
+        // own PROC color + bezel arc are enough feedback — narrating
+        // "Transcribing → Cleaning up → Cleaned" via the comment bubble
+        // adds no latency but reads as new slowness on a path the user
+        // expects to feel instant. Demo script overrides via activeDemoScript.
+        val isL1Cloud = WimApp.layer() < 2 && WimApp.l1CloudAsr()
+        if (isL1Cloud && activeDemoScript == null) return
         // Reuse the comment-bubble shaped transcript bar. Pipeline state lives
         // in the SAME surface as live partials. Locked to 3 lines so the bar
         // doesn't jump between transcribe/recon/falcon calls. Cross-fades on
@@ -3071,106 +3094,90 @@ class BubbleService : Service() {
         // breathing color on the stage label, typewriter dots after it.
         ensureTranscriptBar()
         val tv = liveTextView ?: return
-        tv.minLines = 4
-        tv.maxLines = 4
+        tv.minLines = 3
+        tv.maxLines = 3
         tv.ellipsize = android.text.TextUtils.TruncateAt.END
 
         stageLabel = stage
         stageDetail = detail
         startStageAnimations()
 
-        // Snap-render with a soft 80ms blend so the bar stays visible
-        // across step transitions. The earlier cross-fade dipped to 0.3
-        // alpha which made the bar look like it disappeared between
-        // demo steps — too aggressive.
-        tv.animate().cancel()
-        tv.alpha = 1f
-        renderStageFrame()
+        // Cross-fade: dim → settle → restore
+        tv.animate().alpha(0.3f).setDuration(110)
+            .withEndAction {
+                renderStageFrame()
+                tv.animate().alpha(1f).setDuration(180).start()
+            }.start()
     }
 
     private fun renderStageFrame() {
         val tv = liveTextView ?: return
-        val glyph = tapeReelFrames[tapeReelIdx]
-        val dots = dotsFrames[dotsIdx]
-        val labelAlpha = ((stageColorAlpha.coerceIn(0f, 1f)) * 255).toInt()
 
-        // Title in brand maroon, body text in black. Operator-specified
-        // visual hierarchy — gives the user a clear "headline + read this"
-        // read across all themes (bronze, aluminum, gunmetal). Glyph
-        // matches the title.
-        val maroonRgb = 0x00B55050
-        val blackColor = 0xFF000000.toInt()
-        val labelColor = (labelAlpha shl 24) or maroonRgb
+        // Theme-aware palette — bronze/aluminum have LIGHT fills (need dark
+        // text), gunmetal has DARK fill (needs cream-gold text). Single source
+        // of truth as the live-transcript surface.
+        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
+        val labelRgb = palette.primaryText and 0x00FFFFFF
+        val detailColor = palette.secondaryText
+        val labelColor = 0xFF000000.toInt() or labelRgb
+
+        // Body text reveals char-by-char per typewriterIdx. Trailing cursor
+        // is visible while typing OR blinking after body completes.
+        val typedBody = if (typewriterIdx >= stageDetail.length) stageDetail
+                        else stageDetail.substring(0, typewriterIdx)
+        val cursorChar = if (cursorVisible) "▌" else " "
 
         val styled = android.text.SpannableStringBuilder().apply {
-            append("$glyph  ")
-            setSpan(android.text.style.ForegroundColorSpan(0xFF000000.toInt() or maroonRgb),
-                0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            val stageStart = length
-            append("$stageLabel$dots")
+            val titleStart = length
+            append(stageLabel)
             setSpan(android.text.style.ForegroundColorSpan(labelColor),
-                stageStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                titleStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                stageStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                titleStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             append("\n")
             val detailStart = length
-            append(stageDetail)
-            // Body text 10% larger than before — was 0.85x of base; now
-            // matches the base size (1.0×). Operator-specified bump.
-            setSpan(android.text.style.RelativeSizeSpan(0.95f),
+            append(typedBody)
+            append(cursorChar)
+            setSpan(android.text.style.RelativeSizeSpan(0.85f),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.ForegroundColorSpan(blackColor),
+            setSpan(android.text.style.ForegroundColorSpan(detailColor),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         tv.text = styled
     }
 
-    // Three independent tickers driving the stage frame:
-    //   - tape reel rotates every 200ms
-    //   - typewriter dots advance every 400ms
-    //   - stage-label color breathes every 100ms (24 steps over 2.4s, sine-ish)
-    private val tapeReelTick = object : Runnable {
+    // Two tickers — typewriter advance (22ms/char while body still has
+    // un-revealed characters) and cursor blink (500ms toggle). Title is
+    // static. No glyph rotation, no breathing alpha — those read as
+    // "epileptic" per operator and added zero information.
+    private val typewriterTick = object : Runnable {
         override fun run() {
-            tapeReelIdx = (tapeReelIdx + 1) % tapeReelFrames.size
-            renderStageFrame()
-            stageAnimHandler.postDelayed(this, 200)
+            if (typewriterIdx < stageDetail.length) {
+                typewriterIdx += 1
+                renderStageFrame()
+                stageAnimHandler.postDelayed(this, TYPEWRITER_INTERVAL_MS)
+            }
         }
     }
-    private val dotsTick = object : Runnable {
+    private val cursorBlinkTick = object : Runnable {
         override fun run() {
-            dotsIdx = (dotsIdx + 1) % dotsFrames.size
+            cursorVisible = !cursorVisible
             renderStageFrame()
-            stageAnimHandler.postDelayed(this, 400)
-        }
-    }
-    private val breathTick = object : Runnable {
-        override fun run() {
-            stageColorAlpha += stageColorAlphaDir * 0.04f
-            if (stageColorAlpha <= 0.55f) { stageColorAlpha = 0.55f; stageColorAlphaDir = 1 }
-            else if (stageColorAlpha >= 1f) { stageColorAlpha = 1f; stageColorAlphaDir = -1 }
-            renderStageFrame()
-            stageAnimHandler.postDelayed(this, 100)
+            stageAnimHandler.postDelayed(this, CURSOR_BLINK_MS)
         }
     }
 
     private fun startStageAnimations() {
-        stopStagePulse()  // legacy — keep call sites that may still hit it
-        stageAnimHandler.removeCallbacks(tapeReelTick)
-        stageAnimHandler.removeCallbacks(dotsTick)
-        stageAnimHandler.removeCallbacks(breathTick)
-        tapeReelIdx = 0
-        dotsIdx = 0
-        stageColorAlpha = 1f
-        stageColorAlphaDir = -1
-        stageAnimHandler.postDelayed(tapeReelTick, 200)
-        stageAnimHandler.postDelayed(dotsTick, 400)
-        stageAnimHandler.postDelayed(breathTick, 100)
+        stopStagePulse()
+        typewriterIdx = 0
+        cursorVisible = true
+        stageAnimHandler.postDelayed(typewriterTick, TYPEWRITER_INTERVAL_MS)
+        stageAnimHandler.postDelayed(cursorBlinkTick, CURSOR_BLINK_MS)
     }
 
     private fun stopStagePulse() {
-        stageAnimHandler.removeCallbacks(tapeReelTick)
-        stageAnimHandler.removeCallbacks(dotsTick)
-        stageAnimHandler.removeCallbacks(breathTick)
+        stageAnimHandler.removeCallbacks(typewriterTick)
+        stageAnimHandler.removeCallbacks(cursorBlinkTick)
     }
 
     private fun hideLiveTranscript() {
@@ -3184,9 +3191,6 @@ class BubbleService : Service() {
         TranscriptBarController.unbind()
     }
 
-    /** Public alias so the demo script can drive arc lighting. */
-    fun setStageArcPublic(stage: Int) = setStageArc(stage)
-
     /**
      * Drive the bezel's stage arc — 0=Transcribing, 1=Reconstructing,
      * 2=Verifying (Falcon), 3=Injecting. -1 resets to all dim.
@@ -3195,16 +3199,45 @@ class BubbleService : Service() {
      */
     private fun setStageArc(stage: Int) {
         val arc = bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc) ?: return
+        // Per-theme arc color so all four quadrants read as "quarter
+        // separation" on every bezel. Bronze + aluminum need DARK arcs
+        // (deep maroon pops on warm metallics + brushed silver). Gunmetal
+        // needs LIGHT arcs (cream-gold on dark steel). Refresh on every
+        // call so a theme swap mid-session updates the arcs immediately.
+        val arcColor = when (WimApp.bubbleTheme()) {
+            "gunmetal" -> 0xFFC8B48A.toInt()
+            "aluminum" -> 0xFF7A1F1F.toInt()
+            else -> 0xFF7A1F1F.toInt()
+        }
+        arc.setArcColor(arcColor)
         if (stage < 0) {
             arc.reset()
             return
         }
-        // Map theme to a complementary arc color (warm cream-gold reads on
-        // all three bezels). Using the bubble's secondary text palette
-        // keeps consistency with the comment-bubble surface.
-        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
-        arc.setArcColor(palette.secondaryText)
         arc.setActiveStage(stage)
+    }
+
+    /** Public wrapper for BubbleDemoScript to drive the stage arc. */
+    fun setStageArcPublic(stage: Int) = setStageArc(stage)
+
+    /**
+     * Replay the bubble's demo parade. Bound to long-press on footer
+     * Profile in MainActivity. Idempotent — no-op if a demo is already
+     * running. Same finish callback as the onboarding entry path so the
+     * end state is identical.
+     */
+    fun runFeatureParade() {
+        if (activeDemoScript != null) return
+        if (bubbleView == null) showBubble()
+        val finish: () -> Unit = {
+            activeDemoScript = null
+            activeDemoFinish = null
+            removeOnboardingOverlay()
+            showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
+            timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
+        }
+        activeDemoFinish = finish
+        activeDemoScript = BubbleDemoScript(finish).also { it.start() }
     }
 
     private fun setBubbleProcessing() {

@@ -159,12 +159,6 @@ object ReconstructClient {
             if (profileL1.isNotBlank() && profileL1 != "en") {
                 profile.put("profile_l1", profileL1)
             }
-            // Accent rendering mode — "polish" (normalize, default) or "keep"
-            // (preserve speaker's voice). Backend reads this to pick the L1
-            // pack injection framing. Only meaningful when profile_l1 is set;
-            // backend safely ignores it for native speakers.
-            val accentMode = WimApp.prefs.getString("accent_mode", "polish") ?: "polish"
-            if (accentMode == "keep") profile.put("accent_mode", accentMode)
             if (profile.length() > 0) put("profile", profile)
 
             // Whisper confidence signals (match Lavrentiy behavior at all paid layers)

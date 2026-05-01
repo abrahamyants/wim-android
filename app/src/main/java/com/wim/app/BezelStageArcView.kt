@@ -38,7 +38,7 @@ class BezelStageArcView @JvmOverloads constructor(
         private const val ARC_SWEEP_DEG = 78f      // 80° wide minus 1° padding each side
         private const val ARC_GAP_DEG = 12f         // visual gap between stages
         private const val STAGE_FADE_MS = 220L
-        private const val DIM_ALPHA = 0x3C            // 23% — visible but recessed
+        private const val DIM_ALPHA = 0x66            // 40% — clear quarter-separation on every bezel
         private const val BRIGHT_ALPHA = 0xFF
     }
 

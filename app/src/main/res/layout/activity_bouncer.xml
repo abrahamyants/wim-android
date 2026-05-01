@@ -32,7 +32,7 @@
                     android:id="@+id/bouncerLogo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WiM"
+                    android:text="@string/app_short_name"
                     android:textColor="@color/section_header"
                     android:textSize="48sp"
                     android:gravity="center" />
@@ -40,7 +40,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WHAT I MEANT"
+                    android:text="@string/bouncer_title_full"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp"
                     android:letterSpacing="0.3"
@@ -57,7 +57,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Before the bubble can launch, WiM needs a few permissions."
+                    android:text="@string/bouncer_intro"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:gravity="center"
@@ -96,7 +96,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Overlay"
+                            android:text="@string/perm_overlay"
                             android:textColor="@color/text_dim"
                             android:textSize="13sp"
                             android:letterSpacing="0.04" />
@@ -104,7 +104,7 @@
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
-                            android:text="  draw over apps"
+                            android:text="@string/perm_overlay_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -112,7 +112,7 @@
                             android:id="@+id/permOverlayTap"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TAP"
+                            android:text="@string/bouncer_tap"
                             android:textColor="@color/chip_value"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -145,14 +145,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Accessibility"
+                                android:text="@string/perm_accessibility"
                                 android:textColor="@color/text_dim"
                                 android:textSize="13sp"
                                 android:letterSpacing="0.04" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Installed Apps → What I Meant → Allow"
+                                android:text="@string/bouncer_perm_accessibility_subtitle"
                                 android:textColor="@color/copper_gold"
                                 android:textSize="9sp"
                                 android:fontFamily="monospace" />
@@ -161,7 +161,7 @@
                             android:id="@+id/permAccessibilityTap"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TAP"
+                            android:text="@string/bouncer_tap"
                             android:textColor="@color/chip_value"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -189,7 +189,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Microphone"
+                            android:text="@string/perm_microphone"
                             android:textColor="@color/text_dim"
                             android:textSize="13sp"
                             android:letterSpacing="0.04" />
@@ -197,7 +197,7 @@
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
-                            android:text="  voice recording"
+                            android:text="@string/perm_microphone_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -205,7 +205,7 @@
                             android:id="@+id/permMicTap"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TAP"
+                            android:text="@string/bouncer_tap"
                             android:textColor="@color/chip_value"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -233,7 +233,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Battery"
+                            android:text="@string/perm_battery"
                             android:textColor="@color/text_dim"
                             android:textSize="13sp"
                             android:letterSpacing="0.04" />
@@ -241,7 +241,7 @@
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
-                            android:text="  stay alive"
+                            android:text="@string/bouncer_perm_battery_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -249,7 +249,7 @@
                             android:id="@+id/permBatteryTap"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TAP"
+                            android:text="@string/bouncer_tap"
                             android:textColor="@color/chip_value"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -276,7 +276,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Notifications"
+                            android:text="@string/perm_notifications"
                             android:textColor="@color/text_dim"
                             android:textSize="13sp"
                             android:letterSpacing="0.04" />
@@ -284,7 +284,7 @@
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
-                            android:text="  foreground service"
+                            android:text="@string/perm_notifications_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -292,7 +292,7 @@
                             android:id="@+id/permNotificationsTap"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TAP"
+                            android:text="@string/bouncer_tap"
                             android:textColor="@color/chip_value"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -311,7 +311,7 @@
                         android:id="@+id/bouncerPageIndicator"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="slide 1 / 6"
+                        android:text="@string/bouncer_slide_1_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -319,7 +319,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="+ onboarding exercise"
+                        android:text="@string/bouncer_onboarding_exercise"
                         android:textColor="@color/text_dim"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -340,7 +340,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Choose your setup"
+                    android:text="@string/bouncer_choose_setup"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -365,7 +365,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Free"
+                        android:text="@string/bouncer_free"
                         android:textColor="@color/section_header"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -373,7 +373,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="On-device transcription. Cleans up fillers and disfluencies. Always free, works offline."
+                        android:text="@string/bouncer_free_desc"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -390,7 +390,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Upgrade"
+                        android:text="@string/bouncer_upgrade"
                         android:textColor="@color/section_header"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -398,7 +398,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="AI reconstruction rewrites your speech with the right tone. Learns your vocabulary. Full speech disfluency support."
+                        android:text="@string/bouncer_upgrade_desc"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -413,7 +413,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="slide 2 / 6"
+                        android:text="@string/bouncer_slide_2_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -421,7 +421,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="+ onboarding exercise"
+                        android:text="@string/bouncer_onboarding_exercise"
                         android:textColor="@color/text_dim"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -442,7 +442,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="How will you use WiM most?"
+                    android:text="@string/bouncer_use_most"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -467,7 +467,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Work"
+                        android:text="@string/profile_use_work"
                         android:textColor="@color/section_header"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -475,7 +475,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Professional tone. Business clarity. Emails, Slack, meetings."
+                        android:text="@string/bouncer_use_work_desc"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -492,7 +492,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Personal"
+                        android:text="@string/bouncer_use_personal"
                         android:textColor="@color/section_header"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -500,7 +500,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Casual tone. Natural rhythm. Texts, social, everyday."
+                        android:text="@string/bouncer_use_personal_desc"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -518,7 +518,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Both"
+                        android:text="@string/profile_use_both"
                         android:textColor="@color/section_header"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -526,7 +526,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WiM adapts automatically. Professional for work apps, casual everywhere else."
+                        android:text="@string/bouncer_use_both_desc"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -541,7 +541,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="slide 3 / 6"
+                        android:text="@string/bouncer_slide_3_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -549,7 +549,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="next: meet the bubble"
+                        android:text="@string/bouncer_next_meet_bubble"
                         android:textColor="@color/copper_gold"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -570,7 +570,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Meet the bubble"
+                    android:text="@string/bouncer_meet_bubble"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -586,7 +586,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="The floating knob lives on top of every app. It's your voice assistant — always one tap away."
+                    android:text="@string/bouncer_bubble_intro"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:gravity="center"
@@ -615,13 +615,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Tap"
+                            android:text="@string/bouncer_gesture_tap"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="record / stop"
+                            android:text="@string/bouncer_gesture_tap_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -639,13 +639,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Hold"
+                            android:text="@string/bouncer_gesture_hold"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="record while held"
+                            android:text="@string/bouncer_gesture_hold_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -663,13 +663,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Double-tap"
+                            android:text="@string/bouncer_gesture_doubletap"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="settings menu"
+                            android:text="@string/bouncer_gesture_doubletap_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -687,13 +687,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Drag"
+                            android:text="@string/bouncer_gesture_drag"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="move anywhere"
+                            android:text="@string/bouncer_gesture_drag_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -711,13 +711,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Fling to bottom"
+                            android:text="@string/bouncer_gesture_fling"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="dismiss"
+                            android:text="@string/bouncer_gesture_fling_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -734,13 +734,13 @@
                         <TextView
                             android:layout_width="110dp"
                             android:layout_height="wrap_content"
-                            android:text="Shake phone 2x"
+                            android:text="@string/bouncer_gesture_shake"
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="bring it back"
+                            android:text="@string/bouncer_gesture_shake_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
                             android:fontFamily="monospace" />
@@ -762,7 +762,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Next"
+                            android:text="@string/bouncer_next"
                             android:textColor="@color/section_header"
                             android:textSize="15sp"
                             android:textStyle="bold"
@@ -773,7 +773,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="slide 4 / 6"
+                    android:text="@string/bouncer_slide_4_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:fontFamily="monospace"
@@ -794,7 +794,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="What you say vs. what arrives"
+                    android:text="@string/bouncer_recon_title"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -818,7 +818,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="You say:"
+                        android:text="@string/bouncer_recon_you_say"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -826,7 +826,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="yeah so um can you like send me the report I need it for uh the meeting tomorrow I think"
+                        android:text="@string/bouncer_recon_before"
                         android:textColor="@color/chip_value"
                         android:textSize="13sp"
                         android:fontFamily="monospace"
@@ -853,7 +853,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="What arrives:"
+                        android:text="@string/bouncer_recon_arrives"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -861,7 +861,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Could you please send me the report? I need it for tomorrow's meeting."
+                        android:text="@string/bouncer_recon_after"
                         android:textColor="@color/green_active"
                         android:textSize="13sp"
                         android:fontFamily="monospace"
@@ -871,7 +871,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Speech disfluencies reconstructed. Tone applied. Text lands in whatever app you're typing in."
+                    android:text="@string/bouncer_recon_caption"
                     android:textColor="@color/text_dim"
                     android:textSize="12sp"
                     android:gravity="center"
@@ -895,7 +895,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Next"
+                            android:text="@string/bouncer_next"
                             android:textColor="@color/section_header"
                             android:textSize="15sp"
                             android:textStyle="bold"
@@ -906,7 +906,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="slide 5 / 6"
+                    android:text="@string/bouncer_slide_5_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:fontFamily="monospace"
@@ -927,7 +927,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Send straight from the bubble"
+                    android:text="@string/bouncer_send_title"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -943,7 +943,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="After your text lands, the bubble turns green for 3 seconds. Tap it to send. Wait or tap outside to cancel.\n\nWiM never sends without your tap. The text goes through the app you have open — Messages, Gmail, WhatsApp, etc. — using your existing signed-in session."
+                    android:text="@string/bouncer_send_body"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:gravity="start"
@@ -978,7 +978,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="I understand. Tapping the green bubble sends my text."
+                        android:text="@string/bouncer_send_ack"
                         android:textColor="@color/section_header"
                         android:textSize="13sp"
                         android:lineSpacingExtra="2dp" />
@@ -1000,7 +1000,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Next"
+                            android:text="@string/bouncer_next"
                             android:textColor="@color/section_header"
                             android:textSize="15sp"
                             android:textStyle="bold"
@@ -1011,7 +1011,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="slide 6 / 7"
+                    android:text="@string/bouncer_slide_6_7"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:fontFamily="monospace"
@@ -1033,7 +1033,7 @@
                     android:id="@+id/finalLogo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WiM"
+                    android:text="@string/app_short_name"
                     android:textColor="@color/section_header"
                     android:textSize="48sp"
                     android:gravity="center"
@@ -1048,7 +1048,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="You're all set."
+                    android:text="@string/bouncer_all_set"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
                     android:fontFamily="sans-serif-light"
@@ -1058,7 +1058,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="WiM is ready to go.\n\nThe floating bubble will appear on your screen. Open any app, tap the bubble, and speak."
+                    android:text="@string/bouncer_ready_body"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:gravity="center"
@@ -1077,7 +1077,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Launch the app"
+                        android:text="@string/bouncer_launch_app"
                         android:textColor="@color/section_header"
                         android:textSize="16sp"
                         android:textStyle="bold"
@@ -1087,7 +1087,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="slide 6 / 6"
+                    android:text="@string/bouncer_slide_6_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:fontFamily="monospace"

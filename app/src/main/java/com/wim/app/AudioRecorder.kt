@@ -123,8 +123,10 @@ class AudioRecorder(private val context: Context) {
      */
     fun stop(): File? {
         isRecording = false
-        // Let capture thread finish current buffer write
-        Thread.sleep(50)
+        // Capture loop checks isRecording before every fos.write and the
+        // write itself is wrapped in try/catch — there is no race here.
+        // The previous 50ms Thread.sleep was dead time on every stop and
+        // was the L1-side of the perceived "slow whisper" complaint.
         val fos = outputStream
         outputStream = null
         try { fos?.flush(); fos?.close() } catch (_: Exception) {}

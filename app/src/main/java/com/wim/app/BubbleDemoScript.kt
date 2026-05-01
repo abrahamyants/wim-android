@@ -43,16 +43,48 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
         t += 4000
         step(t) { bubble.showPipelineStage("😏  MY SHOW", "Mr. DNA can sit this one out. Let me show you around.") }
 
-        // ── Act 2: Tap to record ──
+        // ── Act 2: The full record cycle (tap → tap → inject → send) ──
+        // Walks every visible state: REC, PROC, INJECTED, SEND-ready.
+        // Previous version skipped PROC and SEND entirely with an "okay
+        // tap to record, that's it" — operator flagged that as misleading,
+        // there are real moving parts the user needs to see.
         t += 4500
         step(t) {
-            bubble.showPipelineStage("👆  TAP", "Tap me once to start recording. That's it.")
+            bubble.showPipelineStage("①  TAP TO START", "One tap and I'm listening. Speak naturally.")
             simulateRecordingPulse(bubble)
         }
 
         t += 4000
         step(t) {
-            bubble.showPipelineStage("👆  TAP AGAIN", "Tap a second time to stop. I'll clean it up.")
+            bubble.showPipelineStage("②  TAP TO STOP", "Second tap stops the recording — I take over.")
+            simulateProcessingPulse(bubble)
+        }
+
+        t += 3500
+        step(t) {
+            bubble.showPipelineStage("③  CLEANED + PASTED", "I drop the clean text into whatever app you're in.")
+            simulateSendReadyPulse(bubble)
+        }
+
+        t += 3500
+        step(t) {
+            bubble.showPipelineStage("④  SEND READY", "I'm green for 3.5 seconds — one more tap and it sends. Otherwise I let go.")
+            // Stay in SEND-ready state for a beat so the user sees the
+            // countdown moment they'll actually encounter in real use.
+        }
+
+        t += 3500
+        step(t) {
+            bubble.showPipelineStage("⑤  OR PRESS + HOLD", "Short message? Hold me down — release to send. No tap-tap needed.")
+            simulateRecordingPulse(bubble)
+        }
+
+        t += 4000
+        step(t) {
+            // Clear the SEND-ready tint we applied via backgroundTintList so
+            // the next idle render doesn't keep the green wash baked in.
+            bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+                ?.backgroundTintList = null
             bubble.setBubbleIdlePublic()
         }
 
@@ -155,23 +187,10 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
             bubble.showPipelineStage("④  DISFLUENCY", "Full clinical mode. Built for non-fluent speech.")
         }
 
-        // ── Act 7: Situations ──
-        t += 4500
-        step(t) {
-            bubble.showPipelineStage("🎚  SITUATION", "Heading into a tough call? Let me know.")
-        }
-
-        t += 4000
-        step(t) {
-            bubble.showPipelineStage("🔥  HIGH STRESS", "I go full power. DAF on. Layer four.")
-        }
-
-        t += 4000
-        step(t) {
-            bubble.showPipelineStage("📖  READING", "Light touch. You're already fluent here.")
-        }
-
-        // ── Act 8: Hide and summon ──
+        // ── Act 7: Hide and summon ──
+        // (removed: stutter-specific "high stress / DAF / layer four" step
+        //  per operator — DAF is clinical, doesn't belong in the consumer
+        //  onboarding intro.)
         t += 4500
         step(t) {
             bubble.showPipelineStage("⬇  DRAG ME DOWN", "Drag me to the bottom edge. I'll hide.")
@@ -187,15 +206,12 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
             bubble.showPipelineStage("🎙  HEY WIM", "Or say \"Hey WiM\" — hands-free trigger.")
         }
 
-        // ── Act 9: Clarifier preview ──
+        // ── Act 9: Clarifier preview — show, don't tell ──
+        // Skip the "sometimes I'm not 100% sure" preface; the live trigger
+        // below demonstrates the behavior directly.
         t += 4500
         step(t) {
-            bubble.showPipelineStage("❓  ASK FIRST", "Sometimes I'm not 100% sure of a word.")
-        }
-
-        t += 4000
-        step(t) {
-            bubble.showPipelineStage("👀  WATCH", "I'll flag up to three. Tap left/right or hold to skip.")
+            bubble.showPipelineStage("👀  WATCH ME ASK", "Tap the right side to accept, left to reject, hold to skip.")
             // 3-flag synthetic clarifier — exercises the per-word cycle
             // (claim 11(c) max-3 cap), the clarifier-entry arc flash,
             // and the "↓ hold = skip" hint that teaches long-press defer.
@@ -278,12 +294,40 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
     }
 
     private fun simulateRecordingPulse(bubble: BubbleService) {
-        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-            ?.setBackgroundResource(R.drawable.bubble_bg_recording)
+        // Preserve the user's bezel theme (bronze/aluminum/gunmetal) — only
+        // the inner knob and label change in real recording, so the demo
+        // must match. Setting bubble_bg_recording on the bezel was leaking
+        // a generic silver state regardless of the user's chosen color.
         bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "REC"
+            setTextColor(0xFFFFD580.toInt())
+        }
+    }
+
+    private fun simulateProcessingPulse(bubble: BubbleService) {
+        // Theme bezel preserved; inner knob switches to processing drawable.
+        // Mirrors what setBubbleProcessing() does for real cloud round-trips.
+        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
+        bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "PROC"
+            setTextColor(0xFFFFD580.toInt())
+        }
+    }
+
+    private fun simulateSendReadyPulse(bubble: BubbleService) {
+        // Send-ready: green knob, gold label. Visually distinct so the user
+        // recognizes "the bubble has just paid me a question — tap to send."
+        // Green via tinted active drawable; falls back to active if tint
+        // isn't honored on older Android versions.
+        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
+            setBackgroundResource(R.drawable.bubble_inner_active)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF40A065.toInt())
+        }
+        bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "SEND"
             setTextColor(0xFFFFD580.toInt())
         }
     }

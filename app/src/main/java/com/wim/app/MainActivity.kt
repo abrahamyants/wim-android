@@ -74,6 +74,7 @@ class MainActivity : AppCompatActivity() {
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
     private var layerSubRowPrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var l1SourcePrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
 
@@ -345,6 +346,17 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
             paintL1Source()
         }
+        // Cross-surface sync: when the bubble-menu's L1 source picker
+        // (or any other write site) changes the pref, repaint here.
+        // Without this, the dashboard sub-row goes stale until activity
+        // is recreated. Stored in a class field so the listener isn't GC'd.
+        val l1Listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "l1_cloud_asr") {
+                runOnUiThread { paintL1Source() }
+            }
+        }
+        WimApp.prefs.registerOnSharedPreferenceChangeListener(l1Listener)
+        l1SourcePrefListener = l1Listener
 
         fun setLayer1SubRowVisible(visible: Boolean) {
             val row = l1SubRow ?: return
@@ -530,6 +542,47 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("tips_enabled", checked).apply()
         }
 
+        // ── App language picker (UI + Whisper ASR language) ──
+        // Five-way: English, Español, Русский, Português, Français. Picking
+        // non-English forces the cloud ASR path (whisper-tiny.en is English-only).
+        val appLanguageRow = findViewById<View>(R.id.appLanguageRow)
+        val appLanguageValue = findViewById<TextView>(R.id.appLanguageValue)
+        fun appLanguageDisplay(code: String) = when (code) {
+            "es" -> getString(R.string.lang_spanish)
+            "ru" -> getString(R.string.lang_russian)
+            "pt" -> getString(R.string.lang_portuguese)
+            "fr" -> getString(R.string.lang_french)
+            else -> getString(R.string.lang_english)
+        }
+        appLanguageValue?.text = appLanguageDisplay(WimApp.appLanguage())
+        appLanguageRow?.setOnClickListener {
+            val codes = arrayOf("en", "es", "ru", "pt", "fr")
+            val labels = arrayOf(
+                getString(R.string.lang_english),
+                getString(R.string.lang_spanish),
+                getString(R.string.lang_russian),
+                getString(R.string.lang_portuguese),
+                getString(R.string.lang_french),
+            )
+            val current = codes.indexOf(WimApp.appLanguage()).coerceAtLeast(0)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.lang_picker_dialog_title)
+                .setSingleChoiceItems(labels, current) { dialog, which ->
+                    val picked = codes[which]
+                    if (picked != WimApp.appLanguage()) {
+                        WimApp.setAppLanguage(picked)
+                        // Force cloud ASR when locale leaves English
+                        WimApp.prefs.edit()
+                            .putBoolean("l1_cloud_asr", picked != "en")
+                            .apply()
+                    }
+                    dialog.dismiss()
+                    recreate()
+                }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .show()
+        }
+
         // ── Languages ──
         val primaryLang = findViewById<EditText>(R.id.primaryLangInput)
         val secondaryLang = findViewById<EditText>(R.id.secondaryLangInput)
@@ -558,15 +611,36 @@ class MainActivity : AppCompatActivity() {
             if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
         }
 
-        // ── Bubble color picker (replaces the dock + shake toggle) ──
+        // ── Bubble color picker — tap row → dialog with 3 full-size
+        //    bubble previews. One tap = commit + close. Beats inline 36dp
+        //    swatches that read as anonymous shapes at glance. ──
         val applyTheme: (String) -> Unit = { theme ->
             WimApp.prefs.edit().putString("bubble_theme", theme).apply()
             BubbleService.instance?.refreshBubbleTheme()
-            android.widget.Toast.makeText(this, "Bubble color: $theme", android.widget.Toast.LENGTH_SHORT).show()
+            findViewById<TextView>(R.id.bubbleColorValue)?.text =
+                theme.replaceFirstChar { it.uppercaseChar() }
         }
-        findViewById<android.view.View>(R.id.colorBronze)?.setOnClickListener { applyTheme("bronze") }
-        findViewById<android.view.View>(R.id.colorAluminum)?.setOnClickListener { applyTheme("aluminum") }
-        findViewById<android.view.View>(R.id.colorGunmetal)?.setOnClickListener { applyTheme("gunmetal") }
+        // Initial label sync
+        findViewById<TextView>(R.id.bubbleColorValue)?.text =
+            (WimApp.prefs.getString("bubble_theme", "bronze") ?: "bronze")
+                .replaceFirstChar { it.uppercaseChar() }
+        findViewById<View>(R.id.bubbleColorRow)?.setOnClickListener {
+            val pickerView = layoutInflater.inflate(R.layout.bubble_color_picker, null)
+            val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(pickerView)
+                .create()
+            dialog.window?.setBackgroundDrawableResource(R.drawable.card_bg)
+            pickerView.findViewById<View>(R.id.pickerBronze)?.setOnClickListener {
+                applyTheme("bronze"); dialog.dismiss()
+            }
+            pickerView.findViewById<View>(R.id.pickerAluminum)?.setOnClickListener {
+                applyTheme("aluminum"); dialog.dismiss()
+            }
+            pickerView.findViewById<View>(R.id.pickerGunmetal)?.setOnClickListener {
+                applyTheme("gunmetal"); dialog.dismiss()
+            }
+            dialog.show()
+        }
 
         // ── Cloud backup toggle ──
         val cloudToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.cloudBackupToggle)
@@ -726,7 +800,28 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Capture pre-resume state of Permissions overlay so we can detect
+        // a "user just came back from system Settings with all green" event.
+        val permissionsOverlayWasOpen = sectionOverlay != null &&
+            sectionContentView?.id == R.id.contentPermissions
         updatePermissionStatus()
+        // Auto-dismiss Permissions overlay if all 5 are now green — saves
+        // the user a manual X-tap after returning from Android Settings.
+        // Per operator: "third back from accessibility should land in the
+        // app, not on the permissions screen — it's all green anyway."
+        if (permissionsOverlayWasOpen) {
+            val overlayOk = Settings.canDrawOverlays(this)
+            val accessibilityOk = isAccessibilityEnabled()
+            val micOk = AudioRecorder(this).hasPermission()
+            val pm = getSystemService(android.os.PowerManager::class.java)
+            val batteryOk = pm.isIgnoringBatteryOptimizations(packageName)
+            val notifOk = android.os.Build.VERSION.SDK_INT < 33 ||
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (overlayOk && accessibilityOk && micOk && batteryOk && notifOk) {
+                dismissSectionOverlay()
+            }
+        }
         loadSessions()
         // Re-publish dock slot screen rects so BubbleService's drag-snap is
         // aware while MainActivity is visible. Done after the next layout
@@ -775,6 +870,14 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         sessionUpdateUnsub?.invoke()
         consoleUnsub?.invoke()
+        // Unregister pref listeners — Android keeps SharedPreferences
+        // alive across activity death; without this the leaked listener
+        // would re-fire against a destroyed activity on the next pref
+        // write from another surface.
+        l1SourcePrefListener?.let { WimApp.prefs.unregisterOnSharedPreferenceChangeListener(it) }
+        l1SourcePrefListener = null
+        layerSubRowPrefListener?.let { WimApp.prefs.unregisterOnSharedPreferenceChangeListener(it) }
+        layerSubRowPrefListener = null
     }
 
     private fun loadConsole() {

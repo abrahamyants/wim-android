@@ -74,11 +74,18 @@ class WimApp : Application() {
          *   high   → 0.40 (catches more, occasional false positive)
          */
         fun clarifierSensitivityThreshold(): Double = when (
-            prefs.getString("clarifier_sensitivity", "medium") ?: "medium"
+            prefs.getString("clarifier_sensitivity", "off") ?: "off"
         ) {
-            "low" -> 0.70
+            // Word-confidence scores from MultiPassDecoder are in 0..1, so
+            // a threshold ≥ 1.0 means nothing ever crosses → Clarifier.evaluate
+            // returns empty flags every call → no clarifier cycle ever fires.
+            // Reverse by changing default back to "medium" or letting the
+            // user pick a non-"off" sensitivity in settings.
+            "off" -> 999.0
+            "low" -> 0.85    // bumped from 0.70 — fires only on truly weird inputs
+            "medium" -> 0.55
             "high" -> 0.40
-            else -> 0.55
+            else -> 999.0    // unknown pref → safe default = disabled
         }
 
         /**
@@ -132,6 +139,37 @@ class WimApp : Application() {
          * in settings wipes this back to 0.
          */
         fun autoSendDisclaimerCount(): Int = prefs.getInt("auto_send_disclaimer_count", 0)
+
+        /**
+         * UI/spoken-language code: "en", "es", or "ru". Drives both the
+         * Android resource locale (via AppCompatDelegate.setApplicationLocales)
+         * and the OpenAI Whisper API `language` parameter. Non-English locales
+         * force the cloud ASR path because whisper-tiny.en is English-only.
+         */
+        fun appLanguage(): String = prefs.getString("app_language", "en") ?: "en"
+
+        fun setAppLanguage(code: String) {
+            // BCP-47 mapping for the Android SpeechRecognizer fallback path.
+            val bcp47 = when (code) {
+                "es" -> "es-ES"
+                "ru" -> "ru-RU"
+                "pt" -> "pt-BR"
+                "fr" -> "fr-FR"
+                else -> "en-US"
+            }
+            prefs.edit()
+                .putString("app_language", code)
+                .putString("primary_language", bcp47)
+                .apply()
+            val locales = androidx.core.os.LocaleListCompat.forLanguageTags(code)
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
+
+        /**
+         * True when the active locale requires cloud Whisper (multilingual)
+         * because the on-device whisper-tiny.en model can't decode it.
+         */
+        fun localeRequiresCloudAsr(): Boolean = appLanguage() != "en"
 
         fun profile(): ProfileManager = profileManager
     }
@@ -193,6 +231,13 @@ class WimApp : Application() {
         // Restore user's dark mode preference, default to system
         val nightMode = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         AppCompatDelegate.setDefaultNightMode(nightMode)
+
+        // Restore user's app language preference (UI + spoken language).
+        // Default "en" — first-launch users get English. Picker in Settings
+        // calls setAppLanguage() to switch.
+        AppCompatDelegate.setApplicationLocales(
+            androidx.core.os.LocaleListCompat.forLanguageTags(appLanguage())
+        )
 
         // Sync profile from Firestore when signed in (pulls Lavrentiy desktop learning)
         FirebaseAuth.getInstance().addAuthStateListener { auth ->

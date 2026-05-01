@@ -1,7 +1,233 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- ═══ App identity ═══ -->
     <string name="app_name">What I Meant</string>
+    <string name="app_short_name">WiM</string>
     <string name="accessibility_description">WiM detects text fields to show the voice dictation bubble and pastes transcribed text into the active field.</string>
+
+    <!-- ═══ Top-level navigation tiles ═══ -->
+    <string name="tile_layer">LAYER</string>
+    <string name="tile_tone">TONE</string>
+    <string name="tile_permissions">PERMISSIONS</string>
+    <string name="tile_settings">SETTINGS</string>
+    <string name="tile_guide">GUIDE</string>
+    <string name="tile_sessions">SESSIONS</string>
+    <string name="tile_profile">PROFILE</string>
+
+    <!-- ═══ Layer section ═══ -->
+    <string name="layer_1_title">I.  Transcribe</string>
+    <string name="layer_1_subtitle">  On-device</string>
+    <string name="layer_2_title">II.  Reconstruct</string>
+    <string name="layer_2_subtitle">  LLM + tone</string>
+    <string name="layer_3_title">III.  Profile</string>
+    <string name="layer_3_subtitle">  + vocabulary</string>
+    <string name="layer_4_title">IV.  Speech Disfluency</string>
+    <string name="layer_4_subtitle">  + disfluency</string>
+    <string name="layer_local">LOCAL</string>
+    <string name="layer_api">API</string>
+
+    <!-- ═══ Tone section ═══ -->
+    <string name="tone_casual">Casual</string>
+    <string name="tone_casual_subtitle">  natural rhythm</string>
+    <string name="tone_professional">Professional</string>
+    <string name="tone_professional_subtitle">  business clarity</string>
+
+    <!-- ═══ Permissions section ═══ -->
+    <string name="perm_overlay">Overlay</string>
+    <string name="perm_overlay_subtitle">  draw over apps</string>
+    <string name="perm_accessibility">Accessibility</string>
+    <string name="perm_accessibility_subtitle">  text injection</string>
+    <string name="perm_microphone">Microphone</string>
+    <string name="perm_microphone_subtitle">  voice recording</string>
+    <string name="perm_battery">Battery</string>
+    <string name="perm_battery_subtitle">  keep alive in background</string>
+    <string name="perm_notifications">Notifications</string>
+    <string name="perm_notifications_subtitle">  foreground service</string>
+
+    <!-- ═══ DAF (Delayed Auditory Feedback) ═══ -->
+    <string name="daf_label">DAF</string>
+    <string name="daf_full">  Delayed Auditory Feedback</string>
+    <string name="daf_delay">Delay</string>
+
+    <!-- ═══ Settings ═══ -->
+    <string name="settings_opacity">Opacity</string>
+    <string name="settings_size">Size</string>
+    <string name="settings_speak">SPEAK</string>
+    <string name="settings_tts_hint">Type to speak aloud…</string>
+    <string name="settings_tips">Tips &amp; reminders</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_app_language">App language</string>
+    <string name="settings_lang_primary_hint">en-US</string>
+    <string name="settings_lang_secondary_hint">2nd lang</string>
+    <string name="settings_voice_shortcuts">Voice shortcuts</string>
+    <string name="settings_voice_shortcuts_hint">my email=george@example.com\nmy phone=555-1234</string>
+    <string name="settings_bubble_color">Bubble color</string>
+    <string name="settings_cloud_backup">Cloud backup sessions</string>
+    <string name="settings_auto_send">Auto-send (tap green bubble)</string>
+    <string name="settings_auto_send_apps">Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send.</string>
+    <string name="settings_accent">Accent</string>
+    <string name="settings_accent_subtitle">don\'t auto-correct</string>
+    <string name="settings_shake">Shake to summon/hide</string>
+    <string name="settings_hotword">“Hey WiM” hotword</string>
+    <string name="settings_dark_mode">Dark mode</string>
+
+    <!-- ═══ Sessions section ═══ -->
+    <string name="sessions_search_hint">Search sessions…</string>
+    <string name="sessions_export">EXPORT</string>
+    <string name="sessions_console">CONSOLE</string>
+    <string name="sessions_today">Today</string>
+    <string name="sessions_empty_log">No log entries yet. Record something.</string>
+    <string name="sessions_empty">No sessions yet</string>
+
+    <!-- ═══ Bubble pick section ═══ -->
+    <string name="bubble_pick_yours">PICK YOUR BUBBLE</string>
+    <string name="bubble_status_idle">IDLE</string>
+    <string name="bubble_status_setup">SETUP</string>
+    <string name="bubble_status_out">OUT</string>
+    <string name="bubble_action_copy">COPY</string>
+    <string name="bubble_action_share">SHARE</string>
+
+    <!-- ═══ Bubble overlay menu (bubble_menu.xml) ═══ -->
+    <string name="bubble_menu_live">LIVE</string>
+    <string name="bubble_menu_layer">LAYER</string>
+    <string name="bubble_menu_transcription">TRANSCRIPTION</string>
+    <string name="bubble_menu_local">LOCAL</string>
+    <string name="bubble_menu_cloud">CLOUD</string>
+    <string name="bubble_menu_reconstruction">RECONSTRUCTION</string>
+    <string name="bubble_menu_disfluency">DISFLUENCY</string>
+    <string name="bubble_menu_color">COLOR</string>
+    <string name="bubble_menu_settings">SETTINGS</string>
+    <string name="bubble_menu_op">OP</string>
+    <string name="bubble_menu_sz">SZ</string>
+    <string name="bubble_color_bronze">Bronze</string>
+    <string name="bubble_color_silver">Silver</string>
+    <string name="bubble_color_gunmetal">Gunmetal</string>
+
+    <!-- ═══ Profile overlay ═══ -->
+    <string name="profile_title">USER PROFILE</string>
+    <string name="profile_mostly_use_for">MOSTLY USE FOR</string>
+    <string name="profile_use_work">Work</string>
+    <string name="profile_use_life">Life</string>
+    <string name="profile_use_both">Both</string>
+    <string name="profile_use_w">W</string>
+    <string name="profile_use_l">L</string>
+    <string name="profile_use_5050">50/50</string>
+    <string name="profile_industry">INDUSTRY</string>
+    <string name="profile_ind_finance">Finance</string>
+    <string name="profile_ind_legal">Legal</string>
+    <string name="profile_ind_medical">Medical</string>
+    <string name="profile_ind_tech">Tech</string>
+    <string name="profile_ind_sales">Sales</string>
+    <string name="profile_ind_trades">Trades</string>
+    <string name="profile_ind_food">Food</string>
+    <string name="profile_ind_education">Education</string>
+    <string name="profile_ind_other">Other</string>
+    <string name="profile_industry_hint">Type your industry</string>
+    <string name="profile_native_english">NATIVE ENGLISH SPEAKER?</string>
+    <string name="profile_yes">Yes</string>
+    <string name="profile_no">No</string>
+    <string name="profile_first_language">FIRST LANGUAGE</string>
+    <string name="profile_l1_russian">Russian</string>
+    <string name="profile_l1_spanish">Spanish</string>
+    <string name="profile_l1_mandarin">Mandarin</string>
+    <string name="profile_l1_other">Other (more packs coming)</string>
+    <string name="profile_work_hours">WORK HOURS</string>
+    <string name="profile_hours_morning">Morning</string>
+    <string name="profile_hours_day">9–5</string>
+    <string name="profile_hours_evening">Evening</string>
+    <string name="profile_hours_flexible">Flexible</string>
+    <string name="profile_vocabulary">VOCABULARY</string>
+    <string name="profile_vocab_hint">add a word</string>
+    <string name="profile_add">ADD</string>
+    <string name="profile_corrections">CORRECTIONS</string>
+    <string name="profile_correction_wrong_hint">wrong</string>
+    <string name="profile_correction_right_hint">right</string>
+    <string name="profile_trigger_words">TRIGGER WORDS</string>
+    <string name="profile_trigger_hint">add a trigger word</string>
+    <string name="profile_clarifier_sensitivity">CLARIFIER SENSITIVITY</string>
+    <string name="profile_sens_low">LOW</string>
+    <string name="profile_sens_medium">MEDIUM</string>
+    <string name="profile_sens_high">HIGH</string>
+    <string name="profile_no_flag_apps">NO-FLAG APPS</string>
+    <string name="profile_add_current_app">ADD CURRENT APP</string>
+    <string name="profile_your_data">YOUR DATA</string>
+    <string name="profile_data_synced">Everything above is synced to your account when signed in.</string>
+    <string name="profile_export_data">Export my data</string>
+    <string name="profile_delete_data">Delete all my cloud data</string>
+
+    <!-- ═══ Sign-in ═══ -->
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out">Sign out</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="your_profile">Your profile</string>
+
+    <!-- ═══ Onboarding bouncer (activity_bouncer.xml) ═══ -->
+    <string name="bouncer_title_short">WiM</string>
+    <string name="bouncer_title_full">WHAT I MEANT</string>
+    <string name="bouncer_intro">Before the bubble can launch, WiM needs a few permissions.</string>
+    <string name="bouncer_tap">TAP</string>
+    <string name="bouncer_alert">!</string>
+    <string name="bouncer_perm_overlay">Overlay</string>
+    <string name="bouncer_perm_overlay_subtitle">  draw over apps</string>
+    <string name="bouncer_perm_accessibility">Accessibility</string>
+    <string name="bouncer_perm_accessibility_subtitle">Installed Apps → What I Meant → Allow</string>
+    <string name="bouncer_perm_microphone">Microphone</string>
+    <string name="bouncer_perm_microphone_subtitle">  voice recording</string>
+    <string name="bouncer_perm_battery">Battery</string>
+    <string name="bouncer_perm_battery_subtitle">  stay alive</string>
+    <string name="bouncer_perm_notifications">Notifications</string>
+    <string name="bouncer_perm_notifications_subtitle">  foreground service</string>
+    <string name="bouncer_slide_1_6">slide 1 / 6</string>
+    <string name="bouncer_slide_2_6">slide 2 / 6</string>
+    <string name="bouncer_slide_3_6">slide 3 / 6</string>
+    <string name="bouncer_slide_4_6">slide 4 / 6</string>
+    <string name="bouncer_slide_5_6">slide 5 / 6</string>
+    <string name="bouncer_slide_6_7">slide 6 / 7</string>
+    <string name="bouncer_slide_6_6">slide 6 / 6</string>
+    <string name="bouncer_onboarding_exercise">+ onboarding exercise</string>
+    <string name="bouncer_choose_setup">Choose your setup</string>
+    <string name="bouncer_free">Free</string>
+    <string name="bouncer_free_desc">On-device transcription. Cleans up fillers and disfluencies. Always free, works offline.</string>
+    <string name="bouncer_upgrade">Upgrade</string>
+    <string name="bouncer_upgrade_desc">AI reconstruction rewrites your speech with the right tone. Learns your vocabulary. Full speech disfluency support.</string>
+    <string name="bouncer_use_most">How will you use WiM most?</string>
+    <string name="bouncer_use_work">Work</string>
+    <string name="bouncer_use_work_desc">Professional tone. Business clarity. Emails, Slack, meetings.</string>
+    <string name="bouncer_use_personal">Personal</string>
+    <string name="bouncer_use_personal_desc">Casual tone. Natural rhythm. Texts, social, everyday.</string>
+    <string name="bouncer_use_both">Both</string>
+    <string name="bouncer_use_both_desc">WiM adapts automatically. Professional for work apps, casual everywhere else.</string>
+    <string name="bouncer_next_meet_bubble">next: meet the bubble</string>
+    <string name="bouncer_meet_bubble">Meet the bubble</string>
+    <string name="bouncer_bubble_intro">The floating knob lives on top of every app. It\'s your voice assistant — always one tap away.</string>
+    <string name="bouncer_gesture_tap">Tap</string>
+    <string name="bouncer_gesture_tap_action">record / stop</string>
+    <string name="bouncer_gesture_hold">Hold</string>
+    <string name="bouncer_gesture_hold_action">record while held</string>
+    <string name="bouncer_gesture_doubletap">Double-tap</string>
+    <string name="bouncer_gesture_doubletap_action">settings menu</string>
+    <string name="bouncer_gesture_drag">Drag</string>
+    <string name="bouncer_gesture_drag_action">move anywhere</string>
+    <string name="bouncer_gesture_fling">Fling to bottom</string>
+    <string name="bouncer_gesture_fling_action">dismiss</string>
+    <string name="bouncer_gesture_shake">Shake phone 2x</string>
+    <string name="bouncer_gesture_shake_action">bring it back</string>
+    <string name="bouncer_recon_title">What you say vs. what arrives</string>
+    <string name="bouncer_recon_you_say">You say:</string>
+    <string name="bouncer_recon_arrives">What arrives:</string>
+    <string name="bouncer_recon_before">yeah so um can you like send me the report I need it for uh the meeting tomorrow I think</string>
+    <string name="bouncer_recon_after">Could you please send me the report? I need it for tomorrow\'s meeting.</string>
+    <string name="bouncer_recon_caption">Speech disfluencies reconstructed. Tone applied. Text lands in whatever app you\'re typing in.</string>
+    <string name="bouncer_send_title">Send straight from the bubble</string>
+    <string name="bouncer_send_body">After your text lands, the bubble turns green for 3 seconds. Tap it to send. Wait or tap outside to cancel.\n\nWiM never sends without your tap. The text goes through the app you have open — Messages, Gmail, WhatsApp, etc. — using your existing signed-in session.</string>
+    <string name="bouncer_send_ack">I understand. Tapping the green bubble sends my text.</string>
+    <string name="bouncer_next">Next</string>
+    <string name="bouncer_all_set">You\'re all set.</string>
+    <string name="bouncer_ready_body">WiM is ready to go.\n\nThe floating bubble will appear on your screen. Open any app, tap the bubble, and speak.</string>
+    <string name="bouncer_launch_app">Launch the app</string>
+
+    <!-- ═══ Toasts ═══ -->
     <string name="toast_listening">Listening…</string>
     <string name="toast_reconstructing">Reconstructing…</string>
     <string name="toast_enable_accessibility">Enable accessibility service to paste text</string>
@@ -9,4 +235,45 @@
     <string name="toast_field_lost">Text field lost — tap a field and try again</string>
     <string name="toast_copied">Copied</string>
     <string name="toast_redo_warning">Recording similar content repeatedly — take a breath</string>
+    <string name="toast_signed_in_as">Signed in as %1$s</string>
+    <string name="toast_signed_out">Signed out</string>
+    <string name="toast_sign_in_failed">Sign-in failed</string>
+    <string name="toast_no_sessions_to_export">No sessions to export</string>
+    <string name="toast_bubble_not_running">Bubble service isn\'t running yet</string>
+    <string name="toast_overlay_already_granted">Overlay already granted</string>
+    <string name="toast_grant_overlay_first">Grant overlay permission first</string>
+    <string name="toast_open_battery_settings">Open battery settings manually</string>
+    <string name="toast_notifications_already_granted">Notifications already granted</string>
+    <string name="toast_export_failed">Export failed — check your connection</string>
+    <string name="toast_cloud_data_deleted">Cloud data deleted. Signed out.</string>
+    <string name="toast_delete_failed">Delete failed — try again</string>
+    <string name="toast_switch_to_app">Switch to the app you want to add, then come back and tap again</string>
+    <string name="toast_already_added">Already added</string>
+    <string name="toast_added_pkg">Added: %1$s</string>
+    <string name="toast_bubble_summoned">Bubble summoned</string>
+    <string name="toast_notifications_disabled">WiM notifications are disabled — you won\'t be able to recall the bubble. Please re-enable in Settings.</string>
+    <string name="toast_bubble_color">Bubble color: %1$s</string>
+    <string name="toast_invite">Invite</string>
+
+    <!-- ═══ Confirm dialogs ═══ -->
+    <string name="dialog_delete_cloud_title">Delete all cloud data?</string>
+    <string name="dialog_delete_cloud_message">This permanently deletes your synced profile from our servers. It cannot be undone. Your local data stays on this device until you uninstall. You will be signed out.</string>
+    <string name="dialog_delete">Delete</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <!-- ═══ Operations Manual / Guide ═══ -->
+    <string name="guide_title">Guide</string>
+    <string name="guide_subtitle">OPERATIONS MANUAL</string>
+
+    <!-- ═══ Language picker (NEW for i18n) ═══ -->
+    <string name="lang_picker_title">App language</string>
+    <string name="lang_picker_subtitle">menu + spoken language</string>
+    <string name="lang_english">English</string>
+    <string name="lang_spanish">Español</string>
+    <string name="lang_russian">Русский</string>
+    <string name="lang_portuguese">Português</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_picker_dialog_title">Choose language</string>
+    <string name="lang_picker_restart_note">App will restart to apply</string>
+
 </resources>

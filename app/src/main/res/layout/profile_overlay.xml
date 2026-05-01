@@ -29,7 +29,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="USER PROFILE"
+                android:text="@string/profile_title"
                 android:textColor="@color/copper_gold"
                 android:textSize="16sp"
                 android:fontFamily="monospace"
@@ -64,7 +64,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MOSTLY USE FOR"
+                    android:text="@string/profile_mostly_use_for"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -84,7 +84,7 @@
                         android:layout_weight="1"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Work"
+                        android:text="@string/profile_use_work"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -97,7 +97,7 @@
                         android:layout_weight="1"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Life"
+                        android:text="@string/profile_use_life"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -110,7 +110,7 @@
                         android:layout_weight="1"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Both"
+                        android:text="@string/profile_use_both"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -161,7 +161,7 @@
                         android:id="@+id/balanceValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="50/50"
+                        android:text="@string/profile_use_5050"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -172,7 +172,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="INDUSTRY"
+                    android:text="@string/profile_industry"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -193,9 +193,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Row 2 -->
@@ -205,9 +205,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Row 3 -->
@@ -216,9 +216,9 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Other industry text input — hidden until "Other" is tapped -->
@@ -226,7 +226,7 @@
                         android:id="@+id/indOtherInput"
                         android:layout_width="match_parent"
                         android:layout_height="40dp"
-                        android:hint="Type your industry"
+                        android:hint="@string/profile_industry_hint"
                         android:textColor="@color/text_primary"
                         android:textColorHint="@color/text_secondary"
                         android:textSize="12sp"
@@ -247,7 +247,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="NATIVE ENGLISH SPEAKER?"
+                    android:text="@string/profile_native_english"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -261,8 +261,8 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="8dp">
 
-                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="No" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_no" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -276,7 +276,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="FIRST LANGUAGE"
+                        android:text="@string/profile_first_language"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -289,9 +289,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <TextView
@@ -299,7 +299,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="36dp"
                         android:gravity="center"
-                        android:text="Other (more packs coming)"
+                        android:text="@string/profile_l1_other"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -310,7 +310,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WORK HOURS"
+                    android:text="@string/profile_work_hours"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -323,17 +323,17 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="20dp">
 
-                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="9–5" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="Flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_day" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
                 <!-- VOCABULARY — wrap-flow chips, all visible (no scroll) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VOCABULARY"
+                    android:text="@string/profile_vocabulary"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -359,7 +359,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="36dp"
-                        android:hint="add a word"
+                        android:hint="@string/profile_vocab_hint"
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
@@ -374,7 +374,7 @@
                         android:id="@+id/vocabAddBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
-                        android:text="ADD"
+                        android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -392,7 +392,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="CORRECTIONS"
+                    android:text="@string/profile_corrections"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -418,7 +418,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="36dp"
-                        android:hint="wrong"
+                        android:hint="@string/profile_correction_wrong_hint"
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
@@ -443,7 +443,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="36dp"
-                        android:hint="right"
+                        android:hint="@string/profile_correction_right_hint"
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
@@ -458,7 +458,7 @@
                         android:id="@+id/corrAddBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
-                        android:text="ADD"
+                        android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -476,7 +476,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TRIGGER WORDS"
+                    android:text="@string/profile_trigger_words"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -502,7 +502,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="36dp"
-                        android:hint="add a trigger word"
+                        android:hint="@string/profile_trigger_hint"
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
@@ -517,7 +517,7 @@
                         android:id="@+id/triggerAddBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
-                        android:text="ADD"
+                        android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -535,7 +535,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="CLARIFIER SENSITIVITY"
+                    android:text="@string/profile_clarifier_sensitivity"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -553,7 +553,7 @@
                         android:layout_weight="1"
                         android:layout_height="36dp"
                         android:gravity="center"
-                        android:text="LOW"
+                        android:text="@string/profile_sens_low"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -565,7 +565,7 @@
                         android:layout_weight="1"
                         android:layout_height="36dp"
                         android:gravity="center"
-                        android:text="MEDIUM"
+                        android:text="@string/profile_sens_medium"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -577,7 +577,7 @@
                         android:layout_weight="1"
                         android:layout_height="36dp"
                         android:gravity="center"
-                        android:text="HIGH"
+                        android:text="@string/profile_sens_high"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -591,7 +591,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="NO-FLAG APPS"
+                    android:text="@string/profile_no_flag_apps"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -616,7 +616,7 @@
                         android:id="@+id/clarBlacklistAddBtn"
                         android:layout_width="match_parent"
                         android:layout_height="36dp"
-                        android:text="ADD CURRENT APP"
+                        android:text="@string/profile_add_current_app"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
                         android:fontFamily="monospace"
@@ -639,7 +639,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="YOUR DATA"
+                        android:text="@string/profile_your_data"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -649,7 +649,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Everything above is synced to your account when signed in."
+                        android:text="@string/profile_data_synced"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
@@ -660,7 +660,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Export my data"
+                        android:text="@string/profile_export_data"
                         android:textColor="@color/text_bright"
                         android:textSize="12sp"
                         android:fontFamily="monospace"
@@ -672,7 +672,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="40dp"
                         android:gravity="center"
-                        android:text="Delete all my cloud data"
+                        android:text="@string/profile_delete_data"
                         android:textColor="@color/red_hot"
                         android:textSize="12sp"
                         android:fontFamily="monospace"

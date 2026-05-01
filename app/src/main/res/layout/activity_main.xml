@@ -61,7 +61,7 @@
                         android:id="@+id/wimLogoSummon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WiM"
+                        android:text="@string/app_short_name"
                         android:textColor="#FFC8B48A"
                         android:textSize="26sp"
                         android:fontFamily="@font/limelight"
@@ -74,7 +74,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="What I Meant"
+                        android:text="@string/app_name"
                         android:textColor="#BBFFFFFF"
                         android:textSize="10sp"
                         android:letterSpacing="0.12"
@@ -232,10 +232,10 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LAYER"
+                        android:text="@string/tile_layer"
                         android:textColor="@color/section_header"
                         android:textSize="14sp"
-                        android:fontFamily="sans-serif-light"
+                        android:fontFamily="@font/limelight"
                         android:textStyle="bold"
                         android:textAllCaps="true"
                         android:letterSpacing="0.12" />
@@ -247,7 +247,7 @@
                         android:text="—"
                         android:textColor="@color/text_bright"
                         android:textSize="13sp"
-                        android:fontFamily="sans-serif-light"
+                        android:fontFamily="@font/limelight"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
@@ -282,10 +282,10 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="TONE"
+                        android:text="@string/tile_tone"
                         android:textColor="@color/section_header"
                         android:textSize="14sp"
-                        android:fontFamily="sans-serif-light"
+                        android:fontFamily="@font/limelight"
                         android:textStyle="bold"
                         android:textAllCaps="true"
                         android:letterSpacing="0.12" />
@@ -297,7 +297,7 @@
                         android:text="—"
                         android:textColor="@color/text_bright"
                         android:textSize="13sp"
-                        android:fontFamily="sans-serif-light"
+                        android:fontFamily="@font/limelight"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
@@ -335,10 +335,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="start|center_vertical"
-                    android:text="PERMISSIONS"
+                    android:text="@string/tile_permissions"
                     android:textColor="@color/copper_gold"
                     android:textSize="14sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:textStyle="bold"
                     android:textAllCaps="true"
                     android:letterSpacing="0.12" />
@@ -370,10 +370,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="start|center_vertical"
-                    android:text="SETTINGS"
+                    android:text="@string/tile_settings"
                     android:textColor="@color/copper_gold"
                     android:textSize="14sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:textStyle="bold"
                     android:textAllCaps="true"
                     android:letterSpacing="0.12" />
@@ -396,12 +396,12 @@
             android:id="@+id/headerLayer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="LAYER"
+            android:text="@string/tile_layer"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
@@ -442,14 +442,14 @@
                     android:id="@+id/layer1Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="I.  Transcribe"
+                    android:text="@string/layer_1_title"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  On-device"
+                    android:text="@string/layer_1_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -477,7 +477,7 @@
                     android:layout_weight="1"
                     android:layout_height="28dp"
                     android:gravity="center"
-                    android:text="LOCAL"
+                    android:text="@string/layer_local"
                     android:textColor="@color/text_dim"
                     android:textSize="10sp"
                     android:fontFamily="@font/josefin_sans"
@@ -491,7 +491,7 @@
                     android:layout_weight="1"
                     android:layout_height="28dp"
                     android:gravity="center"
-                    android:text="API"
+                    android:text="@string/layer_api"
                     android:textColor="@color/text_dim"
                     android:textSize="10sp"
                     android:fontFamily="@font/josefin_sans"
@@ -516,14 +516,14 @@
                     android:id="@+id/layer2Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="II.  Reconstruct"
+                    android:text="@string/layer_2_title"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  LLM + tone"
+                    android:text="@string/layer_2_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -544,14 +544,14 @@
                     android:id="@+id/layer3Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="III.  Profile"
+                    android:text="@string/layer_3_title"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  + vocabulary"
+                    android:text="@string/layer_3_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -572,14 +572,14 @@
                     android:id="@+id/layer4Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="IV.  Speech Disfluency"
+                    android:text="@string/layer_4_title"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  + disfluency"
+                    android:text="@string/layer_4_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -597,12 +597,12 @@
             android:id="@+id/headerTone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TONE"
+            android:text="@string/tile_tone"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
@@ -635,14 +635,14 @@
                     android:id="@+id/toneCasualLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Casual"
+                    android:text="@string/tone_casual"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  natural rhythm"
+                    android:text="@string/tone_casual_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -662,14 +662,14 @@
                     android:id="@+id/toneProfessionalLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Professional"
+                    android:text="@string/tone_professional"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  business clarity"
+                    android:text="@string/tone_professional_subtitle"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -695,12 +695,12 @@
             android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DAF"
+            android:text="@string/daf_label"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
@@ -737,14 +737,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DAF"
+                    android:text="@string/daf_label"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  Delayed Auditory Feedback"
+                    android:text="@string/daf_full"
                     android:textColor="@color/copper_gold"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -770,7 +770,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Delay"
+                android:text="@string/daf_delay"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
                 android:fontFamily="monospace"
@@ -811,12 +811,12 @@
             android:id="@+id/headerPermissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PERMISSIONS"
+            android:text="@string/tile_permissions"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
@@ -849,14 +849,14 @@
                 android:id="@+id/overlayPermLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Overlay"
+                android:text="@string/perm_overlay"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:letterSpacing="0.04" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  draw over apps"
+                android:text="@string/perm_overlay_subtitle"
                 android:textColor="@color/copper_gold"
                 android:textSize="11sp"
                 android:fontFamily="monospace" />
@@ -876,14 +876,14 @@
                 android:id="@+id/accessibilityPermLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Accessibility"
+                android:text="@string/perm_accessibility"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:letterSpacing="0.04" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  text injection"
+                android:text="@string/perm_accessibility_subtitle"
                 android:textColor="@color/copper_gold"
                 android:textSize="11sp"
                 android:fontFamily="monospace" />
@@ -903,14 +903,14 @@
                 android:id="@+id/micPermLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Microphone"
+                android:text="@string/perm_microphone"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:letterSpacing="0.04" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  voice recording"
+                android:text="@string/perm_microphone_subtitle"
                 android:textColor="@color/copper_gold"
                 android:textSize="11sp"
                 android:fontFamily="monospace" />
@@ -930,14 +930,14 @@
                 android:id="@+id/batteryPermLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Battery"
+                android:text="@string/perm_battery"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:letterSpacing="0.04" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  keep alive in background"
+                android:text="@string/perm_battery_subtitle"
                 android:textColor="@color/copper_gold"
                 android:textSize="11sp"
                 android:fontFamily="monospace" />
@@ -957,14 +957,14 @@
                 android:id="@+id/notifPermLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Notifications"
+                android:text="@string/perm_notifications"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:letterSpacing="0.04" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  foreground service"
+                android:text="@string/perm_notifications_subtitle"
                 android:textColor="@color/copper_gold"
                 android:textSize="11sp"
                 android:fontFamily="monospace" />
@@ -979,10 +979,10 @@
             android:id="@+id/headerSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SETTINGS"
+            android:text="@string/tile_settings"
             android:textColor="@color/section_header"
             android:textSize="14sp"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -1021,7 +1021,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Opacity"
+                    android:text="@string/settings_opacity"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -1068,7 +1068,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Size"
+                    android:text="@string/settings_size"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -1115,7 +1115,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:hint="Type to speak aloud..."
+                    android:hint="@string/settings_tts_hint"
                     android:textColor="@color/text_bright"
                     android:textColorHint="@color/text_secondary"
                     android:textSize="11sp"
@@ -1128,7 +1128,7 @@
                     android:id="@+id/ttsSpeak"
                     android:layout_width="wrap_content"
                     android:layout_height="30dp"
-                    android:text="SPEAK"
+                    android:text="@string/settings_speak"
                     android:textColor="@color/section_header"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -1153,7 +1153,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Tips &amp; reminders"
+                    android:text="@string/settings_tips"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -1163,6 +1163,62 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true" />
+            </LinearLayout>
+
+            <!-- App language picker (UI + spoken language) -->
+            <LinearLayout
+                android:id="@+id/appLanguageRow"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lang_picker_title"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lang_picker_subtitle"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/appLanguageValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lang_english"
+                    android:textColor="@color/section_header"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:paddingEnd="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
             <!-- Primary language -->
@@ -1179,7 +1235,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Language"
+                    android:text="@string/settings_language"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -1190,7 +1246,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:hint="en-US"
+                    android:hint="@string/settings_lang_primary_hint"
                     android:textColor="@color/text_bright"
                     android:textColorHint="@color/text_secondary"
                     android:textSize="11sp"
@@ -1215,7 +1271,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:hint="2nd lang"
+                    android:hint="@string/settings_lang_secondary_hint"
                     android:textColor="@color/text_bright"
                     android:textColorHint="@color/text_secondary"
                     android:textSize="11sp"
@@ -1237,7 +1293,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Voice shortcuts"
+                    android:text="@string/settings_voice_shortcuts"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -1247,7 +1303,7 @@
                     android:id="@+id/shortcutsInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="my email=george@example.com&#10;my phone=555-1234"
+                    android:hint="@string/settings_voice_shortcuts_hint"
                     android:textColor="@color/text_bright"
                     android:textColorHint="@color/text_secondary"
                     android:textSize="10sp"
@@ -1258,53 +1314,51 @@
                     android:maxLines="5" />
             </LinearLayout>
 
-            <!-- Bubble color row — replaces the dock + shake-to-hide toggle.
-                 Tap a swatch to switch bubble theme: bronze / aluminum / gunmetal. -->
+            <!-- Bubble color row — tap to open the picker dialog showing
+                 three full-size bubbles (bezel + knob). One tap = choose.
+                 The 3 inline 36dp swatches were too cramped to read; the
+                 full-size preview makes the difference between metals
+                 immediately legible per operator 2026-04-30. -->
             <LinearLayout
+                android:id="@+id/bubbleColorRow"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="40dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="2dp">
+                android:layout_marginBottom="2dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Bubble color"
+                    android:text="@string/settings_bubble_color"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
 
-                <FrameLayout
-                    android:id="@+id/colorBronze"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bg_idle"
-                    android:clickable="true"
-                    android:focusable="true" />
+                <TextView
+                    android:id="@+id/bubbleColorValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bronze"
+                    android:textColor="@color/section_header"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold" />
 
-                <FrameLayout
-                    android:id="@+id/colorAluminum"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bezel_aluminum"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <FrameLayout
-                    android:id="@+id/colorGunmetal"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bubble_bezel_gunmetal"
-                    android:clickable="true"
-                    android:focusable="true" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textColor="@color/section_header"
+                    android:textSize="16sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginStart="8dp" />
             </LinearLayout>
 
             <!-- Cloud backup toggle -->
@@ -1322,7 +1376,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Cloud backup sessions"
+                    android:text="@string/settings_cloud_backup"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -1356,7 +1410,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="Auto-send (tap green bubble)"
+                        android:text="@string/settings_auto_send"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace" />
@@ -1371,7 +1425,7 @@
                     android:id="@+id/autoSendHint"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send."
+                    android:text="@string/settings_auto_send_apps"
                     android:textColor="@color/text_dim"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
@@ -1402,7 +1456,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="Accent"
+                        android:text="@string/settings_accent"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="monospace" />
@@ -1416,7 +1470,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="don't auto-correct"
+                    android:text="@string/settings_accent_subtitle"
                     android:textColor="@color/text_dim"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
@@ -1438,7 +1492,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DAF"
+                    android:text="@string/daf_label"
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -1489,7 +1543,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Shake to summon/hide"
+                    android:text="@string/settings_shake"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
@@ -1516,7 +1570,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="“Hey WiM” hotword"
+                    android:text="@string/settings_hotword"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
@@ -1543,7 +1597,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Dark mode"
+                    android:text="@string/settings_dark_mode"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
@@ -1564,10 +1618,10 @@
             android:id="@+id/headerGuide"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="GUIDE"
+            android:text="@string/tile_guide"
             android:textColor="@color/section_header"
             android:textSize="14sp"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
@@ -1597,12 +1651,12 @@
             android:id="@+id/headerSessions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SESSIONS"
+            android:text="@string/tile_sessions"
             android:textColor="@color/section_header"
             android:textSize="14sp"
             android:textAllCaps="true"
             android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/limelight"
             android:elevation="4dp"
             android:textStyle="bold"
             android:background="@drawable/glass_panel_bg_pressable"
@@ -1620,45 +1674,6 @@
             android:background="@drawable/grille_pattern_bg"
             android:padding="4dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="34dp"
-                android:orientation="horizontal"
-                android:layout_marginBottom="6dp">
-
-            <EditText
-                android:id="@+id/sessionSearch"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="34dp"
-                android:hint="Search sessions..."
-                android:textColor="@color/text_bright"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:background="@drawable/card_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:inputType="text"
-                android:imeOptions="actionSearch"
-                android:maxLines="1" />
-
-            <TextView
-                android:id="@+id/exportBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:text="EXPORT"
-                android:textColor="@color/section_header"
-                android:textSize="9sp"
-                android:fontFamily="monospace"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:background="@drawable/card_bg" />
-
-            </LinearLayout>
-
             <!-- Console / Sessions toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1671,7 +1686,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:text="CONSOLE"
+                    android:text="@string/sessions_console"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -1684,7 +1699,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:text="SESSIONS"
+                    android:text="@string/tile_sessions"
                     android:textColor="@color/section_header"
                     android:textSize="10sp"
                     android:fontFamily="monospace"
@@ -1765,6 +1780,48 @@
 
             </FrameLayout>
 
+            <!-- Search + Export row — bottom of Sessions panel per operator
+                 (was at top, moved 2026-04-30 so the toggle and the cards
+                 read first; search is for after-the-fact lookups). -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal"
+                android:layout_marginTop="2dp">
+
+                <EditText
+                    android:id="@+id/sessionSearch"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="34dp"
+                    android:hint="@string/sessions_search_hint"
+                    android:textColor="@color/text_bright"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/exportBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:text="@string/sessions_export"
+                    android:textColor="@color/section_header"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:background="@drawable/card_bg" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
@@ -1785,7 +1842,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PICK YOUR BUBBLE"
+                android:text="@string/bubble_pick_yours"
                 android:textColor="@color/text_dim"
                 android:textSize="13sp"
                 android:fontFamily="monospace"
@@ -1829,7 +1886,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:text="IDLE"
+                            android:text="@string/bubble_status_idle"
                             android:textColor="#FF555560"
                             android:textSize="8sp"
                             android:fontFamily="monospace"
@@ -1870,7 +1927,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:text="IDLE"
+                            android:text="@string/bubble_status_idle"
                             android:textColor="#FF555560"
                             android:textSize="8sp"
                             android:fontFamily="monospace"
@@ -1911,7 +1968,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:text="IDLE"
+                            android:text="@string/bubble_status_idle"
                             android:textColor="#FFC8B48A"
                             android:textSize="8sp"
                             android:fontFamily="monospace"
@@ -1947,10 +2004,10 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="Your profile"
+                android:text="@string/your_profile"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
-                android:fontFamily="sans-serif-light"
+                android:fontFamily="@font/limelight"
                 android:letterSpacing="0.04" />
 
             <TextView
@@ -1997,10 +2054,10 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="36dp"
-                android:text="Sign in with Google"
+                android:text="@string/sign_in_google"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
-                android:fontFamily="sans-serif-light"
+                android:fontFamily="@font/limelight"
                 android:background="@android:color/transparent"
                 android:gravity="start|center_vertical"
                 android:textAllCaps="false"
@@ -2048,7 +2105,7 @@
                 android:id="@+id/signOutBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sign out"
+                android:text="@string/sign_out"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
                 android:fontFamily="monospace" />
@@ -2080,7 +2137,7 @@
                     android:id="@+id/privacyLink"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Privacy Policy"
+                    android:text="@string/privacy_policy"
                     android:textColor="#88FFFFFF"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
@@ -2094,7 +2151,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|start"
                 android:layout_marginStart="20dp"
-                android:text="PROFILE"
+                android:text="@string/tile_profile"
                 android:textColor="#FFC8B48A"
                 android:textSize="10sp"
                 android:fontFamily="monospace"
@@ -2110,7 +2167,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|end"
                 android:layout_marginEnd="20dp"
-                android:text="GUIDE"
+                android:text="@string/tile_guide"
                 android:textColor="#FFC8B48A"
                 android:textSize="10sp"
                 android:fontFamily="monospace"

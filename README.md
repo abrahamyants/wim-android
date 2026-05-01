@@ -3126,3 +3126,14 @@ strategy thread.
 Full evening-continuation detail (sections 10–24) in
 `SESSION_LOG_2026-04-30.md`.
 
+
+### 2026-04-30 late evening — 5-language UI
+
+- App ships in **EN / Español / Русский / Português / Français**. 239 strings extracted to `values/strings.xml`; full translations in `values-{es,ru,pt,fr}/strings.xml`. Language picker in Settings.
+- `WimApp.appLanguage()` + `setAppLanguage(code)` drive `AppCompatDelegate.setApplicationLocales()` AND sync `primary_language` BCP-47 atomically.
+- Non-English locale auto-flips `l1_cloud_asr=true` because local `whisper-tiny.en` is English-only. Cloud path uses OpenAI `whisper-1` (multilingual) with `language=es/ru/pt/fr`.
+- `WhisperClient.kt` + `BubbleService.kt:3660` updated to use `WimApp.appLanguage()` instead of hardcoded `"en"`.
+- Build + adb install verified. **Not pushed to GitHub** — concurrent-session safety, operator owns push.
+- Onboarding HTML + Operations Manual still English-only (deferred phase 2). L4 disfluency tracking degrades on non-English (English-tuned regex/phonetic matcher).
+
+Full detail in `SESSION_LOG_2026-04-30.md` section 25.

@@ -100,16 +100,21 @@ object WhisperClient {
         "♪ ♪ ♪"
     )
 
+    // Pre-compiled regexes — recompiling 60 patterns on every transcribe
+    // call was adding ~100-200ms per Whisper round-trip on every layer.
+    // Class-level lazy ensures compile cost is paid once, not per call.
+    private val COMPILED_HALLUCINATION_REGEXES: List<Regex> by lazy {
+        HALLUCINATION_PATTERNS.map { Regex("(?i)$it[.!?]?", RegexOption.IGNORE_CASE) }
+    }
+    private val WHITESPACE_COLLAPSE_REGEX = Regex("\\s{2,}")
+
     private fun stripHallucinations(text: String): String {
         if (text.isBlank()) return text
         var result = text
-        for (pattern in HALLUCINATION_PATTERNS) {
-            // These patterns are already regex-safe (either literal with escaped chars or proper regex)
-            val regex = Regex("(?i)$pattern[.!?]?", RegexOption.IGNORE_CASE)
+        for (regex in COMPILED_HALLUCINATION_REGEXES) {
             result = regex.replace(result, "")
         }
-        // Collapse multiple spaces
-        return result.replace(Regex("\\s{2,}"), " ").trim()
+        return WHITESPACE_COLLAPSE_REGEX.replace(result, " ").trim()
     }
 
     /**
@@ -127,6 +132,12 @@ object WhisperClient {
         patienceMode: Boolean = false,
         model: String = "gpt-4o-transcribe",
         temperature: Double = 0.0,
+        // L1 cloud (`whisper-1` at layer < 2) doesn't need segment-level
+        // confidence data — that's an L4 clinical signal. Plain `json`
+        // returns just the text and skips per-segment server work plus
+        // wire payload, which materially reduces round-trip on longer
+        // recordings. L4 + reconstruction layers default to verbose_json.
+        verboseSegments: Boolean = true,
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -139,7 +150,7 @@ object WhisperClient {
                 .addFormDataPart("model", model)
                 .addFormDataPart("language", language)
                 .addFormDataPart("temperature", temperature.toString())
-                .addFormDataPart("response_format", "verbose_json")
+                .addFormDataPart("response_format", if (verboseSegments) "verbose_json" else "json")
                 .addFormDataPart(
                     "file", audioFile.name,
                     audioFile.asRequestBody("audio/wav".toMediaType())

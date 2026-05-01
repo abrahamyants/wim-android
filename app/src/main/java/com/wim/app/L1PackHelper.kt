@@ -24,13 +24,9 @@ import org.json.JSONObject
  * Design parallel: `DomainPackHelper`. Same Pack/cache/loader/promptInjection
  * shape, different content domain.
  *
- * Polish/Keep mode shipped: `accent_mode` pref toggles between normalize
- * (polish) and preserve (keep) framings — same pack content, opposite
- * directive. Surfaced on the WiM dashboard ACCENT section and Lavrentiy
- * dashboard Enhancements section. This is the Design Justice surface —
- * agency-over-rendering instead of savior-design normalization.
- *
- * v2 TODO: per-pattern toggle (user opts in/out of individual markers).
+ * v2 TODO: per-pattern toggle (user opts in/out of individual markers) and
+ * normalize-vs-preserve mode (preserve = pack loaded but injected with a
+ * different framing that asks the model to keep patterns as authentic voice).
  *
  * v2 TODO (l1-onset): per-L1 onset weights for the L4 clinical layer.
  * Mandarin-L1 stutter onsets diverge from Russian-L1; currently both apps
@@ -110,20 +106,9 @@ object L1PackHelper {
      * Build the L1 prompt block to inject at L2/L3. Empty string when no pack
      * is active so callers can append unconditionally.
      *
-     * Reads `accent_mode` pref to pick framing:
-     *   "polish" (default) — normalize patterns toward written-English
-     *                        convention. Suited for boss / clients / strangers.
-     *   "keep"             — preserve patterns as authentic voice. Same pack
-     *                        loaded, opposite instruction. Suited for family /
-     *                        friends / casual contexts. This is the Design
-     *                        Justice surface — agency-over-rendering, not
-     *                        savior-design normalization.
-     *
-     * Both modes still tell the model the speaker's L1 explicitly so it can
-     * disambiguate transcription errors that depend on L1 phonology (e.g.
-     * "ship/sheep" for a Russian speaker). The DIFFERENCE is the directive:
-     * polish asks for normalization with stylistic carve-out, keep asks for
-     * preservation with verbatim-error carve-out.
+     * The block tells the model the speaker's L1 explicitly, lists each
+     * marker's prompt_hint with one verbatim example, and closes with a
+     * stylistic-choice carve-out so deliberate code-switching survives.
      */
     fun promptInjection(context: Context): String {
         val pack = activePack(context)
@@ -131,39 +116,21 @@ object L1PackHelper {
             Log.i("L1Pack", "promptInjection: no pack active (profile_l1=${WimApp.prefs.getString("profile_l1", "")})")
             return ""
         }
-        val mode = WimApp.prefs.getString("accent_mode", "polish") ?: "polish"
         val displayName = languageDisplayName(pack.language)
-        Log.i("L1Pack", "promptInjection: injecting ${pack.language} pack — ${pack.markers.size} markers, mode=$mode")
-        return if (mode == "keep") buildKeepInjection(pack, displayName)
-        else buildPolishInjection(pack, displayName)
-    }
-
-    private fun buildPolishInjection(pack: Pack, displayName: String): String = buildString {
-        append("\n\nSPEAKER L1: $displayName. Their English may show systematic L1-transfer patterns documented at the group level in second-language acquisition research — not random errors. When restating into written prose, normalize the patterns listed below. Preserve the speaker's word choice, slang, profanity, and intent.")
-        append("\n\nNORMALIZE these patterns:")
-        pack.markers.forEachIndexed { i, m ->
-            append("\n${i + 1}. ${m.promptHint}")
-            m.examples.firstOrNull()?.let { e ->
-                if (e.input.isNotBlank() && e.output.isNotBlank()) {
-                    append(" e.g. \"${e.input}\" → \"${e.output}\"")
+        Log.i("L1Pack", "promptInjection: injecting ${pack.language} pack — ${pack.markers.size} markers")
+        return buildString {
+            append("\n\nSPEAKER L1: $displayName. Their English may show systematic L1-transfer patterns documented at the group level in second-language acquisition research — not random errors. When restating into written prose, normalize the patterns listed below. Preserve the speaker's word choice, slang, profanity, and intent.")
+            append("\n\nNORMALIZE these patterns:")
+            pack.markers.forEachIndexed { i, m ->
+                append("\n${i + 1}. ${m.promptHint}")
+                m.examples.firstOrNull()?.let { e ->
+                    if (e.input.isNotBlank() && e.output.isNotBlank()) {
+                        append(" e.g. \"${e.input}\" → \"${e.output}\"")
+                    }
                 }
             }
+            append("\n\nThis is normalization toward written-English convention, not erasure of the speaker's voice. If a listed pattern appears as deliberate stylistic emphasis or intentional code-switching, preserve it.")
         }
-        append("\n\nThis is normalization toward written-English convention, not erasure of the speaker's voice. If a listed pattern appears as deliberate stylistic emphasis or intentional code-switching, preserve it.")
-    }
-
-    private fun buildKeepInjection(pack: Pack, displayName: String): String = buildString {
-        append("\n\nSPEAKER L1: $displayName. Their English carries systematic patterns from their first language — these are authentic features of how they speak, not errors. The speaker has explicitly chosen to PRESERVE their voice in this output.")
-        append("\n\nPRESERVE these patterns verbatim:")
-        pack.markers.forEachIndexed { i, m ->
-            append("\n${i + 1}. ${m.promptHint.replaceFirst(Regex("^[A-Z]\\w+"), "Keep")}")
-            m.examples.firstOrNull()?.let { e ->
-                if (e.input.isNotBlank() && e.output.isNotBlank()) {
-                    append(" e.g. keep \"${e.input}\" as \"${e.input}\"")
-                }
-            }
-        }
-        append("\n\nFix only verbatim transcription errors (homophone confusions, mis-segmented words, missing punctuation that affects readability). Do NOT smooth syntax, do NOT insert articles the speaker didn't say, do NOT reorder for Standard English grammar. Render the speaker's voice as they spoke it.")
     }
 
     private fun languageDisplayName(code: String): String = when (code) {
