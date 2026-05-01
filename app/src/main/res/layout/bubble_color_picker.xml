@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Bubble color picker dialog content. Three full-size bubble previews
-    (bezel + knob, mirroring the floating-bubble structure) sit in a row.
-    Tapping any preview commits the theme + closes the dialog.
+    Bubble color picker dialog. Each preview mirrors bubble.xml exactly:
+    bezel (84dp) + inner knob (52dp) + tick mark + IDLE label. So the
+    user sees what the floating bubble will actually look like in real
+    use, not a stylized preview. Tap any preview to commit + close.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -16,7 +17,7 @@
         android:text="PICK A BUBBLE"
         android:textColor="@color/section_header"
         android:textSize="14sp"
-        android:fontFamily="@font/limelight"
+        android:fontFamily="@font/geist_bold"
         android:textAllCaps="true"
         android:letterSpacing="0.18"
         android:textStyle="bold"
@@ -29,7 +30,7 @@
         android:orientation="horizontal"
         android:gravity="center">
 
-        <!-- BRONZE -->
+        <!-- BRONZE — full mirror of bubble.xml: bezel + knob + tick + IDLE -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_weight="1"
@@ -49,7 +50,31 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:layout_gravity="center"
-                    android:background="@drawable/bubble_inner_knob" />
+                    android:background="@drawable/bubble_inner_knob">
+
+                    <!-- Tick mark — 12 o'clock indicator on knob, scaled
+                         from real bubble's 3dp×8dp to 4dp×10dp for the
+                         slightly-bigger picker preview. -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="10dp"
+                        android:layout_gravity="top|center_horizontal"
+                        android:layout_marginTop="3dp"
+                        android:background="@drawable/knob_tick" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="IDLE"
+                        android:textColor="#FF1F1208"
+                        android:textSize="10sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:letterSpacing="0.05"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:maxLines="1" />
+                </FrameLayout>
             </FrameLayout>
 
             <TextView
@@ -58,7 +83,7 @@
                 android:text="Bronze"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans"
                 android:letterSpacing="0.1"
                 android:layout_marginTop="10dp" />
         </LinearLayout>
@@ -83,7 +108,28 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:layout_gravity="center"
-                    android:background="@drawable/bubble_knob_aluminum" />
+                    android:background="@drawable/bubble_knob_aluminum">
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="10dp"
+                        android:layout_gravity="top|center_horizontal"
+                        android:layout_marginTop="3dp"
+                        android:background="@drawable/knob_tick" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="IDLE"
+                        android:textColor="#FF555560"
+                        android:textSize="10sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:letterSpacing="0.05"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:maxLines="1" />
+                </FrameLayout>
             </FrameLayout>
 
             <TextView
@@ -92,7 +138,7 @@
                 android:text="Aluminum"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans"
                 android:letterSpacing="0.1"
                 android:layout_marginTop="10dp" />
         </LinearLayout>
@@ -117,7 +163,28 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:layout_gravity="center"
-                    android:background="@drawable/bubble_knob_gunmetal" />
+                    android:background="@drawable/bubble_knob_gunmetal">
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="10dp"
+                        android:layout_gravity="top|center_horizontal"
+                        android:layout_marginTop="3dp"
+                        android:background="@drawable/knob_tick" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="IDLE"
+                        android:textColor="#FFC8B48A"
+                        android:textSize="10sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:letterSpacing="0.05"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:maxLines="1" />
+                </FrameLayout>
             </FrameLayout>
 
             <TextView
@@ -126,7 +193,7 @@
                 android:text="Gunmetal"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans"
                 android:letterSpacing="0.1"
                 android:layout_marginTop="10dp" />
         </LinearLayout>

@@ -3200,13 +3200,15 @@ class BubbleService : Service() {
     private fun setStageArc(stage: Int) {
         val arc = bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc) ?: return
         // Per-theme arc color so all four quadrants read as "quarter
-        // separation" on every bezel. Bronze + aluminum need DARK arcs
-        // (deep maroon pops on warm metallics + brushed silver). Gunmetal
-        // needs LIGHT arcs (cream-gold on dark steel). Refresh on every
-        // call so a theme swap mid-session updates the arcs immediately.
+        // separation" on every bezel. Aluminum's light silver bezel needs
+        // a much darker arc than bronze's warm copper — `#7A1F1F` at 40%
+        // alpha washed out on silver. `#2A0606` (near-black with a maroon
+        // undertone) stays in the brand-maroon family but reads dark-on-
+        // light. Bronze keeps the deep maroon that harmonizes with the
+        // warm metal. Gunmetal stays cream-gold on dark steel.
         val arcColor = when (WimApp.bubbleTheme()) {
             "gunmetal" -> 0xFFC8B48A.toInt()
-            "aluminum" -> 0xFF7A1F1F.toInt()
+            "aluminum" -> 0xFF2A0606.toInt()
             else -> 0xFF7A1F1F.toInt()
         }
         arc.setArcColor(arcColor)

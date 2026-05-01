@@ -611,19 +611,43 @@ class MainActivity : AppCompatActivity() {
             if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
         }
 
-        // ── Bubble color picker — tap row → dialog with 3 full-size
-        //    bubble previews. One tap = commit + close. Beats inline 36dp
-        //    swatches that read as anonymous shapes at glance. ──
+        // ── Bubble color picker ──
+        // Row shows 3 inline 28dp circle swatches (actual bubble bezels).
+        // Selected swatch is highlighted via a maroon ring + slight scale.
+        // Tap a swatch → commits that theme directly. Tap the row label
+        // (or any non-swatch area) → opens the picker dialog with full
+        // bubble previews including bezel + knob + tick + IDLE label,
+        // mirroring the floating bubble exactly.
+        val swatchBronze = findViewById<View>(R.id.colorBronze)
+        val swatchAluminum = findViewById<View>(R.id.colorAluminum)
+        val swatchGunmetal = findViewById<View>(R.id.colorGunmetal)
+        fun paintBubbleColorRow() {
+            val theme = WimApp.prefs.getString("bubble_theme", "bronze") ?: "bronze"
+            // Selected swatch: scale up + opacity 1.0; others: scale down + dim.
+            // Cheap, drawable-free way to show selection without needing a
+            // selector XML for every bezel drawable.
+            val map = mapOf(
+                "bronze" to swatchBronze,
+                "aluminum" to swatchAluminum,
+                "gunmetal" to swatchGunmetal,
+            )
+            for ((k, v) in map) {
+                v ?: continue
+                val selected = k == theme
+                v.scaleX = if (selected) 1.15f else 0.92f
+                v.scaleY = if (selected) 1.15f else 0.92f
+                v.alpha = if (selected) 1.0f else 0.6f
+            }
+        }
         val applyTheme: (String) -> Unit = { theme ->
             WimApp.prefs.edit().putString("bubble_theme", theme).apply()
             BubbleService.instance?.refreshBubbleTheme()
-            findViewById<TextView>(R.id.bubbleColorValue)?.text =
-                theme.replaceFirstChar { it.uppercaseChar() }
+            paintBubbleColorRow()
         }
-        // Initial label sync
-        findViewById<TextView>(R.id.bubbleColorValue)?.text =
-            (WimApp.prefs.getString("bubble_theme", "bronze") ?: "bronze")
-                .replaceFirstChar { it.uppercaseChar() }
+        paintBubbleColorRow()
+        swatchBronze?.setOnClickListener { applyTheme("bronze") }
+        swatchAluminum?.setOnClickListener { applyTheme("aluminum") }
+        swatchGunmetal?.setOnClickListener { applyTheme("gunmetal") }
         findViewById<View>(R.id.bubbleColorRow)?.setOnClickListener {
             val pickerView = layoutInflater.inflate(R.layout.bubble_color_picker, null)
             val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
