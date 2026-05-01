@@ -201,9 +201,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ── Sessions (collapsible) ───────────────────────
-        // Force-set expanded once so existing users with a saved "false"
-        // see the new default-open behavior. They can still collapse later.
-        WimApp.prefs.edit().putBoolean("sessions_section", true).apply()
+        // Sessions panel must be expanded on every app start — operator
+        // requirement. User can still collapse during a session via the
+        // header tap; next launch pops back open. The pref key needs the
+        // "section_" prefix to match what setupCollapsible actually reads.
+        WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = true)
         // Apply maroon background + grille mesh overlay
         val sessionsPanel = findViewById<FrameLayout>(R.id.sessionsPanel)
@@ -479,12 +481,12 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ── Collapsible sections ─────────────────────────────
-        setupCollapsible(R.id.headerLayer, R.id.contentLayer, "layer_section", defaultExpanded = true)
-        setupCollapsible(R.id.headerTone, R.id.contentTone, "tone_section", defaultExpanded = false)
+        // Layer/Tone/Permissions/Settings are now tile-controlled — they
+        // reparent into bottom sheets (Layer/Tone/Permissions) or the
+        // openSectionOverlay (Settings) on tile tap. Their inline content
+        // must stay GONE; old setupCollapsible calls were toggling them
+        // visible from stale SharedPreferences on fresh installs.
         setupCollapsible(R.id.headerDaf, R.id.contentDaf, "daf_section", defaultExpanded = false)
-        setupCollapsible(R.id.headerPermissions, R.id.contentPermissions, "permissions_section", defaultExpanded = true)
-        // Text-to-speech moved inside Settings overlay; no separate collapsible.
-        setupCollapsible(R.id.headerSettings, R.id.contentSettings, "settings_section", defaultExpanded = false)
         setupCollapsible(R.id.headerGuide, R.id.contentGuide, "guide_section", defaultExpanded = false)
         buildGuideContent()
 
