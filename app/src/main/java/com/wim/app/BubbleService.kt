@@ -1519,16 +1519,26 @@ class BubbleService : Service() {
         //     - true → cloud whisper-1 (audio leaves device).
         //   L2/L3 stays on whisperLocalEngine when ready, falls back to cloud
         //   gpt-4o-transcribe via AudioRecorder when not.
-        // AudioRecorder fires when ANY of the cloud paths above will run.
+        // AudioRecorder fires when ANY of the cloud paths above will run,
+        // OR when layer >= 2 regardless of local-engine readiness — the
+        // multi-pass clarifier (L2+) needs the recorded WAV after
+        // reconstruction completes, even when whisper-tiny handled the
+        // primary transcription on-device. Without this, multi-pass has
+        // nothing to feed and the clarifier silently produces zero flags.
         val isL4 = WimApp.layer() >= 4
         val l1Cloud = WimApp.l1CloudAsr()
         val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
         val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
-        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
+        if ((isL4 || l1NeedsCloud || WimApp.layer() >= 2) && WimApp.apiKey().isNotBlank()) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
-                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for cloud-ASR fallback")
+                val purpose = when {
+                    isL4 || l1NeedsCloud -> "cloud-ASR"
+                    wantLocalLive -> "multi-pass clarifier"
+                    else -> "cloud-ASR fallback"
+                }
+                Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for $purpose")
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -1687,6 +1697,30 @@ class BubbleService : Service() {
         // happening (transcribe → reconstruct → falcon → inject) even when
         // LIVE toggle is off. Subsequent stages overwrite this.
         showPipelineStage("⏳ Transcribing", "Sending audio to Whisper")
+
+        // If the local engine handled the primary transcription, use its
+        // text — DO NOT also re-transcribe via cloud Whisper. The WAV
+        // captured by AudioRecorder is held for multi-pass clarifier to
+        // read after reconstruction. Without this guard, my Apr-30 fix to
+        // capture WAV at L2+ caused the cloud transcription path to run
+        // redundantly and 400-out on top of the local result.
+        val stopIsL4 = WimApp.layer() >= 4
+        val stopL1NeedsCloud = WimApp.l1CloudAsr() && WimApp.layer() < 2
+        val stopUsedLocal = (whisperLocalEngine?.isReady() == true) && !stopIsL4 && !stopL1NeedsCloud
+        if (stopUsedLocal) {
+            lastWhisperLowConf = emptyList()
+            timerHandler.postDelayed({
+                val onDeviceText = lastRawText.trim()
+                if (onDeviceText.isNotBlank()) {
+                    Log.i(TAG, "Local-engine primary; deferring cloud Whisper, holding WAV for multi-pass: $onDeviceText")
+                    processText(onDeviceText)
+                } else {
+                    Log.w(TAG, "Local engine produced no text; aborting")
+                    setBubbleIdle()
+                }
+            }, 400)
+            return
+        }
 
         if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
@@ -1964,6 +1998,13 @@ class BubbleService : Service() {
         applyBubbleTheme()
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
+            // Reset font size + shadow that the legacy clarifier ✓/✕
+            // flash bumps to 24sp. setTextSize / setShadowLayer are
+            // sticky on the TextView; without restoring canonical
+            // sizing here, IDLE renders at 24sp inside the 44dp knob
+            // on the next idle cycle and clips to "I-D".
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
+            setShadowLayer(0f, 0f, 0f, 0)
             // Per-theme IDLE color so the label has real contrast on each
             // bezel: cream-gold on gunmetal, deep espresso on bronze (the
             // palette's primaryText), dark gray on aluminum.
@@ -2032,6 +2073,30 @@ class BubbleService : Service() {
     /** Public alias so MainActivity can flip the listener off when the user
      *  toggles the hotword setting. */
     fun stopHotwordListenerPublic() = stopHotwordListener()
+
+    /**
+     * Fire the bubble demo script as a feature parade — same script the
+     * onboarding flow uses. Triggered by dev long-press on the Profile
+     * strip. Cancels any in-flight demo, then runs the multi-act
+     * presentation: tap-to-record, hold-to-record, reconstruction
+     * before-and-after, double-tap menu, layers, situations, hide/shake,
+     * clarifier preview, finale. ~50 seconds total. Tap the bubble at
+     * any time to skip ahead (handled by the existing skip-on-tap path).
+     */
+    fun runFeatureParade() {
+        // Make sure the bubble is visible — the demo writes to it.
+        if (bubbleView == null) showBubble()
+        activeDemoScript?.cancel()
+        activeDemoFinish?.invoke()
+        val finish: () -> Unit = {
+            activeDemoScript = null
+            activeDemoFinish = null
+            hideLiveTranscript()
+            setBubbleIdle()
+        }
+        activeDemoFinish = finish
+        activeDemoScript = BubbleDemoScript(finish).also { it.start() }
+    }
 
     /**
      * Show the patent-clean word-highlight overlay over the host app's
@@ -2894,7 +2959,9 @@ class BubbleService : Service() {
     private fun ensureTranscriptBar() {
         if (liveTextView != null) return
         val dp = resources.displayMetrics.density
-        val barWidthPx = (220 * dp).toInt()
+        // Bubble surface 15% wider — accommodates the 4-line layout
+        // (1 title row + 3 body rows) with the bumped font sizing.
+        val barWidthPx = (253 * dp).toInt()
         val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
         val styleFor = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
         val opaqueFill = (palette.fill or 0xFF000000.toInt())
@@ -2907,11 +2974,15 @@ class BubbleService : Service() {
         )
         val tv = TextView(this).apply {
             setTextColor(palette.primaryText)
-            textSize = 12f
+            // Font +10% — was 12sp.
+            textSize = 13.2f
             typeface = android.graphics.Typeface.MONOSPACE
             setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (22 * dp).toInt())
-            minLines = 2
-            maxLines = 6
+            // Locked at 4 lines globally — 1 for title, 3 for body. Same
+            // height for live-transcription, pipeline-stage, demo, and
+            // clarifier hint surfaces.
+            minLines = 4
+            maxLines = 4
             ellipsize = android.text.TextUtils.TruncateAt.END
             text = ""
             layoutParams = android.widget.FrameLayout.LayoutParams(
@@ -2970,8 +3041,8 @@ class BubbleService : Service() {
         if (!enabled) return
         ensureTranscriptBar()
         // Restore growable mode for live partials (vs pipeline-stage's locked 3 lines)
-        liveTextView?.minLines = 2
-        liveTextView?.maxLines = 6
+        liveTextView?.minLines = 4
+        liveTextView?.maxLines = 4
         stopStagePulse()
         liveTextView?.text = "● Recording…"
     }
@@ -3000,20 +3071,21 @@ class BubbleService : Service() {
         // breathing color on the stage label, typewriter dots after it.
         ensureTranscriptBar()
         val tv = liveTextView ?: return
-        tv.minLines = 3
-        tv.maxLines = 3
+        tv.minLines = 4
+        tv.maxLines = 4
         tv.ellipsize = android.text.TextUtils.TruncateAt.END
 
         stageLabel = stage
         stageDetail = detail
         startStageAnimations()
 
-        // Cross-fade: dim → settle → restore
-        tv.animate().alpha(0.3f).setDuration(110)
-            .withEndAction {
-                renderStageFrame()
-                tv.animate().alpha(1f).setDuration(180).start()
-            }.start()
+        // Snap-render with a soft 80ms blend so the bar stays visible
+        // across step transitions. The earlier cross-fade dipped to 0.3
+        // alpha which made the bar look like it disappeared between
+        // demo steps — too aggressive.
+        tv.animate().cancel()
+        tv.alpha = 1f
+        renderStageFrame()
     }
 
     private fun renderStageFrame() {
@@ -3022,20 +3094,17 @@ class BubbleService : Service() {
         val dots = dotsFrames[dotsIdx]
         val labelAlpha = ((stageColorAlpha.coerceIn(0f, 1f)) * 255).toInt()
 
-        // Theme-aware palette for the comment-bubble surface. Bronze and
-        // aluminum have LIGHT fills; light text on light fill was unreadable.
-        // Use the palette's primary/secondary text so we get dark espresso
-        // on bronze, dark navy on aluminum, cream on gunmetal — same source
-        // of truth as the live-transcript text colors.
-        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
-        val glyphRgb = palette.primaryText and 0x00FFFFFF
-        val labelRgb = palette.primaryText and 0x00FFFFFF
-        val detailColor = palette.secondaryText
-        val labelColor = (labelAlpha shl 24) or labelRgb
+        // Title in brand maroon, body text in black. Operator-specified
+        // visual hierarchy — gives the user a clear "headline + read this"
+        // read across all themes (bronze, aluminum, gunmetal). Glyph
+        // matches the title.
+        val maroonRgb = 0x00B55050
+        val blackColor = 0xFF000000.toInt()
+        val labelColor = (labelAlpha shl 24) or maroonRgb
 
         val styled = android.text.SpannableStringBuilder().apply {
             append("$glyph  ")
-            setSpan(android.text.style.ForegroundColorSpan(0xFF000000.toInt() or glyphRgb),
+            setSpan(android.text.style.ForegroundColorSpan(0xFF000000.toInt() or maroonRgb),
                 0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             val stageStart = length
             append("$stageLabel$dots")
@@ -3046,9 +3115,11 @@ class BubbleService : Service() {
             append("\n")
             val detailStart = length
             append(stageDetail)
-            setSpan(android.text.style.RelativeSizeSpan(0.85f),
+            // Body text 10% larger than before — was 0.85x of base; now
+            // matches the base size (1.0×). Operator-specified bump.
+            setSpan(android.text.style.RelativeSizeSpan(0.95f),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.ForegroundColorSpan(detailColor),
+            setSpan(android.text.style.ForegroundColorSpan(blackColor),
                 detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         tv.text = styled
@@ -3112,6 +3183,9 @@ class BubbleService : Service() {
         liveTextParams = null
         TranscriptBarController.unbind()
     }
+
+    /** Public alias so the demo script can drive arc lighting. */
+    fun setStageArcPublic(stage: Int) = setStageArc(stage)
 
     /**
      * Drive the bezel's stage arc — 0=Transcribing, 1=Reconstructing,

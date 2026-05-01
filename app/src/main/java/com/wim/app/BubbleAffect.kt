@@ -93,6 +93,16 @@ class BubbleAffect(
 
     // ── RESTING ─────────────────────────────────────────
 
+    /**
+     * User's bubble-size pref (70-150%) as a multiplier base. Every
+     * animation that scales the bezel must multiply through this so the
+     * affect catalog respects the slider — without it, animations
+     * silently overwrite the user's chosen size on every frame and the
+     * slider appears broken.
+     */
+    private fun baseScale(): Float =
+        (WimApp.bubbleSize().coerceIn(70, 150) / 100f)
+
     private fun applyResting() {
         cancelMotion(applyRestingFallback = false)
         val view = bubbleViewProvider() ?: return
@@ -104,8 +114,9 @@ class BubbleAffect(
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { v ->
                 val t = v.animatedValue as Float
-                bezel.scaleX = 1.0f + 0.012f * t
-                bezel.scaleY = 1.0f + 0.012f * t
+                val s = baseScale() * (1.0f + 0.012f * t)
+                bezel.scaleX = s
+                bezel.scaleY = s
             }
         }
         restingAnim = anim
@@ -172,8 +183,9 @@ class BubbleAffect(
                     t < 0.7f -> peak - ((peak - contract) * ((t - 0.4f) / 0.3f))
                     else -> contract + ((1.0f - contract) * ((t - 0.7f) / 0.3f))
                 }
-                bezel.scaleX = scale
-                bezel.scaleY = scale
+                val s = baseScale() * scale
+                bezel.scaleX = s
+                bezel.scaleY = s
             }
         }
         tadaAnim = anim
@@ -279,9 +291,9 @@ class BubbleAffect(
             duration = 280
             addUpdateListener { v ->
                 val t = v.animatedValue as Float
-                val scale = 1.0f + (0.06f * (1f - t))  // peak then decay
-                bezel.scaleX = scale
-                bezel.scaleY = scale
+                val s = baseScale() * (1.0f + (0.06f * (1f - t)))
+                bezel.scaleX = s
+                bezel.scaleY = s
             }
         }
         anim.start()
@@ -302,9 +314,9 @@ class BubbleAffect(
             duration = durationMs
             addUpdateListener { v ->
                 val t = v.animatedValue as Float
-                val pulse = 1.0f + (scaleBoost * (1f - t))
-                bezel.scaleX = pulse
-                bezel.scaleY = pulse
+                val s = baseScale() * (1.0f + (scaleBoost * (1f - t)))
+                bezel.scaleX = s
+                bezel.scaleY = s
             }
         }
         anim.start()
@@ -323,7 +335,11 @@ class BubbleAffect(
         // Reset transforms so the next affect starts from a clean view.
         val view = bubbleViewProvider() ?: return
         view.findViewById<FrameLayout>(R.id.bubbleBezel)?.apply {
-            scaleX = 1f; scaleY = 1f; translationY = 0f
+            // Reset to user's bubble-size pref, NOT 1.0 — otherwise
+            // cancelMotion silently shrinks the bezel back to 100%
+            // each time it runs, undoing the slider.
+            val base = baseScale()
+            scaleX = base; scaleY = base; translationY = 0f
         }
         view.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
             scaleX = 1f; scaleY = 1f; rotation = 0f

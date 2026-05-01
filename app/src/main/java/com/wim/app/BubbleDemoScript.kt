@@ -8,11 +8,17 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * The bubble's live demo performance for onboarding.
+ * The bubble's live demo performance for onboarding + dev preview.
  * Mr. DNA gets shoved off. The bubble takes over and performs every gesture
- * while narrating through the live transcript bar.
+ * while narrating through the comment-bubble bar.
  *
- * This runs on the REAL BubbleService — not a simulation.
+ * Format: every step uses showPipelineStage(title, body) — title goes
+ * on line 1 (with a tape-reel glyph + breathing color), body wraps onto
+ * lines 2-4 (relative-size 0.85). The bar is locked at 4 lines so the
+ * height never jumps between steps.
+ *
+ * Pacing: ~4 seconds per step on average. Long enough to read; short
+ * enough to keep momentum. Tap the bubble at any point to skip ahead.
  */
 class BubbleDemoScript(private val onComplete: () -> Unit) {
 
@@ -28,225 +34,238 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
     fun start() {
         val bubble = BubbleService.instance ?: run { onComplete(); return }
 
-        // Build the script — each step is (delay from start in ms, action)
         steps.clear()
         var t = 0L
 
         // ── Act 1: Entrance ──
-        step(t) { bubble.showPipelineStage("👋", "Hey! I'm your WiM bubble.") }
+        step(t) { bubble.showPipelineStage("👋  HELLO", "I'm your WiM bubble. Pleasure to meet you.") }
 
-        t += 2500
-        step(t) { bubble.showPipelineStage("😏", "Nah. It's my show. Let me show you around.") }
+        t += 4000
+        step(t) { bubble.showPipelineStage("😏  MY SHOW", "Mr. DNA can sit this one out. Let me show you around.") }
 
         // ── Act 2: Tap to record ──
-        t += 3000
+        t += 4500
         step(t) {
-            bubble.showPipelineStage("TAP", "Tap me once to start recording.")
-            // Simulate recording state briefly
+            bubble.showPipelineStage("👆  TAP", "Tap me once to start recording. That's it.")
             simulateRecordingPulse(bubble)
-        }
-
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("TAP", "Tap again to stop. I'll clean up your words.")
-            bubble.setBubbleIdlePublic()
-        }
-
-        // ── Act 3: Hold to record ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("HOLD", "Or just hold me down. Release when done.")
-            simulateRecordingPulse(bubble)
-        }
-
-        t += 2500
-        step(t) { bubble.setBubbleIdlePublic() }
-
-        // ── Act 4: The magic — reconstruction demo ──
-        t += 1000
-        step(t) {
-            bubble.showPipelineStage("✨ Watch this", "Someone says:")
-        }
-
-        t += 2000
-        step(t) {
-            bubble.showPipelineStage("🎙 Raw", "\"so um I I was trying to to tell him the the project is done\"")
-        }
-
-        t += 3500
-        step(t) {
-            bubble.showPipelineStage("⟳ Cleaning...", "Removing disfluencies & fillers")
-        }
-
-        t += 2000
-        step(t) {
-            bubble.showPipelineStage("✓ Clean", "\"I was trying to tell him the project is done.\"")
-        }
-
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("💼 → Boss", "Professional: \"The project has been completed.\"")
-        }
-
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("😎 → Friend", "Casual: \"lol yeah project's done finally\"")
-        }
-
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("🔄", "Same voice. Right tone. Every time.")
-        }
-
-        // ── Act 5: Double-tap menu ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("TAP TAP", "Double-tap me for quick settings.")
-        }
-
-        t += 1500
-        step(t) {
-            // Actually show the menu briefly
-            bubble.showMenuPublic()
-        }
-
-        t += 2500
-        step(t) {
-            bubble.dismissMenuPublic()
-            bubble.showPipelineStage("⚙️", "Size, opacity, layer — all right here.")
-        }
-
-        // ── Act 6: Visual anchors — layers ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("LAYER", "I have 4 layers. You pick what you need.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("I ▸ Transcribe", "Free. Instant. Just cleans up your words.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("II ▸ Reconstruct", "AI rewrites with your tone. ~2 seconds.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("III ▸ Profile", "Learns YOUR vocabulary over time.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("IV ▸ Stutter", "Full clinical mode. Built for people who stutter.")
-        }
-
-        // ── Act 7: Situations ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("SITUATION", "Heading into a tough call? Tell me.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("🔥 High Stress", "I'll go full power. DAF on. Layer IV. Everything.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("📖 Reading", "Light touch. You're already fluent here.")
-        }
-
-        // ── Act 8: Hide and show ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("DRAG ↓", "Drag me to the bottom to hide.")
-        }
-
-        t += 2500
-        step(t) {
-            bubble.showPipelineStage("📳 SHAKE", "Shake your phone twice to bring me back.")
-        }
-
-        // ── Act 9: Clarifier ──
-        t += 3000
-        step(t) {
-            bubble.showPipelineStage("❓", "Sometimes I'll ask a quick question.")
-            bubble.showClarifier("WORK?", "Is this for work or casual?") { _ ->
-                // Auto-dismiss after demo
-            }
         }
 
         t += 4000
         step(t) {
-            bubble.showPipelineStage("✓ / ✕", "Tap left for yes, right for no. Easy.")
+            bubble.showPipelineStage("👆  TAP AGAIN", "Tap a second time to stop. I'll clean it up.")
+            bubble.setBubbleIdlePublic()
         }
 
-        // ── Act 10: Tips ──
-        t += 3000
+        // ── Act 3: The magic — reconstruction demo ──
+        t += 4000
         step(t) {
-            bubble.showPipelineStage("💡 Tip", "I'll pop up with reminders sometimes. Like this.")
+            bubble.showPipelineStage("✨  WATCH", "Here's what happens between tap and paste.")
         }
 
-        t += 2500
+        t += 3500
         step(t) {
-            bubble.showPipelineStage("💡", "You can turn them off in Settings.")
+            bubble.showPipelineStage("🎙  RAW INPUT", "\"so um I I was trying to to tell him the project is done\"")
         }
 
-        // ── Act 11: Clarifier preview (Phase 7 step 42) ──
-        // Teach the cycle UX inside the onboarding parade, so the first
-        // real flag the user sees isn't surprising.
-        t += 3000
+        t += 4500
         step(t) {
-            bubble.showPipelineStage("? Sometimes I'm not sure", "I'll ask. Tap left = yes, right = no.")
+            bubble.showPipelineStage("⟳  CLEANING", "Stripping fillers, repetitions, false starts...")
         }
-        t += 3000
+
+        t += 3500
         step(t) {
-            // Synthetic single-flag clarifier — bubble label flips to
-            // DUNKEN?, time slot to 1/1. The user can tap to dismiss
-            // (the cycle exits cleanly via cancelForNewRecording on next
-            // recording, or auto-dismisses in 3s).
+            bubble.showPipelineStage("✓  CLEAN", "\"I was trying to tell him the project is done.\"")
+        }
+
+        t += 4500
+        step(t) {
+            bubble.showPipelineStage("💼  TO BOSS", "Professional: \"The project has been completed.\"")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("😎  TO FRIEND", "Casual: \"yeah project's done finally lol\"")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("🎯  ONE VOICE", "Same words. Right tone. Every time.")
+        }
+
+        // ── Act 4: Pipeline arcs ──
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("⏳  PIPELINE", "Watch the arcs around me as I work.")
+        }
+        t += 1200
+        step(t) { bubble.setStageArcPublic(0) }
+        step(t) { bubble.showPipelineStage("⏳  TRANSCRIBE", "Audio → text. First arc lights up.") }
+        t += 2000
+        step(t) { bubble.setStageArcPublic(1) }
+        step(t) { bubble.showPipelineStage("🪡  RECONSTRUCT", "Cleanup + tone match. Second arc.") }
+        t += 2000
+        step(t) { bubble.setStageArcPublic(2) }
+        step(t) { bubble.showPipelineStage("🛡  VERIFY", "Cross-checked for meaning loss. Third arc.") }
+        t += 2000
+        step(t) { bubble.setStageArcPublic(3) }
+        step(t) { bubble.showPipelineStage("📌  INJECT", "Pasted into your app. Fourth arc.") }
+        t += 1800
+        step(t) { bubble.setStageArcPublic(-1) }
+
+        // ── Act 5: Double-tap menu ──
+        t += 2200
+        step(t) {
+            bubble.showPipelineStage("👆👆  DOUBLE-TAP", "Two quick taps open my settings.")
+        }
+
+        t += 2000
+        step(t) {
+            bubble.showMenuPublic()
+        }
+
+        t += 3500
+        step(t) {
+            bubble.dismissMenuPublic()
+            bubble.showPipelineStage("⚙  QUICK ADJUST", "Size, opacity, layer, color — all right there.")
+        }
+
+        // ── Act 6: Layers ──
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("🪜  LAYERS", "I have four. You pick what you need.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("①  TRANSCRIBE", "Free. Instant. Just cleans your words.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("②  RECONSTRUCT", "AI rewrites with your tone. ~2 seconds.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("③  PROFILE", "Learns YOUR vocabulary over time.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("④  DISFLUENCY", "Full clinical mode. Built for non-fluent speech.")
+        }
+
+        // ── Act 7: Situations ──
+        t += 4500
+        step(t) {
+            bubble.showPipelineStage("🎚  SITUATION", "Heading into a tough call? Let me know.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("🔥  HIGH STRESS", "I go full power. DAF on. Layer four.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("📖  READING", "Light touch. You're already fluent here.")
+        }
+
+        // ── Act 8: Hide and summon ──
+        t += 4500
+        step(t) {
+            bubble.showPipelineStage("⬇  DRAG ME DOWN", "Drag me to the bottom edge. I'll hide.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("📳  SHAKE", "Shake your phone twice. I'm back.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("🎙  HEY WIM", "Or say \"Hey WiM\" — hands-free trigger.")
+        }
+
+        // ── Act 9: Clarifier preview ──
+        t += 4500
+        step(t) {
+            bubble.showPipelineStage("❓  ASK FIRST", "Sometimes I'm not 100% sure of a word.")
+        }
+
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("👀  WATCH", "I'll flag up to three. Tap left/right or hold to skip.")
+            // 3-flag synthetic clarifier — exercises the per-word cycle
+            // (claim 11(c) max-3 cap), the clarifier-entry arc flash,
+            // and the "↓ hold = skip" hint that teaches long-press defer.
             bubble.triggerClarifierForTest(
                 listOf(
                     FlaggedWord(
                         originalWord = "Dunken",
-                        candidates = listOf("Dankeschön"),
+                        candidates = listOf("Dankeschön", "Danke"),
                         rangeStart = 0,
                         rangeEnd = 6,
                         uncertaintyScore = 0.95,
                     ),
+                    FlaggedWord(
+                        originalWord = "morning",
+                        candidates = listOf("warning", "mourning"),
+                        rangeStart = 7,
+                        rangeEnd = 14,
+                        uncertaintyScore = 0.85,
+                    ),
+                    FlaggedWord(
+                        originalWord = "Sarah",
+                        candidates = listOf("Sara", "Cera"),
+                        rangeStart = 15,
+                        rangeEnd = 20,
+                        uncertaintyScore = 0.78,
+                    ),
                 ),
             )
         }
-        t += 3500
+        t += 9000
         step(t) {
-            // Force-exit if the user hasn't tapped — onboarding shouldn't
-            // hang on the demo flag.
+            // Tear the cycle down without bouncing through setBubbleIdle —
+            // setBubbleIdle hides the live-transcript bar, which made the
+            // comment surface visibly disappear between Acts 9 and 10.
+            // We immediately overwrite with the next step's content so the
+            // bar stays continuous.
             ClarifierController.dismissAll()
             TranscriptBarController.clear(TranscriptBarController.Priority.CLARIFIER)
-            bubble.setBubbleIdlePublic()
+            bubble.showPipelineStage("✓  GOT IT", "Three taps, three answers. That fast.")
         }
 
-        // ── Act 12: Finale ──
-        t += 1500
+        // ── Act 10: Tips ──
+        t += 2500
         step(t) {
-            bubble.showPipelineStage("☕", "Spill your coffee. Stutter your words. I don't judge.")
+            bubble.showPipelineStage("💡  TIPS", "I'll surface helpful reminders. Like this one.")
         }
 
-        t += 3000
+        t += 4000
         step(t) {
-            bubble.showPipelineStage("🎬", "That's my show. Your turn now.")
+            bubble.showPipelineStage("🔕  YOUR CALL", "Don't like them? Turn off in Settings.")
         }
 
-        t += 3000
+        // ── Act 11: Finale ──
+        t += 4000
+        step(t) {
+            bubble.showPipelineStage("☕  NO JUDGMENT", "Spill your coffee. Stutter your words. I don't care.")
+        }
+
+        t += 4500
+        step(t) {
+            bubble.showPipelineStage("🎬  YOUR TURN", "That's my show. Now you take over.")
+        }
+
+        t += 4000
         step(t) {
             bubble.hideLiveTranscriptPublic()
             bubble.setBubbleIdlePublic()
             onComplete()
         }
 
-        // Run all steps
         for ((delay, action) in steps) {
             handler.postDelayed({
                 if (!cancelled) action()
@@ -259,14 +278,13 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
     }
 
     private fun simulateRecordingPulse(bubble: BubbleService) {
-        // Briefly show recording state
         bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
             ?.setBackgroundResource(R.drawable.bubble_bg_recording)
         bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "REC"
-            setTextColor(0xFFEF4444.toInt())
+            setTextColor(0xFFFFD580.toInt())
         }
     }
 }
