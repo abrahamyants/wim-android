@@ -73,6 +73,8 @@ class MainActivity : AppCompatActivity() {
 
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
+    private var layerSubRowPrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var accentModePrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
 
@@ -314,7 +316,144 @@ class MainActivity : AppCompatActivity() {
         val layerIdx = layerValues.indexOf(currentLayer).coerceAtLeast(0)
         setupLayoutGroupInt(layerIds, layerLabelIds, layerValues, "layer", layerIdx)
 
+        // Layer I sub-options — engraved nameplate pills (LOCAL / API),
+        // hidden by default and revealed only while Transcribe is the
+        // active layer. Mirrors the inline LOCAL/CLOUD picker in the
+        // bubble menu and keeps both surfaces in sync via the shared
+        // `l1_cloud_asr` pref. The reveal/hide uses a soft slide-down
+        // (220ms decelerate) / slide-up (160ms accelerate) so the
+        // sub-row feels nested under Transcribe rather than abrupt.
+        val l1SubRow = findViewById<View>(R.id.layer1SubRow)
+        val l1LocalBtn = findViewById<TextView>(R.id.layer1Local)
+        val l1CloudBtn = findViewById<TextView>(R.id.layer1Cloud)
+        val brandCream = 0xFFC8B48A.toInt()
+        val brandCreamBright = 0xFFEDDFC2.toInt()
+        fun paintL1Source() {
+            val cloud = WimApp.l1CloudAsr()
+            // The nameplate_bg selector responds to isSelected with the
+            // maroon-fill + cream-highlight border treatment.
+            l1LocalBtn?.isSelected = !cloud
+            l1CloudBtn?.isSelected = cloud
+            l1LocalBtn?.setTextColor(if (!cloud) brandCreamBright else brandCream)
+            l1CloudBtn?.setTextColor(if (cloud) brandCreamBright else brandCream)
+        }
+        paintL1Source()
+        l1LocalBtn?.setOnClickListener {
+            WimApp.prefs.edit().putBoolean("l1_cloud_asr", false).apply()
+            paintL1Source()
+        }
+        l1CloudBtn?.setOnClickListener {
+            WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
+            paintL1Source()
+        }
 
+        fun setLayer1SubRowVisible(visible: Boolean) {
+            val row = l1SubRow ?: return
+            val dp = resources.displayMetrics.density
+            if (visible) {
+                if (row.visibility == View.VISIBLE) return
+                row.alpha = 0f
+                row.translationY = -8f * dp
+                row.visibility = View.VISIBLE
+                row.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(220)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator(1.6f))
+                    .start()
+            } else {
+                if (row.visibility != View.VISIBLE) return
+                row.animate()
+                    .alpha(0f)
+                    .translationY(-8f * dp)
+                    .setDuration(160)
+                    .setInterpolator(android.view.animation.AccelerateInterpolator(1.4f))
+                    .withEndAction { row.visibility = View.GONE }
+                    .start()
+            }
+        }
+        // Initial state matches the saved layer.
+        setLayer1SubRowVisible(WimApp.layer() == 1)
+        // Watch the `layer` pref and toggle sub-row visibility whenever
+        // it changes. Avoids clobbering setupLayoutGroupInt's existing
+        // click handlers (those commit the pref; we just react to it).
+        val layerPrefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "layer") setLayer1SubRowVisible(WimApp.layer() == 1)
+        }
+        WimApp.prefs.registerOnSharedPreferenceChangeListener(layerPrefListener)
+        // Keep a strong reference so it isn't GC'd.
+        layerSubRowPrefListener = layerPrefListener
+
+        // ── ACCENT — Polish vs Keep (Design Justice surface) ──
+        // Detection badge reads profile_l1 to render the L1 the user
+        // declared in Profile, with pattern count from L1PackHelper.
+        // POLISH = normalize toward Standard English. KEEP = preserve the
+        // speaker's voice verbatim. Same packs both ways — the LLM
+        // directive flips. Persisted via accent_mode pref.
+        val accentPolishBtn = findViewById<TextView>(R.id.accentPolish)
+        val accentKeepBtn = findViewById<TextView>(R.id.accentKeep)
+        val accentBadgeTitle = findViewById<TextView>(R.id.accentBadgeTitle)
+        val accentBadgeSubtitle = findViewById<TextView>(R.id.accentBadgeSubtitle)
+        val accentHintLabel = findViewById<TextView>(R.id.accentHint)
+
+        fun paintAccentMode() {
+            val mode = WimApp.prefs.getString("accent_mode", "polish") ?: "polish"
+            val keep = mode == "keep"
+            accentPolishBtn?.isSelected = !keep
+            accentKeepBtn?.isSelected = keep
+            accentPolishBtn?.setTextColor(if (!keep) brandCreamBright else brandCream)
+            accentKeepBtn?.setTextColor(if (keep) brandCreamBright else brandCream)
+            accentHintLabel?.text = if (keep)
+                "for your mom · authentic voice"
+            else
+                "for the boss · standard English"
+        }
+
+        fun refreshAccentBadge() {
+            val pack = L1PackHelper.activePack(this)
+            if (pack == null) {
+                accentBadgeTitle?.text = "L1 NOT SET"
+                accentBadgeSubtitle?.text = "set your L1 in Profile to enable accent handling"
+            } else {
+                val displayName = when (pack.language) {
+                    "russian" -> "RUSSIAN"
+                    "spanish" -> "SPANISH"
+                    "mandarin" -> "MANDARIN"
+                    "hindi" -> "HINDI"
+                    "arabic" -> "ARABIC"
+                    "farsi" -> "FARSI"
+                    "french" -> "FRENCH"
+                    "german" -> "GERMAN"
+                    "korean" -> "KOREAN"
+                    "japanese" -> "JAPANESE"
+                    else -> pack.language.uppercase()
+                }
+                accentBadgeTitle?.text = "$displayName L1 · DETECTED"
+                val n = pack.markers.size
+                accentBadgeSubtitle?.text = "$n L1-transfer patterns recognized"
+            }
+        }
+
+        paintAccentMode()
+        refreshAccentBadge()
+
+        accentPolishBtn?.setOnClickListener {
+            WimApp.prefs.edit().putString("accent_mode", "polish").apply()
+            paintAccentMode()
+        }
+        accentKeepBtn?.setOnClickListener {
+            WimApp.prefs.edit().putString("accent_mode", "keep").apply()
+            paintAccentMode()
+        }
+
+        // Refresh badge when user changes L1 in Profile so the surface
+        // reflects the current detection state without an app restart.
+        val accentPrefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "profile_l1") refreshAccentBadge()
+            if (key == "accent_mode") paintAccentMode()
+        }
+        WimApp.prefs.registerOnSharedPreferenceChangeListener(accentPrefListener)
+        accentModePrefListener = accentPrefListener
 
         // ── DAF toggle + delay SeekBar ───────────────────
         val switchDaf = findViewById<MaterialSwitch>(R.id.switchDaf)
@@ -532,10 +671,15 @@ class MainActivity : AppCompatActivity() {
         // ── Profile overlay (iron curtain) ───────────────
         setupProfileOverlay()
 
-        // ── Dev: long-press profile strip to test bubble functions ──
-        findViewById<View>(R.id.profileStrip)?.setOnLongClickListener {
-            BubbleService.instance?.showClarifier("WORK?", "Is this for work or casual?") { answer ->
-                Log.i("WiM", "Clarifier answer: $answer")
+        // ── Dev: long-press the footer Profile button to run the bubble
+        // feature parade. (Old profileStrip was hidden when Profile moved
+        // to the frozen footer; we attach to footerProfile instead.) The
+        // tap opens the profile overlay; long-press fires the same
+        // narrated demo script onboarding uses, cycling through every
+        // major bubble capability. Tap the bubble at any point to skip.
+        findViewById<View>(R.id.footerProfile)?.setOnLongClickListener {
+            BubbleService.instance?.runFeatureParade() ?: run {
+                Toast.makeText(this, "Bubble service isn't running yet", Toast.LENGTH_SHORT).show()
             }
             true
         }

@@ -455,6 +455,52 @@
                     android:fontFamily="monospace" />
             </LinearLayout>
 
+            <!-- Layer I sub-options: Local vs API. Hidden by default;
+                 revealed only when Layer I (Transcribe) is the active
+                 selection. Engraved nameplate aesthetic — same drawable
+                 the bubble menu uses for its layer chips, so the source
+                 picker reads as a continuation of the brand visual
+                 language across surfaces. -->
+            <LinearLayout
+                android:id="@+id/layer1SubRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginStart="28dp"
+                android:layout_marginEnd="6dp"
+                android:layout_marginTop="1dp"
+                android:layout_marginBottom="6dp"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/layer1Local"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="LOCAL"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.22"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginEnd="4dp" />
+                <TextView
+                    android:id="@+id/layer1Cloud"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="API"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.22"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
             <!-- Layer II: Reconstruct -->
             <LinearLayout
                 android:id="@+id/layer2"
@@ -526,7 +572,7 @@
                     android:id="@+id/layer4Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="IV.  Stutter"
+                    android:text="IV.  Speech Disfluency"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp"
                     android:letterSpacing="0.04" />
@@ -541,6 +587,138 @@
 
             <!-- Quiet Mode hidden — auto-detect planned -->
         </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- ACCENT — Polish vs Keep (Design Justice surface) -->
+        <!-- ═══════════════════════════════════════════ -->
+        <!--
+            Detection badge + POLISH/KEEP toggle. Reads profile_l1 to render
+            the L1 the user declared in Profile, with pattern count from
+            L1PackHelper. POLISH = normalize toward Standard English (default,
+            for boss/clients/strangers). KEEP = preserve the speaker's voice
+            verbatim (for family/friends/casual). Same packs loaded both ways
+            — the LLM directive flips. Persisted via accent_mode pref.
+        -->
+        <TextView
+            android:id="@+id/headerAccent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ACCENT"
+            android:textColor="@color/section_header"
+            android:textSize="14sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-light"
+            android:elevation="4dp"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg_pressable"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/contentAccent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/grille_pattern_bg"
+            android:padding="6dp">
+
+            <!-- Detection badge — centered, two-line plate. Maroon title with
+                 cream-gold border reads as a "detection plate." Mirrors
+                 nameplate brand language used elsewhere on the dashboard. -->
+            <LinearLayout
+                android:id="@+id/accentBadge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/card_bg"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:layout_marginBottom="6dp">
+                <TextView
+                    android:id="@+id/accentBadgeTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="L1 NOT SET"
+                    android:textColor="@color/section_header"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.18" />
+                <TextView
+                    android:id="@+id/accentBadgeSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="set your L1 in Profile to enable accent handling"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- POLISH / KEEP — engraved nameplate toggle. Same drawable as
+                 the L1 LOCAL/API picker so the visual language carries. -->
+            <LinearLayout
+                android:id="@+id/accentToggleRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp">
+                <TextView
+                    android:id="@+id/accentPolish"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="POLISH"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.22"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginEnd="4dp" />
+                <TextView
+                    android:id="@+id/accentKeep"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="KEEP"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="@font/josefin_sans"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.22"
+                    android:background="@drawable/nameplate_bg"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <!-- Hint line — explains what the toggle does in plain English. -->
+            <TextView
+                android:id="@+id/accentHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="for the boss · for your mom"
+                android:textColor="@color/text_dim"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.04"
+                android:layout_marginTop="3dp"
+                android:layout_marginBottom="2dp" />
 
         </LinearLayout>
 
