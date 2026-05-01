@@ -32,7 +32,7 @@
                 android:text="@string/profile_title"
                 android:textColor="@color/copper_gold"
                 android:textSize="16sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans"
                 android:textStyle="bold"
                 android:letterSpacing="0.12" />
 
@@ -43,7 +43,7 @@
                 android:text="✕"
                 android:textColor="@color/text_secondary"
                 android:textSize="22sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans"
                 android:paddingStart="16dp"
                 android:paddingEnd="4dp" />
         </LinearLayout>
@@ -67,7 +67,7 @@
                     android:text="@string/profile_mostly_use_for"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="8dp" />
 
@@ -87,7 +87,7 @@
                         android:text="@string/profile_use_work"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
                         android:layout_marginEnd="4dp" />
 
@@ -100,7 +100,7 @@
                         android:text="@string/profile_use_life"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
                         android:layout_marginEnd="4dp" />
 
@@ -113,7 +113,7 @@
                         android:text="@string/profile_use_both"
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg" />
                 </LinearLayout>
 
@@ -133,7 +133,7 @@
                         android:text="W"
                         android:textColor="#FFAADDFF"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:layout_marginEnd="8dp" />
 
@@ -153,7 +153,7 @@
                         android:text="L"
                         android:textColor="#FFFFCC88"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:layout_marginStart="8dp" />
 
@@ -164,7 +164,7 @@
                         android:text="@string/profile_use_5050"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginStart="8dp" />
                 </LinearLayout>
 
@@ -175,7 +175,7 @@
                     android:text="@string/profile_industry"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="8dp" />
 
@@ -193,9 +193,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Row 2 -->
@@ -205,9 +205,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Row 3 -->
@@ -216,9 +216,9 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <!-- Other industry text input — hidden until "Other" is tapped -->
@@ -230,7 +230,7 @@
                         android:textColor="@color/text_primary"
                         android:textColorHint="@color/text_secondary"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp"
@@ -250,7 +250,7 @@
                     android:text="@string/profile_native_english"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="8dp" />
 
@@ -261,8 +261,8 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="8dp">
 
-                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_no" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_no" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -279,7 +279,7 @@
                         android:text="@string/profile_first_language"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:letterSpacing="0.15"
                         android:layout_marginBottom="4dp" />
 
@@ -289,9 +289,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                     </LinearLayout>
 
                     <TextView
@@ -302,7 +302,7 @@
                         android:text="@string/profile_l1_other"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg" />
                 </LinearLayout>
 
@@ -313,7 +313,7 @@
                     android:text="@string/profile_work_hours"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="8dp" />
 
@@ -323,10 +323,10 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="20dp">
 
-                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_day" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="monospace" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_day" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
                 </LinearLayout>
 
                 <!-- VOCABULARY — wrap-flow chips, all visible (no scroll) -->
@@ -336,7 +336,7 @@
                     android:text="@string/profile_vocabulary"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
@@ -363,7 +363,7 @@
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_input"
                         android:paddingStart="14dp"
                         android:paddingEnd="10dp"
@@ -377,7 +377,7 @@
                         android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:paddingStart="14dp"
@@ -395,7 +395,7 @@
                     android:text="@string/profile_corrections"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
@@ -422,7 +422,7 @@
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_input"
                         android:paddingStart="14dp"
                         android:paddingEnd="10dp"
@@ -447,7 +447,7 @@
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_input"
                         android:paddingStart="14dp"
                         android:paddingEnd="10dp"
@@ -461,7 +461,7 @@
                         android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:paddingStart="14dp"
@@ -479,7 +479,7 @@
                     android:text="@string/profile_trigger_words"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
@@ -506,7 +506,7 @@
                         android:textColor="@color/active_text"
                         android:textColorHint="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_input"
                         android:paddingStart="14dp"
                         android:paddingEnd="10dp"
@@ -520,7 +520,7 @@
                         android:text="@string/profile_add"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:paddingStart="14dp"
@@ -538,7 +538,7 @@
                     android:text="@string/profile_clarifier_sensitivity"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
@@ -556,7 +556,7 @@
                         android:text="@string/profile_sens_low"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
                         android:layout_marginEnd="4dp" />
                     <TextView
@@ -568,7 +568,7 @@
                         android:text="@string/profile_sens_medium"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
                         android:layout_marginEnd="4dp" />
                     <TextView
@@ -580,7 +580,7 @@
                         android:text="@string/profile_sens_high"
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg" />
                 </LinearLayout>
 
@@ -594,7 +594,7 @@
                     android:text="@string/profile_no_flag_apps"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.15"
                     android:layout_marginBottom="4dp" />
 
@@ -619,7 +619,7 @@
                         android:text="@string/profile_add_current_app"
                         android:textColor="@color/active_text"
                         android:textSize="11sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:background="@drawable/card_bg_input"
@@ -642,7 +642,7 @@
                         android:text="@string/profile_your_data"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:letterSpacing="0.15"
                         android:layout_marginBottom="4dp" />
 
@@ -652,7 +652,7 @@
                         android:text="@string/profile_data_synced"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
@@ -663,7 +663,7 @@
                         android:text="@string/profile_export_data"
                         android:textColor="@color/text_bright"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_pressable"
                         android:layout_marginBottom="4dp" />
 
@@ -675,7 +675,7 @@
                         android:text="@string/profile_delete_data"
                         android:textColor="@color/red_hot"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg_pressable" />
                 </LinearLayout>
 

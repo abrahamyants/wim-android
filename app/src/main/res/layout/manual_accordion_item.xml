@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/red_bright"
                 android:textSize="9sp"
-                android:fontFamily="monospace" />
+                android:fontFamily="@font/plus_jakarta_sans" />
         </LinearLayout>
 
         <!-- Chevron -->

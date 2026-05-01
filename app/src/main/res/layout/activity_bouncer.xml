@@ -107,7 +107,7 @@
                             android:text="@string/perm_overlay_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                         <TextView
                             android:id="@+id/permOverlayTap"
                             android:layout_width="wrap_content"
@@ -155,7 +155,7 @@
                                 android:text="@string/bouncer_perm_accessibility_subtitle"
                                 android:textColor="@color/copper_gold"
                                 android:textSize="9sp"
-                                android:fontFamily="monospace" />
+                                android:fontFamily="@font/plus_jakarta_sans" />
                         </LinearLayout>
                         <TextView
                             android:id="@+id/permAccessibilityTap"
@@ -200,7 +200,7 @@
                             android:text="@string/perm_microphone_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                         <TextView
                             android:id="@+id/permMicTap"
                             android:layout_width="wrap_content"
@@ -244,7 +244,7 @@
                             android:text="@string/bouncer_perm_battery_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                         <TextView
                             android:id="@+id/permBatteryTap"
                             android:layout_width="wrap_content"
@@ -287,7 +287,7 @@
                             android:text="@string/perm_notifications_subtitle"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                         <TextView
                             android:id="@+id/permNotificationsTap"
                             android:layout_width="wrap_content"
@@ -314,7 +314,7 @@
                         android:text="@string/bouncer_slide_1_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:letterSpacing="0.1" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -322,7 +322,7 @@
                         android:text="@string/bouncer_onboarding_exercise"
                         android:textColor="@color/text_dim"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -416,7 +416,7 @@
                         android:text="@string/bouncer_slide_2_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:letterSpacing="0.1" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -424,7 +424,7 @@
                         android:text="@string/bouncer_onboarding_exercise"
                         android:textColor="@color/text_dim"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -544,7 +544,7 @@
                         android:text="@string/bouncer_slide_3_6"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:letterSpacing="0.1" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -552,7 +552,7 @@
                         android:text="@string/bouncer_next_meet_bubble"
                         android:textColor="@color/copper_gold"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -624,7 +624,7 @@
                             android:text="@string/bouncer_gesture_tap_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -648,7 +648,7 @@
                             android:text="@string/bouncer_gesture_hold_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -672,7 +672,7 @@
                             android:text="@string/bouncer_gesture_doubletap_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -696,7 +696,7 @@
                             android:text="@string/bouncer_gesture_drag_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -720,7 +720,7 @@
                             android:text="@string/bouncer_gesture_fling_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -743,7 +743,7 @@
                             android:text="@string/bouncer_gesture_shake_action"
                             android:textColor="@color/copper_gold"
                             android:textSize="11sp"
-                            android:fontFamily="monospace" />
+                            android:fontFamily="@font/plus_jakarta_sans" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -776,7 +776,7 @@
                     android:text="@string/bouncer_slide_4_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.1"
                     android:layout_marginTop="16dp" />
 
@@ -821,7 +821,7 @@
                         android:text="@string/bouncer_recon_you_say"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginBottom="4dp" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -829,7 +829,7 @@
                         android:text="@string/bouncer_recon_before"
                         android:textColor="@color/chip_value"
                         android:textSize="13sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
@@ -856,7 +856,7 @@
                         android:text="@string/bouncer_recon_arrives"
                         android:textColor="@color/text_secondary"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginBottom="4dp" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -864,7 +864,7 @@
                         android:text="@string/bouncer_recon_after"
                         android:textColor="@color/green_active"
                         android:textSize="13sp"
-                        android:fontFamily="monospace"
+                        android:fontFamily="@font/plus_jakarta_sans"
                         android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
@@ -909,7 +909,7 @@
                     android:text="@string/bouncer_slide_5_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.1"
                     android:layout_marginTop="16dp" />
 
@@ -1014,7 +1014,7 @@
                     android:text="@string/bouncer_slide_6_7"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.1"
                     android:layout_marginTop="16dp" />
 
@@ -1090,7 +1090,7 @@
                     android:text="@string/bouncer_slide_6_6"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.1"
                     android:layout_marginTop="16dp" />
 
