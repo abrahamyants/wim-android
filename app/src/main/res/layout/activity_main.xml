@@ -627,98 +627,52 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/grille_pattern_bg"
-            android:padding="6dp">
+            android:padding="4dp">
 
-            <!-- Detection badge — centered, two-line plate. Maroon title with
-                 cream-gold border reads as a "detection plate." Mirrors
-                 nameplate brand language used elsewhere on the dashboard. -->
+            <!-- Single MaterialSwitch row matching Auto-send / Cloud-backup
+                 pattern. ON = accent_mode=keep (preserve speaker's voice).
+                 OFF = accent_mode=polish (default normalize). -->
             <LinearLayout
-                android:id="@+id/accentBadge"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="center"
                 android:background="@drawable/card_bg"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:layout_marginBottom="6dp">
-                <TextView
-                    android:id="@+id/accentBadgeTitle"
-                    android:layout_width="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="L1 NOT SET"
-                    android:textColor="@color/section_header"
-                    android:textSize="13sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.18" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Accent"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchAccent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
                 <TextView
-                    android:id="@+id/accentBadgeSubtitle"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="set your L1 in Profile to enable accent handling"
+                    android:text="don't auto-correct"
                     android:textColor="@color/text_dim"
-                    android:textSize="10sp"
+                    android:textSize="9sp"
                     android:fontFamily="monospace"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
-
-            <!-- POLISH / KEEP — engraved nameplate toggle. Same drawable as
-                 the L1 LOCAL/API picker so the visual language carries. -->
-            <LinearLayout
-                android:id="@+id/accentToggleRow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginStart="6dp"
-                android:layout_marginEnd="6dp"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="2dp">
-                <TextView
-                    android:id="@+id/accentPolish"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="32dp"
-                    android:gravity="center"
-                    android:text="POLISH"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.22"
-                    android:background="@drawable/nameplate_bg"
-                    android:layout_marginEnd="4dp" />
-                <TextView
-                    android:id="@+id/accentKeep"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="32dp"
-                    android:gravity="center"
-                    android:text="KEEP"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.22"
-                    android:background="@drawable/nameplate_bg"
-                    android:layout_marginStart="4dp" />
-            </LinearLayout>
-
-            <!-- Hint line — explains what the toggle does in plain English. -->
-            <TextView
-                android:id="@+id/accentHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="for the boss · for your mom"
-                android:textColor="@color/text_dim"
-                android:textSize="9sp"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.04"
-                android:layout_marginTop="3dp"
-                android:layout_marginBottom="2dp" />
 
         </LinearLayout>
 

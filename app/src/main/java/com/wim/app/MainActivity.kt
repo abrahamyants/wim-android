@@ -74,7 +74,6 @@ class MainActivity : AppCompatActivity() {
     // Card IDs grouped by section for selection logic
     private val layerIds = listOf(R.id.layer1, R.id.layer2, R.id.layer3, R.id.layer4)
     private var layerSubRowPrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
-    private var accentModePrefListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
     private val layerLabelIds = listOf(R.id.layer1Label, R.id.layer2Label, R.id.layer3Label, R.id.layer4Label)
     private val layerValues = listOf(1, 2, 3, 4)
 
@@ -384,76 +383,16 @@ class MainActivity : AppCompatActivity() {
         // Keep a strong reference so it isn't GC'd.
         layerSubRowPrefListener = layerPrefListener
 
-        // ── ACCENT — Polish vs Keep (Design Justice surface) ──
-        // Detection badge reads profile_l1 to render the L1 the user
-        // declared in Profile, with pattern count from L1PackHelper.
-        // POLISH = normalize toward Standard English. KEEP = preserve the
-        // speaker's voice verbatim. Same packs both ways — the LLM
-        // directive flips. Persisted via accent_mode pref.
-        val accentPolishBtn = findViewById<TextView>(R.id.accentPolish)
-        val accentKeepBtn = findViewById<TextView>(R.id.accentKeep)
-        val accentBadgeTitle = findViewById<TextView>(R.id.accentBadgeTitle)
-        val accentBadgeSubtitle = findViewById<TextView>(R.id.accentBadgeSubtitle)
-        val accentHintLabel = findViewById<TextView>(R.id.accentHint)
-
-        fun paintAccentMode() {
-            val mode = WimApp.prefs.getString("accent_mode", "polish") ?: "polish"
-            val keep = mode == "keep"
-            accentPolishBtn?.isSelected = !keep
-            accentKeepBtn?.isSelected = keep
-            accentPolishBtn?.setTextColor(if (!keep) brandCreamBright else brandCream)
-            accentKeepBtn?.setTextColor(if (keep) brandCreamBright else brandCream)
-            accentHintLabel?.text = if (keep)
-                "for your mom · authentic voice"
-            else
-                "for the boss · standard English"
+        // ── ACCENT — single MaterialSwitch matching Auto-send pattern. ──
+        // ON  = accent_mode=keep (preserve speaker's voice verbatim).
+        // OFF = accent_mode=polish (default normalize toward Standard English).
+        // Same L1 packs are used both ways at L2/L3; the LLM directive flips.
+        val switchAccent = findViewById<MaterialSwitch>(R.id.switchAccent)
+        switchAccent?.isChecked = (WimApp.prefs.getString("accent_mode", "polish") == "keep")
+        switchAccent?.let { styleToggle(it) }
+        switchAccent?.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putString("accent_mode", if (checked) "keep" else "polish").apply()
         }
-
-        fun refreshAccentBadge() {
-            val pack = L1PackHelper.activePack(this)
-            if (pack == null) {
-                accentBadgeTitle?.text = "L1 NOT SET"
-                accentBadgeSubtitle?.text = "set your L1 in Profile to enable accent handling"
-            } else {
-                val displayName = when (pack.language) {
-                    "russian" -> "RUSSIAN"
-                    "spanish" -> "SPANISH"
-                    "mandarin" -> "MANDARIN"
-                    "hindi" -> "HINDI"
-                    "arabic" -> "ARABIC"
-                    "farsi" -> "FARSI"
-                    "french" -> "FRENCH"
-                    "german" -> "GERMAN"
-                    "korean" -> "KOREAN"
-                    "japanese" -> "JAPANESE"
-                    else -> pack.language.uppercase()
-                }
-                accentBadgeTitle?.text = "$displayName L1 · DETECTED"
-                val n = pack.markers.size
-                accentBadgeSubtitle?.text = "$n L1-transfer patterns recognized"
-            }
-        }
-
-        paintAccentMode()
-        refreshAccentBadge()
-
-        accentPolishBtn?.setOnClickListener {
-            WimApp.prefs.edit().putString("accent_mode", "polish").apply()
-            paintAccentMode()
-        }
-        accentKeepBtn?.setOnClickListener {
-            WimApp.prefs.edit().putString("accent_mode", "keep").apply()
-            paintAccentMode()
-        }
-
-        // Refresh badge when user changes L1 in Profile so the surface
-        // reflects the current detection state without an app restart.
-        val accentPrefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "profile_l1") refreshAccentBadge()
-            if (key == "accent_mode") paintAccentMode()
-        }
-        WimApp.prefs.registerOnSharedPreferenceChangeListener(accentPrefListener)
-        accentModePrefListener = accentPrefListener
 
         // ── DAF toggle + delay SeekBar ───────────────────
         val switchDaf = findViewById<MaterialSwitch>(R.id.switchDaf)
