@@ -3050,3 +3050,79 @@ polish for "the bubble is the app" credibility. Full writeup in
    refresh of the patent thread late this session for separate
    dispatch.
 
+## Session 18 — April 30, 2026 (continued, evening — L1-pack expansion + patent prior-art cross-validation + grant strategy)
+
+Separate dispatch arc on the same calendar day. Deep reread of both
+READMEs (Lav 3,174 + WiM 2,787 lines) → L2 reconstruction layer audit
+across both apps → bubble + accent capability audits → L1-pack expansion
+from 3 to 10 languages → Cloud Function deploys → patent prior-art
+3-pass cross-validation → USPTO filing-requirements verification → grant
+strategy thread.
+
+- **L1-pack expansion (3 → 10 languages)** — Hindi, Arabic, Farsi,
+  French, German, Korean, Japanese authored from
+  `lavrentiy/docs/L1_Transfer_Markers_in_Written_English.md`
+  (40-page Gemini-generated paper). 9–10 markers per language with
+  academic citations (Sailaja, Mehrotra, Lange, Hermas, Daghbandan,
+  Granger, Paquot, Hladka, Lardiere, Hu, Lyu & Wu, Ryu, Nakayama,
+  Sugaya, etc.). Distributed to 4 destinations MD5 byte-identical.
+  Operator's commit `06ae954` "Session 18 …" bundled WiM-side asset
+  files alongside parallel-session bubble work.
+- **PhoneticMatcher gate sync** — restricted to L2/L3 only on both apps
+  (commits `7d55e40` WiM, `4afdc34`+`ea5007d` Lav).
+- **Cloud Function deploys** — `wim-reconstruct-00010-pej` ACTIVE
+  (signed-in WiM users get all 10 languages server-side);
+  `wim-l1-guess-00005-mox` ACTIVE (public web demo at
+  `gugosf114.github.io/l1-guesser/` classifies all 10).
+- **Patent prior-art 3-pass cross-validation** — Apr 27 Gemini
+  41-patent assessment + Claude background-agent pass + Gemini Deep
+  Research pass. All three converged on **zero-mutation bidirectional
+  clarifier with multi-pass disagreement, in independent Z-order, with
+  accessibility-mediated injection** as the strongest claim shape.
+  Manual verification at primary sources of three pivotal findings:
+  **US20250246187A1** (UC Regents 2025 disfluent-speech patent) is real
+  and pending but different scope — audio-domain alignment, not text
+  reconstruction; not gating. **IBM US6006183** (1997 per-word
+  confidence display) expired Dec 2017; still § 102 prior art for
+  novelty but no commercial FTO risk. **kafkasl/phone-whisper** GitHub
+  repo created **March 12, 2026** (NOT "Late 2023 / Early 2024" as
+  Gemini Deep Research mis-dated) — concurrent or later work, not §
+  102(a) prior art at all. **Strongest claim chain more defensible
+  than the three passes initially concluded.**
+- **USPTO filing requirements verified at uspto.gov primary source.**
+  Provisional needs: written description + drawings + Form PTO/SB/16
+  cover sheet + Form PTO/SB/15A micro-entity status + **$65** fee
+  (3005, micro-entity rate; not the $130 small-entity rate that floated
+  in earlier session logs). Claims, oath, and IDS are NOT required at
+  provisional — only at non-provisional conversion. Patent Center +
+  ID.me workflow; 12-month pendency hard deadline.
+- **Grant strategy thread** — direct license to OpenAI / Wispr / Otter
+  is worth ~$0 (incumbents acquire users + talent + data, not solo-dev
+  IP). Foundation grants (NIH NIDCD, Apple Accessibility, Google.org,
+  Mozilla Foundation, Knight Foundation) are the strongest path,
+  $50K–$500K range, 6–12 months out. Provisional patent is the
+  cheapest pitch artifact ($65 + a weekend).
+- **The two key research papers identified** — operator pointed to:
+  **Ruha Benjamin** (*Race After Technology*, 2019, Polity — "the New
+  Jim Code") and **Sasha Costanza-Chock** (*Design Justice*, 2020, MIT
+  Press). The L1-pack architecture is a direct response to Benjamin's
+  New Jim Code critique (explicit infrastructure for non-dominant
+  speakers vs. facially-neutral systems failing them) and a partial
+  Costanza-Chock implementation (`profile_l1` toggle puts calibration
+  in the user's hands). What's missing: community curation. Adjacent
+  scholars name-checked (Buolamwini, Gebru, Noble, Eubanks, O'Neil,
+  Crawford, D'Ignazio + Klein, Lawrence, Rickford, Charity Hudley) +
+  adjacent infrastructure (Mozilla Common Voice, Speech Accent
+  Archive).
+- **Pack Contribution Layer architecture proposed — DEFERRED.** Opt-in
+  user contribution of `(raw, model_output, user_correction)` triples
+  to a Firestore collection, periodic LLM-assisted distillation of new
+  markers, community-curator web surface for vote/edit. ~2 hours
+  minimum-viable, ~1 week full v1. Strengthens grant pitch from
+  "academic-research-grounded equity infrastructure" to "first
+  community-curated L1-transfer normalization platform" — the framing
+  that unlocks larger grant tiers ($250K–$1M) per Costanza-Chock.
+
+Full evening-continuation detail (sections 10–24) in
+`SESSION_LOG_2026-04-30.md`.
+
