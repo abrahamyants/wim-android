@@ -591,92 +591,6 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- ACCENT — Polish vs Keep (Design Justice surface) -->
-        <!-- ═══════════════════════════════════════════ -->
-        <!--
-            Detection badge + POLISH/KEEP toggle. Reads profile_l1 to render
-            the L1 the user declared in Profile, with pattern count from
-            L1PackHelper. POLISH = normalize toward Standard English (default,
-            for boss/clients/strangers). KEEP = preserve the speaker's voice
-            verbatim (for family/friends/casual). Same packs loaded both ways
-            — the LLM directive flips. Persisted via accent_mode pref.
-        -->
-        <TextView
-            android:id="@+id/headerAccent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="ACCENT"
-            android:textColor="@color/section_header"
-            android:textSize="14sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-light"
-            android:elevation="4dp"
-            android:textStyle="bold"
-            android:background="@drawable/glass_panel_bg_pressable"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:layout_marginBottom="8dp"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/contentAccent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/grille_pattern_bg"
-            android:padding="4dp">
-
-            <!-- Single MaterialSwitch row matching Auto-send / Cloud-backup
-                 pattern. ON = accent_mode=keep (preserve speaker's voice).
-                 OFF = accent_mode=polish (default normalize). -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/card_bg"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_marginBottom="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:text="Accent"
-                        android:textColor="@color/text_dim"
-                        android:textSize="11sp"
-                        android:fontFamily="monospace" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchAccent"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="don't auto-correct"
-                    android:textColor="@color/text_dim"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- ═══════════════════════════════════════════ -->
         <!-- TONE -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView
@@ -1458,6 +1372,51 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send."
+                    android:textColor="@color/text_dim"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:alpha="0.65"
+                    android:paddingTop="4dp" />
+            </LinearLayout>
+
+            <!-- Accent: ON = preserve speaker's voice (KEEP). OFF = polish
+                 toward Standard English (default). Drives accent_mode pref. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Accent"
+                        android:textColor="@color/text_dim"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchAccent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="don't auto-correct"
                     android:textColor="@color/text_dim"
                     android:textSize="9sp"
                     android:fontFamily="monospace"
