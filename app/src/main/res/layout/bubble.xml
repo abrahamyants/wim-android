@@ -57,7 +57,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:elevation="9dp" />
+            android:elevation="9dp"
+            android:importantForAccessibility="no" />
 
         <!-- Clarifier: split bezel backgrounds (green left, red right) — hidden by default -->
         <View
@@ -195,7 +196,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:text="✓"
-                android:textColor="#FF4CAF50"
+                android:textColor="@color/green_active"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:fontFamily="@font/plus_jakarta_sans"

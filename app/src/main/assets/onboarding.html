@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0">
 <style>
 /* Local Limelight font (bundled in assets) */
 @font-face {
@@ -25,15 +25,15 @@
   --text: #D4D0C8;          /* text_primary */
   --text-bright: #F0ECE4;   /* text_bright */
   --text-dim: #A09888;       /* text_dim */
-  --text-muted: #8A8078;    /* text_secondary */
+  --text-muted: #908880;    /* text_secondary — WCAG AA 4.96:1 on bg */
   --orange: #EE5A24;        /* orange_label — active/data ONLY */
   --copper: #C49A6C;        /* copper_gold — sub-labels */
   --cream: #C8B48A;         /* section_header — headers */
   --green: #16A34A;         /* green_active */
   --red: #B91C1C;           /* red_primary */
-  --maroon: #B55050;        /* chip_value */
+  --maroon: #D06060;        /* chip_value — WCAG AA 4.60:1 on bg */
   --active-bg: #3A2020;     /* active_bg */
-  --console-bg: #3A1A1A;
+  --console-bg: var(--sunken);  /* #18181C — inset surface, darkest approved token */
   --font: 'Outfit', -apple-system, 'Roboto', sans-serif;
   --mono: 'JetBrains Mono', 'Roboto Mono', monospace;
 }
@@ -83,17 +83,17 @@ body::before {
 }
 .dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--raised-hi);
+  background: var(--text-muted);
   transition: all 0.3s;
 }
 .dot.active {
   background: var(--maroon);
-  box-shadow: 0 0 8px rgba(181,80,80,0.6);
+  box-shadow: 0 0 8px rgba(208,96,96,0.6);
   width: 24px; border-radius: 4px;
 }
 .tile-counter {
   font-family: var(--mono);
-  font-size: 12px; color: var(--text-muted);
+  font-size: 0.75rem; color: var(--text-muted);
   letter-spacing: 1px;
   min-width: 32px;
 }
@@ -107,7 +107,7 @@ body::before {
   margin-bottom: 8px;
 }
 .tile-sub {
-  font-size: 13px; color: var(--text-dim);
+  font-size: 0.8125rem; color: var(--text-dim);
   text-align: center; line-height: 1.5;
   margin-bottom: 24px;
   max-width: 300px;
@@ -122,7 +122,7 @@ body::before {
   padding: 16px; margin-top: 20px;
   background: linear-gradient(180deg, var(--raised-hi) 0%, var(--raised) 50%, #24242a 100%);
   color: var(--cream); font-weight: 700;
-  font-size: 15px; letter-spacing: 0.08em;
+  font-size: 0.9375rem; letter-spacing: 0.08em;
   text-align: center; border: 1px solid var(--border);
   border-bottom: 2px solid var(--maroon); cursor: pointer;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
@@ -134,15 +134,15 @@ body::before {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .skip-btn {
-  margin-top: 12px; padding: 8px;
-  font-size: 12px; color: var(--copper);
+  margin-top: 12px; padding: 14px 16px;
+  font-size: 0.75rem; color: var(--copper);
   background: none; border: none; cursor: pointer;
   font-weight: 600;
 }
 
 /* ═══ TILE 1: WELCOME + DEMO ═══ */
 .logo { font-size: 52px; color: var(--cream); font-family: 'Limelight', cursive; font-weight: 400; }
-.logo-sub { font-size: 12px; color: var(--text-muted); letter-spacing: 4px; margin-top: 2px; text-transform: uppercase; }
+.logo-sub { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 4px; margin-top: 2px; text-transform: uppercase; }
 
 /* Dashboard frame — miniature version of the real Лаврентий console */
 .dash-frame {
@@ -161,10 +161,10 @@ body::before {
   border-bottom: 1px solid var(--border);
 }
 .dash-titlebar-logo {
-  font-family: 'Limelight', cursive; font-size: 14px;
+  font-family: 'Limelight', cursive; font-size: 0.875rem;
   color: var(--cream); margin-right: 8px;
 }
-.dash-titlebar-text { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.dash-titlebar-text { font-size: 0.625rem; color: var(--text-dim); letter-spacing: 1px; }
 .dash-titlebar-dot {
   width: 6px; height: 6px; border-radius: 50%; margin-left: auto;
   background: var(--green);
@@ -173,7 +173,7 @@ body::before {
 .dash-console {
   padding: 12px 14px;
   background: var(--console-bg);
-  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  font-family: var(--mono); font-size: 0.75rem; line-height: 1.8;
   min-height: 120px;
   position: relative;
 }
@@ -190,11 +190,11 @@ body::before {
 }
 .dash-stat .sv { font-family: var(--mono); font-size: 13px; color: #D4C5A9;
   text-shadow: 0 0 6px rgba(200,180,138,0.6), 0 0 14px rgba(200,180,138,0.3); }
-.dash-stat .sl { font-size: 7px; color: var(--text-muted); letter-spacing: 0.5px; }
+.dash-stat .sl { font-size: 0.4375rem; color: var(--text-muted); letter-spacing: 0.5px; }
 
-.demo-label { font-size: 9px; color: var(--copper); letter-spacing: 1px; padding: 8px 14px 0; }
+.demo-label { font-size: 0.5625rem; color: var(--copper); letter-spacing: 1px; padding: 8px 14px 0; }
 .demo-arrow {
-  text-align: center; font-size: 14px; color: var(--copper);
+  text-align: center; font-size: 0.875rem; color: var(--copper);
   padding: 2px 0; opacity: 0; transition: opacity 0.3s;
 }
 .demo-clean-wrap {
@@ -202,21 +202,21 @@ body::before {
   transition: opacity 0.5s, transform 0.5s;
 }
 .demo-clean-wrap.show { opacity: 1; transform: translateY(0); }
-.demo-clean-text { color: #4ade80; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.demo-clean-text { color: var(--green); font-family: var(--mono); font-size: 0.75rem; line-height: 1.6; }
 .demo-tone {
-  text-align: right; font-size: 9px; color: var(--copper);
+  text-align: right; font-size: 0.5625rem; color: var(--copper);
   letter-spacing: 1px; padding: 0 14px 8px;
   opacity: 0; transition: opacity 0.4s;
 }
 
-.junk { color: var(--maroon); text-decoration: line-through; opacity: 0.7; font-size: 11px; }
+.junk { color: var(--maroon); text-decoration: line-through; opacity: 0.7; font-size: 0.6875rem; }
 .con-line { margin-bottom: 1px; }
 .cursor-blink { display: inline-block; width: 2px; height: 1em; background: var(--copper); animation: blink 0.6s infinite; vertical-align: text-bottom; margin-left: 1px; }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
 /* ═══ TILE 2: ANY APP ═══ */
 .phone-mock {
-  width: 220px; padding: 16px;
+  width: min(220px, calc(100% - 40px)); padding: 16px;
   border-radius: 20px;
   background: linear-gradient(180deg, #2a2a30 0%, #1e1e24 100%);
   border: 2px solid rgba(255,255,255,0.08);
@@ -228,7 +228,7 @@ body::before {
 .msg-row.you { justify-content: flex-end; }
 .msg-bubble {
   max-width: 75%; padding: 8px 12px;
-  border-radius: 14px; font-size: 12px; line-height: 1.4;
+  border-radius: 14px; font-size: 0.75rem; line-height: 1.4;
 }
 .msg-row.them .msg-bubble { background: var(--raised-hi); color: var(--text); border-bottom-left-radius: 4px; }
 .msg-row.you .msg-bubble { background: #2a4a2a; color: var(--green); border-bottom-right-radius: 4px; }
@@ -238,7 +238,7 @@ body::before {
   background: radial-gradient(circle at 40% 35%, #C4A574, #6F5030);
   border: 2px solid var(--maroon);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800; color: var(--cream);
+  font-size: 0.6875rem; font-weight: 800; color: var(--cream);
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   animation: float 3s ease-in-out infinite;
 }
@@ -269,9 +269,9 @@ body::before {
   text-shadow: 0 0 8px rgba(181,80,80,0.4);
 }
 .layer-row.active .layer-num { text-shadow: 0 0 12px rgba(181,80,80,0.8); }
-.layer-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
-.layer-desc { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
-.layer-free { font-size: 9px; color: var(--green); font-weight: 600; letter-spacing: 1px; margin-left: auto; }
+.layer-name { font-size: 0.875rem; font-weight: 600; color: var(--text-bright); }
+.layer-desc { font-size: 0.6875rem; color: var(--text-dim); margin-top: 1px; }
+.layer-free { font-size: 0.5625rem; color: var(--green); font-weight: 600; letter-spacing: 1px; margin-left: auto; }
 
 /* ═══ TILE 4: TONES — dashboard fragment ═══ */
 .tones-grid {
@@ -289,11 +289,11 @@ body::before {
   transition: all 0.2s;
 }
 .tone-card.active {
-  border-color: var(--maroon);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 16px rgba(181,80,80,0.2);
+  border-color: var(--orange);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 16px rgba(238,90,36,0.25);
 }
-.tone-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
-.tone-example { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; font-style: italic; }
+.tone-name { font-size: 0.875rem; font-weight: 600; color: var(--text-bright); }
+.tone-example { font-size: 0.625rem; color: var(--text-dim); margin-top: 4px; line-height: 1.4; font-style: italic; }
 
 /* ═══ TILE 5: LEARNS ═══ */
 .sv {
@@ -301,14 +301,14 @@ body::before {
   font-size: 20px; color: #D4C5A9; line-height: 1;
   text-shadow: 0 0 6px rgba(200,180,138,0.6), 0 0 14px rgba(200,180,138,0.3), 0 0 30px rgba(200,180,138,0.15);
 }
-.sl { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 4px; }
+.sl { font-size: 0.5625rem; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 4px; }
 
 .console-mock {
   width: 100%; max-width: 320px;
   padding: 12px 14px;
   border-radius: 8px;
   background: var(--console-bg);
-  font-family: var(--mono); font-size: 11px;
+  font-family: var(--mono); font-size: 0.6875rem;
   line-height: 1.7; color: var(--text-dim);
   border: 1px solid rgba(185,28,28,0.2);
   box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
@@ -331,10 +331,10 @@ body::before {
 .perm-row.granted { background: #1e2e1e; border-color: rgba(68,221,68,0.15); }
 .perm-icon { font-size: 18px; width: 32px; text-align: center; }
 .perm-info { flex: 1; margin-left: 8px; }
-.perm-name { font-size: 13px; font-weight: 600; color: var(--cream); }
+.perm-name { font-size: 0.8125rem; font-weight: 600; color: var(--cream); }
 .perm-row.granted .perm-name { color: var(--green); }
-.perm-why { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
-.perm-status { font-size: 12px; font-weight: 700; min-width: 36px; text-align: center; }
+.perm-why { font-size: 0.625rem; color: var(--text-dim); margin-top: 1px; }
+.perm-status { font-size: 0.75rem; font-weight: 700; min-width: 36px; text-align: center; }
 .perm-status.done { color: var(--green); }
 .perm-status.tap { color: var(--maroon); }
 
@@ -398,7 +398,7 @@ body::before {
       <div class="msg-row them"><div class="msg-bubble">Hey, can you send the report?</div></div>
       <div class="msg-row you"><div class="msg-bubble" id="typed-msg"></div></div>
       <div class="msg-row them"><div class="msg-bubble">Perfect, thanks!</div></div>
-      <div class="wim-bubble">WM</div>
+      <div class="wim-bubble">WiM</div>
     </div>
 
     <div style="flex:1"></div>

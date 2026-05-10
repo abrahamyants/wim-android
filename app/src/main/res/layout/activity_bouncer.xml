@@ -84,7 +84,10 @@
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:background="@drawable/card_bg"
-                        android:layout_marginBottom="2dp">
+                        android:layout_marginBottom="2dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/perm_overlay">
                         <TextView
                             android:id="@+id/permOverlayCheck"
                             android:layout_width="20dp"
@@ -128,7 +131,10 @@
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:background="@drawable/card_bg"
-                        android:layout_marginBottom="2dp">
+                        android:layout_marginBottom="2dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/perm_accessibility">
                         <TextView
                             android:id="@+id/permAccessibilityCheck"
                             android:layout_width="20dp"
@@ -177,7 +183,10 @@
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:background="@drawable/card_bg"
-                        android:layout_marginBottom="2dp">
+                        android:layout_marginBottom="2dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/perm_microphone">
                         <TextView
                             android:id="@+id/permMicCheck"
                             android:layout_width="20dp"
@@ -221,7 +230,10 @@
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:background="@drawable/card_bg"
-                        android:layout_marginBottom="2dp">
+                        android:layout_marginBottom="2dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/perm_battery">
                         <TextView
                             android:id="@+id/permBatteryCheck"
                             android:layout_width="20dp"
@@ -264,7 +276,10 @@
                         android:gravity="center_vertical"
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
-                        android:background="@drawable/card_bg">
+                        android:background="@drawable/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/perm_notifications">
                         <TextView
                             android:id="@+id/permNotificationsCheck"
                             android:layout_width="20dp"
@@ -361,7 +376,9 @@
                     android:orientation="vertical"
                     android:background="@drawable/card_bg_pressable"
                     android:padding="18dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -386,7 +403,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg_pressable"
-                    android:padding="18dp">
+                    android:padding="18dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -463,7 +482,9 @@
                     android:orientation="vertical"
                     android:background="@drawable/card_bg_pressable"
                     android:padding="18dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -488,7 +509,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg_pressable"
-                    android:padding="18dp">
+                    android:padding="18dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -514,7 +537,9 @@
                     android:orientation="vertical"
                     android:background="@drawable/card_bg_pressable"
                     android:padding="18dp"
-                    android:layout_marginTop="10dp">
+                    android:layout_marginTop="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -619,7 +644,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_tap_action"
                             android:textColor="@color/copper_gold"
@@ -643,7 +669,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_hold_action"
                             android:textColor="@color/copper_gold"
@@ -667,7 +694,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_doubletap_action"
                             android:textColor="@color/copper_gold"
@@ -691,7 +719,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_drag_action"
                             android:textColor="@color/copper_gold"
@@ -715,7 +744,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_fling_action"
                             android:textColor="@color/copper_gold"
@@ -738,7 +768,8 @@
                             android:textColor="@color/text_dim"
                             android:textSize="12sp" />
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="@string/bouncer_gesture_shake_action"
                             android:textColor="@color/copper_gold"
@@ -758,7 +789,9 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/card_bg_pressable"
                         android:gravity="center"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:clickable="true"
+                        android:focusable="true">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -891,7 +924,9 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/card_bg_pressable"
                         android:gravity="center"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:clickable="true"
+                        android:focusable="true">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -962,7 +997,10 @@
                     android:padding="14dp"
                     android:layout_marginBottom="20dp"
                     android:clickable="true"
-                    android:focusable="true">
+                    android:focusable="true"
+                    android:checkable="true"
+                    android:accessibilityLiveRegion="polite"
+                    android:contentDescription="@string/bouncer_send_ack_cd">
 
                     <TextView
                         android:id="@+id/autoSendCheck"
@@ -996,7 +1034,9 @@
                         android:background="@drawable/card_bg_pressable"
                         android:gravity="center"
                         android:padding="16dp"
-                        android:alpha="0.4">
+                        android:alpha="0.4"
+                        android:clickable="true"
+                        android:focusable="true">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -1095,7 +1135,9 @@
                     android:background="@drawable/card_bg_pressable"
                     android:gravity="center"
                     android:padding="16dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -1114,7 +1156,9 @@
                     android:background="@drawable/card_bg_pressable"
                     android:gravity="center"
                     android:padding="14dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -1131,7 +1175,9 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/card_bg_pressable"
                     android:gravity="center"
-                    android:padding="14dp">
+                    android:padding="14dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -1205,7 +1251,9 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/card_bg_pressable"
                     android:gravity="center"
-                    android:padding="18dp">
+                    android:padding="18dp"
+                    android:clickable="true"
+                    android:focusable="true">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -1217,6 +1265,7 @@
                 </LinearLayout>
 
                 <TextView
+                    android:id="@+id/finalPageIndicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/bouncer_slide_6_6"

@@ -28,11 +28,12 @@ the plugin at a different voice-to-intent Android app.
 | bg_surface | #FFE8DDC4 | Cards |
 | bg_elevated | #FFF0E8D8 | Elevated cards / raised UI |
 | copper_gold | #FF8A5A2F | Sub-labels, accent strokes |
-| orange_label | #FFC94A1F | Active data, callouts only |
+| orange_label | #FF963611 | Active data, callouts only — WCAG AA 4.65:1 on bg_base (darkened from #C94A1F for contrast) |
 | section_header | #FF5C3A1F | Headers (paired with Limelight) |
 | text_primary | #FF2A2420 | Body text |
 | text_bright | #FF1A1612 | Emphasis |
 | text_secondary | #FF6B5D4A | Secondary text |
+| text_dim | #FF5A5040 | Tertiary text — WCAG AA 5.22:1 on bg_base (darkened from #8A7D68 for contrast) |
 | brand_dark | #FF1A1A1E | Identity plate — stays dark in both modes |
 | red_primary | #FFB91C1C | Errors, destructive |
 | green_active | #FF16A34A | Success, recording-active |
@@ -49,10 +50,11 @@ the plugin at a different voice-to-intent Android app.
 | cream | #C8B48A | Headers |
 | text | #D4D0C8 | Body |
 | text_bright | #F0ECE4 | Emphasis |
-| text_dim | #A09888 | Secondary |
+| text_secondary | #908880 | Secondary text — WCAG AA 4.96:1 on bg (brightened from #8A8078 for contrast) |
+| text_dim | #A09888 | Tertiary text |
 | green | #16A34A | Success |
 | red | #B91C1C | Errors |
-| maroon | #B55050 | Chip values |
+| maroon | #D06060 | Chip values — WCAG AA 4.60:1 on bg (brightened from #B55050 for contrast) |
 
 Use exactly these hex values. Do not approximate, do not round, do not "improve."
 

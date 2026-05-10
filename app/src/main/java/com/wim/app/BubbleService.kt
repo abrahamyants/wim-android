@@ -1824,7 +1824,8 @@ class BubbleService : Service() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Whisper failed: ${e.message}")
                     BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
-                    showPipelineStage("Error", "Transcription failed")
+                    showPipelineStage("Error — tap to retry", "Transcription failed — tap bubble to try again")
+                    Toast.makeText(this@BubbleService, "Transcription failed — tap bubble to try again", Toast.LENGTH_SHORT).show()
                     sessionHistory?.record(
                         rawText = "",
                         cleanText = "",
@@ -3641,7 +3642,12 @@ class BubbleService : Service() {
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
             }
             ConsoleLog.log("-> \"${l1Text.take(80)}${if (l1Text.length > 80) "..." else ""}\"  [${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w]", "out")
-            WimAccessibilityService.instance?.injectText(l1Text)
+            if (WimAccessibilityService.instance == null) {
+                Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
+                setBubbleIdle()
+                return
+            }
+            WimAccessibilityService.instance!!.injectText(l1Text)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             setStageArc(3)
             val totalMs = System.currentTimeMillis() - recordingStartTime

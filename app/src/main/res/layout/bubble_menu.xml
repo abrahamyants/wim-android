@@ -73,7 +73,8 @@
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/menuLiveToggle"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content" 
+                    android:theme="@style/WimSwitchTheme"/>
             </LinearLayout>
 
             <!-- L1 CLOUD toggle moved to a sub-menu opened by tapping the

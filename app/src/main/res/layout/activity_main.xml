@@ -888,7 +888,8 @@
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchDaf"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                    android:theme="@style/WimSwitchTheme" />
         </LinearLayout>
 
         <!-- DAF delay SeekBar -->
@@ -1633,7 +1634,8 @@
                         android:id="@+id/hotwordToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="false" />
+                        android:checked="false" 
+                        android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
                 <!-- Shake to summon/hide -->
@@ -1658,7 +1660,8 @@
                         android:id="@+id/shakeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="true" 
+                        android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
                 <!-- Auto-send -->
@@ -1682,7 +1685,8 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/autoSendToggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                    android:theme="@style/WimSwitchTheme" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -1705,7 +1709,8 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/facehuggerSendToggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                    android:theme="@style/WimSwitchTheme" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -1760,7 +1765,8 @@
                         android:id="@+id/tipsToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="true" 
+                        android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
                 <!-- Cloud backup -->
@@ -1785,7 +1791,8 @@
                         android:id="@+id/cloudBackupToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="true" 
+                        android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
                 <!-- Accent — keep speaker's voice (don't auto-correct) -->
@@ -1809,7 +1816,8 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchAccent"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                    android:theme="@style/WimSwitchTheme" />
                 </LinearLayout>
 
                 <!-- DAF (Delayed Auditory Feedback) — full name + sub-explanation -->
@@ -1839,7 +1847,8 @@
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/settingsDafToggle"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                    android:theme="@style/WimSwitchTheme" />
                     </LinearLayout>
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1902,7 +1911,8 @@
                         android:id="@+id/darkModeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:checked="true" 
+                        android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
             </LinearLayout>

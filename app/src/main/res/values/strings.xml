@@ -26,6 +26,10 @@
     <string name="layer_4_subtitle">  + disfluency</string>
     <string name="layer_local">LOCAL</string>
     <string name="layer_api">API</string>
+    <string name="layer_1_desc">Local — instant, free, no internet needed</string>
+    <string name="layer_2_desc">Smart — AI rewrites your speech clearly</string>
+    <string name="layer_3_desc">Personal — learns your vocabulary and corrections</string>
+    <string name="layer_4_desc">Clinical — deep speech disfluency reconstruction</string>
 
     <!-- ═══ Tone section ═══ -->
     <string name="tone_casual">Casual</string>
@@ -186,6 +190,7 @@
     <string name="bouncer_slide_5_6">slide 5 / 6</string>
     <string name="bouncer_slide_6_7">slide 6 / 7</string>
     <string name="bouncer_slide_6_6">slide 6 / 6</string>
+    <string name="bouncer_slide_7_7">slide 7 / 7</string>
     <string name="bouncer_onboarding_exercise">+ onboarding exercise</string>
     <string name="bouncer_choose_setup">Choose your setup</string>
     <string name="bouncer_free">Free</string>
@@ -223,6 +228,7 @@
     <string name="bouncer_send_title">Send straight from the bubble</string>
     <string name="bouncer_send_body">After your text lands, the bubble turns green for 3 seconds. Tap it to send. Wait or tap outside to cancel.\n\nWiM never sends without your tap. The text goes through the app you have open — Messages, Gmail, WhatsApp, etc. — using your existing signed-in session.</string>
     <string name="bouncer_send_ack">I understand. Tapping the green bubble sends my text.</string>
+    <string name="bouncer_send_ack_cd">Checkbox: I understand that tapping the green bubble sends my text</string>
     <string name="bouncer_next">Next</string>
     <string name="bouncer_all_set">You\'re all set.</string>
     <string name="bouncer_ready_body">WiM is ready to go.\n\nThe floating bubble will appear on your screen. Open any app, tap the bubble, and speak.</string>

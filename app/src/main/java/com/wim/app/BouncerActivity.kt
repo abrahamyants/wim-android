@@ -143,8 +143,7 @@ class BouncerActivity : AppCompatActivity() {
             if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) {
                 showPage(R.id.pageSamsungSleep)
             } else {
-                findViewById<TextView>(R.id.finalLogo).typeface = limelight
-                showPage(R.id.pageFinal)
+                showFinalPage()
             }
         }
 
@@ -153,12 +152,10 @@ class BouncerActivity : AppCompatActivity() {
             openSamsungDeepSleepSettings()
         }
         findViewById<LinearLayout>(R.id.btnSamsungDone).setOnClickListener {
-            findViewById<TextView>(R.id.finalLogo).typeface = limelight
-            showPage(R.id.pageFinal)
+            showFinalPage()
         }
         findViewById<LinearLayout>(R.id.btnSamsungSkip).setOnClickListener {
-            findViewById<TextView>(R.id.finalLogo).typeface = limelight
-            showPage(R.id.pageFinal)
+            showFinalPage()
         }
 
         findViewById<View>(R.id.btnLaunchBubble).setOnClickListener {
@@ -268,6 +265,22 @@ class BouncerActivity : AppCompatActivity() {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
         return enabledServices.contains("$packageName/${WimAccessibilityService::class.java.canonicalName}")
+    }
+
+    /**
+     * Shows pageFinal and sets the slide counter correctly.
+     * Samsung users arrive via pageSamsungSleep (slide 6/7 → 7/7).
+     * Non-Samsung users arrive via pageAutoSend (slide 6/6).
+     */
+    private fun showFinalPage() {
+        findViewById<TextView>(R.id.finalLogo).typeface = limelight
+        val indicator = findViewById<TextView>(R.id.finalPageIndicator)
+        if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) {
+            indicator.setText(R.string.bouncer_slide_7_7)
+        } else {
+            indicator.setText(R.string.bouncer_slide_6_6)
+        }
+        showPage(R.id.pageFinal)
     }
 
     private fun setupBackNavigation() {

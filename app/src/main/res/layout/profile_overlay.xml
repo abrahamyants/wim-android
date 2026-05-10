@@ -83,7 +83,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -96,7 +97,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:accessibilityLiveRegion="polite">
 
                     <TextView
                         android:id="@+id/profileWorkOnly"
@@ -109,7 +111,10 @@
                         android:textSize="12sp"
                         android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
-                        android:layout_marginEnd="4dp" />
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
 
                     <TextView
                         android:id="@+id/profileLifeOnly"
@@ -122,7 +127,10 @@
                         android:textSize="12sp"
                         android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
-                        android:layout_marginEnd="4dp" />
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
 
                     <TextView
                         android:id="@+id/profileBoth"
@@ -134,7 +142,10 @@
                         android:textColor="@color/text_dim"
                         android:textSize="12sp"
                         android:fontFamily="@font/plus_jakarta_sans"
-                        android:background="@drawable/card_bg" />
+                        android:background="@drawable/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
                 </LinearLayout>
 
                 <!-- Work/Life balance slider — visible when "Both" is selected -->
@@ -199,7 +210,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -212,7 +224,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="20dp"
+                    android:accessibilityLiveRegion="polite">
 
                     <!-- Row 1 -->
                     <LinearLayout
@@ -221,9 +234,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indLegal" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_legal" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                     </LinearLayout>
 
                     <!-- Row 2 -->
@@ -233,9 +246,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indTech" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_tech" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indSales" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_sales" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                     </LinearLayout>
 
                     <!-- Row 3 -->
@@ -244,9 +257,9 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/indFood" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_food" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/indOther" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_ind_other" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                     </LinearLayout>
 
                     <!-- Other industry text input — hidden until "Other" is tapped -->
@@ -282,7 +295,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -295,10 +309,11 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:accessibilityLiveRegion="polite">
 
-                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_no" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/l1NativeYes" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_yes" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                    <TextView android:id="@+id/l1NativeNo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_no" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -325,9 +340,9 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="4dp">
 
-                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                        <TextView android:id="@+id/l1Russian" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_russian" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/l1Spanish" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_spanish" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                        <TextView android:id="@+id/l1Mandarin" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_l1_mandarin" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                     </LinearLayout>
 
                     <TextView
@@ -339,7 +354,10 @@
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="@font/plus_jakarta_sans"
-                        android:background="@drawable/card_bg" />
+                        android:background="@drawable/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
                 </LinearLayout>
 
                 <!-- Work hours -->
@@ -353,7 +371,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -362,15 +381,17 @@
                     android:layout_marginBottom="12dp" />
 
                 <LinearLayout
+                    android:id="@+id/profileHoursGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="20dp"
+                    android:accessibilityLiveRegion="polite">
 
-                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_day" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" />
-                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" />
+                    <TextView android:id="@+id/hoursMorning" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_morning" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                    <TextView android:id="@+id/hoursDay" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_day" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                    <TextView android:id="@+id/hoursEvening" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_evening" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:layout_marginEnd="4dp" android:clickable="true" android:focusable="true" android:checkable="true" />
+                    <TextView android:id="@+id/hoursFlexible" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:gravity="center" android:text="@string/profile_hours_flexible" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:checkable="true" />
                 </LinearLayout>
 
                 <!-- VOCABULARY — wrap-flow chips, all visible (no scroll) -->
@@ -384,7 +405,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -451,7 +473,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -543,7 +566,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -610,7 +634,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"
@@ -619,10 +644,12 @@
                     android:layout_marginBottom="12dp" />
 
                 <LinearLayout
+                    android:id="@+id/profileSensGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="16dp"
+                    android:accessibilityLiveRegion="polite">
                     <TextView
                         android:id="@+id/clarSensLow"
                         android:layout_width="0dp"
@@ -634,7 +661,10 @@
                         android:textSize="11sp"
                         android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
-                        android:layout_marginEnd="4dp" />
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
                     <TextView
                         android:id="@+id/clarSensMedium"
                         android:layout_width="0dp"
@@ -646,7 +676,10 @@
                         android:textSize="11sp"
                         android:fontFamily="@font/plus_jakarta_sans"
                         android:background="@drawable/card_bg"
-                        android:layout_marginEnd="4dp" />
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
                     <TextView
                         android:id="@+id/clarSensHigh"
                         android:layout_width="0dp"
@@ -657,7 +690,10 @@
                         android:textColor="@color/text_dim"
                         android:textSize="11sp"
                         android:fontFamily="@font/plus_jakarta_sans"
-                        android:background="@drawable/card_bg" />
+                        android:background="@drawable/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:checkable="true" />
                 </LinearLayout>
 
                 <!-- CLARIFIER NO-FLAG APPS — apps where the clarifier never
@@ -674,7 +710,8 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.18"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="4dp"
+                    android:accessibilityHeading="true" />
 
                 <View
                     android:layout_width="32dp"

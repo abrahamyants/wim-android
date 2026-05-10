@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- MaterialSwitch brand tint: copper track when on, warm surface otherwise -->
+    <style name="WimSwitchTheme" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="colorPrimary">@color/copper_gold</item>
+        <item name="colorSurface">@color/bg_surface</item>
+    </style>
+
+</resources>

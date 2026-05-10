@@ -920,7 +920,7 @@ class MainActivity : AppCompatActivity() {
                 setTextColor(when (entry.kind) {
                     "rec" -> 0xFFFF6B6B.toInt()   // red — recording
                     "raw" -> 0xFFFFFFFF.toInt()    // white — raw transcription
-                    "out" -> 0xFF4CAF50.toInt()    // green — final output
+                    "out" -> 0xFF16A34A.toInt()    // green — final output
                     "warn" -> 0xFFFFB74D.toInt()   // orange — warnings
                     "error" -> 0xFFFF5252.toInt()  // bright red — errors
                     else -> 0xFFB0B0B0.toInt()     // gray — info
