@@ -77,6 +77,8 @@ class BubbleService : Service() {
     private var preJumpX = 0
     private var preJumpY = 0
     private var facehuggerActive = false
+    private var audioPlaybackCallback: android.media.AudioManager.AudioPlaybackCallback? = null
+    private var scoReceiver: android.content.BroadcastReceiver? = null
     private var isRecording = false
         set(value) {
             if (field != value) {
@@ -314,6 +316,7 @@ class BubbleService : Service() {
      */
     fun processTextForTest(rawText: String) {
         if (!BuildConfig.DEBUG) return
+        if (isRecording) return
         lastWhisperLowConf = emptyList()
         recordingStartTime = System.currentTimeMillis()
         android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -398,7 +401,7 @@ class BubbleService : Service() {
         audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
 
         // Audio playback monitor — logs ANY sound played on the device so we can detect chirps
-        audioManager?.registerAudioPlaybackCallback(object : android.media.AudioManager.AudioPlaybackCallback() {
+        val apCb = object : android.media.AudioManager.AudioPlaybackCallback() {
             override fun onPlaybackConfigChanged(configs: MutableList<android.media.AudioPlaybackConfiguration>) {
                 if (configs.isNotEmpty()) {
                     Log.w(TAG, "CHIRP_MONITOR: ${configs.size} playback(s) detected")
@@ -407,7 +410,9 @@ class BubbleService : Service() {
                     }
                 }
             }
-        }, null)
+        }
+        audioPlaybackCallback = apCb
+        audioManager?.registerAudioPlaybackCallback(apCb, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
         moonshineEngine = MoonshineEngine(this)
@@ -457,7 +462,7 @@ class BubbleService : Service() {
     private fun setupBluetoothSco() {
         val am = audioManager ?: return
         // Listen for Bluetooth SCO state changes
-        val scoReceiver = object : android.content.BroadcastReceiver() {
+        scoReceiver = object : android.content.BroadcastReceiver() {
             override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
                 val state = intent?.getIntExtra(android.media.AudioManager.EXTRA_SCO_AUDIO_STATE, -1)
                 when (state) {
@@ -472,7 +477,7 @@ class BubbleService : Service() {
                 }
             }
         }
-        registerReceiver(scoReceiver, android.content.IntentFilter(android.media.AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED))
+        scoReceiver?.let { registerReceiver(it, android.content.IntentFilter(android.media.AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)) }
 
         // If Bluetooth headset is already connected, start SCO
         if (am.isBluetoothScoAvailableOffCall) {
@@ -1819,6 +1824,19 @@ class BubbleService : Service() {
                     Log.e(TAG, "Whisper failed: ${e.message}")
                     BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                     showPipelineStage("Error", "Transcription failed")
+                    sessionHistory?.record(
+                        rawText = "",
+                        cleanText = "",
+                        tone = WimApp.tone(),
+                        layer = WimApp.layer(),
+                        situation = WimApp.situation(),
+                        asrMs = 0,
+                        reconMs = 0,
+                        totalMs = System.currentTimeMillis() - recordingStartTime,
+                        falconApproved = false,
+                        riskFlags = listOf("whisper_failed")
+                    )
+                    SessionUpdateBus.emit()
                     timerHandler.postDelayed({ setBubbleIdle() }, 2000)
                 }
                 // wavFile cleanup deferred to setBubbleIdle — the L4 multi-pass
@@ -3734,7 +3752,7 @@ class BubbleService : Service() {
                 // than cloud cost. (L4 will get its own dedicated setup later.)
                 ConsoleLog.log("Reconstructing... [L$layer $tone gpt-4o]", "info")
                 Log.i(TAG, "Calling cloud reconstruction (L$layer, $tone, sit=$situation)...")
-                val primaryLanguage = "en"
+                val primaryLanguage = WimApp.appLanguage()
                 // Format the rate-gap signal as a model-visible prompt note.
                 // Includes the actual numbers (wps, baseline, ratio percent)
                 // so the model sees the diagnostic, not just the severity bump.
@@ -3990,6 +4008,9 @@ class BubbleService : Service() {
                         put("risk_flags", org.json.JSONArray(listOf("reconstruction_failed")))
                     }
                 }
+                try {
+                    Toast.makeText(this@BubbleService, "Reconstruction failed — raw text used", Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {}
                 setBubbleIdle()
             }
         }
@@ -4160,6 +4181,9 @@ class BubbleService : Service() {
         IdleTimer.cancelAll()
         VoiceCommandRouter.unregister("clarifier")
         ClarifierController.reset()
+        timerHandler.removeCallbacksAndMessages(null)
+        audioPlaybackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
+        try { scoReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         scope.cancel()
         super.onDestroy()
     }

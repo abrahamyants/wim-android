@@ -53,5 +53,4 @@
 -keep class com.wim.app.BubbleService { *; }
 -keep class com.wim.app.WimAccessibilityService { *; }
 -keep class com.wim.app.WimTileService { *; }
--keep class com.wim.app.WimTestReceiver { *; }
 -keep class com.wim.app.HotwordListener { *; }

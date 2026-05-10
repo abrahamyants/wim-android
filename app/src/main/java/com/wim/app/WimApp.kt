@@ -29,10 +29,13 @@ class WimApp : Application() {
         private var _bundledOpenAiKey: String? = null
         private var _bundledAnthropicKey: String? = null
 
-        private fun bundledKey(filename: String): String = try {
-            instance.assets.open(filename).bufferedReader().use { it.readText().trim() }
-        } catch (e: Exception) {
-            ""
+        private fun bundledKey(filename: String): String {
+            if (!BuildConfig.DEBUG) return ""
+            return try {
+                instance.assets.open(filename).bufferedReader().use { it.readText().trim() }
+            } catch (e: Exception) {
+                ""
+            }
         }
 
         fun apiKey(): String {

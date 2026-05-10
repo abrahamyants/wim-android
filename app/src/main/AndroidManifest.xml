@@ -108,14 +108,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Test automation receiver: ADB/LLM agent control (debug builds only) -->
-        <receiver
-            android:name=".WimTestReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.wim.app.TEST" />
-            </intent-filter>
-        </receiver>
+        <!-- WimTestReceiver is declared in app/src/debug/AndroidManifest.xml — debug builds only -->
 
         <!-- Accessibility service for text field detection + injection -->
         <service

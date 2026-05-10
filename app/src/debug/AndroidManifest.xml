@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test automation receiver — ADB/LLM agent control, debug builds only -->
+        <receiver
+            android:name=".WimTestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.wim.app.TEST" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
