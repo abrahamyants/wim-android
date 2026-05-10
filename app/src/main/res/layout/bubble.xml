@@ -5,16 +5,19 @@
     android:id="@+id/bubbleRoot"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:soundEffectsEnabled="false">
+    android:soundEffectsEnabled="false"
+    android:contentDescription="@string/bubble_cd_root"
+    android:importantForAccessibility="yes">
 
-    <!-- Pulse rings (behind bezel, animate outward) -->
+    <!-- Pulse rings (behind bezel, animate outward) — decorative only -->
     <View
         android:id="@+id/ring1"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_gravity="center"
         android:background="@drawable/pulse_ring"
-        android:alpha="0" />
+        android:alpha="0"
+        android:importantForAccessibility="no" />
 
     <View
         android:id="@+id/ring2"
@@ -22,7 +25,8 @@
         android:layout_height="64dp"
         android:layout_gravity="center"
         android:background="@drawable/pulse_ring"
-        android:alpha="0" />
+        android:alpha="0"
+        android:importantForAccessibility="no" />
 
     <View
         android:id="@+id/ring3"
@@ -30,7 +34,8 @@
         android:layout_height="64dp"
         android:layout_gravity="center"
         android:background="@drawable/pulse_ring_outer"
-        android:alpha="0" />
+        android:alpha="0"
+        android:importantForAccessibility="no" />
 
     <!-- Outer raised bezel ring -->
     <FrameLayout
@@ -108,18 +113,27 @@
 
         <!-- Regenerate icon — 6 o'clock on the bezel ring. Hidden by default;
              revealed after a successful reconstruction paste so the user can
-             re-roll the phrasing without re-recording. -->
-        <ImageView
+             re-roll the phrasing without re-recording.
+             The FrameLayout wrapper brings the touch target up to the 48dp
+             minimum while keeping the visual icon at 14dp. -->
+        <FrameLayout
             android:id="@+id/bezelRegen"
-            android:layout_width="14dp"
-            android:layout_height="14dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="2dp"
-            android:src="@drawable/ic_regen"
-            android:contentDescription="Regenerate"
+            android:layout_marginBottom="-17dp"
             android:visibility="gone"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true"
+            android:contentDescription="@string/bubble_cd_regen">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_regen"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
 
         <!-- Inner sunken well -->
         <FrameLayout
@@ -158,7 +172,8 @@
                     android:letterSpacing="0.05"
                     android:textStyle="bold"
                     android:gravity="center"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:accessibilityLiveRegion="polite" />
 
                 <TextView
                     android:id="@+id/bubbleTime"

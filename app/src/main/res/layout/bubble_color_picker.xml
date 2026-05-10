@@ -44,7 +44,8 @@
                 android:layout_height="84dp"
                 android:background="@drawable/bubble_bg_idle"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:contentDescription="@string/bubble_color_bronze">
 
                 <FrameLayout
                     android:layout_width="52dp"
@@ -102,7 +103,8 @@
                 android:layout_height="84dp"
                 android:background="@drawable/bubble_bezel_aluminum"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:contentDescription="@string/bubble_color_silver">
 
                 <FrameLayout
                     android:layout_width="52dp"
@@ -157,7 +159,8 @@
                 android:layout_height="84dp"
                 android:background="@drawable/bubble_bezel_gunmetal"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:contentDescription="@string/bubble_color_gunmetal">
 
                 <FrameLayout
                     android:layout_width="52dp"

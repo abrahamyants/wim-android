@@ -1,9 +1,11 @@
 package com.wim.app
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
@@ -136,6 +138,25 @@ class BouncerActivity : AppCompatActivity() {
                     .putInt("auto_send_disclaimer_count", 99)
                     .apply()
             }
+            // Samsung devices get an extra deep-sleep permission page between
+            // auto-send ack and the final launch screen.
+            if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) {
+                showPage(R.id.pageSamsungSleep)
+            } else {
+                findViewById<TextView>(R.id.finalLogo).typeface = limelight
+                showPage(R.id.pageFinal)
+            }
+        }
+
+        // Samsung deep-sleep page — three actions
+        findViewById<LinearLayout>(R.id.btnSamsungOpenSettings).setOnClickListener {
+            openSamsungDeepSleepSettings()
+        }
+        findViewById<LinearLayout>(R.id.btnSamsungDone).setOnClickListener {
+            findViewById<TextView>(R.id.finalLogo).typeface = limelight
+            showPage(R.id.pageFinal)
+        }
+        findViewById<LinearLayout>(R.id.btnSamsungSkip).setOnClickListener {
             findViewById<TextView>(R.id.finalLogo).typeface = limelight
             showPage(R.id.pageFinal)
         }
@@ -196,7 +217,8 @@ class BouncerActivity : AppCompatActivity() {
 
     private val allPages = listOf(
         R.id.pagePermissions, R.id.pageTier, R.id.pageTone,
-        R.id.pageBubble, R.id.pageRecon, R.id.pageAutoSend, R.id.pageFinal
+        R.id.pageBubble, R.id.pageRecon, R.id.pageAutoSend,
+        R.id.pageSamsungSleep, R.id.pageFinal
     )
 
     private fun showPage(pageId: Int) {
@@ -217,6 +239,29 @@ class BouncerActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun openSamsungDeepSleepSettings() {
+        // Primary: Samsung's own battery management UI (com.samsung.android.lool).
+        // Ships on One UI 3+. If the component doesn't exist on an older or
+        // carrier-modified build, fall through to the generic app-detail screen.
+        try {
+            startActivity(Intent().apply {
+                component = ComponentName(
+                    "com.samsung.android.lool",
+                    "com.samsung.android.sm.battery.ui.BatteryActivity"
+                )
+            })
+            return
+        } catch (_: Exception) {}
+
+        // Fallback: generic app details screen — user can navigate to battery
+        // settings from there.
+        try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            })
+        } catch (_: Exception) {}
+    }
+
     private fun isAccessibilityEnabled(): Boolean {
         val enabledServices = Settings.Secure.getString(
             contentResolver,
@@ -229,7 +274,11 @@ class BouncerActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (currentPage()) {
-                    R.id.pageFinal -> showPage(R.id.pageAutoSend)
+                    R.id.pageFinal -> showPage(
+                        if (Build.MANUFACTURER.equals("samsung", ignoreCase = true))
+                            R.id.pageSamsungSleep else R.id.pageAutoSend
+                    )
+                    R.id.pageSamsungSleep -> showPage(R.id.pageAutoSend)
                     R.id.pageAutoSend -> showPage(R.id.pageRecon)
                     R.id.pageRecon -> showPage(R.id.pageBubble)
                     R.id.pageBubble -> showPage(if (chosenTier == "free") R.id.pageTier else R.id.pageTone)

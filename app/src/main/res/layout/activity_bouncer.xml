@@ -1020,6 +1020,138 @@
 
             </LinearLayout>
 
+            <!-- ═══ PAGE 6b: SAMSUNG DEEP-SLEEP (Samsung-only, shown after pageAutoSend) ═══ -->
+            <LinearLayout
+                android:id="@+id/pageSamsungSleep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bouncer_samsung_title"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:fontFamily="@font/limelight"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="2dp"
+                    android:background="@color/copper_gold"
+                    android:layout_marginBottom="20dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bouncer_samsung_body"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp"
+                    android:gravity="start"
+                    android:lineSpacingExtra="5dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- Navigation hint row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/grille_pattern_bg"
+                    android:padding="4dp"
+                    android:layout_marginBottom="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/card_bg"
+                        android:padding="12dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bouncer_samsung_nav_hint"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:lineSpacingExtra="3dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Open Samsung settings button -->
+                <LinearLayout
+                    android:id="@+id/btnSamsungOpenSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg_pressable"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:layout_marginBottom="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bouncer_samsung_action"
+                        android:textColor="@color/section_header"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.04" />
+                </LinearLayout>
+
+                <!-- Done button -->
+                <LinearLayout
+                    android:id="@+id/btnSamsungDone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg_pressable"
+                    android:gravity="center"
+                    android:padding="14dp"
+                    android:layout_marginBottom="10dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bouncer_samsung_done"
+                        android:textColor="@color/green_active"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Skip button -->
+                <LinearLayout
+                    android:id="@+id/btnSamsungSkip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg_pressable"
+                    android:gravity="center"
+                    android:padding="14dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bouncer_samsung_skip"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bouncer_slide_6_6"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:letterSpacing="0.1"
+                    android:layout_marginTop="20dp" />
+
+            </LinearLayout>
+
             <!-- ═══ PAGE 7: YOU'RE SET ═══ -->
             <LinearLayout
                 android:id="@+id/pageFinal"

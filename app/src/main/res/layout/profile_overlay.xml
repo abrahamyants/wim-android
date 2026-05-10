@@ -44,7 +44,13 @@
                 android:textColor="@color/copper_gold"
                 android:textSize="22sp"
                 android:paddingStart="16dp"
-                android:paddingEnd="4dp" />
+                android:paddingEnd="4dp"
+                android:minWidth="48dp"
+                android:minHeight="48dp"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/close" />
         </LinearLayout>
 
         <!-- Cream-gold hero underline (32dp at 55% alpha) — Settings DNA -->

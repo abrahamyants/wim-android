@@ -67,7 +67,8 @@
                     android:textSize="12sp"
                     android:fontFamily="@font/josefin_sans"
                     android:textStyle="bold"
-                    android:letterSpacing="0.20" />
+                    android:letterSpacing="0.20"
+                    android:labelFor="@id/menuLiveToggle" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/menuLiveToggle"
@@ -192,6 +193,8 @@
                     android:id="@+id/menuThemeBronze"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
                     android:background="@drawable/color_indicator_bronze"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_bronze" />
@@ -199,6 +202,8 @@
                     android:id="@+id/menuThemeAluminum"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
                     android:background="@drawable/color_indicator_silver"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_silver" />
@@ -206,6 +211,8 @@
                     android:id="@+id/menuThemeGunmetal"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
                     android:background="@drawable/color_indicator_gunmetal"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_gunmetal" />

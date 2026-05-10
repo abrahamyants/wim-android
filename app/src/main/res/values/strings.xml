@@ -228,6 +228,14 @@
     <string name="bouncer_ready_body">WiM is ready to go.\n\nThe floating bubble will appear on your screen. Open any app, tap the bubble, and speak.</string>
     <string name="bouncer_launch_app">Launch the app</string>
 
+    <!-- ═══ Samsung deep-sleep permission page ═══ -->
+    <string name="bouncer_samsung_title">One more Samsung thing</string>
+    <string name="bouncer_samsung_body">Samsung has an extra battery control that can silently kill the WiM bubble overnight — even if you already granted battery optimization.\n\nTap below to open Samsung\'s Deep sleeping apps list and remove WiM from it. If WiM is listed there, the bubble won\'t survive past your screen turning off.</string>
+    <string name="bouncer_samsung_action">Open Samsung battery settings</string>
+    <string name="bouncer_samsung_done">Done — I removed WiM from the list</string>
+    <string name="bouncer_samsung_skip">Skip — already done or not needed</string>
+    <string name="bouncer_samsung_nav_hint">Background usage limits → Deep sleeping apps → remove WiM</string>
+
     <!-- ═══ Toasts ═══ -->
     <string name="toast_listening">Listening…</string>
     <string name="toast_reconstructing">Reconstructing…</string>
@@ -265,6 +273,11 @@
     <!-- ═══ Operations Manual / Guide ═══ -->
     <string name="guide_title">Guide</string>
     <string name="guide_subtitle">OPERATIONS MANUAL</string>
+
+    <!-- ═══ Accessibility ═══ -->
+    <string name="bubble_cd_root">WiM bubble — tap to record, double-tap for menu</string>
+    <string name="bubble_cd_regen">Regenerate — re-roll phrasing without re-recording</string>
+    <string name="close">Close</string>
 
     <!-- ═══ Language picker (NEW for i18n) ═══ -->
     <string name="lang_picker_title">App language</string>
