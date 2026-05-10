@@ -783,7 +783,8 @@ class BubbleService : Service() {
                     // on drag or early release. Haptic cue on activation.
                     holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
                     holdStartRunnable = Runnable {
-                        if (!isDragging && !isRecording && bubbleView != null) {
+                        if (!isDragging && !isRecording && bubbleView != null &&
+                            BubbleStateBus.current() !is BubbleState.Clarifying) {
                             holdModeActive = true
                             try {
                                 vibrator?.vibrate(
@@ -3973,6 +3974,7 @@ class BubbleService : Service() {
 
                 onInjectComplete()
             } catch (e: Exception) {
+                BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
                 ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
                 // Fallback: inject pre-cleaned text
