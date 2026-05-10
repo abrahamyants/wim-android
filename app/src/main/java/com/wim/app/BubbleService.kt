@@ -341,6 +341,7 @@ class BubbleService : Service() {
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
                     verboseSegments = !l1CloudFastPath,
+                    language = WimApp.appLanguage(),
                 )
                 Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
@@ -1754,6 +1755,7 @@ class BubbleService : Service() {
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
                     verboseSegments = !l1CloudFastPath,
+                    language = WimApp.appLanguage(),
                 )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments

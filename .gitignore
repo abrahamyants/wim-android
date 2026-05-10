@@ -24,3 +24,13 @@ onboard*.png
 toggle*.png
 tap_*.png
 wim_check*.png
+
+# Bundled API keys (kept out of git, baked into APK at build time)
+app/src/main/assets/api_key.txt
+app/src/main/assets/anthropic_key.txt
+
+# Release signing keystore
+wim-release.jks
+
+# R8 dedup workaround — sherpa wrappers live in the AAR, hand-copies were duplicates
+.r8-displaced-sherpa-wrappers/

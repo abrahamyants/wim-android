@@ -3137,3 +3137,22 @@ Full evening-continuation detail (sections 10–24) in
 - Onboarding HTML + Operations Manual still English-only (deferred phase 2). L4 disfluency tracking degrades on non-English (English-tuned regex/phonetic matcher).
 
 Full detail in `SESSION_LOG_2026-04-30.md` section 25.
+
+
+### 2026-05-05 — WiM debug APK distribution: ready file + manual update flow
+
+- **Shareable APK location** (this is the file to drag into Drive / email / wherever):
+  ```
+  C:\Users\georg\Documents\GitHub\wim-android\app\build\outputs\apk\debug\app-debug.apk
+  ```
+  **208 MB**, versionCode 1, versionName 0.1.0, built May 1 01:24. Confirmed current — last code commit `9bc4e31` (May 1 01:31) is bottom sheets / UI tweaks; source mtimes precede the APK build by minutes (saved before commit). All commits since are docs only. Gradle confirmed `BUILD SUCCESSFUL` with `42 tasks: 42 up-to-date` — May 1 APK IS the latest.
+- **Other build outputs** (informational):
+  - `app/build/outputs/bundle/debug/app-debug.aab` — **91 MB**, Play Store-ready format (not directly installable, AAB splits server-side).
+  - `app/build/outputs/apk/release/` — **does not exist**. Release build FAILED with R8 duplicate-class error: `com.k2fsa.sherpa.onnx.FeatureConfig` defined in both `sherpa-onnx-1.12.40-runtime.jar` (Maven dep) AND `app/build/intermediates/classes/release/...`. Project includes sherpa-onnx twice somehow. Needs `build.gradle.kts` audit. Tomorrow.
+- **Build-method redundancy paid off** (per George's "if we have two, one is going to fail" instinct): debug APK builds clean, release APK fails on R8. Without the redundancy run we'd have hit this when first trying to make a polished release.
+- **JAVA_HOME false-positive trap**: `./gradlew.bat assembleDebug` returned exit 0 with the actual log reading `JAVA_HOME is not set and no 'java' command could be found`. Same pattern as PyInstaller SIGTERM-looks-like-success. Fix: set `JAVA_HOME=/c/Program Files/Android/Android Studio/jbr` inline. Reusable rule: never trust gradlew.bat exit code alone — grep for `BUILD SUCCESSFUL` AND verify artifact mtime advanced.
+- **Distribution mechanism**: drag `app-debug.apk` into `drive.google.com`, set link sharing to "Anyone with link," paste link wherever. `wim-android` repo is PRIVATE so `gh release` artifacts aren't public; manual drag is the simplest path that works for non-collaborator recipients. ~60 seconds.
+- **Update story confirmed manual**: sideloaded APKs from Drive do NOT auto-update. Every new version = build new APK, re-upload, re-share link. Recipients tap install, Android prompts "Update existing app?" given matching app ID + signature, they tap update. Acceptable for ~3-5 testers; painful past that. Upgrade path when audience grows: **Firebase App Distribution** (already half-wired — `build.gradle.kts` has Crashlytics + Performance) → push notification + in-place install via Firebase App Tester.
+- **Phone (Samsung `R5CWB08K38H`) unauthorized to adb** throughout session — popup never appeared. adb install path deferred. To recover: Settings → Developer Options → Revoke USB debugging authorizations → unplug + replug + unlock + tap Allow.
+
+Full detail in `SESSION_LOG_2026-05-05.md`.

@@ -1,0 +1,15 @@
+{
+  "name": "wim-local",
+  "owner": {
+    "name": "George Abrahamyants",
+    "email": "gugosf@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "wim-onboarding",
+      "source": "./onboarding-plugin",
+      "description": "Animated, interactive onboarding generator for WiM. Brand-locked Limelight + warm-vintage-paper palette, Mr. DNA persona, 5 permission cards, real ASR + L4 demo. Edit brand.local.md to retarget at another voice-to-intent app.",
+      "version": "0.1.0"
+    }
+  ]
+}

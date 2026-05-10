@@ -1,0 +1,9 @@
+{
+  "name": "wim-onboarding",
+  "version": "0.1.0",
+  "description": "Animated, interactive onboarding flow generator for WiM and other voice-to-intent Android apps. Encodes brand tokens, the Mr. DNA bubble persona, permission card patterns, and animation primitives. Edit brand.local.md to retarget at a different app.",
+  "author": {
+    "name": "George Abrahamyants",
+    "email": "gugosf@gmail.com"
+  }
+}
