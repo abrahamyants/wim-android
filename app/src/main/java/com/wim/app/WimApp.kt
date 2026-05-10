@@ -16,7 +16,7 @@ class WimApp : Application() {
         lateinit var instance: WimApp
             private set
         lateinit var prefs: SharedPreferences
-            private set
+            internal set
 
         private lateinit var profileManager: ProfileManager
 

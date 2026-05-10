@@ -118,6 +118,19 @@ class BouncerActivity : AppCompatActivity() {
         val ackBox = findViewById<TextView>(R.id.autoSendCheck)
         val nextBtn = findViewById<View>(R.id.btnAutoSendNext)
         nextBtn.alpha = 1.0f // optional consent — Next always actionable
+        androidx.core.view.ViewCompat.setAccessibilityDelegate(ackRow,
+            object : androidx.core.view.AccessibilityDelegateCompat() {
+                override fun onInitializeAccessibilityNodeInfo(
+                    host: android.view.View,
+                    info: androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+                ) {
+                    super.onInitializeAccessibilityNodeInfo(host, info)
+                    info.isCheckable = true
+                    info.isChecked = autoSendAcked
+                    info.className = "android.widget.CheckBox"
+                    info.text = "Enable auto-send"
+                }
+            })
         ackRow.setOnClickListener {
             autoSendAcked = !autoSendAcked
             if (autoSendAcked) {
@@ -127,6 +140,7 @@ class BouncerActivity : AppCompatActivity() {
                 ackBox.text = "☐"
                 ackBox.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
             }
+            ackRow.sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED)
         }
         nextBtn.setOnClickListener {
             if (autoSendAcked) {
