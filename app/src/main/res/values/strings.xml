@@ -65,6 +65,7 @@
     <string name="settings_bubble_color">Bubble color</string>
     <string name="settings_cloud_backup">Cloud backup sessions</string>
     <string name="settings_auto_send">Auto-send (tap green bubble)</string>
+    <string name="settings_facehugger_send">Facehugger Send (bubble jumps to Send button)</string>
     <string name="settings_auto_send_apps">Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send.</string>
     <string name="settings_accent">Accent</string>
     <string name="settings_accent_subtitle">don\'t auto-correct</string>

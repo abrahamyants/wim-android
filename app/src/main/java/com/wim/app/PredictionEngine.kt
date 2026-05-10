@@ -113,7 +113,7 @@ object PredictionEngine : CandidateProvider {
         history[priorTrigram] = list
         // Cap total entries per pkg.
         val pruned = if (history.size > MAX_HISTORY_PER_PKG) {
-            history.entries.take(MAX_HISTORY_PER_PKG).associate { it.toPair() }
+            history.entries.toList().takeLast(MAX_HISTORY_PER_PKG).associate { it.toPair() }
         } else history
         writeHistory(pkg, pruned)
     }

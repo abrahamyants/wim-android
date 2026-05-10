@@ -677,6 +677,8 @@ class MainActivity : AppCompatActivity() {
         setupLogoSummon()
         // ── Auto-send toggle (green SEND bubble after inject) ──
         setupAutoSendToggle()
+        // ── Facehugger Send (bubble jumps to host Send button on SEND_READY) ──
+        setupFacehuggerToggle()
 
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
@@ -3107,6 +3109,15 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         styleToggle(toggle)
         toggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("auto_send_enabled", checked).apply()
+        }
+    }
+
+    private fun setupFacehuggerToggle() {
+        val toggle = findViewById<MaterialSwitch>(R.id.facehuggerSendToggle) ?: return
+        toggle.isChecked = WimApp.facehuggerSendEnabled()
+        styleToggle(toggle)
+        toggle.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("facehugger_send", checked).apply()
         }
     }
 

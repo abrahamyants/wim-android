@@ -672,29 +672,10 @@ object ReconstructClient {
         tone: String = "casual",
         onsetWeights: Map<String, Double> = emptyMap(),
         languageCode: String = "en"
-    ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            // L4: skip Falcon entirely. Sonnet ET self-validates; GPT-4o fallback runs unvalidated.
-            if (layer >= 4) {
-                return@withContext true
-            }
-
-            val anthropicKey = WimApp.anthropicApiKey()
-            val systemPrompt = buildFalconSystemPrompt(layer, tone, onsetWeights, languageCode)
-            val userMessage = "Original: $rawText\nReconstruction: $cleanText"
-            val openaiKey = WimApp.apiKey()
-
-            // L2/L3 with Claude key → Haiku Falcon. Otherwise GPT-4o (or skip if no key).
-            val useClaude = layer < 4 && anthropicKey.isNotBlank()
-            if (useClaude) {
-                return@withContext falconValidateClaude(systemPrompt, userMessage, anthropicKey)
-            }
-            if (openaiKey.isBlank()) return@withContext true
-            falconValidateGpt(systemPrompt, userMessage, openaiKey)
-        } catch (e: Exception) {
-            Log.e("WiM", "Falcon validation error: ${e.message}")
-            true
-        }
+    ): Boolean {
+        // Retired 2026-05-10: L4 Sonnet ET self-validates; L2/L3 GPT-4o quality
+        // sufficient without cross-provider QA. Matches lavrentiy.py:3369.
+        return true
     }
 
     /**

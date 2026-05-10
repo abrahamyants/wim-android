@@ -94,6 +94,14 @@ object BubbleStateBus {
         _state.value = BubbleState.Idle
     }
 
+    /**
+     * Bypass the transition matrix and set state directly.
+     * Debug/test use only — never call from production code paths.
+     */
+    fun forceTo(next: BubbleState) {
+        _state.value = next
+    }
+
     private fun isValidTransition(from: BubbleState, to: BubbleState): Boolean {
         // Listening always allowed from Idle / SendReady / Failed / Clarifying
         // (user always wins; recording is never blocked) — except FORBIDDEN

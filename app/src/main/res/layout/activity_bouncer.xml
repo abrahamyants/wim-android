@@ -343,7 +343,7 @@
                     android:text="@string/bouncer_choose_setup"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="8dp" />
 
@@ -445,7 +445,7 @@
                     android:text="@string/bouncer_use_most"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="8dp" />
 
@@ -573,7 +573,7 @@
                     android:text="@string/bouncer_meet_bubble"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="8dp" />
 
@@ -797,7 +797,7 @@
                     android:text="@string/bouncer_recon_title"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="8dp" />
 
@@ -930,7 +930,7 @@
                     android:text="@string/bouncer_send_title"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="8dp" />
 
@@ -1051,7 +1051,7 @@
                     android:text="@string/bouncer_all_set"
                     android:textColor="@color/section_header"
                     android:textSize="22sp"
-                    android:fontFamily="sans-serif-light"
+                    android:fontFamily="@font/limelight"
                     android:gravity="center"
                     android:layout_marginBottom="16dp" />
 

@@ -547,6 +547,18 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     /** Dispatch a 50ms down+up gesture at the given screen coordinates. */
+    fun getSendButtonCenter(): Pair<Int, Int>? {
+        val editable = activeTextField ?: findFocusedEditableAcrossWindows() ?: return null
+        val targetPkg = editable.packageName?.toString() ?: return null
+        val root = editable.window?.root
+            ?: windows.firstOrNull { it.root?.packageName?.toString() == targetPkg }?.root
+            ?: return null
+        val sendNode = findSendNodeForApp(root, targetPkg) ?: return null
+        val rect = android.graphics.Rect()
+        sendNode.getBoundsInScreen(rect)
+        return Pair(rect.centerX(), rect.centerY())
+    }
+
     private fun dispatchTapAt(x: Float, y: Float, reason: String): Boolean {
         val path = android.graphics.Path().apply { moveTo(x, y) }
         val stroke = android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50)

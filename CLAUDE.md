@@ -18,10 +18,10 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
   - `WimTestReceiver` — `com.wim.app.TEST` broadcast receiver; ADB/LLM agent control surface (`exported="true"`). 16+ actions (`inject_raw`, `trigger_clarifier`, `set_pref`, `click_send`, `live_show`, `toggle_recording`, `test_chirp`, `reset_auto_send_disclaimer_count`, etc.).
   - `BootReceiver` — restart bubble after device reboot.
 - **Source layout** (`app/src/main/java/com/wim/app/`):
-  - **Bubble runtime**: `BubbleService.kt` (largest file, ~3000 lines), `BubbleState.kt` + `BubbleStateBus`, `BubblePersona.kt`, `BubbleAffect.kt`, `BubbleDemoScript.kt`, `CommentBubbleDrawable.kt` (menu shape), `BezelStageArcView.kt`, `LogoBarsView` (in `BubbleService`), `KnobPins.kt`.
+  - **Bubble runtime**: `BubbleService.kt` (largest file, ~4126 lines), `BubbleState.kt` + `BubbleStateBus`, `BubblePersona.kt`, `BubbleAffect.kt`, `BubbleDemoScript.kt`, `CommentBubbleDrawable.kt` (menu shape), `BezelStageArcView.kt`, `LogoBarsView` (in `BubbleService`), `KnobPins.kt`.
   - **Bubble Unified Build (Phases 0–7)**: `IdleTimer.kt`, `TranscriptBarController.kt`, `VoiceCommandRouter.kt`, `SpeechRecognizerL1.kt`, `Clarifier.kt`, `ClarifierController.kt`, `MultiPassDecoder.kt`, `PredictionEngine.kt`. Spec at `docs/bubble_unified_build_spec.md`.
-  - **ASR engines**: `MoonshineEngine.kt` + `MoonshineModelDownloader.kt` (current L1 default — sherpa-onnx + Moonshine BASE-en, 141 MB), `WhisperLocalEngine.kt` + `WhisperLocalModelDownloader.kt` (whisper-tiny.en swap, ~40 MB), `OnDeviceRecognizer.kt` (Android `SpeechRecognizer` fallback with `EXTRA_PREFER_OFFLINE`), `WhisperClient.kt` (cloud OpenAI Whisper / `gpt-4o-transcribe` / `whisper-1`), `HotwordListener.kt` ("Hey WiM" continuous listener), `MultiPassDecoder.kt` (3-temperature whisper-1 disagreement counts).
-  - **Reconstruction**: `ReconstructClient.kt` (cloud GPT-4o + Anthropic Sonnet 4.6 ET at L4 + Haiku 4.5 Falcon at L2/L3 + GPT-4o Falcon at L4), `Repunctuate.kt`, `DisfluencyFilter.kt`, `PhoneticMatcher.kt` (Double-Metaphone), `PhoneticRisk.kt`, `RateGapDetector.kt`, `Clarifier.kt`.
+  - **ASR engines**: `WhisperLocalEngine.kt` + `WhisperLocalModelDownloader.kt` (**active L1 local default** — sherpa-onnx + whisper-tiny.en, ~40 MB), `MoonshineEngine.kt` + `MoonshineModelDownloader.kt` (Moonshine BASE-en, 141 MB — present on disk, initialized but dormant; `start()` never called in recording path as of 2026-05-10), `OnDeviceRecognizer.kt` (Android `SpeechRecognizer` fallback with `EXTRA_PREFER_OFFLINE`), `WhisperClient.kt` (**active L1 cloud option** — OpenAI `whisper-1` / `gpt-4o-transcribe`; toggled by `l1_cloud_asr` pref, default OFF), `HotwordListener.kt` ("Hey WiM" continuous listener), `MultiPassDecoder.kt` (3-temperature whisper-1 disagreement counts). Two-option L1 design: local WhisperLocalEngine + cloud WhisperClient.
+  - **Reconstruction**: `ReconstructClient.kt` (cloud GPT-4o at L2/L3 + Anthropic Sonnet 4.6 ET at L4; Falcon validation retired 2026-05-10 — synced with lavrentiy.py:3369), `Repunctuate.kt`, `DisfluencyFilter.kt`, `PhoneticMatcher.kt` (Double-Metaphone), `PhoneticRisk.kt`, `RateGapDetector.kt`, `Clarifier.kt`.
   - **State / persistence**: `WimApp.kt` (Application singleton, all SharedPreferences getters), `ProfileManager.kt`, `SessionHistory.kt` (SQLite), `RejectionStore.kt`, `StyleExamples.kt`, `AudienceContext.kt`, `LangPackHelper.kt`, `L1PackHelper.kt`, `DomainPackHelper.kt`, `ConsoleLog.kt`.
   - **Auth**: `AuthManager.kt` (Firebase Google Sign-In via `CredentialManager` + `GetSignInWithGoogleOption` fallback for fresh devices), `UserDataClient.kt`.
   - **Buses / shared**: `RecordingStateBus.kt`, `SessionUpdateBus.kt`.
@@ -33,18 +33,19 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 ## Active state (as of 2026-05-10)
 
 **Working / shipped:**
-- L1 ASR via Moonshine BASE-en on-device (sherpa-onnx). Offline. ~0.6–1 s warm.
-- L2/L3 reconstruction via cloud GPT-4o + Haiku 4.5 Falcon (cross-provider validator). ~2–4.5 s.
-- L4 clinical reconstruction via cloud Whisper-1 (verbose_json) + Sonnet 4.6 with extended thinking + GPT-4o Falcon. ~6–12 s.
+- **Facehugger Send** — on SEND_READY the bubble slides (250ms) onto the host app's Send button; snaps back (200ms) on send or timeout. Confirmed working on Z Flip 7 / Android 16: Google Messages, Gmail, WhatsApp, Facebook Messenger + 1 more (2026-05-10). Toggle in Settings, default OFF.
+- L1 ASR via **WhisperLocalEngine** (sherpa-onnx + whisper-tiny.en) on-device by default. Cloud path: `WhisperClient` (whisper-1 / gpt-4o-transcribe) toggled by `l1_cloud_asr` pref. Offline local path: ~0.6–1 s warm. MoonshineEngine on disk but dormant.
+- L2/L3 reconstruction via cloud GPT-4o. ~2–4.5 s. (Falcon retired 2026-05-10.)
+- L4 clinical reconstruction via cloud Whisper-1 (verbose_json) + Sonnet 4.6 with extended thinking. ~6–12 s. (Falcon skip: ET self-validates.)
 - Auto-send via accessibility `ACTION_CLICK` on host-app Send button — verified in Gmail, WhatsApp, Google Messages, Samsung Messages, Telegram, Signal. Three-tier strategy in `WimAccessibilityService.clickSendButton`: `ACTION_CLICK` → synthetic `dispatchGesture` tap → tree dump.
 - Bubble Unified Build Phases 0–7 substantively shipped — pipeline parade (`BubblePersona` + `TranscriptBarController`), per-word clarifier (`Clarifier` + `ClarifierController` + `swapWordInLastInjection`), affect catalog (`BubbleAffect` — RESTING / LEANING_FORWARD / TA_DA / HEAD_TILT / THINKING_SWAY / COMMISERATE), `MultiPassDecoder` (triggered at L2+, not just L4 per Session 18 #107), `PredictionEngine` (cold-start + adaptive trigram history per host-app package), word highlight via overlay `WordHighlightView`, onboarding clarifier preview (Act 11 of `BubbleDemoScript`).
 - Google Sign-In on fresh devices (real fix was `GetSignInWithGoogleOption` fallback on `NoCredentialException` — SHA-1 hypothesis was wrong, hashes match exactly).
 - Bottom sheets for Layer / Tone / Permissions tiles (Settings stays full overlay). User Profile overlay redesigned with Settings-treatment.
 - Quick Settings tile + 1×1 home-screen widget.
-- 5-language UI strings (EN / ES / RU / PT / FR). Non-English locale auto-flips `l1_cloud_asr=true` because Moonshine is English-only.
+- 5-language UI strings (EN / ES / RU / PT / FR). Non-English locale auto-flips `l1_cloud_asr=true` because WhisperLocalEngine (whisper-tiny.en) is English-only.
 - Hotword "Hey WiM" (default OFF) + shake-to-summon (default ON, rebuilt as rising-edge detection).
 - Firebase Auth + Crashlytics + Analytics + Performance + RemoteConfig.
-- 226+ unit tests passing.
+- 265+ unit tests passing (16 test files; verified 2026-05-10).
 - Debug APK 208 MB at `app/build/outputs/apk/debug/app-debug.apk`. Distribution = manual Drive drag.
 
 **Active / in flight:**
@@ -53,7 +54,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 - Cloud Function consuming `wim-anthropic-api-key` from Secret Manager — currently WiM hits Anthropic directly from device; the Secret Manager entry is decorative until a CF route is wired.
 
 **Blocked / known broken:**
-- **Release APK build fails on R8 duplicate class** `com.k2fsa.sherpa.onnx.FeatureConfig` — sherpa-onnx is included twice (Maven + flat-file AAR or copied source). Needs `app/build.gradle.kts` audit. Debug APK builds fine; release blocked, Play Store path blocked.
+- **Release APK build blocked** — R8 duplicate class `com.k2fsa.sherpa.onnx.FeatureConfig`. Root cause: 5 hand-copied Kotlin wrappers in `app/src/main/java/com/k2fsa/sherpa/onnx/` were compiled alongside the same classes in `app/libs/sherpa-onnx-1.12.40.aar`. Fix applied: wrappers moved to `.r8-displaced-sherpa-wrappers/` (no longer compiled). **Run `gradlew.bat clean assembleRelease` to confirm** — the `clean` evicts stale class files from `app/build/intermediates/`. Debug APK builds fine.
 - **Samsung recognizer chirp** — architecturally unfixable for Android `SpeechRecognizer` fallback. Source is the `RecognitionService` process itself playing `USAGE_ASSISTANCE_SONIFICATION`; cross-process suppression impossible under AOSP `AudioPolicyManager`. Mitigation: Moonshine path doesn't use `SpeechRecognizer` and is silent. Chirp returns when LIVE caption mode is on (forces Google ASR for live partials).
 - **L1 disfluency pre-collapse on Samsung** — Samsung's recognizer smooths "go go go go go" → "go go go" before our code sees it. Same root fix as the chirp (use Moonshine, not Samsung). Filter improvements are L2+ only since Whisper preserves raw audio.
 - **Multilingual L4 reconstruction** is disabled client-side (English pinned at three call sites — `BubbleService.kt`, `WimApp.kt`, `PhoneticRisk.kt`). Lang pack assets + `LangPackHelper.kt` dormant on disk. UI strings (EN/ES/RU/PT/FR) ARE shipped — separate concern from L4 reconstruction language. Re-enabling reconstruction multilingual is a two-line revert per Session 12 evening.
@@ -61,7 +62,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 
 **Worktrees pending cleanup**: `wim-android-l4-rewrite`, `wim-android-vosk` (branches merged into main, workspaces still on disk). `wim-android-qwen3`, `wim-android-whispercpp`, `wim-android-wakelock`, `wim-android-wearos` carry experimental branches that have NOT all been merged — see "Cross-repo / branches" below.
 
-**Phone**: Samsung `R5CWB08K38H` (and a newer `R5CXC310LAP` Galaxy S24+). ADB at `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`. Always use `//sdcard//` (double-slash) for screencap paths to dodge git-bash mangling. As of May 5: phone was `unauthorized` to adb — Settings → Developer Options → Revoke USB debugging authorizations → unplug/replug → tap Allow.
+**Phone**: Samsung Galaxy Z Flip 7 `R5GL328F8VW` (current test device as of 2026-05-10). ADB at `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`. Always use `//sdcard//` (double-slash) for screencap paths to dodge git-bash mangling. Z Flip 7 notes: clamshell foldable, main screen 6.7" 22:9 (very tall/narrow), small 3.4" cover screen — bubble should NOT appear on cover screen; One UI 7 / Android 16.
 
 ## Conventions
 

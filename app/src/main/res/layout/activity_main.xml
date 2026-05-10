@@ -1684,6 +1684,29 @@
                         android:layout_height="wrap_content" />
                 </LinearLayout>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_facehugger_send"
+                        android:textColor="@color/text_dim"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/facehuggerSendToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- ─────────── BEHAVIOR section ─────────── -->

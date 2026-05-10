@@ -74,6 +74,9 @@ class BubbleService : Service() {
     private var windowManager: WindowManager? = null
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
+    private var preJumpX = 0
+    private var preJumpY = 0
+    private var facehuggerActive = false
     private var isRecording = false
         set(value) {
             if (field != value) {
@@ -242,9 +245,10 @@ class BubbleService : Service() {
      */
     fun triggerClarifierForTest(flags: List<FlaggedWord>) {
         if (!BuildConfig.DEBUG) return
-        // Force-set FSM into Injected so the Injected→Clarifying transition
-        // is legal per spec §1 matrix.
-        BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
+        // advance() rejects Idle→Injected (forbidden). forceTo() bypasses the
+        // matrix so the legal Injected→Clarifying transition inside
+        // ClarifierController.enter() can proceed.
+        BubbleStateBus.forceTo(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
         enterClarifierCycle(flags, autoSendEligible = false)
     }
 
@@ -1230,6 +1234,7 @@ class BubbleService : Service() {
     private val revertSendReadyRunnable = Runnable {
         if (isSendReady) {
             isSendReady = false
+            snapBackFromFacehugger()
             setBubbleIdle()
         }
     }
@@ -1360,6 +1365,16 @@ class BubbleService : Service() {
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
         ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
+        if (WimApp.facehuggerSendEnabled()) {
+            WimAccessibilityService.instance?.getSendButtonCenter()?.let { (cx, cy) ->
+                val view = bubbleView ?: return@let
+                val params = bubbleParams ?: return@let
+                preJumpX = params.x + view.width / 2
+                preJumpY = params.y + view.height / 2
+                facehuggerActive = true
+                animateBubbleTo(cx, cy, durationMs = 250)
+            }
+        }
     }
 
     private fun handleSendConfirmTap() {
@@ -1379,6 +1394,7 @@ class BubbleService : Service() {
             ConsoleLog.log("Auto-send failed — no Send node", "warn")
             Toast.makeText(this, "Couldn't find Send button", Toast.LENGTH_SHORT).show()
         }
+        snapBackFromFacehugger()
         setBubbleIdle()
     }
 
@@ -1482,6 +1498,30 @@ class BubbleService : Service() {
         params.y = cy - view.height / 2
         try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
         updateMenuPositionFromBubble()
+    }
+
+    private fun animateBubbleTo(toCx: Int, toCy: Int, durationMs: Long) {
+        val view = bubbleView ?: return
+        val params = bubbleParams ?: return
+        val fromCx = params.x + view.width / 2
+        val fromCy = params.y + view.height / 2
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = durationMs
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val t = anim.animatedFraction
+                params.x = (fromCx + (toCx - fromCx) * t).toInt() - view.width / 2
+                params.y = (fromCy + (toCy - fromCy) * t).toInt() - view.height / 2
+                try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+            }
+            start()
+        }
+    }
+
+    private fun snapBackFromFacehugger() {
+        if (!facehuggerActive) return
+        facehuggerActive = false
+        animateBubbleTo(preJumpX, preJumpY, durationMs = 200)
     }
 
     private fun startListening() {

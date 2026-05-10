@@ -155,6 +155,8 @@ class WimApp : Application() {
          */
         fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
 
+        fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", false)
+
         /**
          * How many times the disclaimer has been shown + confirmed. Three
          * confirmations and we stop showing it. `reset_auto_send_disclaimer`
