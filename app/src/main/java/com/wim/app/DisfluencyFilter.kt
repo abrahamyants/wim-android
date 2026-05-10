@@ -27,7 +27,7 @@ object DisfluencyFilter {
         "knock knock", "tsk tsk", "aye aye",
         // Emphatic doublings (eval-build additions from Лаврентий)
         "really really", "many many", "much much", "right right",
-        "sure sure", "okay sure", "okay okay", "just just",
+        "sure sure", "okay okay", "just just",
         // Russian
         "да да", "нет нет", "ну ну"
     )

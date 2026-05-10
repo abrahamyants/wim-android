@@ -3849,8 +3849,8 @@ class BubbleService : Service() {
                     Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 }
 
-                // L3+: learn from reconstruction results (skip if leak was filtered)
-                if (layer >= 3 && !leakDetected) {
+                // L2+: learn from reconstruction results (skip if leak was filtered)
+                if (layer >= 2 && !leakDetected) {
                     profile.learnFromReconstruction(preCleaned, outputText)
                 }
 
