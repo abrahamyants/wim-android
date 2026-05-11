@@ -123,25 +123,34 @@ class MultiPassDecoder(
         val text = primary.text
         if (text.isBlank()) return emptyList()
         val out = mutableListOf<Clarifier.WordConfidence>()
-        val disagreementSet = disagreements.toHashSet()
         val variantsByIdx = disagreements.indices.associate { idx -> disagreements[idx] to variants[idx] }
-        // Walk the text, splitting on whitespace to find word ranges.
+
+        // Map alphanumeric-only word tokens from low-confidence segments to their
+        // avg_logprob. Words appearing in confident segments get null (unknown = no signal).
+        val lowConfLogprobs: Map<String, Double> = primary.lowConfidenceSegments
+            .flatMap { seg ->
+                seg.text.lowercase()
+                    .split(Regex("\\s+"))
+                    .filter { it.any(Char::isLetterOrDigit) }
+                    .map { tok -> tok.filter(Char::isLetterOrDigit) to seg.avgLogprob }
+            }
+            .toMap()
+
         var idx = 0
         var pos = 0
         while (pos < text.length) {
-            // Skip whitespace.
             while (pos < text.length && text[pos].isWhitespace()) pos++
             if (pos >= text.length) break
             val start = pos
             while (pos < text.length && !text[pos].isWhitespace()) pos++
             val word = text.substring(start, pos)
-            // Trim trailing punctuation but keep its range so swap leaves it.
             val trimmedEnd = run {
                 var e = pos
                 while (e > start && !text[e - 1].isLetterOrDigit()) e--
                 e.coerceAtLeast(start + 1)
             }
             val cleanWord = text.substring(start, trimmedEnd)
+            val wordKey = cleanWord.lowercase().filter(Char::isLetterOrDigit)
             val multi = variantsByIdx[idx]?.toSet()?.size ?: 1
             val nBest = variantsByIdx[idx]
                 ?.filter { !it.equals(cleanWord, ignoreCase = true) && it != "<END>" }
@@ -152,7 +161,7 @@ class MultiPassDecoder(
                     word = cleanWord,
                     rangeStart = start,
                     rangeEnd = trimmedEnd,
-                    asrLogprob = null, // Phase 5/6 — surface from verbose_json segment logprobs
+                    asrLogprob = lowConfLogprobs[wordKey], // null for confident-segment words
                     multiPassDisagreements = if (multi > 1) multi else 0,
                     nBestAlternates = nBest,
                     phoneticNeighbors = emptyList(),

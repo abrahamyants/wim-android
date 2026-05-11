@@ -2090,10 +2090,24 @@ class BubbleService : Service() {
             }
             setTextColor(idleColor)
         }
-        // bubbleTime hidden when not in SEND-ready state.
+        // bubbleTime: show anticipatory prediction snippet during Idle if available,
+        // otherwise hide. This surfaces the PredictionEngine's context-awareness
+        // on the bubble face before the user opens the menu.
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            visibility = View.GONE
-            setTextColor(0xFF9A4040.toInt())
+            if (WimApp.predictionsEnabled()) {
+                val pkg = WimAccessibilityService.currentForegroundPackage
+                val pred = PredictionEngine.predictForContext(pkg)
+                if (pred != null) {
+                    text = "→ ${pred.tone.take(3).uppercase()}"
+                    setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.copper_gold))
+                    visibility = View.VISIBLE
+                } else {
+                    visibility = View.GONE
+                }
+            } else {
+                visibility = View.GONE
+            }
+            // Note: chip_value color applied only in SEND-ready / clarifier paths.
         }
         // Re-post timer if it was stopped (restart case)
         timerHandler.removeCallbacks(timerRunnable)
@@ -3737,12 +3751,20 @@ class BubbleService : Service() {
                             "\u29BB Analyzing speech patterns..." to "Mapping phoneme difficulty",
                             "\u29BB Detecting disfluencies..." to "Blocks, prolongations, repetitions",
                             "\u29BB Building phoneme context..." to "Your personal speech profile",
-                            "\u29BB Reconstructing intent..." to "Stutter-aware AI processing",
+                            "\u29BB Reconstructing intent..." to "Speech disfluency AI processing",
                             "\u29BB Validating meaning..." to "Making sure nothing was lost"
                         )
                         for ((title, sub) in stages) {
                             showPipelineStage(title, sub)
                             kotlinx.coroutines.delay(1200)
+                        }
+                        // Stages done but cloud call still running — pulse elapsed time
+                        // so the user knows it hasn't frozen.
+                        var elapsedSec = (stages.size * 1200L) / 1000
+                        while (true) {
+                            showPipelineStage("⌛ Still working...", "Deep reconstruction — ${elapsedSec}s")
+                            kotlinx.coroutines.delay(2000)
+                            elapsedSec += 2
                         }
                     }
                 } else null

@@ -219,6 +219,8 @@
     <string name="bouncer_gesture_fling_action">dismiss</string>
     <string name="bouncer_gesture_shake">Shake phone 2x</string>
     <string name="bouncer_gesture_shake_action">bring it back</string>
+    <string name="bouncer_gesture_command">Drag onto selected text</string>
+    <string name="bouncer_gesture_command_action">speak to rewrite it</string>
     <string name="bouncer_recon_title">What you say vs. what arrives</string>
     <string name="bouncer_recon_you_say">You say:</string>
     <string name="bouncer_recon_arrives">What arrives:</string>

@@ -99,7 +99,7 @@ class WimApp : Application() {
          *   high   → 0.40 (catches more, occasional false positive)
          */
         fun clarifierSensitivityThreshold(): Double = when (
-            prefs.getString("clarifier_sensitivity", "off") ?: "off"
+            prefs.getString("clarifier_sensitivity", "medium") ?: "medium"
         ) {
             // Word-confidence scores from MultiPassDecoder are in 0..1, so
             // a threshold ≥ 1.0 means nothing ever crosses → Clarifier.evaluate
