@@ -3940,6 +3940,11 @@ class BubbleService : Service() {
                     if (profile.l1DetectCount() >= 5) {
                         val textForGuess = outputText
                         val profileRef = profile
+                        // Mark prompted BEFORE launching the thread so a network
+                        // failure or exception doesn't leave wasL1DetectPrompted()
+                        // false and spawn a new detection thread on every subsequent
+                        // reconstruction (thread-per-call leak).
+                        profileRef.markL1DetectPrompted()
                         Thread {
                             try {
                                 val payload = org.json.JSONObject().apply {
@@ -3961,35 +3966,27 @@ class BubbleService : Service() {
                                     val topL1 = responseJson.optString("top_l1", "")
                                     val confidence = responseJson.optDouble("confidence", 0.0)
                                     if (topL1.isNotBlank() && confidence >= 0.7) {
-                                        profileRef.markL1DetectPrompted()
-                                        val detectedL1 = topL1
-                                        val displayName = detectedL1.replaceFirstChar { it.uppercaseChar() }
+                                        val displayName = topL1.replaceFirstChar { it.uppercaseChar() }
+                                        Log.i(TAG, "L1 detected: $topL1 (confidence=$confidence)")
                                         android.os.Handler(android.os.Looper.getMainLooper()).post {
                                             try {
-                                                val msg = getString(R.string.l1_detected_prompt, displayName)
-                                                val toast = Toast.makeText(this@BubbleService, msg, Toast.LENGTH_LONG)
-                                                toast.show()
-                                                // Auto-apply after 4s if no dismissal occurs.
-                                                // Toast has no tap callback on Android; we use a delayed
-                                                // Handler so the user sees the offer and it self-applies.
-                                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                                    // Only set if still no L1 (user may have opened profile)
-                                                    if (profileRef.profileL1() == null) {
-                                                        profileRef.setProfileL1(detectedL1)
-                                                        Log.i(TAG, "L1 auto-set to $detectedL1 (confidence=$confidence)")
-                                                    }
-                                                }, 5000L)
+                                                // Informational only — no auto-apply. User opens Profile
+                                                // and sets their first language manually.
+                                                val msg = "Detected $displayName-pattern English. Open Profile to set your first language."
+                                                Toast.makeText(this@BubbleService, msg, Toast.LENGTH_LONG).show()
                                             } catch (_: Exception) {}
                                         }
                                     } else {
-                                        // Low confidence — still mark prompted so we don't spam
-                                        profileRef.markL1DetectPrompted()
+                                        Log.i(TAG, "L1 detection low confidence ($confidence) — skipping prompt")
                                         conn.disconnect()
                                     }
                                 } else {
+                                    Log.w(TAG, "L1 detection request failed (HTTP $responseCode)")
                                     conn.disconnect()
                                 }
-                            } catch (_: Exception) {}
+                            } catch (e: Exception) {
+                                Log.w(TAG, "L1 detection network error: ${e.message}")
+                            }
                         }.start()
                     }
                 }
