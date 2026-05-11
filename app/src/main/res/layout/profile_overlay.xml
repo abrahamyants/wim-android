@@ -748,6 +748,38 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+                <!-- L1 pack contribution opt-in -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/l1_contribute_title"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.08"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="4dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/l1_contribute_subtitle"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <Switch
+                        android:id="@+id/switchContributeL1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
                 <!-- YOUR DATA (GDPR/CCPA rights) — only shown when signed in -->
                 <LinearLayout
                     android:id="@+id/dataRightsSection"

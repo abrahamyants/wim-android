@@ -1333,6 +1333,37 @@ class BubbleService : Service() {
                     showRegenIcon()
                     return@launch
                 }
+                // L1 contribution: when the user triggers regen, the previous
+                // output was implicitly rejected. Fire-and-forget to the contribution
+                // endpoint if the user has opted in and has an L1 set.
+                if (profile.contributeL1Data() && profile.profileL1() != null && previousOutputs.isNotEmpty()) {
+                    val rejected = previousOutputs.last()
+                    val l1 = profile.profileL1()!!
+                    val anonId = profile.anonymousId()
+                    val rawForContrib = ctx.rawText
+                    Thread {
+                        try {
+                            val payload = org.json.JSONObject().apply {
+                                put("raw", rawForContrib.take(2000))
+                                put("model_output", rejected.take(2000))
+                                put("user_correction", "")
+                                put("profile_l1", l1)
+                                put("anonymous_id", anonId)
+                            }.toString()
+                            val url = java.net.URL("https://us-central1-bakers-agent.cloudfunctions.net/wim-l1-contribute")
+                            val conn = url.openConnection() as java.net.HttpURLConnection
+                            conn.requestMethod = "POST"
+                            conn.setRequestProperty("Content-Type", "application/json")
+                            conn.doOutput = true
+                            conn.connectTimeout = 5000
+                            conn.readTimeout = 5000
+                            conn.outputStream.write(payload.toByteArray())
+                            conn.responseCode // trigger request
+                            conn.disconnect()
+                        } catch (_: Exception) {}
+                    }.start()
+                }
+
                 accessibility.replaceLastInjected(newText)
                 previousOutputs.add(newText)
                 ConsoleLog.log("Regen: ${result.reconMs}ms -> \"${newText.take(80)}\"", "out")
@@ -3899,6 +3930,68 @@ class BubbleService : Service() {
                 // L2+: learn from reconstruction results (skip if leak was filtered)
                 if (layer >= 2 && !leakDetected) {
                     profile.learnFromReconstruction(preCleaned, outputText)
+                }
+
+                // L1 auto-detect: if the user has no L1 set and hasn't been prompted
+                // yet, count reconstructions and after 5 fire a background L1-guess
+                // call. On confidence >= 0.7 show a one-time prompt.
+                if (layer >= 2 && profile.profileL1() == null && !profile.wasL1DetectPrompted()) {
+                    profile.incrementL1DetectCount()
+                    if (profile.l1DetectCount() >= 5) {
+                        val textForGuess = outputText
+                        val profileRef = profile
+                        Thread {
+                            try {
+                                val payload = org.json.JSONObject().apply {
+                                    put("text", textForGuess.take(3000))
+                                }.toString()
+                                val url = java.net.URL("https://us-central1-bakers-agent.cloudfunctions.net/wim-l1-guess")
+                                val conn = url.openConnection() as java.net.HttpURLConnection
+                                conn.requestMethod = "POST"
+                                conn.setRequestProperty("Content-Type", "application/json")
+                                conn.doOutput = true
+                                conn.connectTimeout = 5000
+                                conn.readTimeout = 5000
+                                conn.outputStream.write(payload.toByteArray())
+                                val responseCode = conn.responseCode
+                                if (responseCode == 200) {
+                                    val responseText = conn.inputStream.bufferedReader().readText()
+                                    conn.disconnect()
+                                    val responseJson = org.json.JSONObject(responseText)
+                                    val topL1 = responseJson.optString("top_l1", "")
+                                    val confidence = responseJson.optDouble("confidence", 0.0)
+                                    if (topL1.isNotBlank() && confidence >= 0.7) {
+                                        profileRef.markL1DetectPrompted()
+                                        val detectedL1 = topL1
+                                        val displayName = detectedL1.replaceFirstChar { it.uppercaseChar() }
+                                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                            try {
+                                                val msg = getString(R.string.l1_detected_prompt, displayName)
+                                                val toast = Toast.makeText(this@BubbleService, msg, Toast.LENGTH_LONG)
+                                                toast.show()
+                                                // Auto-apply after 4s if no dismissal occurs.
+                                                // Toast has no tap callback on Android; we use a delayed
+                                                // Handler so the user sees the offer and it self-applies.
+                                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                                    // Only set if still no L1 (user may have opened profile)
+                                                    if (profileRef.profileL1() == null) {
+                                                        profileRef.setProfileL1(detectedL1)
+                                                        Log.i(TAG, "L1 auto-set to $detectedL1 (confidence=$confidence)")
+                                                    }
+                                                }, 5000L)
+                                            } catch (_: Exception) {}
+                                        }
+                                    } else {
+                                        // Low confidence — still mark prompted so we don't spam
+                                        profileRef.markL1DetectPrompted()
+                                        conn.disconnect()
+                                    }
+                                } else {
+                                    conn.disconnect()
+                                }
+                            } catch (_: Exception) {}
+                        }.start()
+                    }
                 }
 
                 val outWords = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size

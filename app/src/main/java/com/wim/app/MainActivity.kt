@@ -2904,6 +2904,13 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             renderBlacklist()
             Toast.makeText(this, "Added: $pkg", Toast.LENGTH_SHORT).show()
         }
+
+        // ── L1 pack contribution opt-in switch ──
+        val switchContributeL1 = overlay.findViewById<android.widget.Switch>(R.id.switchContributeL1)
+        switchContributeL1?.isChecked = WimApp.profile().contributeL1Data()
+        switchContributeL1?.setOnCheckedChangeListener { _, checked ->
+            WimApp.profile().setContributeL1Data(checked)
+        }
     }
 
     private fun setupProfileGroup(overlay: View, ids: List<Int>, values: List<String>, prefKey: String, current: String, onSelect: ((Int, String) -> Unit)? = null) {

@@ -378,6 +378,45 @@ class ProfileManager(private val prefs: SharedPreferences) {
         }
     }
 
+    // ── L1 pack convenience accessors ──
+
+    /** Returns the current profile_l1 value ("russian", "spanish", "mandarin", "en", or null/blank). */
+    fun profileL1(): String? {
+        val v = prefs.getString("profile_l1", null)
+        return if (v.isNullOrBlank() || v == "en") null else v
+    }
+
+    /** Writes profile_l1 (mirrors the Profile overlay tap handler). */
+    fun setProfileL1(language: String) {
+        prefs.edit().putString("profile_l1", language).apply()
+    }
+
+    // ── L1 pack contribution opt-in ──
+
+    fun contributeL1Data(): Boolean = prefs.getBoolean("contribute_l1_data", false)
+
+    fun setContributeL1Data(v: Boolean) = prefs.edit().putBoolean("contribute_l1_data", v).apply()
+
+    // ── Anonymous contributor ID (stable, never changes after first generation) ──
+
+    fun anonymousId(): String {
+        val existing = prefs.getString("anonymous_id", null)
+        if (existing != null) return existing
+        val newId = java.util.UUID.randomUUID().toString().substring(0, 16)
+        prefs.edit().putString("anonymous_id", newId).apply()
+        return newId
+    }
+
+    // ── L1 auto-detect counters and flags ──
+
+    fun l1DetectCount(): Int = prefs.getInt("l1_detect_count", 0)
+
+    fun incrementL1DetectCount() = prefs.edit().putInt("l1_detect_count", l1DetectCount() + 1).apply()
+
+    fun markL1DetectPrompted() = prefs.edit().putBoolean("l1_detect_prompted", true).apply()
+
+    fun wasL1DetectPrompted(): Boolean = prefs.getBoolean("l1_detect_prompted", false)
+
     private fun resetToDefaults() {
         vocabulary = mutableListOf()
         corrections = mutableMapOf()

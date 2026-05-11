@@ -287,6 +287,11 @@
     <string name="bubble_cd_regen">Regenerate — re-roll phrasing without re-recording</string>
     <string name="close">Close</string>
 
+    <!-- ═══ L1 pack contribution ═══ -->
+    <string name="l1_contribute_title">IMPROVE YOUR L1 PACK</string>
+    <string name="l1_contribute_subtitle">When you correct a reconstruction, share it anonymously to improve the pack for everyone</string>
+    <string name="l1_detected_prompt">Detected %s-pattern English. Set as your first language?</string>
+
     <!-- ═══ Language picker (NEW for i18n) ═══ -->
     <string name="lang_picker_title">App language</string>
     <string name="lang_picker_subtitle">menu + spoken language</string>
