@@ -117,19 +117,34 @@ object L1PackHelper {
             return ""
         }
         val displayName = languageDisplayName(pack.language)
-        Log.i("L1Pack", "promptInjection: injecting ${pack.language} pack — ${pack.markers.size} markers")
+        val keepMode = WimApp.prefs.getString("accent_mode", "polish") == "keep"
+        Log.i("L1Pack", "promptInjection: injecting ${pack.language} pack — ${pack.markers.size} markers, mode=${if (keepMode) "keep" else "polish"}")
         return buildString {
-            append("\n\nSPEAKER L1: $displayName. Their English may show systematic L1-transfer patterns documented at the group level in second-language acquisition research — not random errors. When restating into written prose, normalize the patterns listed below. Preserve the speaker's word choice, slang, profanity, and intent.")
-            append("\n\nNORMALIZE these patterns:")
-            pack.markers.forEachIndexed { i, m ->
-                append("\n${i + 1}. ${m.promptHint}")
-                m.examples.firstOrNull()?.let { e ->
-                    if (e.input.isNotBlank() && e.output.isNotBlank()) {
-                        append(" e.g. \"${e.input}\" → \"${e.output}\"")
+            if (keepMode) {
+                append("\n\nSPEAKER L1: $displayName. Their English shows systematic L1-transfer patterns — these are authentic features of their voice, not errors. The speaker has chosen to PRESERVE these patterns. Do NOT normalize or correct them. Restate meaning clearly while keeping the speaker's grammatical patterns intact.")
+                append("\n\nPRESERVE these authentic voice patterns (do not normalize):")
+                pack.markers.forEachIndexed { i, m ->
+                    append("\n${i + 1}. Pattern: ${m.mechanism.substringBefore(";")}.")
+                    m.examples.firstOrNull()?.let { e ->
+                        if (e.input.isNotBlank()) {
+                            append(" Keep constructions like: \"${e.input}\"")
+                        }
                     }
                 }
+                append("\n\nThe speaker sounds like themselves. Preserve their voice — only fix disfluencies and filler words.")
+            } else {
+                append("\n\nSPEAKER L1: $displayName. Their English may show systematic L1-transfer patterns documented at the group level in second-language acquisition research — not random errors. When restating into written prose, normalize the patterns listed below. Preserve the speaker's word choice, slang, profanity, and intent.")
+                append("\n\nNORMALIZE these patterns:")
+                pack.markers.forEachIndexed { i, m ->
+                    append("\n${i + 1}. ${m.promptHint}")
+                    m.examples.firstOrNull()?.let { e ->
+                        if (e.input.isNotBlank() && e.output.isNotBlank()) {
+                            append(" e.g. \"${e.input}\" → \"${e.output}\"")
+                        }
+                    }
+                }
+                append("\n\nThis is normalization toward written-English convention, not erasure of the speaker's voice. If a listed pattern appears as deliberate stylistic emphasis or intentional code-switching, preserve it.")
             }
-            append("\n\nThis is normalization toward written-English convention, not erasure of the speaker's voice. If a listed pattern appears as deliberate stylistic emphasis or intentional code-switching, preserve it.")
         }
     }
 
