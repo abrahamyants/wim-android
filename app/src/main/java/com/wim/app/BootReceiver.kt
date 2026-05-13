@@ -16,6 +16,11 @@ class BootReceiver : BroadcastReceiver() {
 
         val overlayOk = Settings.canDrawOverlays(context)
         val accessibilityOk = isAccessibilityEnabled(context)
+        // Mic permission isn't blocking — the bubble can show and prompt
+        // on first record — but we log it so post-boot bug reports
+        // surface whether the FGS came up in specialUse-only mode.
+        val micOk = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (overlayOk && accessibilityOk) {
             try {
@@ -23,12 +28,12 @@ class BootReceiver : BroadcastReceiver() {
                     action = "SHOW"
                 }
                 context.startForegroundService(serviceIntent)
-                Log.i("WiM", "Bubble restarted after boot")
+                Log.i("WiM", "Bubble restarted after boot (mic=$micOk)")
             } catch (e: Exception) {
                 Log.e("WiM", "Failed to restart bubble after boot: ${e.message}")
             }
         } else {
-            Log.i("WiM", "Boot: skipping bubble start — permissions not granted (overlay=$overlayOk, accessibility=$accessibilityOk)")
+            Log.i("WiM", "Boot: skipping bubble start — permissions not granted (overlay=$overlayOk, accessibility=$accessibilityOk, mic=$micOk)")
         }
     }
 

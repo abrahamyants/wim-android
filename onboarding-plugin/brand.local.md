@@ -16,7 +16,7 @@ the plugin at a different voice-to-intent Android app.
 - **Display font:** Limelight (gold treatment for the WiM logo and key headers).
   Bundled in `app/src/main/assets/limelight.ttf` (WebView) and `app/src/main/res/font/limelight.ttf`
   (native — verify presence before referencing in Compose).
-- **Body font:** Outfit. System fallback chain: Roboto, -apple-system, sans-serif.
+- **Body font:** Plus Jakarta Sans. Bundled in `app/src/main/res/font/plus_jakarta_sans.ttf` (regular) and `plus_jakarta_sans_medium.ttf` (medium). Fallback chain: Outfit, Roboto, -apple-system, sans-serif.
 - **Mono font:** JetBrains Mono. Fallback: Roboto Mono, monospace.
 
 ## Color (warm vintage paper aesthetic)

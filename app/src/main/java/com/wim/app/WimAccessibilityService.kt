@@ -135,6 +135,12 @@ class WimAccessibilityService : AccessibilityService() {
     private fun autoSwitchTone(packageName: String) {
         val prefs = WimApp.prefs
         if (!prefs.getBoolean("auto_tone", true)) return
+        // The bezel tap is the user's explicit work/personal toggle. Within
+        // 30 seconds of that tap, suppress auto-tone so the very next
+        // accessibility event for the same host app doesn't ping-pong the
+        // tone back to whatever the host-app whitelist would say.
+        val manualSetMs = prefs.getLong("manual_tone_set_ms", 0L)
+        if (System.currentTimeMillis() - manualSetMs < 30_000L) return
 
         val currentTone = prefs.getString("tone", "casual") ?: "casual"
         val newTone = when {

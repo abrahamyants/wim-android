@@ -1,0 +1,54 @@
+## HONESTY PREAMBLE (read first)
+
+You are advising another AI (Claude) on a live codebase audit. Discipline:
+- Do NOT invent file paths or line numbers. If you don't know something, say "verify against source" — don't bluff.
+- Distinguish (a) bugs you can PROVE from code you read in this workspace, from (b) HYPOTHESES worth investigating.
+- You have full filesystem read access. Read the actual code rather than reasoning from descriptions.
+- Output ≤ 600 words. Severity-ranked. file:line where possible. Be terse.
+
+## WORKSPACE
+
+- `C:\Users\georg\Documents\GitHub\wim-android` — Kotlin Android consumer app for voice-to-intent reconstruction (entry `app/src/main/java/com/wim/app/`). 4126-line `BubbleService.kt` is the foreground service hosting the floating bubble overlay.
+- `C:\Users\georg\Documents\GitHub\lavrentiy\wim\api` — Python Cloud Function (server-mediated L2/L3 path; deployed at `wim-reconstruct-qfv7mm5hva-uc.a.run.app` on `bakers-agent` GCP project).
+
+Read `C:\Users\georg\Documents\GitHub\wim-android\CLAUDE.md` for full project context — architecture, conventions, prior session log, gotchas.
+
+Project summary: WiM ("What I Meant") is a floating-bubble voice-to-intent Android app for people with speech disfluencies. Pipeline: L1 ASR (local WhisperLocalEngine sherpa-onnx + whisper-tiny.en, optionally cloud OpenAI whisper-1) → L2/L3 reconstruction (cloud GPT-4o via Cloud Function) → L4 clinical reconstruction (device-direct to Anthropic `claude-sonnet-4-6` with 8000-budget extended thinking + whisper-1 verbose_json for ASR).
+
+## CONFIRMED OPEN BUG LIST (Claude verified each in HEAD with file:line)
+
+Do NOT re-rank, re-discover, or re-elaborate these — your job is uncorrelated bug classes.
+
+1. **Clarifier word-swap offsets misalign.** `MultiPassDecoder.kt:116` docstring says ranges are "character positions in the primary text" (Whisper raw transcript). `BubbleService.kt:4072` passes them with `finalText = outputText` (GPT-reconstructed). User taps approve → `swapWordInLastInjection` lands on wrong characters. Architecture critic also proposed the fix is reordering (run Clarifier BEFORE inject), not alignment.
+
+2. **`turboTaxJob` ghost loop.** `BubbleService.kt:3795-3799` `while(true) { showStage(); delay(2000) }`. Catch block at 4094 does NOT cancel `turboTaxJob`. After any reconstruction failure, the loop overwrites stage labels indefinitely until service destruction.
+
+3. **MultiPassDecoder last-wins logprob.** `MultiPassDecoder.kt:130-137` `.toMap()` on `(token, logprob)` list silently keeps the LAST entry per duplicate key. For repeated words (the exact disfluency target — "I I I want"), worst-confidence signal is destroyed.
+
+4. **`clarifier_sensitivity = "off"` permanently sticky.** `WimApp.kt:101-114`. Default flipped from "off" → "medium" but no migration in `WimApp.onCreate` at lines 207-286. Existing installs that stored "off" stay disabled forever. `else → 999.0` defense-in-depth is defense-against-the-user here.
+
+5. **`ProfileManager` unsynchronized mutations.** Firestore listener thread mutates `vocabulary`, `corrections`, `fillerWords` while `BubbleService` coroutine reads them. No `synchronized` / `@Volatile` / `ConcurrentHashMap` / `CopyOnWriteArrayList` anywhere in `ProfileManager.kt`. Rare-but-real concurrent-modification crash mid-reconstruction.
+
+6. **Hallucination filter over-aggressive.** `BubbleService.kt:1682-1689` `trimmed.length <= 2` discards "ok", "no", "Hi", "yo"; explicit blacklist also drops "you"/"You". Common short utterances silently destroyed.
+
+7. **`BubbleService` 8 mutable booleans parallel to FSM.** `isRecording`, `isClarifierActive`, `commandModeArmed`, `holdModeActive`, `facehuggerActive`, `processed`, `isRegenInFlight`, `isSendReady`. FSM was retrofitted, never made authoritative. Generates every "X and Y simultaneously active" race bug.
+
+8. **Cloud Function path.** `openai.OpenAI()` default 600s timeout vs Cloud Function 60s quota; unhandled exceptions return raw 500s no body; rate-limit transaction has quota-leak race under contention; `falcon_validate` still callable via `mode="SAFE"` despite client-side retirement; no structured logging / trace IDs.
+
+## YOUR JOB
+
+Find UNCORRELATED bug classes Claude missed. Attack these focus areas, in order:
+
+**(a) Audio / recording lifecycle edge cases.** Read `BubbleService.kt:1564-1898` (startListening, stopAndProcess, ASR callbacks). Look for: coroutine cancellation gaps, `AudioRecord` leaks, mic permission revoked mid-recording, hot-swap to Bluetooth SCO during record, audio focus loss, screen-off during long L4 reconstruct, wakelock not held during 70s ET window.
+
+**(b) Firebase ID token refresh race.** Read `ReconstructClient.kt:90-150`. What happens when L4 reconstruction runs 70s and the ID token expires at 60s? Is there token refresh during the request? Does `getIdToken(false)` vs `getIdToken(true)` behavior get this right?
+
+**(c) Accessibility service unbind during inject window.** `BubbleService.kt:3925-3928` already handles `WimAccessibilityService.instance == null`. What OTHER ways can the a11y service drop between reconstruction-finished and inject-call? Read `WimAccessibilityService.kt` lifecycle. Recovery path? Clipboard fallback?
+
+**(d) Device-direct Anthropic call path.** Read `ReconstructClient.kt:699-737` (`reconstructWithSonnet`). What are the failure modes? Rate limits (429)? Network change mid-stream? Body parsing edge cases on ET response (`response.content` is an array of thinking + text blocks — what if only thinking blocks return)? Anthropic API version pinning (`anthropic-version: 2023-06-01` — does ET need a newer version)?
+
+**(e) Cloud Function path Claude's backend agent missed.** Read `lavrentiy/wim/api/main.py` and `reconstruct.py` fully. What's in there beyond what Claude already flagged (no timeout, raw 500s, rate-limit race, no logs, falcon_validate dead-code)? Focus areas: prompt injection through `rawText`, Firestore transaction retry semantics, cold-start memory leaks across requests in the same instance, GPT-4o response parsing assumptions.
+
+## DELIVERABLE
+
+≤ 600 words. Severity-ranked (P0/P1/P2/P3). file:line for every finding. Clearly mark PROVEN vs HYPOTHESIS. Use bullet lists, no preamble.

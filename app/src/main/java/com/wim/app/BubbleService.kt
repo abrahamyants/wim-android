@@ -50,6 +50,9 @@ class BubbleService : Service() {
     // L4 multi-pass decoder needs the recorded WAV after reconstruction
     // finishes so the clarifier check can run cross-pass disagreement
     // analysis. Cleaned up in setBubbleIdle / before next recording.
+    // @Volatile because the MultiPassDecoder coroutine reads this on an
+    // IO worker while setBubbleIdle (main thread) can null+delete it.
+    @Volatile
     private var lastWavFile: java.io.File? = null
 
     // Patent-clean word-highlight overlay (claim 13) — separate window
@@ -1053,12 +1056,16 @@ class BubbleService : Service() {
                             dismissClarifier(tx < 0)
                         } else {
                             // Normal mode — toggle work/life
+                            // Stamp manual_tone_set_ms so the accessibility-side
+                            // autoSwitchTone observer doesn't ping-pong the user's
+                            // explicit choice on the very next host-app event.
+                            val nowMs = System.currentTimeMillis()
                             if (tx < 0) {
                                 isWorkMode = true
-                                WimApp.prefs.edit().putBoolean("work_mode", true).putString("tone", "professional").apply()
+                                WimApp.prefs.edit().putBoolean("work_mode", true).putString("tone", "professional").putLong("manual_tone_set_ms", nowMs).apply()
                             } else {
                                 isWorkMode = false
-                                WimApp.prefs.edit().putBoolean("work_mode", false).putString("tone", "casual").apply()
+                                WimApp.prefs.edit().putBoolean("work_mode", false).putString("tone", "casual").putLong("manual_tone_set_ms", nowMs).apply()
                             }
                             updateBezelLabels()
                         }
@@ -3766,6 +3773,9 @@ class BubbleService : Service() {
         val corrections = if (layer >= 3) profile.getCorrections() else emptyMap()
 
         scope.launch {
+            // Hoisted so the catch block below can cancel the L4 stage-animation
+            // loop on reconstruction failure — Kotlin catch is a sibling scope.
+            var turboTaxJob: Job? = null
             try {
                 val layerLabel = when (layer) {
                     2 -> "generic cleanup"
@@ -3776,7 +3786,7 @@ class BubbleService : Service() {
                 showPipelineStage("\u29BB Reconstructing intent...", "$tone tone \u00B7 L$layer $layerLabel")
 
                 // TurboTax engagement: animated stage messages for L4 (long processing)
-                val turboTaxJob = if (layer >= 4) {
+                turboTaxJob = if (layer >= 4) {
                     scope.launch {
                         val stages = listOf(
                             "\u29BB Analyzing speech patterns..." to "Mapping phoneme difficulty",
@@ -4092,6 +4102,7 @@ class BubbleService : Service() {
 
                 onInjectComplete()
             } catch (e: Exception) {
+                turboTaxJob?.cancel()
                 BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
                 ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")

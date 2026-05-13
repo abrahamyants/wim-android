@@ -54,6 +54,11 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        // Robolectric class graph is heavy; default ~512m OOMs at scale.
+        unitTests.all {
+            it.maxHeapSize = "4g"
+            it.setForkEvery(50)
+        }
     }
 }
 

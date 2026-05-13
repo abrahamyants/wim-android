@@ -46,10 +46,14 @@ class BouncerActivity : AppCompatActivity() {
 
         // Permission row tap handlers
         findViewById<LinearLayout>(R.id.permOverlay).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            } catch (_: Exception) {}
         }
         findViewById<LinearLayout>(R.id.permAccessibility).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            try {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (_: Exception) {}
         }
         findViewById<LinearLayout>(R.id.permMic).setOnClickListener {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 100)

@@ -267,7 +267,7 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
         // ── Act 11: Finale ──
         t += 4000
         step(t) {
-            bubble.showPipelineStage("☕  NO JUDGMENT", "Spill your coffee. Stutter your words. I don't care.")
+            bubble.showPipelineStage("☕  NO JUDGMENT", "Spill your coffee. Trip on your words. I don't care.")
         }
 
         t += 4500
