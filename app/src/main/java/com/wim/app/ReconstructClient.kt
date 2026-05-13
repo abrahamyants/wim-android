@@ -653,17 +653,11 @@ object ReconstructClient {
     }
 
     /**
-     * Falcon validation: binary meaning-preservation check.
-     *
-     * Routing:
-     *   - L4 → SKIPPED unconditionally. Sonnet 4.6 extended thinking self-validates
-     *     during reasoning. GPT-4o fallback (no Anthropic key) runs unvalidated by
-     *     design — same-provider Falcon is structurally weak. Leak filter + length
-     *     guard still run post-reconstruction.
-     *   - L2 / L3 with Anthropic key → Claude Haiku 4.5 (cross-provider QA, ~0.4-0.8 s).
-     *   - L2 / L3 without Anthropic key → GPT-4o.
-     *
-     * Returns true on any error so a flaky validator never blocks reconstruction.
+     * Falcon validation — RETIRED 2026-05-10. Now a stub returning true;
+     * the cross-provider validation pass was removed across both this
+     * client and lavrentiy.py on the same day (Sonnet ET self-validates
+     * at L4; L2/L3 GPT-4o quality was deemed sufficient without
+     * cross-provider QA). Matches the lavrentiy.py:3420 stub.
      */
     private suspend fun falconValidate(
         rawText: String,
@@ -674,12 +668,12 @@ object ReconstructClient {
         languageCode: String = "en"
     ): Boolean {
         // Retired 2026-05-10: L4 Sonnet ET self-validates; L2/L3 GPT-4o quality
-        // sufficient without cross-provider QA. Matches lavrentiy.py:3369.
+        // sufficient without cross-provider QA. Matches lavrentiy.py:3420.
         return true
     }
 
     // buildFalconSystemPrompt, falconValidateGpt, falconValidateClaude removed 2026-05-10
-    // Falcon retired — falconValidate() is now a stub returning true (lavrentiy.py:3369).
+    // Falcon retired — falconValidate() is now a stub returning true (lavrentiy.py:3420).
 
     /**
      * L4 reconstruction via Claude Sonnet 4.6 with extended thinking.

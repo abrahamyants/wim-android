@@ -18,10 +18,10 @@ import java.io.File
  * whisper-1, on-device whisper-tiny, or any other implementation. It
  * only consumes the [SpeechRecognizerL1] interface.
  *
- * Cost note (cloud whisper-1 specifically): 3× the whisper-1 cost on
- * L4 only (~$0.018/min instead of $0.006/min). L4 is clinical / heavy-
- * disfluency, justified. L1-L3 paths do NOT call this — too expensive
- * for the marginal accuracy lift on fluent speech.
+ * Cost note (cloud whisper-1 specifically): 3× the whisper-1 cost when
+ * invoked. Now called at L2+ per Session 18 #107 (was L4-only until then)
+ * so the Clarifier has cross-pass disagreement signal across all
+ * reconstruction layers, not just clinical.
  */
 class MultiPassDecoder(
     private val recognizer: SpeechRecognizerL1,

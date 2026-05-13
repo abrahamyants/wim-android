@@ -220,7 +220,15 @@ class WimAccessibilityService : AccessibilityService() {
                 Log.i("WiM", "Re-found focused editable in window stack — proceeding with paste")
             } else {
                 activeTextField = null
-                android.widget.Toast.makeText(this, getString(R.string.toast_tap_field), android.widget.Toast.LENGTH_SHORT).show()
+                // Focus dropped — no field to paste into. Save the reconstruction
+                // to the clipboard so the user can long-press paste once they
+                // tap back into a text field. Better than silently losing it.
+                try {
+                    val clipboard = getSystemService(android.content.ClipboardManager::class.java)
+                    val clip = android.content.ClipData.newPlainText("WiM reconstruction", text)
+                    clipboard?.setPrimaryClip(clip)
+                } catch (_: Exception) {}
+                android.widget.Toast.makeText(this, "Tap a text field — your text is on the clipboard", android.widget.Toast.LENGTH_LONG).show()
                 return
             }
         }

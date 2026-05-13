@@ -13,12 +13,11 @@ package com.wim.app
  *   to under-flag rather than over-flag. The typical utterance produces
  *   zero flagged words.
  *
- * Phase 2 ships the data shape + evaluation pipeline + threshold tuning.
- * Real per-word confidence comes from Phase 2 step 12 (word timings via
- * SpeechRecognizerL1 verbose_json) and Phase 4 step 26 (multi-pass
- * decoder). Until those land, [evaluate] returns empty for any input
- * lacking [WordConfidence] data — the cycle UX is exercised via
- * [WimTestReceiver]'s `trigger_clarifier` synthetic broadcast.
+ * Per-word confidence is supplied by MultiPassDecoder (cross-pass
+ * disagreement counts) and SpeechRecognizerL1 word timings. [evaluate]
+ * is exercised from `processText` at L2+; production gating is live.
+ * The synthetic `trigger_clarifier` broadcast in WimTestReceiver still
+ * works for dev/QA without needing real audio input.
  */
 object Clarifier {
 

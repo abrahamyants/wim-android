@@ -259,9 +259,9 @@ class BubbleService : Service() {
 
     /**
      * Wire-up for the Clarifier cycle. Called from `processText` after a
-     * successful inject when [Clarifier.evaluate] returned ≥1 flag (Phase 2
-     * step 16 — currently invoked by tests only; production gating arrives
-     * with word timings in Phase 4).
+     * successful inject when [Clarifier.evaluate] returned ≥1 flag.
+     * Production-active at L2+; the `trigger_clarifier` test broadcast
+     * remains available for dev/QA.
      */
     private fun enterClarifierCycle(flags: List<FlaggedWord>, autoSendEligible: Boolean) {
         // Visual cue marking the transition INTO claim 1's "bidirectional
@@ -3776,6 +3776,18 @@ class BubbleService : Service() {
             // Hoisted so the catch block below can cancel the L4 stage-animation
             // loop on reconstruction failure — Kotlin catch is a sibling scope.
             var turboTaxJob: Job? = null
+            // L4 reconstruction can run 60-70s on Sonnet ET; without a wake-lock
+            // the screen turning off mid-call suspends the CPU and the round-trip
+            // dies. PARTIAL_WAKE_LOCK keeps the CPU alive without the screen on.
+            val wakeLock: android.os.PowerManager.WakeLock? = if (layer >= 4) {
+                val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+                try {
+                    pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "WiM:L4Recon").apply {
+                        setReferenceCounted(false)
+                        acquire(120_000L)
+                    }
+                } catch (_: Exception) { null }
+            } else null
             try {
                 val layerLabel = when (layer) {
                     2 -> "generic cleanup"
@@ -4143,6 +4155,8 @@ class BubbleService : Service() {
                     Toast.makeText(this@BubbleService, "Reconstruction failed — raw text used", Toast.LENGTH_SHORT).show()
                 } catch (_: Exception) {}
                 setBubbleIdle()
+            } finally {
+                try { wakeLock?.release() } catch (_: Exception) {}
             }
         }
     }
