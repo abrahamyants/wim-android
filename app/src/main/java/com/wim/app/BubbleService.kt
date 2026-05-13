@@ -55,6 +55,12 @@ class BubbleService : Service() {
     @Volatile
     private var lastWavFile: java.io.File? = null
 
+    // Tracks the in-flight reconstruction coroutine so a fresh startListening()
+    // can cancel it. Architecture critic's RecordingSession value (closes the
+    // stale-paste-into-new-recording race + orphaned turboTaxJob loop via one
+    // cancel) without the full ~600 LOC extraction.
+    private var currentReconJob: Job? = null
+
     // Patent-clean word-highlight overlay (claim 13) — separate window
     // positioned over the host app's focused text field while a clarifier
     // cycle runs. Read-only on host state (no selection, no cursor move),
@@ -178,30 +184,6 @@ class BubbleService : Service() {
     private var sessionStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
     private val timerHandler = Handler(Looper.getMainLooper())
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            // Skip writing when SEND-ready is active — that state owns the
-            // bubbleTime TextView for its countdown. Without this guard the
-            // session timer flickers in between countdown ticks (5 → session
-            // time → 4 → session time → 3 …).
-            if (isSendReady) {
-                timerHandler.postDelayed(this, 1000)
-                return
-            }
-            // Timer tracks full session duration; caps at 99:59 to prevent 3-digit overflow
-            val elapsed = (System.currentTimeMillis() - sessionStartTime) / 1000
-            val timeView = bubbleView?.findViewById<TextView>(R.id.bubbleTime)
-            if (elapsed >= 5999) {
-                timeView?.text = "99:59"
-                // Stop re-posting — user must reset session to resume counting
-            } else {
-                val min = elapsed / 60
-                val sec = elapsed % 60
-                timeView?.text = "$min:${"%02d".format(sec)}"
-                timerHandler.postDelayed(this, 1000)
-            }
-        }
-    }
 
     companion object {
         private const val TAG = "WiM"
@@ -1192,9 +1174,6 @@ class BubbleService : Service() {
 
         windowManager?.addView(bubbleView, params)
 
-        // Start session timer (always running, shows total session time)
-        timerHandler.post(timerRunnable)
-
         // Prime the pre-roll audio buffer so first words aren't lost on tap
         if (WimApp.apiKey().isNotBlank() && WimApp.layer() >= 2) {
             if (audioRecorder == null) audioRecorder = AudioRecorder(this)
@@ -1571,6 +1550,13 @@ class BubbleService : Service() {
     private fun startListening() {
         if (isRecording) return
 
+        // Cancel any in-flight reconstruction from a prior utterance. Without
+        // this, a slow L4 call could resume mid-cycle and paste the previous
+        // recording's text into the field the user is now recording into.
+        // The cancel propagates to any child jobs in the same launch.
+        currentReconJob?.cancel()
+        currentReconJob = null
+
         // Release the hotword listener — it owns the mic exclusively until
         // we hand it back. Safe even if it isn't running.
         stopHotwordListener()
@@ -1686,12 +1672,18 @@ class BubbleService : Service() {
             // Whisper-family ASR hallucinates single chars / pure punctuation
             // on near-silent or very short audio (e.g. "(", ".", "[BLANK_AUDIO]").
             // Discard before they pollute lastRawText / get pasted.
+            // Drop only true single-char or non-alphanumeric noise. The prior
+            // `length <= 2` was over-aggressive — it discarded common short
+            // utterances ("ok", "no", "hi", "yo", "to", "do"). Whisper hallucinates
+            // "thank you" as a phrase, not bare "you" — so removing "you"/"You"
+            // from the blacklist is safe; the verbose_json noSpeechProb guard
+            // already catches real silence-driven hallucinations.
             val isHallucination = trimmed.isBlank() ||
-                trimmed.length <= 2 ||
+                trimmed.length <= 1 ||
                 trimmed in setOf(
                     "(", ")", "[", "]", "...", "(.)", "[.]",
                     "[BLANK_AUDIO]", "[silence]", "[Silence]", "[blank_audio]",
-                    "Thank you.", "Thanks for watching.", "you", "You",
+                    "Thank you.", "Thanks for watching.",
                 ) ||
                 trimmed.all { !it.isLetterOrDigit() }
             if (!isHallucination) {
@@ -2147,9 +2139,6 @@ class BubbleService : Service() {
             }
             // Note: chip_value color applied only in SEND-ready / clarifier paths.
         }
-        // Re-post timer if it was stopped (restart case)
-        timerHandler.removeCallbacks(timerRunnable)
-        timerHandler.post(timerRunnable)
         // Pipeline arc resets — new cycle starts cleanly.
         setStageArc(-1)
         // Resume the "Hey WiM" hotword listener now that the mic is free.
@@ -3772,7 +3761,7 @@ class BubbleService : Service() {
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
         val corrections = if (layer >= 3) profile.getCorrections() else emptyMap()
 
-        scope.launch {
+        currentReconJob = scope.launch {
             // Hoisted so the catch block below can cancel the L4 stage-animation
             // loop on reconstruction failure — Kotlin catch is a sibling scope.
             var turboTaxJob: Job? = null
@@ -4084,8 +4073,12 @@ class BubbleService : Service() {
                                 patienceMode = true,
                             )
                             val multi = MultiPassDecoder(recognizer).run(wav)
-                            wordConfidences = multi.wordConfidences
-                            Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words")
+                            // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
+                            // but Clarifier.evaluate is called with finalText = outputText
+                            // (GPT-reconstructed). Without realignment, approve-swap
+                            // corrupts the injected text. See ClarifierAlignment.kt.
+                            wordConfidences = alignWordConfidencesToText(multi.wordConfidences, outputText)
+                            Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words, ${wordConfidences.size} aligned to outputText")
                         } catch (e: Exception) {
                             Log.w(TAG, "MultiPassDecoder failed: ${e.message} — clarifier proceeds with empty confidences")
                         }
