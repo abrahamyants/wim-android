@@ -93,6 +93,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 - **When prior-session work appears lost, grep `~/.claude/projects/<cwd>/*.jsonl` (ALL of them, not just current).** Edit/Write tool-call inputs preserve verbatim file content. Recovery rule from Session 14 (saved `feedback_check_all_session_jsonls.md`). The HERO_BUBBLE_RECOVERY.md file in this repo demonstrates the pattern.
 - **Pin Google's recognizer** when using `SpeechRecognizer` directly to avoid Samsung's chirp-emitting OEM service (best-effort; the component name varies by device).
 - **Use `WimTestReceiver`** for headless/automated testing — see actions list in AndroidManifest.xml; `inject_raw` enables 1248-case test matrix (26 disfluency patterns × 4 layers × 4 tones × 3 situations) without audio hardware.
+- **Preserve the permission auto-return wiring.** `WimAccessibilityService.onServiceConnected` snaps `BouncerActivity` to foreground when accessibility is granted via `FLAG_ACTIVITY_REORDER_TO_FRONT`. `BouncerActivity.pollForOverlayGrant()` does the same for the overlay permission via a 30 s × 500 ms polling loop on `Settings.canDrawOverlays`. **DO NOT REVERT either.** Without these, sideloaded users have to back-button out of Android Settings manually after each grant — that's exactly the moment they uninstall. This rule has been re-discovered across sessions; it sticks now.
 
 ## DON'T
 

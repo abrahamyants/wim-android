@@ -55,10 +55,16 @@ class WimAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        // If the user just granted accessibility from Settings during the
-        // bouncer flow, snap them back to the bouncer so they don't have
-        // to back-button out of Settings. Bouncer's onResume → refreshPermissions
-        // picks up the new state and auto-advances to the next page.
+        // Auto-return-to-bouncer when the user toggles WiM accessibility on
+        // mid-onboarding. Without this, the user has to back-back-back out
+        // of Android Settings manually — kills the first-impression UX on
+        // sideloaded distribution. Bouncer's onResume → refreshPermissions
+        // picks up the new state and auto-advances the page when all
+        // permissions are granted.
+        //
+        // DO NOT REVERT — first-impression UX requirement for sideloaded
+        // distribution. See CLAUDE.md "DO" + BouncerActivity.pollForOverlayGrant
+        // for the parallel overlay-permission auto-return.
         if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
             try {
                 val back = Intent(this, BouncerActivity::class.java).apply {

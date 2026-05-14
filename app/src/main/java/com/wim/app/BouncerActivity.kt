@@ -34,6 +34,13 @@ class BouncerActivity : AppCompatActivity() {
     private var autoSendAcked = false
     private lateinit var limelight: Typeface
 
+    // Polls for Settings-detour permission grants (overlay, etc.) so the
+    // user is snapped back to the bouncer instead of having to navigate
+    // out of Android Settings manually. Mirror of the accessibility-side
+    // auto-return wired in WimAccessibilityService.onServiceConnected.
+    // DO NOT REVERT — first-impression UX requirement. See CLAUDE.md "DO".
+    private val pollHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bouncer)
@@ -48,7 +55,11 @@ class BouncerActivity : AppCompatActivity() {
         findViewById<LinearLayout>(R.id.permOverlay).setOnClickListener {
             try {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            } catch (_: Exception) {}
+            } catch (_: Exception) { return@setOnClickListener }
+            // Auto-return-to-bouncer once the user flips the toggle in Settings.
+            // The OS has no callback for overlay grants — polling is the standard
+            // workaround. DO NOT REVERT.
+            pollForOverlayGrant()
         }
         findViewById<LinearLayout>(R.id.permAccessibility).setOnClickListener {
             // Deep-link straight to WiM's accessibility-service toggle page
@@ -206,6 +217,42 @@ class BouncerActivity : AppCompatActivity() {
         if (!hasAdvancedFromPermissions) {
             refreshPermissions()
         }
+    }
+
+    /**
+     * Poll Settings.canDrawOverlays up to 30 seconds. As soon as the user
+     * flips the toggle on, snap BouncerActivity back to the foreground so
+     * they don't have to back-button out of Android Settings manually.
+     *
+     * Why polling: ACTION_MANAGE_OVERLAY_PERMISSION has no result callback.
+     * The standard Android workaround is a polling loop. Compare to the
+     * accessibility flow, which DOES get a callback via
+     * WimAccessibilityService.onServiceConnected.
+     *
+     * DO NOT REVERT — first-impression UX requirement for sideloaded distribution.
+     * See CLAUDE.md "DO" section.
+     */
+    private fun pollForOverlayGrant() {
+        var attempts = 0
+        val r = object : Runnable {
+            override fun run() {
+                attempts++
+                if (Settings.canDrawOverlays(this@BouncerActivity)) {
+                    val back = Intent(this@BouncerActivity, BouncerActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    try { startActivity(back) } catch (_: Exception) {}
+                    return
+                }
+                if (attempts < 60) pollHandler.postDelayed(this, 500)
+            }
+        }
+        pollHandler.postDelayed(r, 500)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        pollHandler.removeCallbacksAndMessages(null)
     }
 
     private fun refreshPermissions() {
