@@ -51,9 +51,22 @@ class BouncerActivity : AppCompatActivity() {
             } catch (_: Exception) {}
         }
         findViewById<LinearLayout>(R.id.permAccessibility).setOnClickListener {
+            // Deep-link straight to WiM's accessibility-service toggle page
+            // (undocumented but widely-supported extras) instead of dumping
+            // the user on the master Accessibility list. Falls back to the
+            // master list if the deep-link extras are ignored.
             try {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            } catch (_: Exception) {}
+                val componentName = ComponentName(this, WimAccessibilityService::class.java).flattenToString()
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                    putExtra(":settings:fragment_args_key", componentName)
+                    putExtra(":settings:show_fragment_args", android.os.Bundle().apply {
+                        putString(":settings:fragment_args_key", componentName)
+                    })
+                }
+                startActivity(intent)
+            } catch (_: Exception) {
+                try { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) } catch (_: Exception) {}
+            }
         }
         findViewById<LinearLayout>(R.id.permMic).setOnClickListener {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 100)

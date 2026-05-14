@@ -55,6 +55,22 @@ class WimAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        // If the user just granted accessibility from Settings during the
+        // bouncer flow, snap them back to the bouncer so they don't have
+        // to back-button out of Settings. Bouncer's onResume → refreshPermissions
+        // picks up the new state and auto-advances to the next page.
+        if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
+            try {
+                val back = Intent(this, BouncerActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+                            or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                            or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+                }
+                startActivity(back)
+            } catch (_: Exception) {}
+        }
         showBubble()
         // Start agent socket server (debug builds only, loopback, port 9222)
         com.wim.app.agent.AgentSocketServer.start(this)

@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1A1A1E">
+<title>WiM — The Manual</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  @font-face {
+    font-family: 'Limelight';
+    src: url('limelight.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --bg: #1A1A1E;
+    --surface: #222226;
+    --raised: #2A2A2F;
+    --sunken: #18181C;
+    --copper: #C49A6C;
+    --orange: #EE5A24;
+    --cream: #C8B48A;
+    --text: #D4D0C8;
+    --text-bright: #F0ECE4;
+    --text-secondary: #908880;
+    --text-dim: #A09888;
+    --green: #16A34A;
+    --maroon: #D06060;
+
+    --display: 'Limelight', 'Times New Roman', serif;
+    --body: 'Plus Jakarta Sans', -apple-system, Roboto, sans-serif;
+    --mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+
+    --gutter: 22px;
+    --col: 580px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: 0.005em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* — Grain overlay — gives the dark paper a tactile feel — */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 1px, transparent 1px),
+      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.3) 1px, transparent 1px),
+      radial-gradient(circle at 40% 80%, rgba(255,255,255,0.2) 1px, transparent 1px);
+    background-size: 3px 3px, 5px 5px, 7px 7px;
+  }
+
+  main {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  /* — Instrument plate header — */
+  .plate {
+    border-top: 1px solid rgba(200,180,138,0.18);
+    border-bottom: 1px solid rgba(200,180,138,0.18);
+    padding: 9px 0;
+    margin: 0 calc(var(--gutter) * -1);
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  .plate b { color: var(--copper); font-weight: 500; }
+
+  /* — Hero — */
+  .hero {
+    padding: 64px 0 56px;
+    text-align: center;
+    position: relative;
+  }
+  .hero::before, .hero::after {
+    content: "·";
+    color: var(--copper);
+    font-size: 28px;
+    position: absolute;
+    top: 18px;
+    opacity: 0.5;
+  }
+  .hero::before { left: 0; }
+  .hero::after { right: 0; }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 68px;
+    line-height: 0.9;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    background: linear-gradient(180deg, var(--cream) 0%, var(--copper) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--cream);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+  .logo-sub {
+    font-family: var(--body);
+    font-size: 11px;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 28px;
+    font-weight: 500;
+  }
+  .tagline {
+    font-family: var(--display);
+    color: var(--text-bright);
+    font-size: 19px;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    max-width: 22ch;
+    margin: 0 auto 18px;
+    font-style: normal;
+  }
+  .lede {
+    font-size: 14px;
+    color: var(--text-secondary);
+    max-width: 32ch;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+  .lede em { font-style: normal; color: var(--text-bright); font-weight: 500; }
+
+  /* — TOC — */
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 26px 0 18px;
+    border-top: 1px solid rgba(196,154,108,0.12);
+    border-bottom: 1px solid rgba(196,154,108,0.12);
+    margin: 32px 0 0;
+  }
+  .toc a {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-decoration: none;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border: 1px solid rgba(196,154,108,0.14);
+    border-radius: 2px;
+    text-transform: uppercase;
+    transition: all 0.18s;
+  }
+  .toc a:hover, .toc a:active {
+    color: var(--cream);
+    border-color: rgba(196,154,108,0.5);
+    background: rgba(196,154,108,0.06);
+  }
+  .toc a span {
+    color: var(--copper);
+    margin-right: 5px;
+    font-weight: 500;
+  }
+
+  /* — Section — */
+  section {
+    padding: 56px 0 16px;
+    scroll-margin-top: 12px;
+  }
+  .sec-rule {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-top: 1px solid rgba(200,180,138,0.18);
+    padding-top: 12px;
+    margin-bottom: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .sec-rule b { color: var(--copper); font-weight: 500; }
+  h2 {
+    font-family: var(--display);
+    color: var(--text-bright);
+    font-size: 32px;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    margin: 6px 0 4px;
+    font-weight: 400;
+  }
+  .sec-sub {
+    font-family: var(--body);
+    font-style: italic;
+    color: var(--copper);
+    font-size: 13px;
+    margin: 0 0 26px;
+    letter-spacing: 0.01em;
+  }
+
+  p { margin: 0 0 14px; color: var(--text); }
+  p.lead {
+    font-size: 16px;
+    color: var(--text-bright);
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  strong, b { color: var(--text-bright); font-weight: 600; }
+  em { font-style: italic; color: var(--cream); }
+
+  a.inline { color: var(--copper); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+  /* — Cards — */
+  .card {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--sunken) 100%);
+    border: 1px solid rgba(196,154,108,0.10);
+    border-radius: 4px;
+    padding: 22px 22px 18px;
+    margin: 14px 0 22px;
+    position: relative;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 8px; left: 8px; right: 8px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(196,154,108,0.25), transparent);
+  }
+  .card-title {
+    font-family: var(--display);
+    color: var(--cream);
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--copper);
+    margin-bottom: 14px;
+  }
+
+  /* — Specimen row — bubble preview grid — */
+  .specimen-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 8px 0 22px;
+  }
+  .specimen {
+    background: var(--sunken);
+    border: 1px solid rgba(196,154,108,0.08);
+    border-radius: 3px;
+    padding: 14px 6px 8px;
+    text-align: center;
+  }
+  .specimen svg {
+    display: block;
+    margin: 0 auto;
+    width: 56px;
+    height: 56px;
+  }
+  .specimen-caption {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+  .specimen-caption b {
+    display: block;
+    color: var(--copper);
+    margin-bottom: 1px;
+    font-weight: 500;
+  }
+
+  /* — Tables / reference grid — */
+  .ref {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 22px;
+    font-size: 13px;
+  }
+  .ref tr { border-bottom: 1px dashed rgba(196,154,108,0.12); }
+  .ref tr:last-child { border-bottom: none; }
+  .ref th {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    text-align: left;
+    padding: 8px 10px 8px 0;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(196,154,108,0.2);
+  }
+  .ref td { padding: 11px 10px 11px 0; color: var(--text); vertical-align: top; }
+  .ref td:first-child {
+    font-family: var(--mono);
+    color: var(--cream);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    width: 38%;
+    white-space: nowrap;
+  }
+  @media (max-width: 420px) {
+    .ref td:first-child { width: 30%; font-size: 11px; }
+    .specimen-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* — Numbered steps — */
+  ol.steps {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    margin: 12px 0 22px;
+  }
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 14px 0 14px 56px;
+    border-bottom: 1px dashed rgba(196,154,108,0.10);
+  }
+  ol.steps > li:last-child { border-bottom: none; }
+  ol.steps > li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0; top: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--copper);
+    letter-spacing: 0.16em;
+    font-weight: 500;
+  }
+  ol.steps > li::after {
+    content: "";
+    position: absolute;
+    left: 30px; top: 18px;
+    width: 16px; height: 1px;
+    background: var(--copper);
+    opacity: 0.4;
+  }
+  ol.steps li b { color: var(--text-bright); }
+
+  /* — Pipeline diagram — */
+  .pipeline {
+    margin: 14px 0 26px;
+  }
+  .pipe-stage {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 12px 0;
+    position: relative;
+  }
+  .pipe-stage::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: 28px;
+    bottom: -12px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--copper), transparent);
+    opacity: 0.35;
+  }
+  .pipe-stage:last-child::before { display: none; }
+  .pipe-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--sunken);
+    border: 1px solid var(--copper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cream);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    z-index: 1;
+  }
+  .pipe-body h4 {
+    font-family: var(--display);
+    font-size: 15px;
+    color: var(--cream);
+    margin: 4px 0 2px;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+  .pipe-body .pipe-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--copper);
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .pipe-body p { font-size: 13px; line-height: 1.55; color: var(--text); margin: 4px 0 0; }
+
+  /* — Example block — */
+  .example {
+    background: var(--sunken);
+    border-left: 2px solid var(--copper);
+    padding: 12px 14px;
+    margin: 12px 0 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+  .example .ex-tag {
+    color: var(--copper);
+    display: inline-block;
+    width: 5em;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+  .example .ex-out { color: var(--text-bright); }
+  .example .ex-orange { color: var(--orange); }
+
+  /* — Callout — */
+  .callout {
+    background: linear-gradient(180deg, rgba(196,154,108,0.07), rgba(196,154,108,0.02));
+    border: 1px solid rgba(196,154,108,0.18);
+    border-radius: 3px;
+    padding: 14px 16px;
+    margin: 14px 0 22px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .callout-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+
+  /* — Two-column responsive — */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 14px 0 22px;
+  }
+  @media (max-width: 420px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+  .two-col h5 {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin: 0 0 6px;
+    font-weight: 500;
+  }
+  .two-col p { font-size: 12px; line-height: 1.55; }
+
+  /* — Permission cards — */
+  .perm {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px dashed rgba(196,154,108,0.12);
+  }
+  .perm:last-child { border-bottom: none; }
+  .perm-mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--sunken);
+    border: 1px solid rgba(196,154,108,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--cream);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .perm-body h5 {
+    font-family: var(--display);
+    color: var(--cream);
+    font-size: 14px;
+    margin: 2px 0 2px;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+  }
+  .perm-body p {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.55;
+    margin: 4px 0 0;
+  }
+  .perm-body .perm-path {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--copper);
+    letter-spacing: 0.04em;
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* — State chip — */
+  .chip {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: var(--raised);
+    border: 1px solid rgba(196,154,108,0.18);
+    color: var(--copper);
+    margin: 0 2px;
+  }
+  .chip.live { color: var(--orange); border-color: rgba(238,90,36,0.4); }
+  .chip.go   { color: var(--green); border-color: rgba(22,163,74,0.4); }
+
+  /* — State sequence — animated demo — */
+  .state-seq {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 14px 0 22px;
+  }
+  .state-seq .specimen { padding: 12px 4px 6px; }
+  .state-seq .specimen svg { width: 48px; height: 48px; }
+  .state-seq .specimen-caption { font-size: 8px; }
+
+  /* — Footer — */
+  footer {
+    margin-top: 64px;
+    padding: 36px 0 28px;
+    border-top: 1px solid rgba(200,180,138,0.18);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+  footer .colophon {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 8px;
+  }
+  footer .signoff {
+    font-family: var(--display);
+    color: var(--cream);
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    margin: 18px 0 10px;
+  }
+
+  /* — Smooth scroll for anchor links — */
+  html { scroll-behavior: smooth; }
+
+  /* — Underline-on-paragraph emphasis — */
+  .key {
+    border-bottom: 1px dashed var(--copper);
+    color: var(--text-bright);
+  }
+
+  /* — Anatomy diagram callouts — */
+  .anatomy {
+    background: var(--sunken);
+    border: 1px solid rgba(196,154,108,0.10);
+    border-radius: 4px;
+    padding: 20px;
+    margin: 14px 0 22px;
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  @media (max-width: 420px) {
+    .anatomy { grid-template-columns: 130px 1fr; gap: 12px; padding: 16px; }
+  }
+  .anatomy svg { width: 100%; height: auto; }
+  .anatomy-legend {
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.85;
+    color: var(--text);
+  }
+  .anatomy-legend .leg-num {
+    color: var(--copper);
+    font-weight: 500;
+    margin-right: 8px;
+    letter-spacing: 0.06em;
+  }
+  .anatomy-legend .leg-name {
+    color: var(--cream);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 9px;
+  }
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- ===== INSTRUMENT PLATE ===== -->
+  <header class="plate">
+    <span>Manual · No. 01</span>
+    <span><b>WIM</b> · What I Meant</span>
+    <span>Rev. 13.05</span>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <div class="hero">
+    <div class="logo">WiM</div>
+    <div class="logo-sub">What I Meant</div>
+    <div class="tagline">Voice-to-intent.<br>Not voice-to-text.</div>
+    <p class="lede">
+      Press the bubble. Speak however you speak —
+      <em>blocks, repeats, fillers, false starts, the lot</em>.
+      The phone listens, cleans, and pastes what you
+      <span class="key">meant</span> into whatever app is open.
+    </p>
+  </div>
+
+  <!-- ===== TABLE OF CONTENTS ===== -->
+  <nav class="toc" aria-label="Manual contents">
+    <a href="#bubble"><span>01</span>The Bubble</a>
+    <a href="#summon"><span>02</span>Five Ways to Summon</a>
+    <a href="#states"><span>03</span>Bubble States</a>
+    <a href="#pipeline"><span>04</span>Pipeline</a>
+    <a href="#layers"><span>05</span>The Four Layers</a>
+    <a href="#tone"><span>06</span>Tone</a>
+    <a href="#autosend"><span>07</span>Auto-send</a>
+    <a href="#clarifier"><span>08</span>Clarifier</a>
+    <a href="#themes"><span>09</span>Themes</a>
+    <a href="#daf"><span>10</span>DAF</a>
+    <a href="#privacy"><span>11</span>Privacy</a>
+    <a href="#perms"><span>12</span>Permissions</a>
+    <a href="#trouble"><span>13</span>Troubleshooting</a>
+  </nav>
+
+  <!-- ===== § 01 THE BUBBLE ===== -->
+  <section id="bubble">
+    <div class="sec-rule">
+      <span><b>§ 01</b> / 13</span>
+      <span>The Bubble</span>
+    </div>
+    <h2>The Bubble</h2>
+    <p class="sec-sub">your one floating control</p>
+
+    <p class="lead">
+      Everything in WiM begins and ends with one round, brushed-metal control
+      that floats on top of every app. <strong>The bubble is the app.</strong>
+      The settings screen is a courtesy; you'll spend almost all your time
+      talking to this thing.
+    </p>
+
+    <!-- Anatomy diagram -->
+    <div class="anatomy">
+      <svg viewBox="0 0 168 168" aria-hidden="true">
+        <defs>
+          <radialGradient id="bezelDiag" cx="50%" cy="42%">
+            <stop offset="0%"  stop-color="#2A2A2F"/>
+            <stop offset="55%" stop-color="#222226"/>
+            <stop offset="100%" stop-color="#18181C"/>
+          </radialGradient>
+          <radialGradient id="knobDiag" cx="50%" cy="40%">
+            <stop offset="0%"  stop-color="#222226"/>
+            <stop offset="70%" stop-color="#1A1A1E"/>
+            <stop offset="100%" stop-color="#18181C"/>
+          </radialGradient>
+        </defs>
+        <!-- callout leaders -->
+        <line x1="84" y1="22"  x2="158" y2="10"  stroke="#C49A6C" stroke-width="0.5" opacity="0.5"/>
+        <line x1="120" y1="44" x2="162" y2="48"  stroke="#C49A6C" stroke-width="0.5" opacity="0.5"/>
+        <line x1="116" y1="88" x2="162" y2="92"  stroke="#C49A6C" stroke-width="0.5" opacity="0.5"/>
+        <line x1="84" y1="148" x2="156" y2="142" stroke="#C49A6C" stroke-width="0.5" opacity="0.5"/>
+        <line x1="48" y1="84"  x2="14" y2="84"   stroke="#C49A6C" stroke-width="0.5" opacity="0.5"/>
+        <!-- pulse rings (faded outside the bezel) -->
+        <circle cx="84" cy="84" r="74" fill="none" stroke="#C49A6C" stroke-width="0.4" opacity="0.18"/>
+        <circle cx="84" cy="84" r="64" fill="none" stroke="#C49A6C" stroke-width="0.4" opacity="0.28"/>
+        <!-- outer bezel ring -->
+        <circle cx="84" cy="84" r="46" fill="url(#bezelDiag)" stroke="#C49A6C" stroke-width="0.6" stroke-opacity="0.55"/>
+        <!-- highlight rim -->
+        <circle cx="84" cy="84" r="46" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.6"/>
+        <!-- stage arc (top, lit) -->
+        <path d="M 50 84 A 34 34 0 0 1 118 84" fill="none" stroke="#C49A6C" stroke-width="1.6" opacity="0.85" stroke-linecap="round"/>
+        <!-- inner sunken knob -->
+        <circle cx="84" cy="84" r="30" fill="url(#knobDiag)" stroke="#2A2A2F" stroke-width="0.6"/>
+        <!-- subtle inner shadow ring -->
+        <circle cx="84" cy="84" r="30" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="0.8" opacity="0.6"/>
+        <!-- 12 o'clock tick -->
+        <rect x="83" y="58" width="2" height="8" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.3"/>
+        <!-- label -->
+        <text x="84" y="89" text-anchor="middle"
+          font-family="Plus Jakarta Sans" font-size="11" font-weight="700"
+          fill="#C8B48A" letter-spacing="0.6">IDLE</text>
+        <!-- callout numerals -->
+        <circle cx="158" cy="10" r="7" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.6"/>
+        <text x="158" y="13" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#C8B48A">1</text>
+        <circle cx="162" cy="48" r="7" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.6"/>
+        <text x="162" y="51" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#C8B48A">2</text>
+        <circle cx="162" cy="92" r="7" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.6"/>
+        <text x="162" y="95" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#C8B48A">3</text>
+        <circle cx="156" cy="142" r="7" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.6"/>
+        <text x="156" y="145" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#C8B48A">4</text>
+        <circle cx="14" cy="84" r="7" fill="#1A1A1E" stroke="#C49A6C" stroke-width="0.6"/>
+        <text x="14" y="87" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#C8B48A">5</text>
+      </svg>
+      <div class="anatomy-legend">
+        <div><span class="leg-num">1</span><span class="leg-name">Pulse rings</span></div>
+        <div><span class="leg-num">2</span><span class="leg-name">Stage arc</span></div>
+        <div><span class="leg-num">3</span><span class="leg-name">Outer bezel</span></div>
+        <div><span class="leg-num">4</span><span class="leg-name">Inner knob</span></div>
+        <div><span class="leg-num">5</span><span class="leg-name">12-o'clock tick</span></div>
+      </div>
+    </div>
+
+    <h3 class="card-title" style="font-size:15px;margin-top:30px;">Gestures</h3>
+    <p class="card-sub" style="margin-bottom:8px;">touch language of the bubble</p>
+    <table class="ref" aria-label="Bubble gesture reference">
+      <thead>
+        <tr><th>Gesture</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tap</td><td>Start recording. Tap again to stop and process.</td></tr>
+        <tr><td>Press &amp; hold</td><td>Record while you hold. Release stops and processes. Drag during the hold cancels.</td></tr>
+        <tr><td>Double-tap</td><td>Open the bubble menu (opacity, size, theme, live transcript).</td></tr>
+        <tr><td>Drag</td><td>Move the bubble anywhere on screen.</td></tr>
+        <tr><td>Drag to top</td><td>Open the menu via the drag-up shortcut.</td></tr>
+        <tr><td>Drag to dock</td><td>Drop on a theme slot in the dashboard — bubble snaps to that theme.</td></tr>
+        <tr><td>Shake × 2</td><td>Show the bubble if hidden. Hide it if showing.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== § 02 FIVE WAYS TO SUMMON ===== -->
+  <section id="summon">
+    <div class="sec-rule">
+      <span><b>§ 02</b> / 13</span>
+      <span>Summon</span>
+    </div>
+    <h2>Five ways to summon</h2>
+    <p class="sec-sub">because the bubble shouldn't always be in your face</p>
+
+    <p>
+      You'll usually leave the bubble visible and just <strong>tap it</strong>.
+      For times you don't, WiM ships five alternate ways to call it back without
+      opening the app:
+    </p>
+
+    <ol class="steps">
+      <li>
+        <b>Shake the phone twice.</b> Quick wrist-flick × 2 (about half a
+        second between flicks). The bubble appears at its last position.
+        Same gesture hides it again. Default on; turn off in Settings.
+      </li>
+      <li>
+        <b>Pull down the quick-settings shade</b> and tap the WiM tile. The
+        bubble drops onto whatever app you were just in.
+      </li>
+      <li>
+        <b>Add the home-screen widget</b> (1 × 1 cell). One tap summons the
+        bubble. Useful for muscle memory if you don't like the QS shade.
+      </li>
+      <li>
+        <b>Say "Hey WiM"</b> — the hotword. Default off because it costs
+        battery; flip on in Settings only if you want hands-free summoning.
+      </li>
+      <li>
+        <b>Open the WiM app.</b> The dashboard always re-summons the bubble
+        on launch. Slowest path; mostly for fixing settings.
+      </li>
+    </ol>
+
+    <div class="callout">
+      <div class="callout-tag">Note</div>
+      The bubble survives reboots — if all permissions are still granted,
+      it comes back on its own a few seconds after the phone finishes
+      booting. You shouldn't need to summon it after a reboot.
+    </div>
+  </section>
+
+  <!-- ===== § 03 BUBBLE STATES ===== -->
+  <section id="states">
+    <div class="sec-rule">
+      <span><b>§ 03</b> / 13</span>
+      <span>States</span>
+    </div>
+    <h2>Bubble states</h2>
+    <p class="sec-sub">the bubble tells you exactly where it is</p>
+
+    <p>
+      The label inside the knob changes through a short sequence every time
+      you record. There's no guessing — the bubble names its current state.
+    </p>
+
+    <div class="state-seq">
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="22" fill="#222226" stroke="#C49A6C" stroke-width="0.4" stroke-opacity="0.5"/>
+          <circle cx="40" cy="40" r="14" fill="#18181C"/>
+          <rect x="39" y="27" width="2" height="5" fill="#1A1A1E"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#C8B48A">IDLE</text>
+        </svg>
+        <div class="specimen-caption"><b>01</b> Waiting</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#EE5A24" stroke-width="0.4" opacity="0.35"/>
+          <circle cx="40" cy="40" r="26" fill="none" stroke="#EE5A24" stroke-width="0.4" opacity="0.55"/>
+          <circle cx="40" cy="40" r="22" fill="#1A1A1E" stroke="#EE5A24" stroke-width="0.6"/>
+          <circle cx="40" cy="40" r="22" fill="rgba(238,90,36,0.16)"/>
+          <circle cx="40" cy="40" r="14" fill="#18181C"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#EE5A24">REC</text>
+        </svg>
+        <div class="specimen-caption"><b>02</b> Listening</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="22" fill="#222226" stroke="#C49A6C" stroke-width="0.4"/>
+          <path d="M 24 40 A 16 16 0 0 1 56 40" fill="none" stroke="#C49A6C" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="40" cy="40" r="14" fill="#18181C"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#C8B48A">PROC</text>
+        </svg>
+        <div class="specimen-caption"><b>03</b> Thinking</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="22" fill="#1A1A1E" stroke="#16A34A" stroke-width="0.6"/>
+          <circle cx="40" cy="40" r="22" fill="rgba(22,163,74,0.18)"/>
+          <circle cx="40" cy="40" r="14" fill="#18181C"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#16A34A">SEND</text>
+        </svg>
+        <div class="specimen-caption"><b>04</b> Ready</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="22" fill="#1A1A1E"/>
+          <path d="M 40 18 A 22 22 0 0 0 40 62 Z" fill="rgba(22,163,74,0.20)"/>
+          <path d="M 40 18 A 22 22 0 0 1 40 62 Z" fill="rgba(208,96,96,0.20)"/>
+          <circle cx="40" cy="40" r="22" fill="none" stroke="#C49A6C" stroke-width="0.4" stroke-opacity="0.6"/>
+          <circle cx="40" cy="40" r="14" fill="#18181C"/>
+          <text x="40" y="44" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="5" font-weight="700" fill="#C8B48A">CHECK?</text>
+        </svg>
+        <div class="specimen-caption"><b>05</b> Clarifier</div>
+      </div>
+    </div>
+
+    <table class="ref">
+      <tbody>
+        <tr><td><span class="chip">IDLE</span></td><td>Waiting. Tap to start.</td></tr>
+        <tr><td><span class="chip live">REC</span></td><td>Recording. Pulse rings expand outward; bezel halo glows. Tap to stop, or just stop talking — the bubble notices the silence.</td></tr>
+        <tr><td><span class="chip">PROC</span></td><td>Cleaning, reconstructing, verifying. The stage arc walks around the bezel as each step completes.</td></tr>
+        <tr><td><span class="chip go">SEND</span></td><td>Text is in the field. You have 3 seconds to tap the green bubble and auto-send it, or do nothing and edit by hand. (Auto-send only.)</td></tr>
+        <tr><td><span class="chip">CHECK?</span></td><td>The clarifier — bubble found a word it isn't sure of. See § 08.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== § 04 PIPELINE ===== -->
+  <section id="pipeline">
+    <div class="sec-rule">
+      <span><b>§ 04</b> / 13</span>
+      <span>Pipeline</span>
+    </div>
+    <h2>What happens to your voice</h2>
+    <p class="sec-sub">the whole chain, top to bottom</p>
+
+    <p class="lead">
+      From the second you tap the bubble to the moment your sentence lands
+      in the text field, your voice passes through this sequence. Knowing
+      it makes the bubble's state badges legible.
+    </p>
+
+    <div class="pipeline">
+      <div class="pipe-stage">
+        <div class="pipe-mark">01</div>
+        <div class="pipe-body">
+          <h4>Capture <span class="pipe-tag">on the phone</span></h4>
+          <p>Microphone picks up audio. For Layer I, nothing leaves the phone — the audio stays in RAM and the speech recognizer runs locally.</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">02</div>
+        <div class="pipe-body">
+          <h4>Speech-to-text <span class="pipe-tag">layer-dependent</span></h4>
+          <p>Layers I–III use a small on-device Whisper model (tiny.en, English) — instant, offline, private. Layer IV swaps to cloud Whisper-1 because the clinical reasoner needs the richer confidence signal that only the cloud model returns.</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">03</div>
+        <div class="pipe-body">
+          <h4>Disfluency filter <span class="pipe-tag">rule-based</span></h4>
+          <p>No AI in this step. Plain pattern rules strip "p-p-pop" → "pop", "I I I want" → "I want" (but keeps "bye bye" and "had had"), and removes <em>um</em>, <em>uh</em>, <em>like</em>, <em>you know</em>, plus the well-known Whisper hallucinations ("thanks for watching" and friends).</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">04</div>
+        <div class="pipe-body">
+          <h4>Reconstruction <span class="pipe-tag">layer II and above</span></h4>
+          <p>Layer II/III: GPT-4o rewrites in your selected tone. Layer IV: Claude Sonnet 4.6 with extended thinking — reasons through the speech-disfluency pattern, builds a phoneme-difficulty map, detects anticipatory blocks, and reconstructs accordingly.</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">05</div>
+        <div class="pipe-body">
+          <h4>Safety filters <span class="pipe-tag">always</span></h4>
+          <p>Leak filter catches model responses that aren't real reconstruction (the occasional "I'm sorry, I can't"). Length guard: if the output is more than 2.5× the input length, the model embellished — WiM uses the cleaned raw text instead.</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">06</div>
+        <div class="pipe-body">
+          <h4>Inject <span class="pipe-tag">accessibility service</span></h4>
+          <p>The final text drops into the focused text field of whatever app you're in. If no text field is focused at that moment, WiM puts the result on the clipboard instead and tells you — better than silently throwing it away.</p>
+        </div>
+      </div>
+      <div class="pipe-stage">
+        <div class="pipe-mark">07</div>
+        <div class="pipe-body">
+          <h4>Learn <span class="pipe-tag">layer III only</span></h4>
+          <p>Layer III watches what you say and how you fix it. After WiM sees the same word-pair correction three times, it auto-adds the rule to your profile. Your Layer III and your Layer I (which reads from the same profile) get smarter on you specifically.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div><span class="ex-tag">You</span>"I I I want to to to call mom um about the the thing"</div>
+      <div><span class="ex-tag">L1 out</span><span class="ex-out">"I want to call mom about the thing"</span></div>
+      <div><span class="ex-tag">L2 out</span><span class="ex-out">"I want to call mom about the thing."</span></div>
+      <div><span class="ex-tag">L3 out</span><span class="ex-out">"I want to call mom about the order."</span> <span class="ex-orange">← your vocabulary swapped "thing" → "order"</span></div>
+      <div><span class="ex-tag">L4 out</span><span class="ex-out">"I want to call mom about the order."</span> <span class="ex-orange">← same, but the clinical reasoner won't hallucinate when speech is heavier</span></div>
+    </div>
+  </section>
+
+  <!-- ===== § 05 THE FOUR LAYERS ===== -->
+  <section id="layers">
+    <div class="sec-rule">
+      <span><b>§ 05</b> / 13</span>
+      <span>Layers</span>
+    </div>
+    <h2>The four layers</h2>
+    <p class="sec-sub">pick higher when you want more help</p>
+
+    <p>
+      You pick the layer once. WiM remembers it. You can change it whenever
+      from the dashboard <strong>Layer</strong> tile or the bubble menu.
+    </p>
+
+    <div class="card">
+      <div class="card-title">Layer I — Transcribe</div>
+      <div class="card-sub">on-device · ~1s · free · private</div>
+      <p>Local Whisper-tiny + the deterministic disfluency filter. No AI rewriting. No internet needed after the model has downloaded (about 40 MB, downloads once on first launch). Best for short, fluent dictation in apps where you don't need polish.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Layer II — Reconstruct</div>
+      <div class="card-sub">cloud · 2–4s · openai cost</div>
+      <p>Adds cloud GPT-4o on top of L1. Smooths grammar, applies your tone (Casual or Professional), fixes punctuation properly. Doesn't know your personal vocabulary. Generic but very capable.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Layer III — Profile</div>
+      <div class="card-sub">cloud · 2–4s · learns over time</div>
+      <p>Layer II plus your personal vocabulary mixed into the prompt. The longer you use WiM, the better Layer III gets at words that are specific to you — names, jargon, brand spellings, your way of saying things. Auto-learns from repeat corrections.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Layer IV — Clinical</div>
+      <div class="card-sub">cloud · 6–12s · for heavy speech disfluency</div>
+      <p>Cloud Whisper-1 with verbose word timings, plus Claude Sonnet 4.6 with extended thinking. The reasoner is given a clinical brief — phoneme difficulty, avoidance patterns, anticipatory blocks — and rebuilds intent through that lens. Slowest, but the most accurate when the speech is heavily disfluent.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-tag">When to bump up</div>
+      Start at <strong>Layer I</strong> and let it surprise you. Move up when
+      you find yourself editing the output every time. Layer IV is purpose-built
+      for harder speech and gets disproportionately better there — try it on
+      the recordings that other layers garble.
+    </div>
+  </section>
+
+  <!-- ===== § 06 TONE ===== -->
+  <section id="tone">
+    <div class="sec-rule">
+      <span><b>§ 06</b> / 13</span>
+      <span>Tone</span>
+    </div>
+    <h2>Tone</h2>
+    <p class="sec-sub">work voice vs. real voice</p>
+
+    <div class="two-col">
+      <div>
+        <h5>Casual</h5>
+        <p>Sentence fragments. Contractions stay. "yeah" stays. Lowercase casual. Default for messengers, social, personal texts.</p>
+      </div>
+      <div>
+        <h5>Professional</h5>
+        <p>Full sentences. Proper punctuation. No contractions in formal phrasing. Default for email, work chat, documents.</p>
+      </div>
+    </div>
+
+    <p>
+      <strong>Auto-tone</strong> is on by default. WiM looks at the
+      foreground app — Gmail, Slack, Outlook, Teams, LinkedIn,
+      docs/sheets, work-style tools → <strong>Professional</strong>.
+      WhatsApp, Messenger, Telegram, SMS, social → <strong>Casual</strong>.
+    </p>
+
+    <p>
+      Override globally in <span class="key">Settings → Tone</span>. The
+      override sticks until you change it. Tone only applies at Layer II and
+      above — Layer I has no AI, so no tone.
+    </p>
+
+    <div class="callout">
+      <div class="callout-tag">Ping-pong guard</div>
+      If you toggle tone via the bubble's bezel, that choice is respected
+      for 30 seconds — even if the host app would normally auto-flip the
+      other direction. Avoids the "I just set this!" race on app switches.
+    </div>
+  </section>
+
+  <!-- ===== § 07 AUTO-SEND ===== -->
+  <section id="autosend">
+    <div class="sec-rule">
+      <span><b>§ 07</b> / 13</span>
+      <span>Auto-send</span>
+    </div>
+    <h2>Auto-send</h2>
+    <p class="sec-sub">tap the green bubble, message goes</p>
+
+    <p class="lead">
+      When the reconstruction lands in a send-capable app, WiM doesn't
+      auto-send it — that would be terrifying. Instead the bubble turns
+      green for three seconds and gives you a one-tap "send for me"
+      affordance.
+    </p>
+
+    <ol class="steps">
+      <li><b>You speak.</b> The text drops into the compose field.</li>
+      <li><b>Bubble turns green</b>, label reads <span class="chip go">SEND</span>, the bezel arc counts down from 3.</li>
+      <li><b>Tap the green bubble</b> → WiM clicks the app's <em>Send</em> button on your behalf. Done.</li>
+      <li><b>Or do nothing</b> → after 3 seconds the green fades and the text stays in the compose field for you to edit/send manually.</li>
+    </ol>
+
+    <p>
+      Supported send-targets right now: Google Messages, Samsung Messages,
+      Gmail, WhatsApp, Telegram, Signal, Facebook Messenger. More on the
+      way. The list lives in Settings if you want to check or expand it.
+    </p>
+
+    <p>
+      Turn auto-send off entirely in <span class="key">Settings → Auto-send</span>.
+      Default is on. There's a 3-shot disclaimer the first three times
+      you use it, then it stops nagging.
+    </p>
+
+    <div class="callout">
+      <div class="callout-tag">Facehugger-Send (optional)</div>
+      Settings → Auto-send → Facehugger-Send. Once on, the green bubble
+      slides over the host app's actual Send button on SEND-ready, so the
+      tap target is on the Send icon itself. Off by default; some find it
+      unsettling. (Yes, the name is a joke.)
+    </div>
+  </section>
+
+  <!-- ===== § 08 CLARIFIER ===== -->
+  <section id="clarifier">
+    <div class="sec-rule">
+      <span><b>§ 08</b> / 13</span>
+      <span>Clarifier</span>
+    </div>
+    <h2>The Clarifier</h2>
+    <p class="sec-sub">when WiM isn't sure, it asks</p>
+
+    <p>
+      Sometimes the reconstruction lands a word the speech recognizer
+      wasn't confident about. Instead of guessing, the bubble enters
+      the clarifier — the bezel splits into a <span style="color:#16A34A">green left
+      half</span> and a <span style="color:#D06060">red right half</span>, and the
+      flagged word in the pasted text is highlighted.
+    </p>
+
+    <table class="ref">
+      <tbody>
+        <tr><td>Tap left ✓</td><td>Accept WiM's guess. Move on.</td></tr>
+        <tr><td>Tap right ✕</td><td>Reject. WiM swaps in its second-best guess (or removes the word if it's likely a filler).</td></tr>
+        <tr><td>Press &amp; hold</td><td>Defer — leave it for now, you'll edit by hand later.</td></tr>
+        <tr><td>Voice: "Wim yes"</td><td>Approve hands-free.</td></tr>
+        <tr><td>Voice: "Wim no"</td><td>Reject hands-free.</td></tr>
+        <tr><td>Voice: "Wim next"</td><td>Defer hands-free.</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      The clarifier is bounded — never more than three flagged words per
+      cycle. Most recordings get zero. The threshold is tuned to under-flag,
+      not over-flag (false positives feel annoying; false negatives just look
+      like a typo).
+    </p>
+
+    <p>
+      Tune sensitivity in <span class="key">Settings → Clarifier</span>:
+      <strong>Off</strong> · <strong>Low</strong> · <strong>Medium</strong> (default) · <strong>High</strong>.
+      You can also blacklist apps from triggering the clarifier (code editors,
+      password managers, anywhere prompts would be unwelcome).
+    </p>
+  </section>
+
+  <!-- ===== § 09 THEMES ===== -->
+  <section id="themes">
+    <div class="sec-rule">
+      <span><b>§ 09</b> / 13</span>
+      <span>Themes</span>
+    </div>
+    <h2>Bubble themes</h2>
+    <p class="sec-sub">three brushed-metal finishes in the rack</p>
+
+    <p>The bubble ships in three finishes. Pick the one you like.</p>
+
+    <div class="specimen-row">
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <defs>
+            <radialGradient id="bronzeBz" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#C8B48A"/>
+              <stop offset="55%" stop-color="#C49A6C"/>
+              <stop offset="100%" stop-color="#18181C"/>
+            </radialGradient>
+            <radialGradient id="bronzeKn" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#222226"/>
+              <stop offset="100%" stop-color="#18181C"/>
+            </radialGradient>
+          </defs>
+          <circle cx="40" cy="40" r="24" fill="url(#bronzeBz)" stroke="#C49A6C" stroke-width="0.3"/>
+          <circle cx="40" cy="40" r="24" fill="rgba(0,0,0,0.45)"/>
+          <circle cx="40" cy="40" r="15" fill="url(#bronzeKn)"/>
+          <rect x="39" y="27" width="2" height="6" fill="#1A1A1E"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#C8B48A">IDLE</text>
+        </svg>
+        <div class="specimen-caption"><b>01</b> Bronze</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <defs>
+            <radialGradient id="aluBz" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#D4D0C8"/>
+              <stop offset="55%" stop-color="#908880"/>
+              <stop offset="100%" stop-color="#2A2A2F"/>
+            </radialGradient>
+            <radialGradient id="aluKn" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#2A2A2F"/>
+              <stop offset="100%" stop-color="#1A1A1E"/>
+            </radialGradient>
+          </defs>
+          <circle cx="40" cy="40" r="24" fill="url(#aluBz)" stroke="#908880" stroke-width="0.3"/>
+          <circle cx="40" cy="40" r="24" fill="rgba(0,0,0,0.5)"/>
+          <circle cx="40" cy="40" r="15" fill="url(#aluKn)"/>
+          <rect x="39" y="27" width="2" height="6" fill="#1A1A1E"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#D4D0C8">IDLE</text>
+        </svg>
+        <div class="specimen-caption"><b>02</b> Aluminum</div>
+      </div>
+      <div class="specimen">
+        <svg viewBox="0 0 80 80">
+          <defs>
+            <radialGradient id="gunBz" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#2A2A2F"/>
+              <stop offset="60%" stop-color="#222226"/>
+              <stop offset="100%" stop-color="#18181C"/>
+            </radialGradient>
+            <radialGradient id="gunKn" cx="50%" cy="40%">
+              <stop offset="0%"  stop-color="#1A1A1E"/>
+              <stop offset="100%" stop-color="#18181C"/>
+            </radialGradient>
+          </defs>
+          <circle cx="40" cy="40" r="24" fill="url(#gunBz)" stroke="#C49A6C" stroke-width="0.25" stroke-opacity="0.4"/>
+          <circle cx="40" cy="40" r="15" fill="url(#gunKn)"/>
+          <circle cx="40" cy="40" r="15" fill="rgba(0,0,0,0.5)"/>
+          <rect x="39" y="27" width="2" height="6" fill="#18181C"/>
+          <text x="40" y="43" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="6" font-weight="700" fill="#A09888">IDLE</text>
+        </svg>
+        <div class="specimen-caption"><b>03</b> Gunmetal</div>
+      </div>
+      <div class="specimen" style="background:linear-gradient(180deg,rgba(196,154,108,0.06),transparent);border-style:dashed;">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="24" fill="none" stroke="#C49A6C" stroke-width="0.5" stroke-dasharray="3 3"/>
+          <text x="40" y="44" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="14" font-weight="400" fill="#C49A6C">?</text>
+        </svg>
+        <div class="specimen-caption" style="opacity:0.7"><b>—</b> More TBD</div>
+      </div>
+    </div>
+
+    <p>
+      Three slots live at the bottom of the dashboard between Guide and your
+      profile. <strong>Press</strong> a slot to switch instantly.
+      <strong>Drag</strong> the bubble out of a slot and it follows your
+      finger. <strong>Drop</strong> on a different slot to swap themes — the
+      bubble snaps in like a magnet.
+    </p>
+  </section>
+
+  <!-- ===== § 10 DAF ===== -->
+  <section id="daf">
+    <div class="sec-rule">
+      <span><b>§ 10</b> / 13</span>
+      <span>DAF</span>
+    </div>
+    <h2>Delayed Auditory Feedback</h2>
+    <p class="sec-sub">a fluency aid, optional</p>
+
+    <p>
+      DAF plays your own voice back through the earpiece with a 30–300 ms
+      delay. It's a documented fluency technique — for some people, hearing
+      themselves on a short delay reduces speech-disfluency severity in real
+      time. Not for everyone. Worth trying if you haven't.
+    </p>
+
+    <p>
+      Turn it on in <span class="key">Settings → DAF</span>. The slider sets
+      the delay. Start around 100 ms; experiment by 20-ms increments. Headphones
+      improve the effect dramatically; without them the earpiece works at low
+      volume.
+    </p>
+
+    <div class="callout">
+      <div class="callout-tag">Not a cure</div>
+      DAF helps some speakers and not others, and the effect can fade with
+      familiarity. It's a tool, not a fix. If it helps, great. If it doesn't,
+      turn it off and ignore this section.
+    </div>
+  </section>
+
+  <!-- ===== § 11 PRIVACY ===== -->
+  <section id="privacy">
+    <div class="sec-rule">
+      <span><b>§ 11</b> / 13</span>
+      <span>Privacy</span>
+    </div>
+    <h2>Privacy</h2>
+    <p class="sec-sub">what stays on your phone, what doesn't</p>
+
+    <div class="two-col">
+      <div>
+        <h5>Always stays local</h5>
+        <p><strong>The audio itself.</strong> Always. WiM never uploads raw audio. Even at Layer IV the upload is a brief WAV-to-Whisper call that returns text; the audio buffer is discarded after.</p>
+      </div>
+      <div>
+        <h5>On the phone</h5>
+        <p>Your settings, your personal vocabulary, your console log, your sessions database. Stored in private app storage. Only WiM can read it.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h5>Cloud — only if signed in</h5>
+        <p>Your sessions sync to Firebase Firestore so they survive a phone swap. About 1 KB per session — raw text, clean text, tone, layer, timing, success flags. No audio.</p>
+      </div>
+      <div>
+        <h5>Cloud — for reconstruction</h5>
+        <p>Layer II/III sends your cleaned text + tone + (L3 only) profile to OpenAI's GPT-4o. Layer IV sends the WAV to OpenAI's Whisper-1 and the transcript to Anthropic's Sonnet for reasoning. Both are stateless — neither stores your content.</p>
+      </div>
+    </div>
+
+    <p>
+      Toggle session backup off in <span class="key">Settings → Backup sessions</span>.
+      Delete everything — local and cloud — in <span class="key">Profile → Delete data</span>.
+      That's a hard delete: cloud records, profile, sessions, all gone immediately,
+      and you're signed out.
+    </p>
+  </section>
+
+  <!-- ===== § 12 PERMISSIONS ===== -->
+  <section id="perms">
+    <div class="sec-rule">
+      <span><b>§ 12</b> / 13</span>
+      <span>Permissions</span>
+    </div>
+    <h2>Permissions</h2>
+    <p class="sec-sub">five (sometimes six) gates</p>
+
+    <p>
+      WiM asks for an unusual amount of access because the bubble has to live
+      on top of every app and read/write text fields. Here's what each
+      permission does and why WiM needs it.
+    </p>
+
+    <div class="perm">
+      <div class="perm-mark">01</div>
+      <div class="perm-body">
+        <h5>Display over other apps</h5>
+        <p>Lets the bubble float on top of any app. The bubble is the entire UI — without this permission there's no bubble, and WiM has nowhere to put itself.</p>
+        <span class="perm-path">Settings → Apps → Special access → Display over other apps → WiM</span>
+      </div>
+    </div>
+    <div class="perm">
+      <div class="perm-mark">02</div>
+      <div class="perm-body">
+        <h5>Accessibility</h5>
+        <p>Lets WiM read the focused text field (so the bubble knows where to paste) and click the Send button on your behalf for auto-send. WiM never reads anything you don't directly interact with.</p>
+        <span class="perm-path">Settings → Accessibility → Installed services → WiM</span>
+      </div>
+    </div>
+    <div class="perm">
+      <div class="perm-mark">03</div>
+      <div class="perm-body">
+        <h5>Microphone</h5>
+        <p>The bubble has to hear you. Recording only happens when you tap, hold, or trigger via hotword.</p>
+        <span class="perm-path">Runtime prompt — tap allow when WiM asks</span>
+      </div>
+    </div>
+    <div class="perm">
+      <div class="perm-mark">04</div>
+      <div class="perm-body">
+        <h5>Battery optimization (exempt)</h5>
+        <p>Android's battery optimization kills background apps to save power. The bubble runs in the background by design; without this exemption, Android will kill it whenever your phone idles.</p>
+        <span class="perm-path">Settings → Battery → Battery usage → WiM → Unrestricted</span>
+      </div>
+    </div>
+    <div class="perm">
+      <div class="perm-mark">05</div>
+      <div class="perm-body">
+        <h5>Notifications</h5>
+        <p>Foreground services must show a low-importance notification. WiM's bubble notification stays in the shade so you can confirm the bubble is alive when it's hidden. No alerts, no sound, no badge.</p>
+        <span class="perm-path">Runtime prompt on Android 13+</span>
+      </div>
+    </div>
+    <div class="perm">
+      <div class="perm-mark">06</div>
+      <div class="perm-body">
+        <h5>Samsung deep-sleep exemption <span style="font-family:var(--mono);font-size:9px;color:var(--copper);letter-spacing:0.16em;">samsung only</span></h5>
+        <p>Samsung adds a second, stricter battery killer on top of Android's. Without this exemption, the bubble dies overnight on Samsung devices.</p>
+        <span class="perm-path">Settings → Battery → Background usage limits → Deep sleeping apps → remove WiM</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== § 13 TROUBLESHOOTING ===== -->
+  <section id="trouble">
+    <div class="sec-rule">
+      <span><b>§ 13</b> / 13</span>
+      <span>Troubleshooting</span>
+    </div>
+    <h2>Troubleshooting</h2>
+    <p class="sec-sub">when something looks wrong</p>
+
+    <div class="card">
+      <div class="card-title">The bubble disappeared</div>
+      <div class="card-sub">most likely a battery-optimization kill</div>
+      <p>Open WiM — the dashboard always re-summons the bubble. If it keeps disappearing on its own, check Settings → Battery → WiM → Unrestricted, and on Samsung devices also the deep-sleep list (§ 12 #06).</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Heard a chirp before recording</div>
+      <div class="card-sub">on-device model not ready</div>
+      <p>The chirp is Android's built-in recognizer, which WiM falls back to while the on-device Whisper-tiny model is still downloading or unpacking. First launch takes ~30 seconds on Wi-Fi to install the model. Once it's ready, recordings start silently.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Text didn't paste — went to clipboard instead</div>
+      <div class="card-sub">no text field was focused</div>
+      <p>The bubble can only paste into the currently focused text field. If you started recording without tapping into a field, or the field disappeared while WiM was processing, the reconstruction goes to the system clipboard with a toast — long-press in any field to paste it manually.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Auto-send doesn't fire in app X</div>
+      <div class="card-sub">app isn't on the supported list yet</div>
+      <p>Auto-send needs to know the app's Send-button structure. Supported list is in § 07. If your app isn't there, the reconstruction still lands in the compose field — you just tap Send yourself. Drop a request and we'll add it.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recording sounds clipped at the start</div>
+      <div class="card-sub">tap-to-record latency vs. press-to-record</div>
+      <p>The bubble starts the mic the moment you tap. If you start speaking immediately, the first 100 ms can clip. Either pause a quarter-second after tap, or use press-and-hold mode — hold first, then speak, release when done. Hold-mode never clips.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">"Hey WiM" never triggers</div>
+      <div class="card-sub">hotword listener competes with the mic</div>
+      <p>If another app is actively using the mic (a call, a recording app, a different voice assistant), Android holds the mic exclusively and WiM's hotword listener can't acquire it. Close the other app or end the call and try again.</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="colophon">Colophon</div>
+    <p style="max-width: 38ch; margin: 0 auto;">
+      Set in <em>Limelight</em> and <em>Plus Jakarta Sans</em>.
+      Display monospace: <em>JetBrains Mono</em>.
+      Vintage instrument-manual aesthetic, warm dark palette,
+      mobile-first composition. No tracking on this page.
+    </p>
+    <div class="signoff">— end of manual —</div>
+    <p style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; color: var(--text-dim); margin: 0;">
+      WIM · WHAT I MEANT · MANUAL NO. 01 · 13.05.2026
+    </p>
+  </footer>
+
+</main>
+
+</body>
+</html>

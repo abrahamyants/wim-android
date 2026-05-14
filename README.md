@@ -3156,3 +3156,97 @@ Full detail in `SESSION_LOG_2026-04-30.md` section 25.
 - **Phone (Samsung `R5CWB08K38H`) unauthorized to adb** throughout session — popup never appeared. adb install path deferred. To recover: Settings → Developer Options → Revoke USB debugging authorizations → unplug + replug + unlock + tap Allow.
 
 Full detail in `SESSION_LOG_2026-05-05.md`.
+
+
+### 2026-05-12 to 2026-05-13 — multi-agent deep audit + 15 fixes + cross-session reconciliation
+
+**Goal**: deep code + design review audit on wim-android under feature freeze. End-to-end testing of all pipelines/layers. Use all recently-installed tools (plugins, mcps, skills). Instruction was ambiguous between wim and lavrentiy — both halves of the operator's first message said "for LAV". This session resolved to wim and the parallel claude session was supposed to take lav but also resolved to wim, so two sessions ended up on the same repo. Reconciled at commit time (zero file overlap on the unique work, byte-equivalent overlap on the common fixes auto-merged clean).
+
+**Audit agents / skills run (this session)**:
+- `audit-project:audit-project` skill — workflow loaded
+- `play-store-readiness` agent — RED gates: privacy policy URL not hosted (markdown only in `play_store/privacy_policy.md` with `[Date]` + `[Support Email]` placeholders), zero screenshot PNGs, no 1024×500 feature graphic
+- `wim-onboarding:onboarding-design-reviewer` agent — surfaced ~13 critical/high/medium findings, but on the DEAD onboarding path (`OnboardingActivity` + `onboarding.html`) not the live `BouncerActivity`. Live path was audited separately afterward
+- `lav-wim-parity-checker` agent — L2/L3/L4/Falcon match; real drift = L1 local model size (lav faster-whisper `base` vs wim sherpa-onnx `tiny.en`)
+- `code-modernization:architecture-critic` agent — C1: `BubbleStateBus` decorative (`reset()`/`forceTo()` bypass validation; 16 callers do unconditional resets via `setBubbleIdle()`); C2: FSM + 6 boolean flags = parallel sources of truth; H1: patent claim 1 "application-context-invariant" contradicted by per-package switches in `WimAccessibilityService.kt:70-79,605-637`; H2: four ASR engines (3 undocumented), LIVE silently swaps to Android `SpeechRecognizer`; H3: `lastWavFile` race; H4: scope unbounded under FGS time caps; H6: BootReceiver mic gap; M1: BubbleService grew 4126→4310 during feature freeze; M2: `isWorkMode`/`tone` ping-pong race
+- `pr-review-toolkit:silent-failure-hunter` agent — TIMED OUT at the 10-min watchdog with a partial result; surfaced the `turboTaxJob` scope bug (`val` declared inside `try` block, catch at `BubbleService.kt:4094` is a sibling scope and literally cannot see it, so the May-10 fix-recommendation of "add `turboTaxJob?.cancel()` in catch" wouldn't have compiled without hoisting first)
+
+**The other parallel claude session ran complementary tools** (architecture critic with different findings emphasis, `backend-architect`, `pr-review-toolkit:comment-analyzer`, `dev-tools:brains-trust` via Gemini 3.1-pro-preview headless) and surfaced findings this session missed: P0 Firestore `daily_count` never resets in `lavrentiy/wim/api/main.py:95-99` (paying users lock out forever after their first daily quota — the two `transaction.update()` calls in `check_rate_limit._txn` were Firestore-SDK-merging such that the reset was silently clobbered by the subsequent `Increment(1)`); P0 no `WakeLock` during L4 reconstruction; P0 Clarifier word-swap offsets misalign (whisper-text offsets applied to GPT-reconstructed text — approving a swap corrupts user input by design); P1 reconstructed text destroyed on focus drop with no clipboard fallback; P1 `ProfileManager` unsynchronized mutations (Firestore listener vs reconstruction read race); P1 `clarifier_sensitivity = "off"` permanently sticky on installs that stored the old default; P1 `MultiPassDecoder` last-wins logprob collision; P1 hallucination filter discards `"ok"`/`"no"`/`"you"`/all 2-char utterances; P2 Anthropic ET extinction on budget exhaustion; nine lying code comments. Consolidated punch list landed at `reports/DEEP_REVIEW_2026-05-12.md`.
+
+**Fixes applied — 15 total across two commits**.
+
+Commit `8afdfc3` (other session, 8 fixes — many byte-equivalent to this session's parallel work, auto-merged clean):
+- privacy URL → wim-android repo (`MainActivity.kt:820`)
+- test JVM `maxHeapSize="4g"` + `forkEvery=50` (`build.gradle.kts`) — addresses the Robolectric cumulative-heap OOM that crashed `testDebugUnitTest` on the first full clean+test+release run
+- try/catch on overlay + accessibility `startActivity` (`BouncerActivity.kt:48-55`)
+- demo copy `"Stutter your words"` → `"Trip on your words"` (`BubbleDemoScript.kt:270`)
+- BootReceiver logs mic permission state on boot (`BootReceiver.kt:17-36`)
+- `@Volatile` on `lastWavFile` (`BubbleService.kt:53`) — H3 defensive minimum, fuller race fix still pending
+- bezel tap stamps `manual_tone_set_ms` (`BubbleService.kt:1057-1066`)
+- `autoSwitchTone` respects 30s `manual_tone_set_ms` lockout (`WimAccessibilityService.kt:135-151`) — M2 ping-pong fix
+- `turboTaxJob` hoisted before `try` + cancel in catch (`BubbleService.kt:3775-3787, 4094`) — closes architecture-critic's CRITICAL #4 with a hoist rather than a Flow rewrite (different mechanism, same bleeding-bug solved)
+
+Commit `f37bd4d` (this session, 7 additional non-overlapping fixes):
+- `clarifier_sensitivity = "off"` one-time forward-migration shim in `WimApp.onCreate` — old installs that stored `"off"` as the default (from before `"medium"` became the default) had their clarifier permanently disabled; migration flips them to `"medium"` once and stamps a `clarifier_sensitivity_migrated` flag
+- `PARTIAL_WAKE_LOCK` around the L4 reconstruction coroutine in `BubbleService.kt` — acquire before `try` with a 120s timeout (Sonnet ET is 60-70s, pad for clarifier), release in a new `finally` after the catch. Screen-off mid-call no longer suspends the CPU during the L4 round-trip
+- clipboard fallback in `WimAccessibilityService.kt:215-235` for the focus-drop branch — when the focused text field disappears mid-inject, reconstruction text now goes to the system clipboard with a "Tap a text field — your text is on the clipboard" toast (was silently destroyed before)
+- stale `lavrentiy.py:3369` → `:3420` citation in `ReconstructClient.kt:677,682` — the Falcon-retired stub moved
+- 9 lying code comments refreshed: `WimApp.kt:48-58` (anthropic key is for L4 Sonnet, not retired Falcon); `:60-66` (default layer routes through `WhisperLocalEngine`, not the retired engine); `:73-81` (legacy `useMoonshine` pref is now dead — kept for migration safety); `:85-90` (no bubble-menu L1 SRC toggle exists; pref is set programmatically); `:144-150` (retired Gemma local L2/L3 — kept for migration safety); `ReconstructClient.kt:655-666` (Falcon KDoc now reflects the retirement); `MultiPassDecoder.kt:21-25` (called at L2+ per Session 18 #107, was L4-only); `Clarifier.kt:16-21` (production-active at L2+, was "phase 2 stub"); `BubbleService.kt:260-264` (`enterClarifierCycle` is production-active, no longer "invoked by tests only")
+- CLAUDE.md drift fixed: BubbleService line count `~4126` → `~4300`; line 61 corrected to reflect that the cloud function DOES consume `language_code` server-side (verified at `lavrentiy/wim/api/main.py:241`) rather than the stale "doesn't yet consume" claim
+
+**Build verification**:
+- `assembleDebug` BUILD SUCCESSFUL twice (3m 01s, then 1m 23s incremental); debug APK ~198.7 MB at `app/build/outputs/apk/debug/app-debug.apk`
+- `assembleRelease` BUILD SUCCESSFUL twice (4m 21s, then 5m 57s incremental); release APK 199,923,879 bytes (~190.7 MB) at `app/build/outputs/apk/release/app-release.apk` — R8 sherpa-onnx duplicate-class fix verified holds with all 15 edits, `:app:checkReleaseDuplicateClasses` passed
+- AAB (`bundleRelease`) **NOT** yet built — separate task for play store submission
+- Phase 2 device-side e2e via `WimTestReceiver` broadcasts BLOCKED — Z Flip 7 not on USB during the session
+
+**Pipeline confirmation** (operator asked for a layer-by-layer breakdown to cross-check the audit's mental model — verified live in source):
+
+| Layer | ASR | API endpoint | reconstruction | where it runs |
+|-------|-----|--------------|---------------|---------------|
+| **L1 local** (default) | `whisper-tiny.en` via sherpa-onnx | none — on phone | DisfluencyFilter + corrections + Repunctuate (no AI) | all on phone, offline |
+| **L1 cloud** (if `l1_cloud_asr` toggled) | `whisper-1` | `https://api.openai.com/v1/audio/transcriptions` | DisfluencyFilter + corrections + Repunctuate (no AI) | phone → openai for ASR, cleanup back on phone |
+| **L2** | `gpt-4o-transcribe` | same openai endpoint | GPT-4o (generic cleanup) | phone → `wim-reconstruct` Cloud Function on bakers-agent → openai |
+| **L3** | `gpt-4o-transcribe` | same openai endpoint | GPT-4o + personal vocabulary/profile in prompt | same — Cloud Function on bakers-agent |
+| **L4** | `whisper-1`, 3 parallel passes (MultiPassDecoder) for confidence | same openai endpoint | Claude Sonnet 4.6 with 8k extended thinking | phone → openai for whisper, then **phone → anthropic directly** for sonnet (no Cloud Function — server has zero anthropic codepath) |
+
+Source: `BubbleService.kt:343-345, 1831-1833` (model picker), `WhisperClient.kt:161` (openai endpoint), `ReconstructClient.kt:591` (gpt-4o), `:702` (claude-sonnet-4-6).
+
+**Lav-wim pipeline parity (after this audit)**:
+- L1 local model: lav `faster-whisper base` vs wim `sherpa-onnx tiny.en` — mobile-size tradeoff, intentional
+- L1 default: lav `L1_CLOUD_ASR=True` (cloud on) vs wim `l1_cloud_asr=false` (local on) — drift, not coherent; one direction wins, decision pending
+- L2/L3 ASR: lav uses local faster-whisper with cloud `whisper-1` fallback vs wim uses cloud `gpt-4o-transcribe` always — drift, not coherent
+- L4 ASR: both use `whisper-1` with `verbose_json` — match
+- L4 reconstruction: both use `claude-sonnet-4-6` with extended thinking — match; lav has gpt-4o fallback if no anthropic key, wim doesn't
+- L4 MultiPassDecoder (3-temp whisper confidence): **wim only** — not implemented on lav
+- Falcon: retired stubs on both sides, byte-equivalent
+
+**Still open after this session**:
+- Operator decisions waiting: L4 path architecture (device-direct vs server-mediated via Secret Manager); `versionName` 0.2.0 → 1.0.0 bump; `OnboardingActivity` + `onboarding.html` deletion (confirmed dead); dormant L1 engine file deletion; lang_pack JSON deletion (10 dormant files in `assets/lang_packs/`); `BubbleStateBus` authority — commit (force every path through `advance()`, delete `reset()`/`forceTo()`) or delete the FSM and admit the booleans are truth; patent claim 1 scope narrowing
+- Auto-resolved through the other session: Mr. DNA persona DROPPED (no asset exists in `res/raw/` or anywhere), Plus Jakarta Sans body font BLESSED via `onboarding-plugin/brand.local.md` update
+- Pending fixes (other session's punch list, not yet implemented anywhere): Clarifier pre-inject reorder (P0 #3); `RecordingSession` / `BubbleUiController` / `BubbleTouchController` extracts (M1 architecture refactor — single highest-leverage change per architecture-critic); `ProfileManager` synchronization (`CopyOnWriteArrayList`/`ConcurrentHashMap`); hallucination filter `"ok"`/`"no"`/`"you"` whitelist; `MultiPassDecoder` last-wins → worst-wins (`groupBy + min`); concurrent-recording stale-text overwrite; multiple P1 resource-leak items (Bluetooth SCO + AudioPlaybackCallback unregister, OkHttpClient per-command-transform thread-pool accumulation); force-refresh ID token before long L4 call; `forceTo()` deletion
+- Play Store hard RED gates unchanged: privacy URL not hosted, zero screenshot PNGs, no 1024×500 feature graphic
+- Backend (`lavrentiy/wim/api/`) hardening pending: `openai.OpenAI(timeout=20.0, max_retries=2)`; wrap `reconstruct_intent` in structured try/except; pin `gpt-4o-2024-11-20`; structured logging with `uid`/`layer`/`latency_ms`/`model`; token cap bump 1000 → 4000 for L4 outputs
+
+#### Wrong calls / corrections (2026-05-12 to 2026-05-13)
+
+- **Initial instruction ambiguity not surfaced as a blocking question.** First message said `"audit ... all the layers for LAV. I already have another claude session doing the same for LAV."` Both halves named LAV. Parsed as "this = wim, other = lav" and asked a soft confirmation `"WiM here, LAV in the other window — yes?"`. Operator didn't correct, so proceeded on wim — meanwhile the other session ALSO interpreted itself as wim, and both ended up on the same repo. Rule reinforced: when an instruction is genuinely ambiguous and resolution affects hours of work, BLOCK on a single hard clarifying question instead of assuming + asking a soft confirmation that the operator will skim past.
+
+- **Kept mentioning "Moonshine" in decision lists after operator had killed that engine months ago.** Codebase has dormant `MoonshineEngine.kt` + `MoonshineModelDownloader.kt` on disk (instantiated at `BubbleService.kt:421`, `.start()` never called anywhere), so technically accurate to call it dormant code. Surfacing the name in conversation resurrects a dead-engine mental model the operator had decisively closed. Memory rule saved at `feedback_no_moonshine_mention.md`. Active L1 stack is whisper only — local `tiny.en` + cloud `whisper-1`. Audit reports use the name (technical accuracy); conversation does not (operator preference).
+
+- **Wrote the Moonshine memory rule before grepping the source to verify.** Operator caught it: `"hat fucking rule - check the code"`. The rule turned out to be substantively correct after the grep (`moonshineEngine.start()` call count: 0 in local working tree, 0 on `origin/main`), but the writing-without-verifying pattern is the failure mode — read code before encoding rules.
+
+- **Trusted exit 0 on a piped gradle command.** First build invocation was `gradlew.bat clean testDebugUnitTest assembleRelease 2>&1 | tail -400`. The trailing `tail` returned exit 0 even though gradle itself returned 1 (`testDebugUnitTest FAILED` with `java.lang.OutOfMemoryError` in multiple `OkHttp TaskRunner` threads, release APK never built that round). Reported "build completed exit 0" to the operator; later verification by tailing the actual output file surfaced the failure. Fix: capture gradle's exit explicitly with `; echo "GRADLE_EXIT=$?"` (no pipe) instead of relying on the pipe's last-process exit. Generalizes the CLAUDE.md `"never trust gradlew.bat exit code alone"` rule — never trust ANY aggregate pipe exit code, capture each stage.
+
+- **First `assembleDebug` ran before half my edits had applied.** Edit calls and the background Bash were issued in the same message; the build kicked off mid-edit. Result: the build verified a partial fix set (8 of 9 fixes), and I had to re-run after the `turboTaxJob` hoist (edits 9-11) landed. Reusable: order all Edits first, build last, in the same message.
+
+- **Edited the wrong `CLAUDE.md`.** Sent two edits to `C:/Users/georg/.claude/CLAUDE.md` (the global user-level instructions) when the audit findings actually pointed to the project-level `C:/Users/georg/Documents/GitHub/wim-android/CLAUDE.md`. Both edits failed with `String to replace not found in file`; recovered by retargeting to the project path.
+
+- **First L4 Cloud Function health curl timed out at 15s** and was read as "down or unreachable." Actually a cold-start on the Python function (Sonnet + Whisper imports are heavy on first boot). Second curl with 60s timeout returned `HTTP 405 "POST required"` in 0.9s and `HTTP 401 "Missing Authorization header"` in 2.0s — the production money path was fine all along. Reusable: cloud-function health check on a known-cold endpoint needs a >30s timeout on the first hit.
+
+- **`silent-failure-hunter` agent stalled at the 10-min watchdog** with a partial result. Got the `turboTaxJob` scope finding through; didn't get the broader silent-failure landscape. The May-10 `silent_failures_2026-05-10b.md` raw report (561 lines) carried the broader baseline so the loss was contained. Pattern: for agents at risk of long stalls, fire them early so their timeout doesn't block the synthesis pass.
+
+- **Onboarding audit wasted on the dead path.** The `wim-onboarding:onboarding-design-reviewer` agent audited `OnboardingActivity` + `onboarding.html` extensively (13 findings: critical/high/medium). All of those findings apply to dead code — `MainActivity.kt:96` routes to `BouncerActivity`, not `OnboardingActivity`, and only `OnboardingActivity` references itself (zero external callers). Live onboarding `BouncerActivity` + `activity_bouncer.xml` (1306 lines) got a separate manual audit later (much cleaner — fonts/colors/terminology/Samsung sleep card all correct; only Mr. DNA persona + 2 missing try/catches remained, and the operator subsequently dropped Mr. DNA). Reusable: confirm the live entry point before dispatching a deep-audit agent at a code path.
+
+- **Two parallel claude sessions made byte-equivalent edits to the same files independently.** Both sessions independently arrived at the same fix patterns for the same 8 P0/P1s (privacy URL, test heap, intent guards, demo copy, mic boot log, `@Volatile`, `manual_tone_set_ms` stamp, `turboTaxJob` hoist+cancel). Net effect: zero conflict at commit time (git merged the identical content cleanly), wasted effort ≈ 50% of this session's editing. The duplicate-work pattern from Session 16 (April 27) recurred — `git log -10` BEFORE feature work, not after. In retrospect, the right cross-session protocol is: at startup, when the `session-start-concurrent-detector` flags another session in the same repo, BLOCK and exchange "which files are you about to touch" before either side starts editing.
+
+Full detail in this section (operator wanted a single consolidated README, no separate `SESSION_LOG_2026-05-13.md` written).

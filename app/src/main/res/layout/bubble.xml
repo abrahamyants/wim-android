@@ -168,7 +168,7 @@
                     android:layout_height="wrap_content"
                     android:text="IDLE"
                     android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
+                    android:textSize="13sp"
                     android:fontFamily="@font/plus_jakarta_sans"
                     android:letterSpacing="0.05"
                     android:textStyle="bold"

@@ -1658,6 +1658,49 @@ class MainActivity : AppCompatActivity() {
         val bodyColor = getColor(R.color.text_primary)
         val dimColor = getColor(R.color.text_dim)
 
+        // Launcher card: opens the illustrated full-screen manual.
+        // Lives at the top of the inline accordion so the premium HTML
+        // is the first thing the user sees when they expand Guide.
+        val manualLauncher = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.card_bg)
+            setPadding(
+                (16 * dp).toInt(), (16 * dp).toInt(),
+                (16 * dp).toInt(), (16 * dp).toInt(),
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = (4 * dp).toInt()
+                bottomMargin = (10 * dp).toInt()
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, GuideActivity::class.java))
+            }
+            addView(TextView(this@MainActivity).apply {
+                text = "READ THE FULL MANUAL"
+                setTextColor(creamColor)
+                try {
+                    typeface = Typeface.createFromAsset(assets, "limelight.ttf")
+                } catch (_: Exception) { /* fall back to default if asset missing */ }
+                textSize = 18f
+                letterSpacing = 0.08f
+                gravity = android.view.Gravity.CENTER
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "13 CHAPTERS  ·  ILLUSTRATED  ·  FULL SCREEN"
+                setTextColor(dimColor)
+                textSize = 10f
+                letterSpacing = 0.22f
+                gravity = android.view.Gravity.CENTER
+                setPadding(0, (8 * dp).toInt(), 0, 0)
+            })
+        }
+        container.addView(manualLauncher)
+
         // Section data: (title, subtitle, html body, visualBuilder?). The
         // visualBuilder is invoked when the section expands; it returns a
         // View to drop above the body text. null = text-only card.
