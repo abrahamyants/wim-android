@@ -96,12 +96,21 @@ object ReconstructClient {
             StyleExamples.pendingPair = null
         }
 
-        // If signed in, use backend proxy (server holds API key)
+        // Routing:
+        //   signed-in + L2/L3              → backend (server holds OpenAI key)
+        //   signed-in + L4 w/ Anthropic    → device-direct (Sonnet ET — backend
+        //                                    has no Anthropic codepath, would
+        //                                    silently degrade to GPT-4o)
+        //   not signed in                   → device-direct (uses bundled keys)
         val idToken = AuthManager.getIdToken()
-        val result = if (idToken != null) {
+        val anthropicKey = WimApp.anthropicApiKey()
+        val forceDirectForL4Sonnet = layer >= 4 && anthropicKey.isNotBlank()
+        val result = if (idToken != null && !forceDirectForL4Sonnet) {
             reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
         } else {
-            // Fallback: direct OpenAI call (dev mode, requires local API key)
+            // Device-direct: bundled or user-supplied OpenAI key for L2/L3, plus
+            // bundled or user-supplied Anthropic key for L4 Sonnet ET. Falls
+            // back to GPT-4o at L4 when the Anthropic key is blank.
             reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
         }
 
