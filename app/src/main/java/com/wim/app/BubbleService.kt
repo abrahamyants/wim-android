@@ -99,7 +99,6 @@ class BubbleService : Service() {
         }
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
-    private var moonshineEngine: MoonshineEngine? = null
     private var whisperLocalEngine: WhisperLocalEngine? = null
     private var bubblePersona: BubblePersona? = null
     private var bubbleAffect: BubbleAffect? = null
@@ -402,7 +401,6 @@ class BubbleService : Service() {
         audioManager?.registerAudioPlaybackCallback(apCb, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
-        moonshineEngine = MoonshineEngine(this)
         whisperLocalEngine = WhisperLocalEngine(this)
         sessionHistory = SessionHistory(this)
         // FSM observer — Phase 1 routes pipeline-stage labels through it.
@@ -1776,7 +1774,6 @@ class BubbleService : Service() {
             isRecording = false
             audioRecorder?.stop(); audioRecorder = null
             onDeviceRecognizer?.stop()
-            moonshineEngine?.stop()
             whisperLocalEngine?.stop()
             dafPlayer?.stop(); dafPlayer = null
             setBubbleIdle()
@@ -1807,7 +1804,6 @@ class BubbleService : Service() {
 
         // Stop whichever engine was running this session; cheap defensive calls on all.
         onDeviceRecognizer?.stop()
-        moonshineEngine?.stop()
         whisperLocalEngine?.stop()
 
         // Force the bar to appear during pipeline work so the user sees what's
@@ -4349,7 +4345,6 @@ class BubbleService : Service() {
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
-        moonshineEngine?.destroy()
         whisperLocalEngine?.destroy()
         bubblePersona?.unbind()
         bubblePersona = null

@@ -51,6 +51,25 @@ class MultiPassDecoderTest {
 
     private val dummyFile = File("dummy.wav")
 
+    /** Recognizer that returns text + a fixed list of low-confidence segments. */
+    private fun recognizerWithLowConf(
+        text: String,
+        lowConfSegments: List<WhisperClient.LowConfidenceSegment>,
+    ): SpeechRecognizerL1 = object : SpeechRecognizerL1 {
+        override suspend fun transcribe(
+            audioFile: File,
+            requestWordTimings: Boolean,
+            temperature: Double,
+        ): TranscribeResult = TranscribeResult(
+            text = text,
+            asrMs = 10,
+            lowConfidenceSegments = lowConfSegments,
+        )
+        override val supportsWordTimings = false
+        override val supportsLogprobs = true
+        override val isLocal = false
+    }
+
     // ── All-agreement fast path ─────────────────────────
 
     @Test fun allAgreement_emptyDisagreementSummary() = runBlocking {
@@ -277,5 +296,58 @@ class MultiPassDecoderTest {
         // Single pass → not enough for comparison → emptyList per early-return branch
         assertTrue(result.wordConfidences.isEmpty())
         assertTrue(result.disagreementSummary.isEmpty())
+    }
+
+    // ── Low-confidence-segment logprob mapping ──────────
+    //
+    // Regression for the 2026-05-16 "last-wins" bug: when the same word
+    // (e.g. a disfluency-driven repeat) appeared in multiple low-confidence
+    // segments, .toMap() silently kept only the LATER segment's avg_logprob,
+    // masking the stronger pessimistic signal. The fix switched to a
+    // groupBy+min so worst-confidence wins. Tested via WordConfidence.asrLogprob.
+
+    @Test fun lowConf_singleSegmentLogprob_attachedToMatchingWord() = runBlocking {
+        val seg = WhisperClient.LowConfidenceSegment(
+            text = "computer", avgLogprob = -1.5, noSpeechProb = 0.1, blockSuspect = false,
+        )
+        val decoder = MultiPassDecoder(recognizerWithLowConf("the computer file", listOf(seg)))
+        val result = decoder.run(dummyFile)
+        val computer = result.wordConfidences.first { it.word == "computer" }
+        assertEquals(-1.5, computer.asrLogprob!!, 0.001)
+    }
+
+    @Test fun lowConf_repeatedWord_worstLogprobWins() = runBlocking {
+        // Same token "computer" appears in two low-conf segments. The fix
+        // requires the MORE pessimistic (-2.0) logprob to win over -0.5.
+        // Pre-fix, .toMap() last-wins meant whichever segment iterated last
+        // (here -0.5) clobbered the worse signal.
+        val seg1 = WhisperClient.LowConfidenceSegment(
+            text = "the computer", avgLogprob = -2.0, noSpeechProb = 0.05, blockSuspect = false,
+        )
+        val seg2 = WhisperClient.LowConfidenceSegment(
+            text = "computer file", avgLogprob = -0.5, noSpeechProb = 0.05, blockSuspect = false,
+        )
+        val decoder = MultiPassDecoder(recognizerWithLowConf("the computer file", listOf(seg1, seg2)))
+        val result = decoder.run(dummyFile)
+        val computer = result.wordConfidences.first { it.word == "computer" }
+        assertEquals(
+            "Repeated word's logprob must be the WORST (lowest) of its low-conf occurrences",
+            -2.0, computer.asrLogprob!!, 0.001,
+        )
+    }
+
+    @Test fun lowConf_orderInverted_stillWorstWins() = runBlocking {
+        // Same as above but segments swapped — proves order doesn't matter
+        // and the bug isn't latent in a different .toMap() iteration order.
+        val segGood = WhisperClient.LowConfidenceSegment(
+            text = "the computer", avgLogprob = -0.5, noSpeechProb = 0.05, blockSuspect = false,
+        )
+        val segBad = WhisperClient.LowConfidenceSegment(
+            text = "computer file", avgLogprob = -2.0, noSpeechProb = 0.05, blockSuspect = false,
+        )
+        val decoder = MultiPassDecoder(recognizerWithLowConf("the computer file", listOf(segGood, segBad)))
+        val result = decoder.run(dummyFile)
+        val computer = result.wordConfidences.first { it.word == "computer" }
+        assertEquals(-2.0, computer.asrLogprob!!, 0.001)
     }
 }

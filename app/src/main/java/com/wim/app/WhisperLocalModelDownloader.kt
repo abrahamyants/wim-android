@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit
  * sherpa-onnx asr-models GitHub release. Decompressed payload is ~40 MB:
  * tiny.en-encoder.int8.onnx + tiny.en-decoder.int8.onnx + tiny.en-tokens.txt.
  *
- * Mirrors [MoonshineModelDownloader] (download → extract → verify); unpacks
- * tar.bz2 via Apache Commons Compress because java.util.zip lacks bzip2.
+ * Download → extract → verify pipeline; unpacks tar.bz2 via Apache Commons
+ * Compress because java.util.zip lacks bzip2.
  * Files unpack to:
  *
  *   filesDir/whisper-models/sherpa-onnx-whisper-tiny.en/

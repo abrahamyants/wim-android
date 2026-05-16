@@ -71,14 +71,6 @@ class WimApp : Application() {
         fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 100)
         fun bubbleSize(): Int = prefs.getInt("bubble_size", 95)
         fun bubbleTheme(): String = prefs.getString("bubble_theme", "bronze") ?: "bronze"
-        /**
-         * Legacy preference — Moonshine was retired Apr 30 in favor of
-         * WhisperLocalEngine (sherpa-onnx + whisper-tiny.en, ~40 MB). The
-         * L1 path in BubbleService no longer consults this pref. Kept for
-         * migration safety; safe to remove once MoonshineEngine +
-         * MoonshineModelDownloader are deleted from the source tree.
-         */
-        fun useMoonshine(): Boolean = prefs.getBoolean("use_moonshine", true)
 
         /**
          * L1 ASR source toggle. FALSE = local whisper-tiny.en (default,
@@ -141,15 +133,6 @@ class WimApp : Application() {
          * true — surfaces value early; user can disable in MainActivity.
          */
         fun predictionsEnabled(): Boolean = prefs.getBoolean("predictions_enabled", true)
-
-        /**
-         * Legacy preference — Gemma local L2/L3 reconstruction was retired
-         * Apr 24 in favor of cloud GPT-4o for all reconstruction layers.
-         * The pipeline no longer consults this pref. Kept for migration
-         * safety; safe to remove once GemmaEngine + GemmaModelDownloader
-         * are deleted from the source tree.
-         */
-        fun useGemmaLocal(): Boolean = prefs.getBoolean("use_gemma_local", true)
 
         /**
          * Auto-send lets the bubble click the app's Send button after a
@@ -232,9 +215,9 @@ class WimApp : Application() {
         // through to Android SpeechRecognizer (the chirpy fallback). Only
         // fires when l1_cloud_asr=false (local mode); cloud users skip the
         // download entirely.
-        // Moonshine's prior auto-download was retired here; MoonshineEngine.kt
-        // and MoonshineModelDownloader.kt remain on disk pending Whisper-tiny
-        // verification on real voice (delete in a follow-up commit).
+        // Moonshine was retired Apr 30 (WhisperLocalEngine is the active L1
+        // local engine); MoonshineEngine.kt + MoonshineModelDownloader.kt
+        // deleted 2026-05-16. This auto-download covers whisper-tiny.en only.
         if (!l1CloudAsr() && !WhisperLocalModelDownloader.isInstalled(this)) {
             val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
             mainHandler.post {
@@ -262,10 +245,6 @@ class WimApp : Application() {
                 }
             }
         }
-        // Gemma local reconstruction was retired April 24, 2026 — L2/L3 go
-        // straight to cloud GPT-4o now. GemmaEngine + downloader files remain
-        // dormant in case we ever revive a local-LLM path; nothing references
-        // them at runtime.
         // Restore user's dark mode preference, default to system
         val nightMode = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         AppCompatDelegate.setDefaultNightMode(nightMode)

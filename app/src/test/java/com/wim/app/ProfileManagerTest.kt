@@ -175,4 +175,65 @@ class ProfileManagerTest {
         // Actually empty arrays = empty, only resetToDefaults gives fillers
         assertNotNull(loaded.getFillerWords())
     }
+
+    // ── Concurrent-collection race regression ──────────
+    //
+    // Before 2026-05-16 the profile's vocabulary / corrections / filler_words
+    // were plain MutableList/MutableMap, mutated by the Firestore sync listener
+    // on its own thread while the reconstruction path called getVocabulary() /
+    // getCorrections() / getFillerWords() on another. The .toList() / .toMap()
+    // snapshots could ConcurrentModificationException mid-merge under load.
+    //
+    // Swapping to CopyOnWriteArrayList + ConcurrentHashMap makes those reads
+    // always-safe. This test hammers the writers and readers in parallel for
+    // a fixed budget; any CME or other exception fails the test.
+
+    @Test fun concurrent_readsAndWrites_neverThrow() {
+        val errors = mutableListOf<Throwable>()
+        val errorsLock = Any()
+        val deadline = System.currentTimeMillis() + 1500L
+
+        val writers = (1..3).map { tid ->
+            Thread {
+                var i = 0
+                while (System.currentTimeMillis() < deadline) {
+                    try {
+                        profile.addVocabulary("v_${tid}_$i")
+                        profile.addCorrection("k_${tid}_$i", "v_${tid}_$i")
+                        i++
+                    } catch (t: Throwable) {
+                        synchronized(errorsLock) { errors.add(t) }
+                        break
+                    }
+                }
+            }
+        }
+
+        val readers = (1..5).map {
+            Thread {
+                while (System.currentTimeMillis() < deadline) {
+                    try {
+                        // .toList() / .toMap() are the snapshot reads the
+                        // reconstruction path performs every call.
+                        profile.getVocabulary().toList()
+                        profile.getCorrections().toMap()
+                        profile.getFillerWords().toList()
+                        profile.getTriggerWords()
+                        profile.getOnsetWeights()
+                    } catch (t: Throwable) {
+                        synchronized(errorsLock) { errors.add(t) }
+                        break
+                    }
+                }
+            }
+        }
+
+        (writers + readers).forEach { it.start() }
+        (writers + readers).forEach { it.join(5000L) }
+
+        assertTrue(
+            "Concurrent profile reads/writes raised: ${errors.firstOrNull()}",
+            errors.isEmpty(),
+        )
+    }
 }

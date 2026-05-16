@@ -20,9 +20,10 @@ import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
  * partials. Output is lowercase / lightly punctuated; [Repunctuate] adds
  * deterministic capitalization + terminal punctuation downstream.
  *
- * Mirrors [MoonshineEngine] structure 1:1 — same listener interface, same
- * AudioRecord wiring, same lazy recognizer init. The two engines stay
- * swappable via the bubble-menu L1 SRC toggle.
+ * Originally built to mirror MoonshineEngine 1:1; Moonshine was retired
+ * Apr 30 and this is now the sole local L1 engine. The cloud option
+ * ([WhisperClient] hitting whisper-1 / gpt-4o-transcribe) sits behind the
+ * `l1_cloud_asr` pref.
  *
  * Model files installed by [WhisperLocalModelDownloader].
  */
