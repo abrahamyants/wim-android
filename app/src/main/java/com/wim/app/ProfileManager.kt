@@ -5,6 +5,8 @@ import android.util.Log
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -41,18 +43,24 @@ class ProfileManager(private val prefs: SharedPreferences) {
         )
     }
 
-    private var vocabulary: MutableList<String> = mutableListOf()
-    private var corrections: MutableMap<String, String> = mutableMapOf()
-    private var fillerWords: MutableList<String> = mutableListOf()
+    // Concurrent collections — the Firestore sync listener (background thread)
+    // mutates these via mergeRemoteProfile() while reconstruction reads them
+    // via getVocabulary()/getCorrections()/getFillerWords() on the bubble's
+    // launch scope. With plain MutableList/MutableMap the .toList()/.toMap()
+    // snapshot reads can throw ConcurrentModificationException mid-merge.
+    // CopyOnWriteArrayList + ConcurrentHashMap make those reads always-safe.
+    private val vocabulary: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
+    private val corrections: ConcurrentHashMap<String, String> = ConcurrentHashMap()
+    private val fillerWords: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
 
     /** Tracks how many times reconstruction changed a given word, for auto-learning. */
-    private var correctionCounts: MutableMap<String, Int> = mutableMapOf()
+    private val correctionCounts: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
 
     /** Tracks session number when correction was last used (for decay). */
-    private var correctionLastUsed: MutableMap<String, Int> = mutableMapOf()
+    private val correctionLastUsed: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
 
     /** Rolling history of words-per-second per session; RateGapDetector uses the median. */
-    private var wpsHistory: MutableList<Double> = mutableListOf()
+    private val wpsHistory: CopyOnWriteArrayList<Double> = CopyOnWriteArrayList()
     private val WPS_HISTORY_SIZE = 30
 
     init {
@@ -65,35 +73,29 @@ class ProfileManager(private val prefs: SharedPreferences) {
             try {
                 val obj = JSONObject(json)
 
-                vocabulary = mutableListOf<String>().also { list ->
-                    val arr = obj.optJSONArray("vocabulary") ?: JSONArray()
-                    for (i in 0 until arr.length()) list.add(arr.getString(i))
-                }
+                vocabulary.clear()
+                val vocabArr = obj.optJSONArray("vocabulary") ?: JSONArray()
+                for (i in 0 until vocabArr.length()) vocabulary.add(vocabArr.getString(i))
 
-                corrections = mutableMapOf<String, String>().also { map ->
-                    val corr = obj.optJSONObject("corrections") ?: JSONObject()
-                    corr.keys().forEach { key -> map[key] = corr.getString(key) }
-                }
+                corrections.clear()
+                val corr = obj.optJSONObject("corrections") ?: JSONObject()
+                corr.keys().forEach { key -> corrections[key] = corr.getString(key) }
 
-                fillerWords = mutableListOf<String>().also { list ->
-                    val arr = obj.optJSONArray("filler_words") ?: JSONArray()
-                    for (i in 0 until arr.length()) list.add(arr.getString(i))
-                }
+                fillerWords.clear()
+                val fillerArr = obj.optJSONArray("filler_words") ?: JSONArray()
+                for (i in 0 until fillerArr.length()) fillerWords.add(fillerArr.getString(i))
 
-                correctionCounts = mutableMapOf<String, Int>().also { map ->
-                    val counts = obj.optJSONObject("correction_counts") ?: JSONObject()
-                    counts.keys().forEach { key -> map[key] = counts.getInt(key) }
-                }
+                correctionCounts.clear()
+                val counts = obj.optJSONObject("correction_counts") ?: JSONObject()
+                counts.keys().forEach { key -> correctionCounts[key] = counts.getInt(key) }
 
-                correctionLastUsed = mutableMapOf<String, Int>().also { map ->
-                    val lastUsed = obj.optJSONObject("correction_last_used") ?: JSONObject()
-                    lastUsed.keys().forEach { key -> map[key] = lastUsed.getInt(key) }
-                }
+                correctionLastUsed.clear()
+                val lastUsed = obj.optJSONObject("correction_last_used") ?: JSONObject()
+                lastUsed.keys().forEach { key -> correctionLastUsed[key] = lastUsed.getInt(key) }
 
-                wpsHistory = mutableListOf<Double>().also { list ->
-                    val arr = obj.optJSONArray("wps_history") ?: JSONArray()
-                    for (i in 0 until arr.length()) list.add(arr.getDouble(i))
-                }
+                wpsHistory.clear()
+                val wpsArr = obj.optJSONArray("wps_history") ?: JSONArray()
+                for (i in 0 until wpsArr.length()) wpsHistory.add(wpsArr.getDouble(i))
 
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers, ${wpsHistory.size} wps samples")
             } catch (e: Exception) {
@@ -268,7 +270,7 @@ class ProfileManager(private val prefs: SharedPreferences) {
         val cleanPositions = cleanWords.mapIndexed { i, w -> w to i }
 
         for ((rawIdx, raw) in rawWords.withIndex()) {
-            if (raw !in cleanWords && raw.length >= 3 && raw !in corrections) {
+            if (raw !in cleanWords && raw.length >= 3 && !corrections.containsKey(raw)) {
                 val count = (correctionCounts[raw] ?: 0) + 1
                 correctionCounts[raw] = count
 
@@ -351,7 +353,8 @@ class ProfileManager(private val prefs: SharedPreferences) {
                 val remote = (raw as? List<String>)?.toSet() ?: emptySet()
                 val local = vocabulary.toSet()
                 val merged = (local + remote).toList()
-                vocabulary = merged.toMutableList()
+                vocabulary.clear()
+                vocabulary.addAll(merged)
                 obj.put("vocabulary", JSONArray(merged))
             }
 
@@ -367,7 +370,8 @@ class ProfileManager(private val prefs: SharedPreferences) {
                 val remote = (raw as? List<String>)?.toSet() ?: emptySet()
                 val local = fillerWords.toSet()
                 val merged = (local + remote).toList()
-                fillerWords = merged.toMutableList()
+                fillerWords.clear()
+                fillerWords.addAll(merged)
                 obj.put("filler_words", JSONArray(merged))
             }
 
@@ -418,9 +422,10 @@ class ProfileManager(private val prefs: SharedPreferences) {
     fun wasL1DetectPrompted(): Boolean = prefs.getBoolean("l1_detect_prompted", false)
 
     private fun resetToDefaults() {
-        vocabulary = mutableListOf()
-        corrections = mutableMapOf()
-        fillerWords = DEFAULT_FILLERS.toMutableList()
+        vocabulary.clear()
+        corrections.clear()
+        fillerWords.clear()
+        fillerWords.addAll(DEFAULT_FILLERS)
         saveProfile()
     }
 }

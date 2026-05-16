@@ -3792,9 +3792,16 @@ class BubbleService : Service() {
                 }
                 showPipelineStage("\u29BB Reconstructing intent...", "$tone tone \u00B7 L$layer $layerLabel")
 
-                // TurboTax engagement: animated stage messages for L4 (long processing)
+                // TurboTax engagement: animated stage messages for L4 (long processing).
+                // `launch { ... }` (no `scope.` prefix) uses the recon-job's coroutine
+                // context, so the turbo loop becomes a CHILD of currentReconJob. When
+                // the parent is cancelled — including via every error path, not just
+                // the catch blocks we remembered to wire up — the child cancels
+                // automatically. Was `scope.launch` (sibling to recon job, lifetime
+                // tied to the BubbleService scope) which needed manual `.cancel()`
+                // calls in every exit branch.
                 turboTaxJob = if (layer >= 4) {
-                    scope.launch {
+                    launch {
                         val stages = listOf(
                             "\u29BB Analyzing speech patterns..." to "Mapping phoneme difficulty",
                             "\u29BB Detecting disfluencies..." to "Blocks, prolongations, repetitions",
