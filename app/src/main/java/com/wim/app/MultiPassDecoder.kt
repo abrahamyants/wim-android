@@ -127,6 +127,10 @@ class MultiPassDecoder(
 
         // Map alphanumeric-only word tokens from low-confidence segments to their
         // avg_logprob. Words appearing in confident segments get null (unknown = no signal).
+        // WORST-wins: when the same word appears in multiple low-conf segments (the
+        // disfluency target case — repeated words), keep the LOWEST avg_logprob so the
+        // clarifier sees the most-pessimistic confidence signal. `.toMap()` was
+        // last-wins, which silently masked the strongest hint that a word needed a swap.
         val lowConfLogprobs: Map<String, Double> = primary.lowConfidenceSegments
             .flatMap { seg ->
                 seg.text.lowercase()
@@ -134,7 +138,8 @@ class MultiPassDecoder(
                     .filter { it.any(Char::isLetterOrDigit) }
                     .map { tok -> tok.filter(Char::isLetterOrDigit) to seg.avgLogprob }
             }
-            .toMap()
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, lp) -> lp.min() }
 
         var idx = 0
         var pos = 0

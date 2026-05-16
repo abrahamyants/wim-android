@@ -592,40 +592,25 @@ object ReconstructClient {
             // L4 routes to Claude Sonnet 4.6 with extended thinking when an
             // Anthropic key is set — clinical reasoning depth matches the
             // Lavrentiy desktop setup. L1/L2/L3 stay on GPT-4o.
+            //
+            // ET-extinction fallback: when Sonnet exhausts its 8K thinking
+            // budget without emitting a text block (rare on short utterances
+            // but possible on long, ambiguous, or adversarial inputs), the
+            // request would otherwise propagate a RuntimeException to the
+            // caller and the user would see the raw input as the final
+            // output. Fall back to GPT-4o here so an L4 user at least gets
+            // an L3-quality reconstruction instead of nothing.
             val anthropicKey = WimApp.anthropicApiKey()
             val useSonnet = layer >= 4 && anthropicKey.isNotBlank()
             val cleanText = if (useSonnet) {
-                reconstructWithSonnet(systemPrompt, rawText, anthropicKey)
+                try {
+                    reconstructWithSonnet(systemPrompt, rawText, anthropicKey)
+                } catch (e: Exception) {
+                    Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
+                    reconstructWithGpt4o(systemPrompt, rawText, apiKey, temperature)
+                }
             } else {
-                val model = "gpt-4o"
-                val messages = JSONArray().apply {
-                    put(JSONObject().put("role", "system").put("content", systemPrompt))
-                    put(JSONObject().put("role", "user").put("content", rawText))
-                }
-                val body = JSONObject().apply {
-                    put("model", model)
-                    put("messages", messages)
-                    put("temperature", temperature)
-                    put("max_tokens", 1024)
-                }
-                val request = Request.Builder()
-                    .url("https://api.openai.com/v1/chat/completions")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-                val response = http.newCall(request).execute()
-                val responseBody = response.body?.string()
-                    ?: throw RuntimeException("Empty response from reconstruction API")
-                if (!response.isSuccessful) {
-                    throw RuntimeException("Reconstruction API error ${response.code}: $responseBody")
-                }
-                JSONObject(responseBody)
-                    .getJSONArray("choices")
-                    .getJSONObject(0)
-                    .getJSONObject("message")
-                    .getString("content")
-                    .trim()
+                reconstructWithGpt4o(systemPrompt, rawText, apiKey, temperature)
             }
 
             val riskFlags = computeRiskFlags(rawText, cleanText)
@@ -683,6 +668,48 @@ object ReconstructClient {
 
     // buildFalconSystemPrompt, falconValidateGpt, falconValidateClaude removed 2026-05-10
     // Falcon retired — falconValidate() is now a stub returning true (lavrentiy.py:3420).
+
+    /**
+     * GPT-4o single-pass reconstruction (L2/L3 default and L4 fallback).
+     * Extracted so the Sonnet ET-extinction catch can call the same path
+     * without duplicating the OkHttp/JSON plumbing.
+     */
+    private fun reconstructWithGpt4o(
+        systemPrompt: String,
+        rawText: String,
+        apiKey: String,
+        temperature: Double,
+        maxTokens: Int = 1024,
+    ): String {
+        val messages = JSONArray().apply {
+            put(JSONObject().put("role", "system").put("content", systemPrompt))
+            put(JSONObject().put("role", "user").put("content", rawText))
+        }
+        val body = JSONObject().apply {
+            put("model", "gpt-4o")
+            put("messages", messages)
+            put("temperature", temperature)
+            put("max_tokens", maxTokens)
+        }
+        val request = Request.Builder()
+            .url("https://api.openai.com/v1/chat/completions")
+            .addHeader("Authorization", "Bearer $apiKey")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = http.newCall(request).execute()
+        val responseBody = response.body?.string()
+            ?: throw RuntimeException("Empty response from reconstruction API")
+        if (!response.isSuccessful) {
+            throw RuntimeException("Reconstruction API error ${response.code}: $responseBody")
+        }
+        return JSONObject(responseBody)
+            .getJSONArray("choices")
+            .getJSONObject(0)
+            .getJSONObject("message")
+            .getString("content")
+            .trim()
+    }
 
     /**
      * L4 reconstruction via Claude Sonnet 4.6 with extended thinking.
