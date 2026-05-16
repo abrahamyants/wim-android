@@ -383,7 +383,15 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putLong("session_start_time", sessionStartTime).apply()
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
+        // use VibratorManager.defaultVibrator; older devices keep the old
+        // constant. App minSdk=26 so both branches are reachable.
+        vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            (getSystemService(android.os.VibratorManager::class.java))?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
         audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
 
         // Audio playback monitor — logs ANY sound played on the device so we can detect chirps
@@ -464,10 +472,24 @@ class BubbleService : Service() {
         }
         scoReceiver?.let { registerReceiver(it, android.content.IntentFilter(android.media.AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)) }
 
-        // If Bluetooth headset is already connected, start SCO
+        // If Bluetooth headset is already connected, start SCO.
+        //
+        // startBluetoothSco() / isBluetoothScoOn / isBluetoothScoAvailableOffCall
+        // were deprecated in API 31 in favor of
+        // AudioManager.setCommunicationDevice(AudioDeviceInfo). The new API
+        // changes audio routing IMMEDIATELY (vs the old "request, wait for
+        // state callback" model) and unifies all communication devices under
+        // one mechanism. Migrating without phone-side validation of every
+        // BT headset scenario (already-connected, hot-swap, fallback to
+        // built-in mic) would risk silently breaking BT mic capture in the
+        // recording path. Suppressing for now; modernize in a session with
+        // a BT headset on hand to test the routing transitions.
+        @Suppress("DEPRECATION")
         if (am.isBluetoothScoAvailableOffCall) {
             try {
+                @Suppress("DEPRECATION")
                 am.startBluetoothSco()
+                @Suppress("DEPRECATION")
                 am.isBluetoothScoOn = true
                 Log.i(TAG, "Bluetooth SCO started")
             } catch (e: Exception) {
@@ -4232,6 +4254,13 @@ class BubbleService : Service() {
             this, 1, menuIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
+        // addAction(int, CharSequence, PendingIntent) was deprecated in API 23
+        // in favor of the Action.Builder form. Same payload, modern signature.
+        val menuAction = Notification.Action.Builder(
+            android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_preferences),
+            "MENU",
+            menuPending,
+        ).build()
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("What I Meant")
             .setContentText(text)
@@ -4239,7 +4268,7 @@ class BubbleService : Service() {
             .setContentIntent(pendingIntent)
             .setBadgeIconType(Notification.BADGE_ICON_NONE)
             .setNumber(0)
-            .addAction(android.R.drawable.ic_menu_preferences, "MENU", menuPending)
+            .addAction(menuAction)
             .build()
     }
 
