@@ -102,7 +102,7 @@ class BouncerActivity : AppCompatActivity() {
             WimApp.prefs.edit()
                 .putString("tone", "casual")
                 .apply()
-            showPage(R.id.pageBubble)
+            showPage(R.id.pageQuestions)
         }
         findViewById<LinearLayout>(R.id.optionUpgrade).setOnClickListener {
             chosenTier = "upgrade"
@@ -114,20 +114,136 @@ class BouncerActivity : AppCompatActivity() {
             WimApp.prefs.edit()
                 .putString("tone", "professional")
                 .apply()
-            showPage(R.id.pageBubble)
+            showPage(R.id.pageQuestions)
         }
         findViewById<LinearLayout>(R.id.optionPersonal).setOnClickListener {
             WimApp.prefs.edit()
                 .putString("tone", "casual")
                 .apply()
-            showPage(R.id.pageBubble)
+            showPage(R.id.pageQuestions)
         }
         findViewById<LinearLayout>(R.id.optionBoth).setOnClickListener {
             WimApp.prefs.edit()
                 .putString("tone", "casual")
                 .apply()
+            showPage(R.id.pageQuestions)
+        }
+
+        // ── Intro page (page 0) — "Let's set it up" advances to permissions ──
+        findViewById<View>(R.id.btnIntroNext).setOnClickListener {
+            showPage(R.id.pagePermissions)
+        }
+
+        // ── Quick set-up questions page ──
+        // Three chip groups + 3 watch-word EditTexts + Yes/No language with
+        // spinner + free-text "Other". Selections persist immediately to
+        // SharedPreferences so config changes don't lose them.
+        val whenIds = mapOf(
+            R.id.qWhen95 to "9to5",
+            R.id.qWhenNightOwl to "night_owl",
+            R.id.qWhenShifts to "shifts",
+            R.id.qWhenOffClock to "off_clock"
+        )
+        val whereIds = mapOf(
+            R.id.qWhereOffice to "office",
+            R.id.qWhereHybrid to "hybrid",
+            R.id.qWhereRemote to "remote",
+            R.id.qWhereMobile to "mobile"
+        )
+        val industryIds = mapOf(
+            R.id.qIndFinance to "finance",
+            R.id.qIndLegal to "legal",
+            R.id.qIndMedical to "medical",
+            R.id.qIndTech to "tech",
+            R.id.qIndSales to "sales",
+            R.id.qIndTrades to "trades",
+            R.id.qIndFood to "food",
+            R.id.qIndEducation to "education",
+            R.id.qIndOther to "other"
+        )
+        fun setChipPicked(chipId: Int, picked: Boolean) {
+            findViewById<TextView>(chipId).setTextColor(
+                ContextCompat.getColor(this, if (picked) R.color.section_header else R.color.text_dim)
+            )
+        }
+        fun pickFromGroup(groupIds: Set<Int>, pickedId: Int) {
+            groupIds.forEach { setChipPicked(it, it == pickedId) }
+        }
+        whenIds.forEach { (id, value) ->
+            findViewById<TextView>(id).setOnClickListener {
+                WimApp.prefs.edit().putString("work_hours", value).apply()
+                pickFromGroup(whenIds.keys, id)
+            }
+        }
+        whereIds.forEach { (id, value) ->
+            findViewById<TextView>(id).setOnClickListener {
+                WimApp.prefs.edit().putString("work_setup", value).apply()
+                pickFromGroup(whereIds.keys, id)
+            }
+        }
+        industryIds.forEach { (id, value) ->
+            findViewById<TextView>(id).setOnClickListener {
+                WimApp.prefs.edit().putString("profile_industry", value).apply()
+                pickFromGroup(industryIds.keys, id)
+            }
+        }
+
+        // Q4 first language: Yes/No → spinner → optional "Other" free-text.
+        val l1Codes = listOf("russian", "spanish", "mandarin", "hindi", "arabic", "farsi", "french", "german", "korean", "japanese", "other")
+        val l1Labels = listOf("Russian", "Spanish", "Mandarin", "Hindi", "Arabic", "Farsi", "French", "German", "Korean", "Japanese", "Other (type below)")
+        val langSpinner = findViewById<android.widget.Spinner>(R.id.qLangSpinner)
+        val langOther = findViewById<android.widget.EditText>(R.id.qLangOther)
+        val langAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, l1Labels)
+        langAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        langSpinner.adapter = langAdapter
+        findViewById<TextView>(R.id.qLangYes).setOnClickListener {
+            WimApp.prefs.edit().putString("profile_l1", "").apply()
+            setChipPicked(R.id.qLangYes, true)
+            setChipPicked(R.id.qLangNoBtn, false)
+            langSpinner.visibility = View.GONE
+            langOther.visibility = View.GONE
+        }
+        findViewById<TextView>(R.id.qLangNoBtn).setOnClickListener {
+            setChipPicked(R.id.qLangYes, false)
+            setChipPicked(R.id.qLangNoBtn, true)
+            langSpinner.visibility = View.VISIBLE
+        }
+        langSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val code = l1Codes[position]
+                if (code == "other") {
+                    langOther.visibility = View.VISIBLE
+                } else {
+                    langOther.visibility = View.GONE
+                    WimApp.prefs.edit().putString("profile_l1", code).apply()
+                }
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        // "All set" — adds watch-words to vocabulary, finalises "Other" L1
+        // free-text if used, then advances to the bubble demo.
+        findViewById<View>(R.id.btnQuestionsNext).setOnClickListener {
+            listOf(R.id.qWord1, R.id.qWord2, R.id.qWord3).forEach { wid ->
+                val word = findViewById<android.widget.EditText>(wid).text.toString().trim()
+                if (word.isNotEmpty()) WimApp.profile().addVocabulary(word)
+            }
+            if (langSpinner.visibility == View.VISIBLE && langSpinner.selectedItemPosition >= 0) {
+                val code = l1Codes[langSpinner.selectedItemPosition]
+                if (code == "other") {
+                    val typed = langOther.text.toString().trim()
+                    WimApp.prefs.edit()
+                        .putString("profile_l1", if (typed.isNotEmpty()) "other:$typed" else "")
+                        .apply()
+                }
+            }
             showPage(R.id.pageBubble)
         }
+
+        // Start the flow on the intro page. setContentView leaves
+        // pagePermissions as the default-visible page in XML; calling
+        // showPage here hides every page and reveals the intro.
+        showPage(R.id.pageIntro)
 
         // Slide navigation buttons
         findViewById<View>(R.id.btnNextToBubbleDemo).setOnClickListener {
@@ -291,7 +407,9 @@ class BouncerActivity : AppCompatActivity() {
     }
 
     private val allPages = listOf(
+        R.id.pageIntro,
         R.id.pagePermissions, R.id.pageTier, R.id.pageTone,
+        R.id.pageQuestions,
         R.id.pageBubble, R.id.pageRecon, R.id.pageAutoSend,
         R.id.pageSamsungSleep, R.id.pageFinal
     )
@@ -372,13 +490,15 @@ class BouncerActivity : AppCompatActivity() {
                     R.id.pageSamsungSleep -> showPage(R.id.pageAutoSend)
                     R.id.pageAutoSend -> showPage(R.id.pageRecon)
                     R.id.pageRecon -> showPage(R.id.pageBubble)
-                    R.id.pageBubble -> showPage(if (chosenTier == "free") R.id.pageTier else R.id.pageTone)
+                    R.id.pageBubble -> showPage(R.id.pageQuestions)
+                    R.id.pageQuestions -> showPage(if (chosenTier == "free") R.id.pageTier else R.id.pageTone)
                     R.id.pageTone -> showPage(R.id.pageTier)
                     R.id.pageTier -> {
                         showPage(R.id.pagePermissions)
                         hasAdvancedFromPermissions = false
                     }
-                    // Permissions page — don't exit
+                    R.id.pagePermissions -> showPage(R.id.pageIntro)
+                    // Intro page — don't exit (first screen)
                 }
             }
         })

@@ -19,6 +19,186 @@
             android:paddingTop="80dp"
             android:paddingBottom="40dp">
 
+            <!-- ═══ PAGE 0: INTRO — how we are categorically different ═══ -->
+            <LinearLayout
+                android:id="@+id/pageIntro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:src="@drawable/wm_logo"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="18dp"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/limelight"
+                    android:textColor="@color/section_header"
+                    android:textSize="44sp"
+                    android:text="WiM"
+                    android:letterSpacing="0.06" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.36"
+                    android:textAllCaps="true"
+                    android:text="What I Meant"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="44dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/limelight"
+                    android:textColor="@color/text_bright"
+                    android:textSize="22sp"
+                    android:text="Voice-to-intent."
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/limelight"
+                    android:textColor="@color/text_bright"
+                    android:textSize="22sp"
+                    android:text="Not voice-to-text."
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginBottom="40dp" />
+
+                <!-- Four differentiator lines, one sentence each. Paired with
+                     a chip (− or • or ✓) to give a tiny visual rhythm. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="44dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="20dp">
+                        <TextView
+                            android:layout_width="22dp"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="—"
+                            android:textColor="@color/text_dim"
+                            android:textSize="16sp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="Voice-to-text writes what you said."
+                            android:textColor="@color/text_dim"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="20dp">
+                        <TextView
+                            android:layout_width="22dp"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="✓"
+                            android:textColor="@color/section_header"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="WiM writes what you meant."
+                            android:textColor="@color/text_bright"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="20dp">
+                        <TextView
+                            android:layout_width="22dp"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="•"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="20sp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="Cleans blocks, repeats, fillers — automatically."
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="22dp"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="•"
+                            android:textColor="@color/copper_gold"
+                            android:textSize="20sp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans"
+                            android:text="When unsure, it asks you. You decide."
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnIntroNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center"
+                    android:background="@drawable/card_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/limelight"
+                        android:textColor="@color/section_header"
+                        android:textSize="14sp"
+                        android:letterSpacing="0.18"
+                        android:text="LET'S SET IT UP" />
+                </LinearLayout>
+
+            </LinearLayout>
+
             <!-- ═══ PAGE 1: PERMISSIONS ═══ -->
             <LinearLayout
                 android:id="@+id/pagePermissions"
@@ -579,6 +759,200 @@
                         android:textSize="10sp"
                         android:fontFamily="@font/plus_jakarta_sans"
                         android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ═══ PAGE Q: QUICK SET-UP QUESTIONS ═══ -->
+            <LinearLayout
+                android:id="@+id/pageQuestions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/limelight"
+                    android:textColor="@color/section_header"
+                    android:textSize="22sp"
+                    android:text="Quick set-up"
+                    android:layout_marginTop="20dp"
+                    android:layout_gravity="center"
+                    android:letterSpacing="0.04" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/copper_gold"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.26"
+                    android:textAllCaps="true"
+                    android:text="30 seconds · makes WiM smarter day one"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="28dp"
+                    android:layout_gravity="center" />
+
+                <!-- Q1a: WHEN -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="When do you mostly work?"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="14dp">
+                    <TextView android:id="@+id/qWhen95"        android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="9-5"        android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhenNightOwl"  android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="night owl" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhenShifts"    android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="shifts"    android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhenOffClock"  android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="off-clock" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Q1b: WHERE -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="…and where?"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+                    <TextView android:id="@+id/qWhereOffice" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="office"      android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhereHybrid" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="hybrid"      android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhereRemote" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="remote"      android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qWhereMobile" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:gravity="center" android:text="on the move" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Q2: WATCH-WORDS -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="3 names or words voice apps mangle for you"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText android:id="@+id/qWord1" android:layout_width="match_parent" android:layout_height="44dp" android:hint="boss's name, kid's name, brand…" android:textColorHint="@color/text_dim" android:textColor="@color/text_bright" android:textSize="13sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:paddingStart="14dp" android:paddingEnd="14dp" android:inputType="text" android:layout_marginBottom="6dp" android:importantForAutofill="no" />
+                <EditText android:id="@+id/qWord2" android:layout_width="match_parent" android:layout_height="44dp" android:hint="…" android:textColorHint="@color/text_dim" android:textColor="@color/text_bright" android:textSize="13sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:paddingStart="14dp" android:paddingEnd="14dp" android:inputType="text" android:layout_marginBottom="6dp" android:importantForAutofill="no" />
+                <EditText android:id="@+id/qWord3" android:layout_width="match_parent" android:layout_height="44dp" android:hint="…" android:textColorHint="@color/text_dim" android:textColor="@color/text_bright" android:textSize="13sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:paddingStart="14dp" android:paddingEnd="14dp" android:inputType="text" android:layout_marginBottom="24dp" android:importantForAutofill="no" />
+
+                <!-- Q3: INDUSTRY -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="What's the world you mostly talk about?"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
+                    <TextView android:id="@+id/qIndFinance" android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Finance" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndLegal"   android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Legal"   android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndMedical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Medical" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
+                    <TextView android:id="@+id/qIndTech"   android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Tech"   android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndSales"  android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Sales"  android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndTrades" android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Trades" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="24dp">
+                    <TextView android:id="@+id/qIndFood"      android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Food"      android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndEducation" android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Education" android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qIndOther"     android:layout_width="0dp" android:layout_weight="1" android:layout_height="38dp" android:gravity="center" android:text="Other"     android:textColor="@color/text_dim" android:textSize="11sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Q4: FIRST LANGUAGE -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="Is English your first language?"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:id="@+id/qLangYes"   android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp" android:gravity="center" android:text="Yes"             android:textColor="@color/text_dim" android:textSize="12sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/qLangNoBtn" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp" android:gravity="center" android:text="No, my first is…" android:textColor="@color/text_dim" android:textSize="12sp" android:fontFamily="@font/plus_jakarta_sans" android:background="@drawable/card_bg" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+
+                <Spinner
+                    android:id="@+id/qLangSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/card_bg"
+                    android:visibility="gone"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/qLangOther"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:hint="Type your first language…"
+                    android:textColorHint="@color/text_dim"
+                    android:textColor="@color/text_bright"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:inputType="text"
+                    android:visibility="gone"
+                    android:layout_marginBottom="8dp"
+                    android:importantForAutofill="no" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:text="We're constantly adding new language packs. If yours isn't on the list, type it in — every name we collect drives the queue."
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginBottom="24dp" />
+
+                <LinearLayout
+                    android:id="@+id/btnQuestionsNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center"
+                    android:background="@drawable/card_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="20dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/limelight"
+                        android:textColor="@color/section_header"
+                        android:textSize="14sp"
+                        android:letterSpacing="0.18"
+                        android:text="ALL SET" />
                 </LinearLayout>
 
             </LinearLayout>
