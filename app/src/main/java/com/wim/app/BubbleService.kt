@@ -31,9 +31,11 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -3765,6 +3767,10 @@ class BubbleService : Service() {
             // Hoisted so the catch block below can cancel the L4 stage-animation
             // loop on reconstruction failure — Kotlin catch is a sibling scope.
             var turboTaxJob: Job? = null
+            // Same reason — catch needs to cancel the parallel-launched
+            // MultiPassDecoder so an in-flight Whisper call doesn't keep
+            // burning API budget after reconstruction blew up.
+            var multiPassDeferred: Deferred<MultiPassDecoder.MultiPassResult>? = null
             // L4 reconstruction can run 60-70s on Sonnet ET; without a wake-lock
             // the screen turning off mid-call suspends the CPU and the round-trip
             // dies. PARTIAL_WAKE_LOCK keeps the CPU alive without the screen on.
@@ -3839,6 +3845,32 @@ class BubbleService : Service() {
                 } else ""
                 BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer))
                 setStageArc(1)
+
+                // Audit Tier-2: kick MultiPassDecoder off in parallel with the
+                // GPT/Sonnet call. The two are independent (both consume the
+                // same wav) and previously ran sequentially — multipass after
+                // reconstruction finished — so the user waited reconstruction
+                // time + 3-6s of clarifier-prep time. Now total visible time
+                // is max(reconstruction, multipass) instead of the sum, with
+                // the multipass result already in hand when the clarifier
+                // branch fires below. The L4 case saves the most: Sonnet ET
+                // runs ~60-70s while multipass runs ~6s, so multipass finishes
+                // far before reconstruction. At L2/L3 the wins are closer to
+                // even but still measurable.
+                run {
+                    val wav = lastWavFile
+                    if (layer >= 2 && wav != null && wav.exists() && wav.length() > 44) {
+                        multiPassDeferred = async(Dispatchers.IO) {
+                            val recognizer = WhisperApiL1(
+                                model = "whisper-1",
+                                language = primaryLanguage,
+                                patienceMode = true,
+                            )
+                            MultiPassDecoder(recognizer).run(wav)
+                        }
+                    }
+                }
+
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -4061,18 +4093,18 @@ class BubbleService : Service() {
                 // point. L1 has no reconstruction step, so this branch never
                 // fires for L1 anyway.
                 val clarifierPkg = WimAccessibilityService.currentForegroundPackage
+                if (!WimApp.isClarifierAllowed(clarifierPkg)) {
+                    // Clarifier disabled for this app — discard the parallel-launched
+                    // multipass to stop the in-flight Whisper calls and free the API
+                    // budget. await() in the branch below would have consumed it.
+                    multiPassDeferred?.cancel()
+                }
                 if (WimApp.isClarifierAllowed(clarifierPkg)) {
                     var wordConfidences: List<Clarifier.WordConfidence> = emptyList()
-                    val wav = lastWavFile
-                    if (layer >= 2 && wav != null && wav.exists() && wav.length() > 44) {
+                    if (multiPassDeferred != null) {
                         try {
                             showPipelineStage("⟳ Reviewing", "Cross-checking unsure words")
-                            val recognizer = WhisperApiL1(
-                                model = "whisper-1",
-                                language = primaryLanguage,
-                                patienceMode = true,
-                            )
-                            val multi = MultiPassDecoder(recognizer).run(wav)
+                            val multi = multiPassDeferred.await()
                             // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
                             // but Clarifier.evaluate is called with finalText = outputText
                             // (GPT-reconstructed). Without realignment, approve-swap
@@ -4108,6 +4140,7 @@ class BubbleService : Service() {
                 onInjectComplete()
             } catch (e: Exception) {
                 turboTaxJob?.cancel()
+                multiPassDeferred?.cancel()
                 BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
                 Log.e(TAG, "Reconstruction error: ${e.message}", e)
                 ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
