@@ -47,6 +47,18 @@
             android:exported="false"
             android:theme="@style/Theme.WhatIMeant" />
 
+        <!--
+            Compose-based onboarding rewrite (option 3, 2026-05-16). Parallel route
+            not yet wired into MainActivity.kt:95 first-run routing. Manually launch
+            for testing:  adb shell am start -n com.wim.app/.onboarding.OnboardingActivity
+            Once the screens reach feature parity, flip MainActivity routing and
+            delete BouncerActivity + activity_bouncer.xml + onboarding.html.
+        -->
+        <activity
+            android:name=".onboarding.OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.WhatIMeant" />
+
         <!-- Manual: WebView host for the illustrated user guide at
              assets/user_guide.html. Launched from MainActivity's Guide
              section via the "READ THE FULL MANUAL" launcher card. -->
