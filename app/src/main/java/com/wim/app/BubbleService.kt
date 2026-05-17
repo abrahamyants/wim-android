@@ -180,7 +180,21 @@ class BubbleService : Service() {
             dismissClarifier(null)
         }
     }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    // SupervisorJob: child coroutine failures don't cancel siblings.
+    // CoroutineExceptionHandler: any throw in a launched coroutine that's
+    // NOT caught by an inner try/catch ends up here — without this handler
+    // the exception is silently swallowed by SupervisorJob, leaving the
+    // failure invisible. Surfaces as logcat + Crashlytics non-fatal so
+    // every dangling exception is at least recorded.
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main + kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+            Log.e(TAG, "Unhandled coroutine exception: ${e.message}", e)
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
+                    .recordException(e)
+            } catch (_: Throwable) { /* Crashlytics not initialised in tests */ }
+        }
+    )
     private var recordingStartTime = 0L
     private var sessionStartTime = 0L
     private var pulseAnimators = mutableListOf<AnimatorSet>()
@@ -3557,6 +3571,7 @@ class BubbleService : Service() {
                     .getString("content")
                     .trim()
             } catch (e: Exception) {
+                Log.e(TAG, "callOpenAiTransform failed: ${e.message}", e)
                 null
             }
         }
