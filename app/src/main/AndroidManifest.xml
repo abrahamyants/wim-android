@@ -33,6 +33,7 @@
     <application
         android:name=".WimApp"
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="What I Meant"
         android:roundIcon="@mipmap/ic_launcher_round"

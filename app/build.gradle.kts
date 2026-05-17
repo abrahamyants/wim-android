@@ -17,6 +17,18 @@ android {
         targetSdk = 35
         versionCode = 3
         versionName = "0.2.0"
+
+        // Strip out unneeded library locales (Play Services injects ~80 locales).
+        // WiM ships English plus the 4 native UI locales added Session 17.
+        resourceConfigurations += listOf("en", "es", "ru", "pt", "fr")
+
+        // Only ship native code for arm64 (modern Pixel/Samsung/etc.) and
+        // armv7 (older 32-bit devices still in active use). Drops x86 and
+        // x86_64 which only run on emulators. Halves the sherpa-onnx .so
+        // payload that's the bulk of the APK.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -32,10 +44,21 @@ android {
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
+            // Strip unused resources that R8 has proven unreachable. Pairs
+            // with isMinifyEnabled — must be enabled together. Trims another
+            // few MB off the release APK on top of code shrinking.
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Upload native debug symbols (sherpa-onnx .so) to Crashlytics so
+            // native crash stack traces are human-readable instead of bare
+            // memory addresses. Build task: uploadCrashlyticsSymbolFileRelease,
+            // wired automatically into the assembleRelease lifecycle.
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                nativeSymbolUploadEnabled = true
+            }
         }
     }
 
