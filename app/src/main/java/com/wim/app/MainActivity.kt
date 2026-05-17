@@ -1426,7 +1426,7 @@ class MainActivity : AppCompatActivity() {
             1 to "transcribe ",
             2 to "reconstruct",
             3 to "profile    ",
-            4 to "stutter    "
+            4 to "disfluency "
         )
         // Tone: padded to 12 visual chars ("professional" is longest)
         val toneNames = mapOf(
@@ -1769,7 +1769,7 @@ class MainActivity : AppCompatActivity() {
 &#8226; Whisper hallucinations like "thanks for watching" stripped<br><br>
 <b>4. Reconstruction (Layer II+).</b><br>
 &#8226; <b>L2/L3</b> &#8212; GPT-4o rewrites in your tone. Claude Haiku 4.5 then verifies the meaning didn't change.<br>
-&#8226; <b>L4</b> &#8212; Claude Sonnet 4.6 with extended thinking. Reasons through stuttering patterns; no separate verifier needed (the reasoning trace self-validates).<br><br>
+&#8226; <b>L4</b> &#8212; Claude Sonnet 4.6 with extended thinking. Reasons through speech-disfluency patterns; no separate verifier needed (the reasoning trace self-validates).<br><br>
 <b>5. Output filters.</b><br>
 &#8226; LLM leak guard: catches "I'm sorry, I can't help" responses.<br>
 &#8226; Length guard: if AI output is more than 2.5&#215; the input length, it fabricated &#8212; we use the cleaned raw text instead.<br><br>
@@ -1836,7 +1836,7 @@ class MainActivity : AppCompatActivity() {
                 """<b>I. Transcribe</b> &#8212; Moonshine on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
-<b>IV. Stutter</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
+<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
             ),
 
             GuideSection(
@@ -1870,7 +1870,7 @@ Turn off in <b>Settings &#8594; Auto-send</b>.""",
             GuideSection(
                 "DAF",
                 "Delayed auditory feedback",
-                """Plays your voice back through your earpiece with a 30-300 ms delay. A documented fluency technique &#8212; hearing yourself on delay can reduce stuttering severity.<br><br>
+                """Plays your voice back through your earpiece with a 30-300 ms delay. A documented fluency technique &#8212; hearing yourself on delay can reduce speech-disfluency severity.<br><br>
 On in <b>Settings &#8594; DAF</b>. Use the slider to tune the delay."""
             ),
 
@@ -2054,7 +2054,7 @@ Natural phrases like "bye bye" are kept.<br><br>
 <b>Layer I</b> &#8212; Done. Cleaned text is pasted. No AI, no cost.<br><br>
 <b>Layer II</b> &#8212; GPT rewrites using your tone (casual, professional, etc). No personal data used.<br><br>
 <b>Layer III</b> &#8212; Same as II, plus GPT knows your preferred words and learned corrections.<br><br>
-<b>Layer IV</b> &#8212; Full stutter-aware engine. Stronger AI model, plus your personal phoneme map, avoidance patterns, and block detection.<br><br>
+<b>Layer IV</b> &#8212; Full disfluency-aware engine. Stronger AI model, plus your personal phoneme map, avoidance patterns, and block detection.<br><br>
 <b><font color="#EE5A24">5. Safety check</b><br>A second AI verifies the meaning wasn't changed. If it was, your original text is used instead. Numbers and dollar amounts are double-checked.<br><br>
 <b><font color="#EE5A24">6. Paste</b><br>The final text is injected into whatever text field you're typing in.""".trimIndent()),
 
@@ -2071,7 +2071,7 @@ The bubble shows your current layer (L1-L4) and tone (CAS/PRO/FRI/FOR). During r
 <b>I. Transcribe</b> &#8212; On-device speech-to-text + disfluency filter. Free, instant, no internet after setup.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT cleans grammar, strips fillers, applies your tone. ~1-2s.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and corrections. The app learns which words you prefer over time.<br><br>
-<b>IV. Stutter</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
+<b>IV. Speech Disfluency</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
 
             Triple("Smart Tone", "Automatic context detection", """
 WiM detects which app you're in and adjusts the tone automatically:<br><br>
@@ -2086,7 +2086,7 @@ Four tones available: <b>Casual</b>, <b>Professional</b>, <b>Friend</b>, <b>Form
 <b>Reading</b> &#8212; Reading aloud. Light touch, minimal changes.""".trimIndent()),
 
             Triple("DAF", "Delayed Auditory Feedback", """
-Plays your voice back to you with a slight delay (30-300ms). This is a well-known fluency technique &#8212; hearing yourself on a delay can reduce stuttering severity.<br><br>
+Plays your voice back to you with a slight delay (30-300ms). This is a well-known fluency technique &#8212; hearing yourself on a delay can reduce speech-disfluency severity.<br><br>
 Toggle it on, adjust the delay with the slider. Works alongside recording.""".trimIndent()),
 
             Triple("Tips", "Get the most out of WiM", """
