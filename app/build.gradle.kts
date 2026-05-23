@@ -164,3 +164,10 @@ dependencies {
     testImplementation("androidx.test.ext:junit:1.2.1")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
+
+// assembleRelease auto-wires uploadCrashlyticsSymbolFileRelease, but bundleRelease
+// does not — Play Store ships AABs, so without this the native stack traces from
+// sherpa-onnx come back to Crashlytics as bare memory addresses.
+afterEvaluate {
+    tasks.findByName("bundleRelease")?.finalizedBy("uploadCrashlyticsSymbolFileRelease")
+}
