@@ -3181,47 +3181,19 @@ class BubbleService : Service() {
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
                 ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")
 
-                // Post-reconstruction LLM leak filter (ported from Лаврентий)
-                // Catches chatbot responses / meta-commentary that GPT sometimes emits
-                var outputText = reconResult.cleanText
-                var leakDetected = false
-                val reconLower = outputText.trim().lowercase()
-                val llmLeakPatterns = listOf(
-                    "i'm sorry", "i apologize", "i didn't catch that",
-                    "could you please clarify", "could you please repeat",
-                    "could you say that again", "i'm not sure what you meant",
-                    "please clarify", "please provide more context",
-                    "i cannot assist", "i can't assist", "i can't help",
-                    "as an ai", "as a language model",
-                    "please ensure that you", "ensure that you construct",
-                    "i'd be happy to help",
-                    "no output", "identified as hallucinated", "hallucinated filler",
-                    "no transcription", "unable to transcribe", "no speech detected",
-                    "[no output", "[hallucin", "[unable to"
+                // Post-reconstruction guards (LLM leak + length explosion).
+                // Logic extracted to ReconstructionGuard 2026-05-25 — first
+                // Pipeline-cluster slice.
+                val guardResult = ReconstructionGuard.apply(
+                    reconstructed = reconResult.cleanText,
+                    fallbackText = correctedText,
+                    fallbackWordCount = cleanWordCount,
                 )
-                for (pattern in llmLeakPatterns) {
-                    if (reconLower.startsWith(pattern) || pattern in reconLower) {
-                        Log.w(TAG, "LLM leak detected: \"${outputText.take(80)}\" — using raw")
-                        ConsoleLog.log("LLM leak detected — using raw", "error")
-                        leakDetected = true
-                        break
-                    }
-                }
-
-                // Length explosion guard: if reconstruction is >2.5x longer than input,
-                // GPT fabricated content instead of cleaning speech
-                if (!leakDetected && cleanWordCount >= 3) {
-                    val reconWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                    val lenRatio = reconWordCount.toFloat() / cleanWordCount.toFloat()
-                    if (lenRatio > 2.5f) {
-                        Log.w(TAG, "LLM length explosion: ${cleanWordCount}w → ${reconWordCount}w (${lenRatio}x) — using raw")
-                        ConsoleLog.log("Length explosion: ${cleanWordCount}w -> ${reconWordCount}w (${lenRatio}x) — using raw", "error")
-                        leakDetected = true
-                    }
-                }
-
-                if (leakDetected) {
-                    outputText = correctedText
+                var outputText = guardResult.outputText
+                val leakDetected = guardResult.leakDetected
+                guardResult.leakReason?.let {
+                    Log.w(TAG, "$it — using raw")
+                    ConsoleLog.log("$it — using raw", "error")
                 }
 
                 val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
