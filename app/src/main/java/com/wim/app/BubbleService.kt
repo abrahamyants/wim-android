@@ -151,7 +151,7 @@ class BubbleService : Service() {
     // tap that should have been canceled still no-ops cleanly.
     private val deferredSingleTapAction = Runnable {
         if (!isRecording) {
-            startPulseRings()
+            pulseRings?.start()
             startListening()
         }
     }
@@ -199,7 +199,9 @@ class BubbleService : Service() {
     )
     private var recordingStartTime = 0L
     private var sessionStartTime = 0L
-    private var pulseAnimators = mutableListOf<AnimatorSet>()
+    // Pulse rings (3 concentric loops during recording) extracted to
+    // BubblePulseRings 2026-05-25 — twelfth slice.
+    private var pulseRings: BubblePulseRings? = null
     private val timerHandler = Handler(Looper.getMainLooper())
 
     companion object {
@@ -455,6 +457,7 @@ class BubbleService : Service() {
             onNotificationText = { msg -> updateNotification(msg) },
         )
         bubbleAppearance = BubbleAppearance(getBubbleView = { bubbleView })
+        pulseRings = BubblePulseRings(getBubbleView = { bubbleView })
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -719,7 +722,7 @@ class BubbleService : Service() {
                             // doesn't double-toggle.
                             timerHandler.removeCallbacks(deferredSingleTapAction)
                             lastTapTime = 0L
-                            startPulseRings()
+                            pulseRings?.start()
                             startListening()
                         }
                     }
@@ -1316,7 +1319,7 @@ class BubbleService : Service() {
         val view = bubbleView ?: return
         BubbleStateBus.advance(BubbleState.SendReady)
         isSendReady = true
-        stopPulseRings()
+        pulseRings?.stop()
         hideLiveTranscript()
         view.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
         view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -1772,49 +1775,6 @@ class BubbleService : Service() {
         }
     }
 
-    private fun startPulseRings() {
-        stopPulseRings()
-        val rings = listOf(
-            bubbleView?.findViewById<View>(R.id.ring1),
-            bubbleView?.findViewById<View>(R.id.ring2),
-            bubbleView?.findViewById<View>(R.id.ring3)
-        )
-
-        rings.forEachIndexed { i, ring ->
-            ring ?: return@forEachIndexed
-            val delay = (i * 300).toLong()
-            val maxScale = 1.4f + (i * 0.3f) // 1.4, 1.7, 2.0 — fits in 120dp window
-
-            val sx = ObjectAnimator.ofFloat(ring, "scaleX", 1.0f, maxScale).apply {
-                duration = 1200; repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART; startDelay = delay
-            }
-            val sy = ObjectAnimator.ofFloat(ring, "scaleY", 1.0f, maxScale).apply {
-                duration = 1200; repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART; startDelay = delay
-            }
-            val a = ObjectAnimator.ofFloat(ring, "alpha", 0.9f, 0.0f).apply {
-                duration = 1200; repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.RESTART; startDelay = delay
-            }
-
-            val set = AnimatorSet()
-            set.playTogether(sx, sy, a)
-            set.start()
-            pulseAnimators.add(set)
-        }
-    }
-
-    private fun stopPulseRings() {
-        pulseAnimators.forEach { it.cancel() }
-        pulseAnimators.clear()
-        listOf(R.id.ring1, R.id.ring2, R.id.ring3).forEach { id ->
-            bubbleView?.findViewById<View>(id)?.apply {
-                scaleX = 1f; scaleY = 1f; alpha = 0f
-            }
-        }
-    }
-
 
     private val tips = listOf(
         Pair("Did you know?", "Tap the ? in the app for a quick guide to all features."),
@@ -1870,7 +1830,7 @@ class BubbleService : Service() {
         // FSM: drop to Idle (force-set so we don't fight the transition
         // matrix on cancel/cleanup paths from arbitrary prior states).
         BubbleStateBus.reset()
-        stopPulseRings()
+        pulseRings?.stop()
         hideLiveTranscript()
         // L4 multi-pass wav is no longer needed once we're idle.
         lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
@@ -1948,7 +1908,7 @@ class BubbleService : Service() {
                 )
             } catch (_: Exception) {}
             hotwordListener = null
-            startPulseRings()
+            pulseRings?.start()
             startListening()
         }
         if (listener.start()) {
