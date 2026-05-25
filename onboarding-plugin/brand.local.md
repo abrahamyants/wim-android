@@ -108,6 +108,19 @@ Yes-answer color uses the existing `orange_label` token (`#FF963611`); shadow
 glows use the standard `FFFFFF` neutral with explicit alpha. Do NOT use the
 two legacy clarifier tokens for any new surface.
 
+### Bubble appearance (legacy — extraction-grandfathered 2026-05-25)
+The bubble's idle-label color is theme-conditional. Two of the three theme
+branches use approved tokens (`cream` #C8B48A on gunmetal, `bronze on-fill`
+#1F1208 on bronze hex); the aluminum branch uses one legacy hex tokenized
+here so the `applyBubbleTheme` extraction to `BubbleAppearance.kt` could
+land without breaking pure relocation.
+
+| Token | Hex | Use |
+|---|---|---|
+| idle_label_aluminum | #FF555560 | IDLE label color on aluminum bezel |
+
+Do NOT use this legacy token for any new surface.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 

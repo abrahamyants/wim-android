@@ -117,6 +117,12 @@ class BubbleService : Service() {
     // wrapper so MainActivity's existing BubbleService.instance call
     // continues to work without changes.
     private var bubbleDock: BubbleDock? = null
+
+    // Bubble visual properties (theme + size + opacity) extracted to
+    // BubbleAppearance 2026-05-25 — eleventh slice. applyBubbleTheme()
+    // + updateBubbleAppearance() become thin wrappers; refreshBubbleTheme()
+    // public alias stays.
+    private var bubbleAppearance: BubbleAppearance? = null
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
@@ -448,6 +454,7 @@ class BubbleService : Service() {
             onHideBubble = { hideBubble() },
             onNotificationText = { msg -> updateNotification(msg) },
         )
+        bubbleAppearance = BubbleAppearance(getBubbleView = { bubbleView })
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -1856,34 +1863,7 @@ class BubbleService : Service() {
 
     /** Apply the user's selected bubble color theme (bronze/aluminum/gunmetal). */
     private fun applyBubbleTheme() {
-        val theme = WimApp.bubbleTheme()
-        val bezelDrawable = when (theme) {
-            "aluminum" -> R.drawable.bubble_bezel_aluminum
-            "gunmetal" -> R.drawable.bubble_bezel_gunmetal
-            else -> R.drawable.bubble_bg_idle
-        }
-        val knobDrawable = when (theme) {
-            "aluminum" -> R.drawable.bubble_knob_aluminum
-            "gunmetal" -> R.drawable.bubble_knob_gunmetal
-            else -> R.drawable.bubble_inner_knob
-        }
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
-        // If the label is currently showing IDLE, refresh its color to match
-        // the new theme. Without this, a lingering gunmetal-gold would stay
-        // on the aluminum/bronze bezel and become invisible against the
-        // lighter metal. REC/PROC labels are left alone — their colors are
-        // managed by the recording state path.
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.let { label ->
-            if (label.text == "IDLE") {
-                val idleColor = when (theme) {
-                    "gunmetal" -> 0xFFC8B48A.toInt()  // cream-gold on dark steel
-                    "bronze" -> 0xFF1F1208.toInt()    // deep espresso on warm copper — matches palette primaryText
-                    else -> 0xFF555560.toInt()         // dark gray on aluminum
-                }
-                label.setTextColor(idleColor)
-            }
-        }
+        bubbleAppearance?.applyTheme()
     }
 
     private fun setBubbleIdle() {
@@ -2042,40 +2022,7 @@ class BubbleService : Service() {
     // ═══════════════════════════════════════════════════════════
 
     fun updateBubbleAppearance() {
-        val view = bubbleView
-        val params = bubbleParams
-        if (view == null || params == null) {
-            Log.w(TAG, "updateBubbleAppearance skipped — bubble not visible (view=$view params=$params)")
-            return
-        }
-        val opacityPct = WimApp.bubbleOpacity().coerceIn(20, 100)
-        val sizePct = WimApp.bubbleSize().coerceIn(70, 150)
-        val opacity = opacityPct / 100f
-        val scale = sizePct / 100f
-
-        // Window stays fixed at MAX size (set in showBubble at 180dp = 120 * 1.5).
-        // Only the bezel (and its children: knob, label, time) are scaled. This
-        // keeps the bezel's visual center anchored to the window center across
-        // all sizes — no drift, and no clipping at max scale.
-        val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run {
-            Log.w(TAG, "updateBubbleAppearance: bezel view not found")
-            return
-        }
-        bezel.alpha = opacity
-        // Pivot at the bezel's measured center so scaling grows/shrinks
-        // around the visual center, not the top-left corner.
-        if (bezel.width > 0) {
-            bezel.pivotX = bezel.width / 2f
-            bezel.pivotY = bezel.height / 2f
-        }
-        // Cancel any in-flight bezel animations (taffy stretch from a prior
-        // drag, snap-back interpolator) — those keep running and overwrite
-        // the scale we set here, which masks the slider as "broken."
-        bezel.animate().cancel()
-        bezel.scaleX = scale
-        bezel.scaleY = scale
-        bezel.invalidate()
-        Log.i(TAG, "updateBubbleAppearance: size=${sizePct}% opacity=${opacityPct}% bezelScale=$scale bezelW=${bezel.width} pivot=(${bezel.pivotX},${bezel.pivotY})")
+        bubbleAppearance?.updateAppearance()
     }
 
     // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
