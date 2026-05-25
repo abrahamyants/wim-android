@@ -75,6 +75,23 @@ pure relocation.
 Cream itself (`#FFC8B48A`) is the dark-mode `cream` token above. Do NOT use the
 three legacy tokens for any new surface — extend the canonical palette instead.
 
+### Send disclaimer (legacy — extraction-grandfathered 2026-05-25)
+The "About to send" confirmation overlay (`BubbleSendDisclaimer`) is built
+programmatically in Kotlin with its own palette. These three were inline in
+`BubbleService.showSendDisclaimer` before brand discipline tightened;
+tokenized here so the extraction could land without the brand guard blocking
+on pure relocation.
+
+| Token | Hex | Use |
+|---|---|---|
+| disclaimer_bg | #FF1E1E22 | Send-disclaimer dialog background |
+| disclaimer_body | #FFB8B8B0 | Body text on disclaimer dialog |
+| disclaimer_send_green | #FF5AD15F | "SEND IT" button label |
+
+Disclaimer title uses the `cream` token (`#FFC8B48A`) and CANCEL uses the
+existing `8A7D68` (approved). Do NOT use the three legacy disclaimer tokens
+for any new surface — extend the canonical palette instead.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 

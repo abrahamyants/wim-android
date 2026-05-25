@@ -414,6 +414,7 @@ class BubbleService : Service() {
             onThemeChanged = { applyBubbleTheme() }
         )
         onboardingOverlay = BubbleOnboardingOverlay(this, windowManager!!)
+        sendDisclaimer = BubbleSendDisclaimer(this, windowManager!!)
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -1170,7 +1171,11 @@ class BubbleService : Service() {
             setBubbleIdle()
         }
     }
-    private var disclaimerView: View? = null
+    // Send disclaimer overlay extracted to BubbleSendDisclaimer 2026-05-25
+    // — fifth BubbleWindow slice. Show path is dormant (auto-send confirm
+    // flow is not currently wired) but the dismiss path is called
+    // defensively from hideBubble.
+    private var sendDisclaimer: BubbleSendDisclaimer? = null
 
     /**
      * Called after a successful injectText. Decides whether to rest at IDLE
@@ -1371,84 +1376,11 @@ class BubbleService : Service() {
     }
 
     private fun showSendDisclaimer(onConfirm: () -> Unit, onCancel: () -> Unit) {
-        dismissSendDisclaimer()
-        val ctx = this
-        val container = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(48, 40, 48, 28)
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF1E1E22.toInt())
-                cornerRadius = 28f
-                setStroke(2, 0xFFC8B48A.toInt())
-            }
-        }
-        val title = TextView(ctx).apply {
-            text = "About to send"
-            setTextColor(0xFFC8B48A.toInt())
-            textSize = 17f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, 18)
-        }
-        val body = TextView(ctx).apply {
-            text = "Tapping the green bubble sends the text in the compose field through the app that's open — Google Messages, Gmail, WhatsApp, etc. — using your existing signed-in session. " +
-                "WiM never sends without a deliberate tap. If the text is wrong, tap outside or wait 3 seconds to cancel and edit."
-            setTextColor(0xFFB8B8B0.toInt())
-            textSize = 13f
-            setLineSpacing(4f, 1f)
-            setPadding(0, 0, 0, 24)
-        }
-        val row = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END
-        }
-        val cancelBtn = TextView(ctx).apply {
-            text = "CANCEL"
-            setTextColor(0xFF8A7D68.toInt())
-            textSize = 14f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(36, 22, 28, 22)
-            isClickable = true
-        }
-        val okBtn = TextView(ctx).apply {
-            text = "SEND IT"
-            setTextColor(0xFF5AD15F.toInt())
-            textSize = 14f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(28, 22, 36, 22)
-            isClickable = true
-        }
-        row.addView(cancelBtn)
-        row.addView(okBtn)
-        container.addView(title)
-        container.addView(body)
-        container.addView(row)
-        val lp = WindowManager.LayoutParams(
-            (resources.displayMetrics.widthPixels * 0.85f).toInt(),
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_DIM_BEHIND,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.CENTER
-            dimAmount = 0.7f
-        }
-        cancelBtn.setOnClickListener {
-            dismissSendDisclaimer()
-            onCancel()
-        }
-        okBtn.setOnClickListener {
-            dismissSendDisclaimer()
-            onConfirm()
-        }
-        disclaimerView = container
-        try { windowManager?.addView(container, lp) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+        sendDisclaimer?.show(onConfirm, onCancel)
     }
 
     private fun dismissSendDisclaimer() {
-        disclaimerView?.let {
-            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-        }
-        disclaimerView = null
+        sendDisclaimer?.dismiss()
     }
 
     /**
