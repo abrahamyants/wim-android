@@ -2921,34 +2921,20 @@ class BubbleService : Service() {
         if (layer < 2) {
             // L1: disfluency-filtered text + profile corrections (no GPT needed)
             // FSM: L1 still goes through Reconstructing → Verified → Injected;
-            // the "reconstruction" is deterministic (PhoneticMatcher + Repunctuate).
+            // the "reconstruction" is deterministic (corrections + Repunctuate).
+            // Transform logic extracted to L1Pipeline 2026-05-25 — second
+            // Pipeline-cluster slice. Orchestration (FSM, inject, record)
+            // stays inline.
             BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
             setStageArc(1)
             Log.i(TAG, "L1 mode, applying profile corrections then injecting")
-            val corrections = profile.getCorrections()
-            val sessionNum = sessionHistory?.count() ?: 0
-            var l1Text = preCleaned
-            for ((wrong, right) in corrections) {
-                val pattern = Regex("\\b${Regex.escape(wrong)}\\b", RegexOption.IGNORE_CASE)
-                if (pattern.containsMatchIn(l1Text)) {
-                    l1Text = pattern.replace(l1Text, right)
-                    profile.markCorrectionUsed(wrong, sessionNum)
-                    Log.i(TAG, "L1 correction: \"$wrong\" → \"$right\"")
-                }
-            }
-            // Decay sweep every 30 sessions
-            if (sessionNum > 0 && sessionNum % 30 == 0) {
-                profile.decayStaleCorrections(sessionNum)
-            }
-            // PhoneticMatcher intentionally NOT called at L1 (Lav parity —
-            // lavrentiy.py phonetic_match gate `2 <= layer <= 3`). At L1 the
-            // swap goes straight to paste with no validator, so a wrong-
-            // direction Metaphone collision lands directly in the user's
-            // text field. The swap pays off only when GPT sees the cleaner
-            // input, which is L2/L3.
-            // Deterministic capitalization + terminal punctuation. Idempotent
-            // on already-punctuated text. Mirrors lavrentiy.py repunctuate().
-            l1Text = Repunctuate.apply(l1Text)
+            val l1Result = L1Pipeline.transform(
+                preCleaned = preCleaned,
+                profile = profile,
+                sessionNum = sessionHistory?.count() ?: 0,
+                log = { msg -> Log.i(TAG, msg) }
+            )
+            val l1Text = l1Result.text
             // FSM: L1 has no Falcon — the deterministic pass is "trusted by
             // construction." Verified → Injected before the actual paste so
             // observers see the right transition order.
