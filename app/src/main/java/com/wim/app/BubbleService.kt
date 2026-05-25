@@ -42,8 +42,12 @@ import kotlinx.coroutines.launch
 
 class BubbleService : Service() {
 
-    private var sensorManager: android.hardware.SensorManager? = null
-    private var shakeListener: android.hardware.SensorEventListener? = null
+    // Double-shake gesture extracted to BubbleShakeDetector (2026-05-25,
+    // first slice of the god-object split). Owns sensor lifecycle, rising-
+    // edge state, and the prefs toggle. The action fires via the callback
+    // wired at start().
+    private var shakeDetector: BubbleShakeDetector? = null
+
     // "Hey WiM" hotword — opt-in continuous mic listener that triggers
     // a recording when it hears the wake phrase. Mutually exclusive with
     // active recording (only one consumer can hold the mic).
@@ -69,18 +73,6 @@ class BubbleService : Service() {
     // so the wherein-clause of claim 1 stays satisfied.
     private var wordHighlightView: WordHighlightView? = null
     private var wordHighlightParams: WindowManager.LayoutParams? = null
-    private var lastShakeTime = 0L
-    private var shakeCount = 0
-    // Rising-edge state for the shake detector — true while gForce is
-    // sustained above the high threshold; flips back to false only after
-    // gForce drops below the release threshold. Each false → true edge
-    // counts as one discrete shake event, but only if at least
-    // SHAKE_MIN_QUIET_MS of stillness preceded the rising edge — that
-    // prevents a single physical shake (which oscillates with brief
-    // gForce dips) from registering as two separate events.
-    private var inShakeBurst = false
-    private var shakeBurstEndTime = 0L
-    private val SHAKE_MIN_QUIET_MS = 280L
 
     private var windowManager: WindowManager? = null
     var bubbleView: View? = null
@@ -463,7 +455,18 @@ class BubbleService : Service() {
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         }
         startForeground(NOTIFICATION_ID, buildNotification(), fgsType)
-        setupShakeDetector()
+        shakeDetector = BubbleShakeDetector(this, WimApp.prefs) {
+            timerHandler.post {
+                try {
+                    vibrator?.vibrate(
+                        android.os.VibrationEffect.createOneShot(
+                            80, android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                        )
+                    )
+                } catch (_: Exception) {}
+                if (bubbleView == null) showBubble() else hideBubble()
+            }
+        }.also { it.start() }
     }
 
     private fun setupBluetoothSco() {
@@ -510,101 +513,6 @@ class BubbleService : Service() {
                 Log.w(TAG, "Could not start Bluetooth SCO: ${e.message}")
             }
         }
-    }
-
-    private fun setupShakeDetector() {
-        sensorManager = getSystemService(android.hardware.SensorManager::class.java)
-        val accelerometer = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER)
-        if (accelerometer == null) {
-            Log.w(TAG, "shake: no accelerometer sensor available")
-            return
-        }
-        Log.i(TAG, "shake: setupShakeDetector starting, accelerometer=${accelerometer.name}")
-
-        shakeListener = object : android.hardware.SensorEventListener {
-            override fun onSensorChanged(event: android.hardware.SensorEvent) {
-                // Only respond to shakes when screen is on and phone is unlocked
-                val powerManager = getSystemService(android.os.PowerManager::class.java)
-                val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
-                if (!powerManager.isInteractive || keyguardManager.isKeyguardLocked) return
-
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                val gForce = kotlin.math.sqrt((x * x + y * y + z * z).toDouble()) / android.hardware.SensorManager.GRAVITY_EARTH
-
-                if (!WimApp.prefs.getBoolean("shake_enabled", true)) return
-
-                // Rising-edge detection: a "shake event" is one sustained
-                // burst of high gForce, regardless of how many oscillation
-                // peaks it contains. The previous time-based debounce kept
-                // refreshing on every peak inside a continuous shake, so
-                // shakeCount never advanced past 1.
-                //
-                // Asymmetric thresholds — first shake hard enough to
-                // prevent accidents (set-down jolt, pocket movement),
-                // follow-up easier. Release threshold is comfortably
-                // below resting gravity (~1.0) so a brief pause between
-                // shakes registers reliably.
-                val highThreshold = if (shakeCount == 0) 2.6 else 2.0
-                val releaseThreshold = 1.5
-                if (gForce > 1.4) Log.i(
-                    TAG,
-                    "shake gForce=${"%.2f".format(gForce)} count=$shakeCount " +
-                            "inBurst=$inShakeBurst high=$highThreshold"
-                )
-
-                val now = System.currentTimeMillis()
-
-                if (gForce > highThreshold && !inShakeBurst) {
-                    // Reject rising edges that come too soon after the
-                    // previous burst ended — that's a mid-shake oscillation
-                    // dip, not a discrete second shake.
-                    if (shakeBurstEndTime > 0 && now - shakeBurstEndTime < SHAKE_MIN_QUIET_MS) {
-                        inShakeBurst = true
-                        return
-                    }
-                    // Rising edge of a new shake event.
-                    inShakeBurst = true
-                    if (now - lastShakeTime > 1500) {
-                        shakeCount = 1
-                    } else {
-                        shakeCount++
-                    }
-                    lastShakeTime = now
-                    Log.i(TAG, "shake EDGE shakeCount→$shakeCount")
-
-                    if (shakeCount >= 2) {
-                        shakeCount = 0
-                        try {
-                            vibrator?.vibrate(
-                                android.os.VibrationEffect.createOneShot(
-                                    80,
-                                    android.os.VibrationEffect.DEFAULT_AMPLITUDE
-                                )
-                            )
-                        } catch (_: Exception) {
-                        }
-                        timerHandler.post {
-                            if (bubbleView == null) {
-                                showBubble()
-                            } else {
-                                hideBubble()
-                            }
-                        }
-                    }
-                } else if (gForce < releaseThreshold && inShakeBurst) {
-                    // Falling edge — shake burst ended; mark the time so the
-                    // next rising edge has to wait through a real quiet gap.
-                    inShakeBurst = false
-                    shakeBurstEndTime = now
-                }
-            }
-
-            override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
-        }
-
-        sensorManager?.registerListener(shakeListener, accelerometer, android.hardware.SensorManager.SENSOR_DELAY_GAME)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -4391,7 +4299,8 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         instance = null
-        sensorManager?.unregisterListener(shakeListener)
+        shakeDetector?.stop()
+        shakeDetector = null
         stopHotwordListener()
         dismissMenu()
         hideLiveTranscript()
