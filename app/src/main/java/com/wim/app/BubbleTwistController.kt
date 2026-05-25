@@ -33,13 +33,15 @@ class BubbleTwistController(
     private val onAppearanceChanged: () -> Unit,
     private val onExit: () -> Unit
 ) {
-    private companion object {
+    companion object {
         private const val TAG = "WiM"
         private const val TIMEOUT_INTERACTIVE_MS = 6_000L
         private const val TIMEOUT_CONFIRM_MS = 5_000L
 
         /** Pure-function trigger detection — used by the recording pipeline
-         *  to decide whether to enter twist mode for the next utterance. */
+         *  to decide whether to enter twist mode for the next utterance.
+         *  Public to support direct unit testing without constructing a
+         *  full controller. */
         fun detectTrigger(rawText: String): Mode? {
             val lower = rawText.trim().lowercase().trimEnd('.', '!', '?', ',')
             // Strict prefix match — must start with trigger phrase.
