@@ -1,11 +1,18 @@
 package com.wim.app
 
-import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.tasks.await
+import java.io.IOException
+
+sealed class SignInResult {
+    data class Success(val user: FirebaseUser) : SignInResult()
+    data class Failed(val reason: String) : SignInResult()
+}
 
 /**
  * Manages Firebase Auth state and token retrieval.
@@ -42,15 +49,25 @@ object AuthManager {
     /**
      * Sign in with Google credential (ID token from Credential Manager).
      */
-    suspend fun signInWithGoogle(googleIdToken: String): FirebaseUser? {
+    suspend fun signInWithGoogle(googleIdToken: String): SignInResult {
         return try {
             val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
             val result = auth.signInWithCredential(credential).await()
             Log.i(TAG, "Signed in as: ${result.user?.email}")
-            result.user
+            val user = result.user ?: return SignInResult.Failed("Try again")
+            SignInResult.Success(user)
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Log.e(TAG, "Google sign-in failed: ${e.message}")
+            SignInResult.Failed("Wrong account")
+        } catch (e: FirebaseAuthUserCollisionException) {
+            Log.e(TAG, "Google sign-in failed: ${e.message}")
+            SignInResult.Failed("Account conflict")
+        } catch (e: IOException) {
+            Log.e(TAG, "Google sign-in failed: ${e.message}")
+            SignInResult.Failed("No internet")
         } catch (e: Exception) {
             Log.e(TAG, "Google sign-in failed: ${e.message}")
-            null
+            SignInResult.Failed("Try again")
         }
     }
 

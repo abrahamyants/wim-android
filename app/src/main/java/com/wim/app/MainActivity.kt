@@ -184,12 +184,14 @@ class MainActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                val user = AuthManager.signInWithGoogle(idToken)
-                if (user != null) {
-                    Toast.makeText(this@MainActivity, "Signed in as ${user.email}", Toast.LENGTH_SHORT).show()
-                    updateAuthUI()
-                } else {
-                    Toast.makeText(this@MainActivity, "Sign-in failed", Toast.LENGTH_SHORT).show()
+                when (val result = AuthManager.signInWithGoogle(idToken)) {
+                    is SignInResult.Success -> {
+                        Toast.makeText(this@MainActivity, "Signed in as ${result.user.email}", Toast.LENGTH_SHORT).show()
+                        updateAuthUI()
+                    }
+                    is SignInResult.Failed -> {
+                        Toast.makeText(this@MainActivity, result.reason, Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
