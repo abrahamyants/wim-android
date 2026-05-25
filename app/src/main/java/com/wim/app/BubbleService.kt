@@ -202,6 +202,10 @@ class BubbleService : Service() {
     // Pulse rings (3 concentric loops during recording) extracted to
     // BubblePulseRings 2026-05-25 — twelfth slice.
     private var pulseRings: BubblePulseRings? = null
+
+    // "Did you know?" rotating tip surfaced once-per-24h after idle —
+    // extracted to BubbleTipRotator 2026-05-25 — thirteenth slice.
+    private var tipRotator: BubbleTipRotator? = null
     private val timerHandler = Handler(Looper.getMainLooper())
 
     companion object {
@@ -458,6 +462,11 @@ class BubbleService : Service() {
         )
         bubbleAppearance = BubbleAppearance(getBubbleView = { bubbleView })
         pulseRings = BubblePulseRings(getBubbleView = { bubbleView })
+        tipRotator = BubbleTipRotator(
+            timerHandler = timerHandler,
+            onPipelineStage = { title, body -> showPipelineStage(title, body) },
+            onHideLiveTranscript = { hideLiveTranscript() },
+        )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -1776,31 +1785,6 @@ class BubbleService : Service() {
     }
 
 
-    private val tips = listOf(
-        Pair("Did you know?", "Tap the ? in the app for a quick guide to all features."),
-        Pair("Light or dark?", "Tap the bulb icon in the app to switch between light and dark mode."),
-        Pair("Hide me!", "Drag the bubble to the bottom edge to hide. Shake to bring me back."),
-        Pair("Double-tap me", "Double-tap the bubble for quick settings — size, opacity, live text.")
-    )
-
-    private fun maybeShowTip() {
-        if (!WimApp.prefs.getBoolean("tips_enabled", true)) return
-        val lastTip = WimApp.prefs.getLong("last_tip_time", 0L)
-        val now = System.currentTimeMillis()
-        // Show a tip at most once every 24 hours
-        if (now - lastTip < 24 * 60 * 60 * 1000) return
-        val tipIndex = WimApp.prefs.getInt("tip_index", 0) % tips.size
-        val tip = tips[tipIndex]
-        timerHandler.postDelayed({
-            showPipelineStage(tip.first, tip.second)
-            timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
-        }, 2000) // 2s delay after idle so it doesn't flash during quick interactions
-        WimApp.prefs.edit()
-            .putLong("last_tip_time", now)
-            .putInt("tip_index", tipIndex + 1)
-            .apply()
-    }
-
     /**
      * Public entry point so MainActivity's bubble dock can flip the theme
      * while the user is in Settings — the live floating bubble picks up the
@@ -1835,7 +1819,7 @@ class BubbleService : Service() {
         // L4 multi-pass wav is no longer needed once we're idle.
         lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
         lastWavFile = null
-        maybeShowTip()
+        tipRotator?.maybeShow()
         // Cancel SEND-ready countdown ticker if still running.
         timerHandler.removeCallbacks(sendReadyTickRunnable)
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
