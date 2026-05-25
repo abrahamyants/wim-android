@@ -111,6 +111,12 @@ class BubbleService : Service() {
     // Command Mode cluster extracted to BubbleCommandMode 2026-05-25 —
     // ninth slice. State (armed flag + selection) lives in the new class.
     private var commandMode: BubbleCommandMode? = null
+
+    // Dock snap + park-into-dock animation extracted to BubbleDock
+    // 2026-05-25 — tenth slice. tryDockSnap() stays as a thin public
+    // wrapper so MainActivity's existing BubbleService.instance call
+    // continues to work without changes.
+    private var bubbleDock: BubbleDock? = null
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
@@ -431,6 +437,16 @@ class BubbleService : Service() {
             isRecording = { isRecording },
             onHideLiveTranscript = { hideLiveTranscript() },
             onIdle = { setBubbleIdle() },
+        )
+        bubbleDock = BubbleDock(
+            windowManager = windowManager!!,
+            getBubbleView = { bubbleView },
+            getSlotRects = { dockSlotRects },
+            getVibrator = { vibrator },
+            onApplyTheme = { applyBubbleTheme() },
+            onMenuRepositioned = { bubbleMenu?.updatePositionFromBubble() },
+            onHideBubble = { hideBubble() },
+            onNotificationText = { msg -> updateNotification(msg) },
         )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
@@ -847,9 +863,7 @@ class BubbleService : Service() {
                         // Check if dragged into a dock slot — "pulled him back in".
                         // Only active when MainActivity is visible (it publishes the
                         // rects on resume, clears on pause).
-                        val dockSnap = checkDockSnap(params)
-                        if (dockSnap != null) {
-                            parkIntoDock(dockSnap.first, dockSnap.second, params)
+                        if (bubbleDock?.trySnap(params) == true) {
                             return@setOnTouchListener true
                         }
 
@@ -1837,84 +1851,7 @@ class BubbleService : Service() {
      */
     fun tryDockSnap(): Boolean {
         val params = bubbleParams ?: return false
-        val snap = checkDockSnap(params) ?: return false
-        parkIntoDock(snap.first, snap.second, params)
-        return true
-    }
-
-    /**
-     * Returns (theme, slot-center-point) if the bubble's current position
-     * lands inside one of MainActivity's dock slot rects, else null. The
-     * bubble's notional center is params.x + bubbleWidth/2 / params.y + bubbleHeight/2.
-     */
-    private fun checkDockSnap(params: WindowManager.LayoutParams): Pair<String, android.graphics.Point>? {
-        val rects = dockSlotRects ?: return null
-        val view = bubbleView ?: return null
-        val cx = params.x + view.width / 2
-        val cy = params.y + view.height / 2
-        for ((theme, rect) in rects) {
-            // Wide release-snap radius — bubble within 80% of slot width on
-            // any side counts. Pairs with the active magnet during drag for
-            // a "really fucking strong" pull.
-            val pad = (rect.width() * 0.8f).toInt()
-            if (cx in (rect.left - pad)..(rect.right + pad) &&
-                cy in (rect.top - pad)..(rect.bottom + pad)) {
-                return theme to android.graphics.Point(rect.centerX(), rect.centerY())
-            }
-        }
-        return null
-    }
-
-    /**
-     * Animate the bubble toward a dock slot's center, fade + shrink, swap
-     * the theme to match the slot, then hide the bubble. Visual effect:
-     * "pulled him back in."
-     */
-    private fun parkIntoDock(
-        theme: String,
-        slotCenter: android.graphics.Point,
-        layoutParams: WindowManager.LayoutParams
-    ) {
-        WimApp.prefs.edit().putString("bubble_theme", theme).apply()
-        applyBubbleTheme()
-        val view = bubbleView ?: run { hideBubble(); return }
-        val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run { hideBubble(); return }
-        // Target position: slot center minus bubble half-width/height so the
-        // bubble's visual center lands on the slot center.
-        val targetX = slotCenter.x - view.width / 2
-        val targetY = slotCenter.y - view.height / 2
-        val startX = layoutParams.x
-        val startY = layoutParams.y
-        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-            // Stronger magnet: faster overall + much sharper end-rush.
-            // AccelerateInterpolator(3f) barely moves for the first half and
-            // SNAPS into the slot in the last ~30% — reads as "yanked in."
-            duration = 180
-            interpolator = android.view.animation.AccelerateInterpolator(3.0f)
-            addUpdateListener { a ->
-                val t = a.animatedValue as Float
-                layoutParams.x = (startX + (targetX - startX) * t).toInt()
-                layoutParams.y = (startY + (targetY - startY) * t).toInt()
-                try { windowManager?.updateViewLayout(view, layoutParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-                bubbleMenu?.updatePositionFromBubble()
-                bezel.scaleX = 1f - 0.55f * t
-                bezel.scaleY = 1f - 0.55f * t
-                bezel.alpha = 1f - 0.85f * t
-            }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(a: android.animation.Animator) {
-                    bezel.scaleX = 1f
-                    bezel.scaleY = 1f
-                    bezel.alpha = 1f
-                    hideBubble()
-                    updateNotification("Bubble parked — tap a dock slot or the WiM logo to resummon")
-                }
-            })
-        }
-        // Meatier haptic to match the stronger visual snap — registers as
-        // a physical "klunk" when the coat hits the hanger.
-        try { vibrator?.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-        anim.start()
+        return bubbleDock?.trySnap(params) ?: false
     }
 
     /** Apply the user's selected bubble color theme (bronze/aluminum/gunmetal). */
