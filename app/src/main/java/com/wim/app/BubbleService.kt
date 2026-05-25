@@ -70,7 +70,7 @@ class BubbleService : Service() {
     // One-time Toast guard: fires at most once per service lifetime when
     // Sonnet L4 throws and the GPT-4o fallback runs.
     @Volatile
-    var l4DowngradeNotified = false
+    private var l4DowngradeNotified = false
 
     // Patent-clean word-highlight overlay (claim 13) extracted to
     // BubbleWordHighlight 2026-05-25 — first leaf-overlay slice of the

@@ -602,11 +602,13 @@ object ReconstructClient {
             // an L3-quality reconstruction instead of nothing.
             val anthropicKey = WimApp.anthropicApiKey()
             val useSonnet = layer >= 4 && anthropicKey.isNotBlank()
+            var sonnetDowngraded = false
             val cleanText = if (useSonnet) {
                 try {
                     reconstructWithSonnet(systemPrompt, rawText, anthropicKey)
                 } catch (e: Exception) {
                     Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
+                    sonnetDowngraded = true
                     reconstructWithGpt4o(systemPrompt, rawText, apiKey, temperature)
                 }
             } else {
@@ -634,7 +636,8 @@ object ReconstructClient {
                 cleanText = finalText,
                 reconMs = reconMs,
                 riskFlags = riskFlags,
-                falconApproved = falconOk
+                falconApproved = falconOk,
+                downgradedFromL4 = sonnetDowngraded
             )
         }
 
@@ -781,6 +784,7 @@ object ReconstructClient {
         val cleanText: String,
         val reconMs: Long,
         val riskFlags: List<String> = emptyList(),
-        val falconApproved: Boolean = true
+        val falconApproved: Boolean = true,
+        val downgradedFromL4: Boolean = false
     )
 }
