@@ -2997,27 +2997,17 @@ class BubbleService : Service() {
             showPipelineStage("\u2713 $stripped disfluencies removed", "${rawWordCount}w \u2192 ${cleanWordCount}w")
         }
 
-        // Apply profile corrections at L2+ client-side BEFORE GPT sees the text.
-        // Fixes the Lavrentiy bug where corrections were only applied at L3+.
-        val allCorrections = profile.getCorrections()
-        var correctedText = preCleaned
-        val sessionNum = sessionHistory?.count() ?: 0
-        for ((wrong, right) in allCorrections) {
-            val pattern = Regex("\\b${Regex.escape(wrong)}\\b", RegexOption.IGNORE_CASE)
-            if (pattern.containsMatchIn(correctedText)) {
-                correctedText = pattern.replace(correctedText, right)
-                profile.markCorrectionUsed(wrong, sessionNum)
-                Log.i(TAG, "L$layer correction: \"$wrong\" → \"$right\"")
-            }
-        }
-        // Phonetic-neighbor correction before GPT — gives the reconstruction
-        // prompt a cleaner input, reduces round-trip cost of "fix this word"
-        // when the fix is just a phonetic neighbor of vocabulary. Gated to
-        // L2/L3 only (Lav parity); at L4 Sonnet ext-think reasons through
-        // phonetic context with the rich onset_weights prompt block instead.
-        if (layer in 2..3) {
-            correctedText = PhoneticMatcher.correct(correctedText, profile.getVocabulary(), profile.getOnsetWeights())
-        }
+        // Apply profile corrections + phonetic-neighbor matching at L2+
+        // client-side BEFORE GPT sees the text. Fixes the Lavrentiy bug
+        // where corrections were only applied at L3+. Logic extracted to
+        // L2CorrectionsStage 2026-05-25 — third Pipeline-cluster slice.
+        var correctedText = L2CorrectionsStage.apply(
+            preCleaned = preCleaned,
+            profile = profile,
+            sessionNum = sessionHistory?.count() ?: 0,
+            layer = layer,
+            log = { msg -> Log.i(TAG, msg) }
+        ).text
 
         // L3+ gets profile vocabulary and corrections injected into the prompt
         val vocabulary = if (layer >= 3) profile.getVocabulary() else emptyList()
