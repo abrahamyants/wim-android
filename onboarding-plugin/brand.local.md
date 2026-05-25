@@ -92,6 +92,22 @@ Disclaimer title uses the `cream` token (`#FFC8B48A`) and CANCEL uses the
 existing `8A7D68` (approved). Do NOT use the three legacy disclaimer tokens
 for any new surface — extend the canonical palette instead.
 
+### Clarifier UI (legacy — extraction-grandfathered 2026-05-25)
+The clarifier overlay (auto-size question word on the knob + ✓/✕ acknowledgment
+flash) uses its own dark-on-light palette inline. These two were inline in
+`BubbleService.showClarifier`/`dismissClarifier` before brand discipline
+tightened; tokenized here so the extraction to `BubbleClarifierUI.kt` could
+land without the brand guard blocking on pure relocation.
+
+| Token | Hex | Use |
+|---|---|---|
+| clarifier_label_dark | #FF444450 | Question word on the bubble knob |
+| clarifier_no_red | #FFCC4444 | "✕" acknowledgment color + shadow tint |
+
+Yes-answer color uses the existing `orange_label` token (`#FF963611`); shadow
+glows use the standard `FFFFFF` neutral with explicit alpha. Do NOT use the
+two legacy clarifier tokens for any new surface.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 

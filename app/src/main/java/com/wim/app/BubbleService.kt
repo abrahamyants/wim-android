@@ -148,8 +148,10 @@ class BubbleService : Service() {
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
     private var isWorkMode = false  // false=personal, true=work
-    private var isClarifierActive = false
-    private var clarifierCallback: ((Boolean?) -> Unit)? = null
+    // Clarifier UI extracted to BubbleClarifierUI 2026-05-25 — eighth slice.
+    // BubbleService still owns enterClarifierCycle/paintClarifierLabel since
+    // they wrap ClarifierController, not the bubble's visual state.
+    private var clarifierUI: BubbleClarifierUI? = null
 
     // Regenerate state — set after a successful L2/L3/L4 paste so the user can
     // re-roll the phrasing by tapping the regenerate icon on the lower bezel.
@@ -169,19 +171,7 @@ class BubbleService : Service() {
     private var isRegenAvailable: Boolean = false
     private var regenHideJob: Job? = null
     private var isRegenInFlight: Boolean = false
-    private val clarifierTimeout = Runnable {
-        if (clarifierRetryCount < 1) {
-            // First timeout — retry
-            clarifierRetryCount++
-            pendingClarifierCallback?.let { cb ->
-                showClarifier(pendingClarifierWord, pendingClarifierQuestion, cb)
-            }
-        } else {
-            // Second timeout — give up
-            clarifierRetryCount = 0
-            dismissClarifier(null)
-        }
-    }
+    // Clarifier retry/timeout state moved to BubbleClarifierUI.
     // SupervisorJob: child coroutine failures don't cancel siblings.
     // CoroutineExceptionHandler: any throw in a launched coroutine that's
     // NOT caught by an inner try/catch ends up here — without this handler
@@ -423,6 +413,14 @@ class BubbleService : Service() {
             onAppearanceChanged = { updateBubbleAppearance() },
             onExit = { setBubbleIdle() },
         )
+        clarifierUI = BubbleClarifierUI(
+            context = this,
+            getBubbleView = { bubbleView },
+            timerHandler = timerHandler,
+            onAppearanceChanged = { updateBubbleAppearance() },
+            onPipelineStage = { stage, detail -> showPipelineStage(stage, detail) },
+            onAcknowledged = { setBubbleIdle() },
+        )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -528,7 +526,7 @@ class BubbleService : Service() {
             }
             "TEST_CLARIFIER" -> {
                 val q = intent.getStringExtra("question") ?: "WORK?"
-                showClarifier(q) { answer ->
+                clarifierUI?.show(q) { answer ->
                     Log.i(TAG, "Clarifier answer: $answer")
                 }
             }
@@ -938,9 +936,9 @@ class BubbleService : Service() {
                             }
                             return@setOnTouchListener true
                         }
-                        if (isClarifierActive) {
+                        if (clarifierUI?.isActive == true) {
                             // Clarifier mode — left = ✓ yes, right = ✕ no
-                            dismissClarifier(tx < 0)
+                            clarifierUI?.dismiss(tx < 0)
                         } else {
                             // Normal mode — toggle work/life
                             // Stamp manual_tone_set_ms so the accessibility-side
@@ -2071,7 +2069,7 @@ class BubbleService : Service() {
     }
 
     fun updateIdleDisplay() {
-        if (isRecording || isClarifierActive) return
+        if (isRecording || clarifierUI?.isActive == true) return
         setBubbleIdle()
     }
 
@@ -2080,17 +2078,8 @@ class BubbleService : Service() {
         // WORK/LIFE only shown during clarifier
     }
 
-    /**
-     * Show a clarifier question on the knob with ✓ and ✕ on the bezel.
-     * @param questionWord Short word shown on the knob (e.g. "WORK?" or "VENT?")
-     * @param onAnswer Callback with true=✓ false=✕ null=timeout
-     */
-    private var preClarifierSize = -1
-    private var preClarifierOpacity = -1
-    private var clarifierRetryCount = 0
-    private var pendingClarifierWord = ""
-    private var pendingClarifierQuestion = ""
-    private var pendingClarifierCallback: ((Boolean?) -> Unit)? = null
+    // Clarifier pending-question + retry-count + pre-clarifier size/opacity
+    // state moved to BubbleClarifierUI.
 
     // Twist mode — voice-triggered knob rotation to adjust size or opacity.
     // Cluster extracted to BubbleTwistController 2026-05-25 — seventh slice.
@@ -2134,7 +2123,7 @@ class BubbleService : Service() {
         showPipelineStage("📋 Picked up", preview)
 
         // Ask user to confirm
-        showClarifier("?", "Rewrite this text?") { answer ->
+        clarifierUI?.show("?", "Rewrite this text?") { answer ->
             if (answer == true) {
                 armCommandMode()
             } else {
@@ -2180,119 +2169,6 @@ class BubbleService : Service() {
             putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, replaced)
         }
         return node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-    }
-
-    fun showClarifier(questionWord: String, contextQuestion: String = "", onAnswer: (Boolean?) -> Unit) {
-        isClarifierActive = true
-        clarifierCallback = { answer -> onAnswer(answer) }
-        pendingClarifierWord = questionWord
-        pendingClarifierQuestion = contextQuestion
-        pendingClarifierCallback = onAnswer
-
-        // Save current size/opacity and max out for visibility
-        if (preClarifierSize < 0) {
-            preClarifierSize = WimApp.bubbleSize()
-            preClarifierOpacity = WimApp.bubbleOpacity()
-        }
-        WimApp.prefs.edit().putInt("bubble_size", 150).putInt("bubble_opacity", 100).apply()
-        updateBubbleAppearance()
-
-        // Show question on the knob — auto-size to fill, dark gray, bold
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = questionWord
-            setTextColor(0xFF444450.toInt())
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            letterSpacing = 0.0f
-            setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
-            setAutoSizeTextTypeUniformWithConfiguration(8, 28, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
-        }
-        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
-
-        // Show full question on live transcript bar
-        if (contextQuestion.isNotBlank()) {
-            val retryLabel = if (clarifierRetryCount > 0) "Still waiting..." else "Quick question"
-            showPipelineStage(retryLabel, contextQuestion)
-        }
-
-        // Show split bezel (green/red) and ✓/✕
-        bubbleView?.findViewById<View>(R.id.clarifierBgYes)?.visibility = View.VISIBLE
-        bubbleView?.findViewById<View>(R.id.clarifierBgNo)?.visibility = View.VISIBLE
-        bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.VISIBLE
-        bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.VISIBLE
-
-        // Auto-retry or dismiss after 10 seconds
-        timerHandler.removeCallbacks(clarifierTimeout)
-        timerHandler.postDelayed(clarifierTimeout, 10000)
-    }
-
-    private fun dismissClarifier(answer: Boolean?) {
-        timerHandler.removeCallbacks(clarifierTimeout)
-        isClarifierActive = false
-        clarifierRetryCount = 0
-
-        // Hide split bezel and ✓/✕
-        bubbleView?.findViewById<View>(R.id.clarifierBgYes)?.visibility = View.GONE
-        bubbleView?.findViewById<View>(R.id.clarifierBgNo)?.visibility = View.GONE
-        bubbleView?.findViewById<TextView>(R.id.bezelYes)?.visibility = View.GONE
-        bubbleView?.findViewById<TextView>(R.id.bezelNo)?.visibility = View.GONE
-
-        // Restore normal label sizing and style
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
-            letterSpacing = 0.05f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-        }
-
-        // Restore original size and opacity
-        if (preClarifierSize > 0) {
-            WimApp.prefs.edit().putInt("bubble_size", preClarifierSize).putInt("bubble_opacity", preClarifierOpacity).apply()
-            updateBubbleAppearance()
-            preClarifierSize = -1
-            preClarifierOpacity = -1
-        }
-
-        // Show acknowledgment if user answered (not timeout)
-        if (answer != null) {
-            val label = bubbleView?.findViewById<TextView>(R.id.bubbleLabel)
-            val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
-            // Flash the checkmark, then cycle sparkle sequence
-            label?.apply {
-                text = if (answer == true) "✓" else "✕"
-                setTextColor(if (answer == true) getColor(R.color.orange_label) else 0xFFCC4444.toInt())
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 24f)
-                setShadowLayer(16f, 0f, 0f, if (answer == true) 0x80FFFFFF.toInt() else 0x80CC4444.toInt())
-            }
-            // Quick scale-pulse animation on the bezel
-            bezel?.let { v ->
-                val scaleUp = android.animation.ObjectAnimator.ofPropertyValuesHolder(v,
-                    android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f, 1.15f, 1f),
-                    android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f, 1.15f, 1f))
-                scaleUp.duration = 350
-                scaleUp.interpolator = android.view.animation.OvershootInterpolator()
-                scaleUp.start()
-            }
-            // Sparkle sequence: ✓ → ✦ → ✧ → idle
-            timerHandler.postDelayed({
-                label?.text = "✦"
-                label?.setTextColor(getColor(R.color.orange_label)) // copper gold
-            }, 400)
-            timerHandler.postDelayed({
-                label?.text = "✧"
-                label?.setTextColor(0x88FFFFFF.toInt())
-            }, 650)
-            timerHandler.postDelayed({
-                bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
-                setBubbleIdle()
-            }, 900)
-        } else {
-            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
-            setBubbleIdle()
-        }
-
-        // Fire callback
-        clarifierCallback?.invoke(answer)
-        clarifierCallback = null
     }
 
     // ═══════════════════════════════════════════════════════════
