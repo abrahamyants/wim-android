@@ -132,6 +132,22 @@ Brighter than `red_primary` so it reads on both light and dark bezels.
 
 Do NOT use this legacy token for any new surface.
 
+### Stage arc + processing (legacy — extraction-grandfathered 2026-05-25)
+The bezel renders a 4-quadrant stage arc during pipeline work (transcribe →
+reconstruct → verify → inject) in a theme-conditional color. Bronze gets a
+warm deep maroon; aluminum needs a much darker arc to read against the
+light silver bezel. The PROC label uses a bright cream-gold so it reads on
+both red and green knob backgrounds during recording/processing transitions.
+
+| Token | Hex | Use |
+|---|---|---|
+| stage_arc_bronze | #FF7A1F1F | Bezel stage arc on bronze theme |
+| stage_arc_aluminum | #FF2A0606 | Bezel stage arc on aluminum theme |
+| proc_label_cream | #FFFFD580 | "PROC" label color during processing |
+
+Gunmetal stage arc uses the standard `cream` token (#C8B48A). Do NOT use
+the three legacy tokens for any new surface.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 

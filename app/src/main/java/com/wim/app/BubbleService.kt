@@ -61,6 +61,10 @@ class BubbleService : Service() {
     // and notification IDs stay as service constants.
     private var statusUI: BubbleStatusUI? = null
 
+    // Bezel 4-quadrant stage arc + PROC processing-label paint extracted
+    // to BubbleStageArc 2026-05-25 — eighteenth slice.
+    private var stageArc: BubbleStageArc? = null
+
     // L4 multi-pass decoder needs the recorded WAV after reconstruction
     // finishes so the clarifier check can run cross-pass disagreement
     // analysis. Cleaned up in setBubbleIdle / before next recording.
@@ -482,6 +486,7 @@ class BubbleService : Service() {
             scope = scope,
         )
         statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleView })
+        stageArc = BubbleStageArc(getBubbleView = { bubbleView })
         hotword = BubbleHotword(
             context = this,
             getVibrator = { vibrator },
@@ -1994,33 +1999,7 @@ class BubbleService : Service() {
         liveTranscript?.hide()
     }
 
-    /**
-     * Drive the bezel's stage arc — 0=Transcribing, 1=Reconstructing,
-     * 2=Verifying (Falcon), 3=Injecting. -1 resets to all dim.
-     * Theme color follows the current bubble theme so the arcs harmonize
-     * with bronze/aluminum/gunmetal palettes.
-     */
-    private fun setStageArc(stage: Int) {
-        val arc = bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc) ?: return
-        // Per-theme arc color so all four quadrants read as "quarter
-        // separation" on every bezel. Aluminum's light silver bezel needs
-        // a much darker arc than bronze's warm copper — `#7A1F1F` at 40%
-        // alpha washed out on silver. `#2A0606` (near-black with a maroon
-        // undertone) stays in the brand-maroon family but reads dark-on-
-        // light. Bronze keeps the deep maroon that harmonizes with the
-        // warm metal. Gunmetal stays cream-gold on dark steel.
-        val arcColor = when (WimApp.bubbleTheme()) {
-            "gunmetal" -> 0xFFC8B48A.toInt()
-            "aluminum" -> 0xFF2A0606.toInt()
-            else -> 0xFF7A1F1F.toInt()
-        }
-        arc.setArcColor(arcColor)
-        if (stage < 0) {
-            arc.reset()
-            return
-        }
-        arc.setActiveStage(stage)
-    }
+    private fun setStageArc(stage: Int) { stageArc?.setStage(stage) }
 
     /** Public wrapper for BubbleDemoScript to drive the stage arc. */
     fun setStageArcPublic(stage: Int) = setStageArc(stage)
@@ -2045,19 +2024,7 @@ class BubbleService : Service() {
         activeDemoScript = BubbleDemoScript(finish).also { it.start() }
     }
 
-    private fun setBubbleProcessing() {
-        // Bezel stays in theme color. Knob and label both stay in copper_gold
-        // — the bubble's brand color across recording AND processing — so the
-        // visual reads as one continuous "bubble is busy" affordance. The
-        // REC → PROC label change carries the state distinction; color
-        // doesn't need to do double duty.
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "PROC"
-            setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
-        }
-    }
+    private fun setBubbleProcessing() { stageArc?.setProcessing() }
 
     private fun checkRedo(text: String) {
         if (recentTexts.isNotEmpty() && PipelineAnalytics.jaccard(text, recentTexts.last()) > 0.7) {
