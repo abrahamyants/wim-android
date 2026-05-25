@@ -587,12 +587,12 @@ class BubbleService : Service() {
         try {
             windowManager?.addView(overlay, params)
             onboardingOverlay = overlay
-        } catch (_: Exception) {}
+        } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
     }
 
     private fun removeOnboardingOverlay() {
         onboardingOverlay?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             onboardingOverlay = null
         }
     }
@@ -607,7 +607,7 @@ class BubbleService : Service() {
                     val view = bubbleView ?: return@let
                     p.x = spawnCx - view.width / 2
                     p.y = spawnCy - view.height / 2
-                    try { windowManager?.updateViewLayout(view, p) } catch (_: Exception) {}
+                    try { windowManager?.updateViewLayout(view, p) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
                 }
             }
             return
@@ -1137,7 +1137,7 @@ class BubbleService : Service() {
         dismissSendDisclaimer()
         hideWordHighlight()
         bubbleView?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             bubbleView = null
         }
         // Re-post notification so it stays visible as the recall button
@@ -1439,12 +1439,12 @@ class BubbleService : Service() {
             onConfirm()
         }
         disclaimerView = container
-        try { windowManager?.addView(container, lp) } catch (_: Exception) {}
+        try { windowManager?.addView(container, lp) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
     }
 
     private fun dismissSendDisclaimer() {
         disclaimerView?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         }
         disclaimerView = null
     }
@@ -1466,7 +1466,7 @@ class BubbleService : Service() {
         val params = bubbleParams ?: return
         params.x = cx - view.width / 2
         params.y = cy - view.height / 2
-        try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+        try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         updateMenuPositionFromBubble()
     }
 
@@ -1482,7 +1482,7 @@ class BubbleService : Service() {
                 val t = anim.animatedFraction
                 params.x = (fromCx + (toCx - fromCx) * t).toInt() - view.width / 2
                 params.y = (fromCy + (toCy - fromCy) * t).toInt() - view.height / 2
-                try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+                try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             }
             start()
         }
@@ -1988,7 +1988,7 @@ class BubbleService : Service() {
                 val t = a.animatedValue as Float
                 layoutParams.x = (startX + (targetX - startX) * t).toInt()
                 layoutParams.y = (startY + (targetY - startY) * t).toInt()
-                try { windowManager?.updateViewLayout(view, layoutParams) } catch (_: Exception) {}
+                try { windowManager?.updateViewLayout(view, layoutParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
                 updateMenuPositionFromBubble()
                 bezel.scaleX = 1f - 0.55f * t
                 bezel.scaleY = 1f - 0.55f * t
@@ -2202,7 +2202,7 @@ class BubbleService : Service() {
             params.y = rect.top
             params.width = rect.width()
             params.height = rect.height()
-            try { wm.updateViewLayout(wordHighlightView, params) } catch (_: Exception) {}
+            try { wm.updateViewLayout(wordHighlightView, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         }
         // Sub-region horizontal estimate: most apps don't expose per-
         // character bounds via accessibility, so we approximate the
@@ -2230,7 +2230,7 @@ class BubbleService : Service() {
     fun hideWordHighlight() {
         val view = wordHighlightView ?: return
         val wm = windowManager
-        try { wm?.removeView(view) } catch (_: Exception) {}
+        try { wm?.removeView(view) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         wordHighlightView = null
         wordHighlightParams = null
     }
@@ -2976,7 +2976,7 @@ class BubbleService : Service() {
                 val t = a.animatedValue as Float
                 params.x = (startX + (targetX - startX) * t).toInt()
                 params.y = (startY + (targetY - startY) * t).toInt()
-                try { windowManager?.updateViewLayout(view, params) } catch (_: Exception) {}
+                try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
                 updateMenuPositionFromBubble()
             }
         }
@@ -3011,12 +3011,12 @@ class BubbleService : Service() {
         val tailOverlap = 0
         mParams.x = bubbleCenterX - mWidth / 2
         mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
-        try { windowManager?.updateViewLayout(mView, mParams) } catch (_: Exception) {}
+        try { windowManager?.updateViewLayout(mView, mParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
     }
 
     private fun dismissMenu() {
         menuView?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             menuView = null
             menuParams = null
         }
@@ -3086,7 +3086,7 @@ class BubbleService : Service() {
             y = (bubbleTop - (90 * dp).toInt()).coerceAtLeast(0)
         }
         liveTextParams = ltParams
-        try { windowManager?.addView(container, ltParams) } catch (_: Exception) {}
+        try { windowManager?.addView(container, ltParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
 
         val bezelTopOffset = (bubbleHeight * 0.20).toInt()
         val anchor: () -> Unit = {
@@ -3094,7 +3094,7 @@ class BubbleService : Service() {
             val newY = (bubbleTop - measuredH + bezelTopOffset).coerceAtLeast(0)
             if (ltParams.y != newY) {
                 ltParams.y = newY
-                try { windowManager?.updateViewLayout(container, ltParams) } catch (_: Exception) {}
+                try { windowManager?.updateViewLayout(container, ltParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             }
         }
         container.post(anchor)
@@ -3234,7 +3234,7 @@ class BubbleService : Service() {
     private fun hideLiveTranscript() {
         stopStagePulse()
         liveTextContainer?.let {
-            try { windowManager?.removeView(it) } catch (_: Exception) {}
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         }
         liveTextContainer = null
         liveTextView = null
