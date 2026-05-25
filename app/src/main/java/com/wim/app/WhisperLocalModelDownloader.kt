@@ -3,6 +3,8 @@ package com.wim.app
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,6 +42,12 @@ object WhisperLocalModelDownloader {
         .readTimeout(600, TimeUnit.SECONDS)
         .build()
 
+    // Serializes downloadAndUnpack so concurrent callers (auto-download
+    // from WimApp.onCreate + a user-triggered redownload from settings)
+    // don't interleave bytes into the same staging file — CRC errors
+    // mid-stream surface to the user as opaque "Download failed".
+    private val downloadMutex = Mutex()
+
     data class Progress(val bytesDone: Long, val bytesTotal: Long, val stage: String)
 
     sealed class Result {
@@ -69,7 +77,7 @@ object WhisperLocalModelDownloader {
     suspend fun downloadAndUnpack(
         context: Context,
         onProgress: (Progress) -> Unit
-    ): Result = withContext(Dispatchers.IO) {
+    ): Result = downloadMutex.withLock { withContext(Dispatchers.IO) {
         val targetDir = modelDir(context)
         if (isInstalled(context)) {
             Log.i(TAG, "Already installed at $targetDir")
@@ -142,5 +150,5 @@ object WhisperLocalModelDownloader {
             staging.delete()
             Result.Failed(e.message ?: "Unknown error")
         }
-    }
+    } }
 }

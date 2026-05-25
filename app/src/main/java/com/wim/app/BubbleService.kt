@@ -1843,7 +1843,10 @@ class BubbleService : Service() {
 
         // Stop whichever engine was running this session; cheap defensive calls on all.
         onDeviceRecognizer?.stop()
-        whisperLocalEngine?.stop()
+        // WhisperLocalEngine.stop() runs sherpa-onnx decode synchronously
+        // (~600-900 ms on a mid-range device). Dispatch off Main so the
+        // user doesn't see dropped frames on every recording stop.
+        scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
 
         // Force the bar to appear during pipeline work so the user sees what's
         // happening (transcribe → reconstruct → falcon → inject) even when

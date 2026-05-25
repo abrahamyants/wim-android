@@ -8,6 +8,8 @@ import android.database.Cursor
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 /**
  * Stores session history in SQLite for analytics and profile learning.
@@ -19,6 +21,12 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         private const val TAG = "WiM"
         private const val TABLE = "sessions"
         private const val MAX_SESSIONS = 10_000
+
+        // Firestore callbacks default to Main; the sync loop's per-doc
+        // rawQuery + insert is N synchronous SQLite ops, ANR-territory on a
+        // fresh install with hundreds of sessions. Single-thread executor
+        // keeps writes serialized (no DB lock contention) and off Main.
+        private val syncExecutor: Executor = Executors.newSingleThreadExecutor()
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -174,7 +182,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             .collection("sessions")
             .orderBy("timestamp")
             .get()
-            .addOnSuccessListener { snapshot ->
+            .addOnSuccessListener(syncExecutor) { snapshot ->
                 var imported = 0
                 for (doc in snapshot.documents) {
                     val ts = doc.getLong("timestamp") ?: continue
@@ -208,7 +216,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 // Notify callback if provided
                 onSyncComplete?.invoke(imported)
             }
-            .addOnFailureListener { Log.e(TAG, "Session sync failed: ${it.message}") }
+            .addOnFailureListener(syncExecutor) { Log.e(TAG, "Session sync failed: ${it.message}") }
     }
 
     fun getRecentSessions(limit: Int = 50, query: String? = null): List<Session> {

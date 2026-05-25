@@ -2,6 +2,7 @@ package com.wim.app
 
 import android.app.Application
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -20,6 +21,12 @@ class WimApp : Application() {
 
         private lateinit var profileManager: ProfileManager
 
+        // Single SessionHistory instance shared across the process. Re-allocating
+        // per auth-state change leaked SQLiteOpenHelper file descriptors (one
+        // per sign-in / sign-out / token refresh) until EMFILE.
+        lateinit var sessionHistory: SessionHistory
+            private set
+
         // Session sync listener — MainActivity registers to refresh UI after Firestore sync
         var onSessionsSynced: (() -> Unit)? = null
 
@@ -34,6 +41,11 @@ class WimApp : Application() {
             return try {
                 instance.assets.open(filename).bufferedReader().use { it.readText().trim() }
             } catch (e: Exception) {
+                // Empty return collapses with "asset missing" + "user didn't
+                // set one in prefs" — without this log a DEBUG build silently
+                // degrades to "L2/L3 paste raw text + generic failure toast"
+                // and looks like reconstruction is broken.
+                Log.w("WiM", "bundledKey($filename) missing: ${e.message}")
                 ""
             }
         }
@@ -206,6 +218,7 @@ class WimApp : Application() {
             prefs.edit().putBoolean("clarifier_sensitivity_migrated", true).apply()
         }
         profileManager = ProfileManager(prefs)
+        sessionHistory = SessionHistory(this)
         // English-only build. Lang packs in assets/ are not loaded — the
         // hardcoded English defaults in DisfluencyFilter and the English
         // baseline in PhoneticRisk are the only paths that run. Re-enable
@@ -261,8 +274,10 @@ class WimApp : Application() {
             val user = auth.currentUser
             if (user != null) {
                 profileManager.startSync(user.uid)
-                // Restore sessions from Firestore on sign-in
-                SessionHistory(this).syncFromFirestore { imported ->
+                // Restore sessions from Firestore on sign-in. Reuse the
+                // process-scoped SessionHistory so we don't leak SQLite fds
+                // on every auth state change.
+                sessionHistory.syncFromFirestore { imported ->
                     if (imported > 0) {
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
                             onSessionsSynced?.invoke()

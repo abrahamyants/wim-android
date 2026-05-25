@@ -318,8 +318,17 @@ class WimAccessibilityService : AccessibilityService() {
             if (pasteOk) {
                 Log.i("WiM", "injectText: ACTION_PASTE fallback ok")
             } else {
-                Log.e("WiM", "injectText: both ACTION_SET_TEXT and ACTION_PASTE failed — text did not land")
-                android.widget.Toast.makeText(this, getString(R.string.toast_field_lost), android.widget.Toast.LENGTH_SHORT).show()
+                Log.e("WiM", "injectText: both ACTION_SET_TEXT and ACTION_PASTE failed — falling back to clipboard")
+                // Worst-case for someone fighting through a hard block: the
+                // sentence they spent 5-10 s producing just vanishes. Mirror
+                // the focus-dropped branch above — keep the text on the
+                // clipboard so they can long-press paste once they tap into
+                // any text field.
+                try {
+                    val cb = getSystemService(android.content.ClipboardManager::class.java)
+                    cb?.setPrimaryClip(android.content.ClipData.newPlainText("WiM reconstruction", finalText))
+                } catch (_: Exception) {}
+                android.widget.Toast.makeText(this, "Tap a text field — your text is on the clipboard", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }

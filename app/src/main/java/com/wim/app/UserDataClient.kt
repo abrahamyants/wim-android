@@ -1,5 +1,6 @@
 package com.wim.app
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,9 +47,13 @@ object UserDataClient {
         try {
             val resp = http.newCall(req).execute()
             val respBody = resp.body?.string() ?: return@withContext null
-            if (!resp.isSuccessful) return@withContext null
+            if (!resp.isSuccessful) {
+                Log.e("UserDataClient", "exportData HTTP ${resp.code}")
+                return@withContext null
+            }
             JSONObject(respBody)
         } catch (e: Exception) {
+            Log.e("UserDataClient", "exportData failed: ${e.message}", e)
             null
         }
     }
@@ -72,9 +77,13 @@ object UserDataClient {
         try {
             val resp = http.newCall(req).execute()
             val respBody = resp.body?.string() ?: return@withContext false
-            if (!resp.isSuccessful) return@withContext false
+            if (!resp.isSuccessful) {
+                Log.e("UserDataClient", "deleteData HTTP ${resp.code}")
+                return@withContext false
+            }
             JSONObject(respBody).optBoolean("deleted", false)
         } catch (e: Exception) {
+            Log.e("UserDataClient", "deleteData failed: ${e.message}", e)
             false
         }
     }
