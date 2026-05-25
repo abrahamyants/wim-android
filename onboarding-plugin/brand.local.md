@@ -58,6 +58,23 @@ the plugin at a different voice-to-intent Android app.
 
 Use exactly these hex values. Do not approximate, do not round, do not "improve."
 
+### Bubble menu surface (legacy — extraction-grandfathered 2026-05-25)
+The floating bubble's menu overlay is rendered against a per-theme metal surface
+(bronze hex / aluminum hex / gunmetal carbon weave) regardless of system day/
+night mode, so it uses its own text palette. These three were inline in
+`BubbleService` before brand discipline tightened; tokenized here so the
+extraction to `BubbleMenu.kt` could land without the brand guard blocking on
+pure relocation.
+
+| Token | Hex | Use |
+|---|---|---|
+| menu_brand_cream_bright | #FFE6D4B0 | Active chip / on-fill value text on gunmetal |
+| menu_on_fill_bronze | #FF1F1208 | Section labels + slider mini-labels on bronze hex surface |
+| menu_on_fill_aluminum | #FF0A0A12 | Same role on aluminum hex surface |
+
+Cream itself (`#FFC8B48A`) is the dark-mode `cream` token above. Do NOT use the
+three legacy tokens for any new surface — extend the canonical palette instead.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 

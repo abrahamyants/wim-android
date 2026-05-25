@@ -114,8 +114,10 @@ class BubbleService : Service() {
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
-    private var menuView: View? = null
-    private var menuParams: WindowManager.LayoutParams? = null
+    // Comment-bubble menu overlay extracted to BubbleMenu 2026-05-25 —
+    // third BubbleWindow slice. Owns the menu view + params + inflation +
+    // listeners + tail-anchored positioning.
+    private var bubbleMenu: BubbleMenu? = null
     // Live transcript + pipeline-stage comment-bubble overlay extracted to
     // BubbleLiveTranscript 2026-05-25 — second BubbleWindow slice. Owns the
     // overlay view, container, params, typewriter/cursor animations, and
@@ -233,8 +235,8 @@ class BubbleService : Service() {
 
     // Public wrappers for onboarding demo script
     fun setBubbleIdlePublic() = setBubbleIdle()
-    fun showMenuPublic() = showMenu()
-    fun dismissMenuPublic() = dismissMenu()
+    fun showMenuPublic() { bubbleMenu?.show() }
+    fun dismissMenuPublic() { bubbleMenu?.dismiss() }
     fun hideLiveTranscriptPublic() = hideLiveTranscript()
 
     /**
@@ -402,6 +404,15 @@ class BubbleService : Service() {
             getBubbleParams = { bubbleParams },
             isDemoActive = { activeDemoScript != null }
         )
+        bubbleMenu = BubbleMenu(
+            context = this,
+            windowManager = windowManager!!,
+            getBubbleView = { bubbleView },
+            getBubbleParams = { bubbleParams },
+            onAppearanceChanged = { updateBubbleAppearance() },
+            onLayerChanged = { updateIdleDisplay() },
+            onThemeChanged = { applyBubbleTheme() }
+        )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -543,7 +554,7 @@ class BubbleService : Service() {
             "HIDE" -> hideBubble()
             "OPEN_MENU" -> {
                 if (bubbleView == null) showBubble()
-                if (menuView != null) dismissMenu() else showMenu()
+                if (bubbleMenu?.isVisible() == true) bubbleMenu?.dismiss() else bubbleMenu?.show()
             }
             "TOGGLE_RECORDING" -> {
                 if (bubbleView == null) showBubble()
@@ -838,7 +849,7 @@ class BubbleService : Service() {
                         )
 
                         windowManager?.updateViewLayout(bubbleView, params)
-                        updateMenuPositionFromBubble()
+                        bubbleMenu?.updatePositionFromBubble()
 
                         // Taffy: stretch in drag direction
                         val speed = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
@@ -915,11 +926,11 @@ class BubbleService : Service() {
                         val bezelTop = params.y + triggerInsetPx
                         val bezelBottom = params.y + triggerWindowPx - triggerInsetPx
                         if (bezelTop < menuZone) {
-                            if (menuView != null) {
-                                dismissMenu()
+                            if (bubbleMenu?.isVisible() == true) {
+                                bubbleMenu?.dismiss()
                             } else {
                                 snapBubbleForMenuOpen()
-                                showMenu()
+                                bubbleMenu?.show()
                             }
                             return@setOnTouchListener true
                         }
@@ -1065,11 +1076,11 @@ class BubbleService : Service() {
                             // Same canonical snap as the drag-to-top path
                             // so menu/tail orientation is identical on both
                             // open paths.
-                            if (menuView != null) {
-                                dismissMenu()
+                            if (bubbleMenu?.isVisible() == true) {
+                                bubbleMenu?.dismiss()
                             } else {
                                 snapBubbleForMenuOpen()
-                                showMenu()
+                                bubbleMenu?.show()
                             }
                         } else {
                             // First tap — schedule single-tap action with
@@ -1486,7 +1497,7 @@ class BubbleService : Service() {
         params.x = cx - view.width / 2
         params.y = cy - view.height / 2
         try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-        updateMenuPositionFromBubble()
+        bubbleMenu?.updatePositionFromBubble()
     }
 
     private fun animateBubbleTo(toCx: Int, toCy: Int, durationMs: Long) {
@@ -1574,7 +1585,7 @@ class BubbleService : Service() {
         }, 600)
 
         Log.i(TAG, "Starting on-device recognition")
-        dismissMenu()
+        bubbleMenu?.dismiss()
         showLiveTranscript()
         Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
@@ -2008,7 +2019,7 @@ class BubbleService : Service() {
                 layoutParams.x = (startX + (targetX - startX) * t).toInt()
                 layoutParams.y = (startY + (targetY - startY) * t).toInt()
                 try { windowManager?.updateViewLayout(view, layoutParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-                updateMenuPositionFromBubble()
+                bubbleMenu?.updatePositionFromBubble()
                 bezel.scaleX = 1f - 0.55f * t
                 bezel.scaleY = 1f - 0.55f * t
                 bezel.alpha = 1f - 0.85f * t
@@ -2648,272 +2659,14 @@ class BubbleService : Service() {
     private val MENU_TRIGGER_DP = 40
     private val HIDE_TRIGGER_DP = 80
 
-    private fun showMenu() {
-        if (menuView != null) return
-        dismissMenu()
-
-        val themedContext = android.view.ContextThemeWrapper(this, R.style.Theme_WhatIMeant)
-        val inflater = LayoutInflater.from(themedContext)
-        menuView = inflater.inflate(R.layout.bubble_menu, null)
-
-        // Per-theme palette: comment-bubble fill/stroke + matched text colors
-        // so the menu reads as the bubble's own speech.
-        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
-
-        // Speech-bubble background with downward tail centered at bottom — tail
-        // tip lands on the floating bubble's top edge.
-        menuView!!.background = CommentBubbleDrawable(
-            fillColor = palette.fill,
-            strokeColor = palette.stroke,
-            displayMetrics = resources.displayMetrics,
-            backgroundStyle = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
-        )
-
-        // On-FILL text color (section labels, slider labels/values, Reset, Settings)
-        // adapts per theme so it stays readable against the menu surface:
-        //   Bronze hex / Silver hex → dark grey
-        //   Gunmetal carbon weave   → brand cream
-        // Chips (engraved nameplates) have their own dark background, so chip
-        // text stays brand cream universally regardless of theme.
-        val brandCream = 0xFFC8B48A.toInt()
-        val brandCreamBright = 0xFFE6D4B0.toInt()
-        val onFillText = when (WimApp.bubbleTheme()) {
-            "gunmetal" -> brandCream
-            "bronze" -> 0xFF1F1208.toInt()    // deep brown — strong contrast on bronze hex
-            else -> 0xFF0A0A12.toInt()        // near-black — strong contrast on silver hex
-        }
-        val onFillTextBright = when (WimApp.bubbleTheme()) {
-            "gunmetal" -> brandCreamBright
-            else -> 0xFF000000.toInt()        // pure black for slider values
-        }
-        fun colorAs(id: Int, color: Int) {
-            menuView!!.findViewById<TextView>(id)?.setTextColor(color)
-        }
-        // Section labels — sit on the menu fill
-        colorAs(R.id.menuLiveLabel, onFillText)
-        colorAs(R.id.menuLayerLabel, onFillText)
-        colorAs(R.id.menuColorLabel, onFillText)
-        // Slider mini-labels (OP / SZ) + bottom value readouts
-        colorAs(R.id.menuOpacityLabel, onFillText)
-        colorAs(R.id.menuOpacityValue, onFillTextBright)
-        colorAs(R.id.menuSizeLabel, onFillText)
-        colorAs(R.id.menuSizeValue, onFillTextBright)
-        // Settings — wrapper-less, sits on the menu fill
-        colorAs(R.id.menuOpenSettings, onFillTextBright)
-
-        // Anticipatory prediction chip — populated at menu-open time so
-        // it reflects whichever app the user is currently in. Hidden when
-        // PredictionEngine has nothing high-confidence to say.
-        menuView!!.findViewById<TextView>(R.id.menuPredictionChip)?.let { chip ->
-            chip.setTextColor(palette.secondaryText)
-            val pkg = WimAccessibilityService.currentForegroundPackage
-            val pred = if (WimApp.predictionsEnabled()) PredictionEngine.predictForContext(pkg) else null
-            if (pred != null) {
-                chip.text = "→ ${pred.tone.uppercase()} · ${pred.recipient}"
-                chip.visibility = View.VISIBLE
-            } else {
-                chip.visibility = View.GONE
-            }
-        }
-
-        val mParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            // Real x/y are set by updateMenuPositionFromBubble() once measured
-            x = 0
-            y = 0
-        }
-        menuParams = mParams
-
-        // Load current values
-        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100)
-        val size = WimApp.bubbleSize().coerceIn(70, 150)
-        val liveEnabled = WimApp.prefs.getBoolean("live_transcript", false)
-
-        val accentTint = android.content.res.ColorStateList.valueOf(palette.accent)
-        val trackTint = android.content.res.ColorStateList.valueOf(palette.sliderTrack)
-
-        val opacitySeek = menuView!!.findViewById<SeekBar>(R.id.menuOpacitySeek)
-        val opacityValue = menuView!!.findViewById<TextView>(R.id.menuOpacityValue)
-        opacitySeek.progress = opacity
-        opacityValue.text = "$opacity"
-        opacitySeek.thumbTintList = accentTint
-        opacitySeek.progressTintList = accentTint
-        opacitySeek.progressBackgroundTintList = trackTint
-
-        opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val pct = progress.coerceIn(20, 100)
-                opacityValue.text = "$pct"
-                WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
-                updateBubbleAppearance()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        val sizeSeek = menuView!!.findViewById<SeekBar>(R.id.menuSizeSeek)
-        val sizeValue = menuView!!.findViewById<TextView>(R.id.menuSizeValue)
-        sizeSeek.progress = size
-        sizeValue.text = "$size"
-        sizeSeek.thumbTintList = accentTint
-        sizeSeek.progressTintList = accentTint
-        sizeSeek.progressBackgroundTintList = trackTint
-
-        sizeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val pct = progress.coerceIn(70, 150)
-                sizeValue.text = "$pct"
-                WimApp.prefs.edit().putInt("bubble_size", pct).apply()
-                updateBubbleAppearance()
-                // Bubble grew/shrank — re-anchor menu tail to new bubble top
-                updateMenuPositionFromBubble()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        val liveToggle = menuView!!.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
-        liveToggle.isChecked = liveEnabled
-        liveToggle.thumbTintList = accentTint
-        liveToggle.trackTintList = android.content.res.ColorStateList(
-            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-            intArrayOf(palette.stroke, palette.sliderTrack)
-        )
-        liveToggle.scaleX = 0.75f
-        liveToggle.scaleY = 0.75f
-        liveToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
-        }
-
-        // Layer selector — 3 buttons mapped to layers 1/2/4. Profile (L3) is
-        // dropped from the menu by design; access via Settings.
-        val layerEntries = listOf(
-            R.id.menuLayer1 to 1,
-            R.id.menuLayer2 to 2,
-            R.id.menuLayer4 to 4
-        ).map { (id, layerVal) -> menuView!!.findViewById<TextView>(id) to layerVal }
-        val currentLayer = WimApp.layer()
-        // Engraved nameplate chips use the state_selected layer of nameplate_bg
-        // for the active visual (maroon fill + cream highlight border). Text
-        // brightens to brandCreamBright when active.
-        layerEntries.forEach { (btn, layerVal) ->
-            val isActive = layerVal == currentLayer
-            btn.isSelected = isActive
-            btn.setTextColor(if (isActive) brandCreamBright else brandCream)
-            btn.setOnClickListener {
-                WimApp.prefs.edit().putInt("layer", layerVal).apply()
-                layerEntries.forEach { (b, _) ->
-                    b.isSelected = false
-                    b.setTextColor(brandCream)
-                }
-                btn.isSelected = true
-                btn.setTextColor(brandCreamBright)
-                updateIdleDisplay()
-            }
-        }
-
-        // L1 source sub-row — LOCAL vs CLOUD, indented under TRANSCRIPTION.
-        // Active source is reflected via nameplate_bg state_selected (maroon
-        // fill + cream border) so the user sees the current setting at a
-        // glance whenever the menu is open.
-        val l1LocalBtn = menuView!!.findViewById<TextView>(R.id.menuL1Local)
-        val l1CloudBtn = menuView!!.findViewById<TextView>(R.id.menuL1Cloud)
-        fun paintL1Source() {
-            val cloud = WimApp.l1CloudAsr()
-            l1LocalBtn.isSelected = !cloud
-            l1CloudBtn.isSelected = cloud
-            l1LocalBtn.setTextColor(if (!cloud) brandCreamBright else brandCream)
-            l1CloudBtn.setTextColor(if (cloud) brandCreamBright else brandCream)
-        }
-        paintL1Source()
-        l1LocalBtn.setOnClickListener {
-            WimApp.prefs.edit().putBoolean("l1_cloud_asr", false).apply()
-            paintL1Source()
-        }
-        l1CloudBtn.setOnClickListener {
-            WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
-            paintL1Source()
-        }
-
-        // Bubble color picker — three tiny replicas of the bubble bezel itself.
-        // Selecting one literally swaps the floating bubble's metal. The selector
-        // drawables flip to a cream glow ring on state_selected.
-        val themeBtns = mapOf(
-            "bronze" to menuView!!.findViewById<View>(R.id.menuThemeBronze),
-            "aluminum" to menuView!!.findViewById<View>(R.id.menuThemeAluminum),
-            "gunmetal" to menuView!!.findViewById<View>(R.id.menuThemeGunmetal)
-        )
-        val currentTheme = WimApp.bubbleTheme()
-        themeBtns.forEach { (themeKey, btn) ->
-            btn.isSelected = (themeKey == currentTheme)
-            btn.setOnClickListener {
-                WimApp.prefs.edit().putString("bubble_theme", themeKey).apply()
-                applyBubbleTheme()
-                dismissMenu()
-                showMenu()
-            }
-        }
-
-        menuView!!.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {
-            dismissMenu()
-            val intent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        }
-
-        // Dismiss on tap outside menu
-        menuView!!.setOnTouchListener { v, event ->
-            if (event.action == MotionEvent.ACTION_OUTSIDE) {
-                dismissMenu()
-                true
-            } else {
-                v.performClick()
-                false
-            }
-        }
-
-        // Measure the menu synchronously so initial x/y land on the bubble's
-        // top-center before the first frame renders. With OVERLAY windows
-        // post-layout positioning fires unreliably; without this the menu
-        // ends up at (0,0) — behind the status bar — and looks like it
-        // didn't open at all.
-        menuView!!.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val mW0 = menuView!!.measuredWidth
-        val mH0 = menuView!!.measuredHeight
-        val bp0 = bubbleParams
-        val bv0 = bubbleView
-        if (bp0 != null && bv0 != null && mW0 > 0 && mH0 > 0) {
-            val bubbleWidth = if (bp0.width > 0) bp0.width else bv0.width
-            val bubbleHeight = if (bp0.height > 0) bp0.height else bv0.height
-            val bezelTopOffset = (bubbleHeight * 0.20).toInt()
-            val tailOverlap = 0
-            mParams.x = bp0.x + bubbleWidth / 2 - mW0 / 2
-            mParams.y = bp0.y - mH0 + bezelTopOffset + tailOverlap
-        }
-
-        windowManager?.addView(menuView, mParams)
-        // Refine after final layout in case wrap_content settled differently.
-        menuView!!.post { updateMenuPositionFromBubble() }
-    }
-
     /**
      * Snap the floating bubble to the canonical menu-anchor position
      * (centered horizontally, 340dp from top) over 220ms. Called from
      * BOTH menu-open paths — drag-to-top and double-tap — so the
      * comment-bubble orientation, tail-on-bezel landing, and animation
      * feel are identical regardless of how the user opens the menu.
-     * Caller invokes showMenu() right after; the per-frame
-     * updateMenuPositionFromBubble() call inside the animator keeps the
+     * Caller invokes bubbleMenu?.show() right after; the per-frame
+     * bubbleMenu?.updatePositionFromBubble() call inside the animator keeps the
      * menu's tail tip glued to the bezel as the bubble glides into place.
      */
     private fun snapBubbleForMenuOpen() {
@@ -2933,49 +2686,10 @@ class BubbleService : Service() {
                 params.x = (startX + (targetX - startX) * t).toInt()
                 params.y = (startY + (targetY - startY) * t).toInt()
                 try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-                updateMenuPositionFromBubble()
+                bubbleMenu?.updatePositionFromBubble()
             }
         }
         anim.start()
-    }
-
-    /**
-     * Reposition the menu so its downward-tail tip lands on the floating
-     * bubble's top center. Called from showMenu() (initial), the bubble drag
-     * MOVE handler, moveBubbleTo() (dock-pickup pipe), and the parkIntoDock
-     * animation update listener — every place the bubble's window position
-     * can change while the menu is visible.
-     */
-    private fun updateMenuPositionFromBubble() {
-        val mView = menuView ?: return
-        val mParams = menuParams ?: return
-        val bp = bubbleParams ?: return
-        val bv = bubbleView ?: return
-        val mWidth = if (mView.width > 0) mView.width else mView.measuredWidth
-        val mHeight = if (mView.height > 0) mView.height else mView.measuredHeight
-        if (mWidth == 0 || mHeight == 0) return
-        // Prefer params.width — bv.width can lag a frame after a size change
-        val bubbleWidth = if (bp.width > 0) bp.width else bv.width
-        val bubbleHeight = if (bp.height > 0) bp.height else bv.height
-        val bubbleCenterX = bp.x + bubbleWidth / 2
-        val bubbleTop = bp.y
-        // Bubble window is 120dp; visible bezel inside is 72dp centered → ~20% top
-        // padding before the bezel. Push menu down by that padding so the tail tip
-        // lands ON the bezel circle, not the invisible window edge above it. Plus
-        // a small overlap so the tail visually merges into the bezel.
-        val bezelTopOffset = (bubbleHeight * 0.20).toInt()
-        val tailOverlap = 0
-        mParams.x = bubbleCenterX - mWidth / 2
-        mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
-        try { windowManager?.updateViewLayout(mView, mParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-    }
-
-    private fun dismissMenu() {
-        menuView?.let {
-            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-            menuView = null
-            menuParams = null
-        }
     }
 
     private fun showLiveTranscript() {
@@ -4060,7 +3774,7 @@ class BubbleService : Service() {
         shakeDetector?.stop()
         shakeDetector = null
         stopHotwordListener()
-        dismissMenu()
+        bubbleMenu?.dismiss()
         hideLiveTranscript()
         dafPlayer?.stop()
         dafPlayer = null
