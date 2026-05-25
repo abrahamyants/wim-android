@@ -51,7 +51,10 @@ class BubbleService : Service() {
     // "Hey WiM" hotword — opt-in continuous mic listener that triggers
     // a recording when it hears the wake phrase. Mutually exclusive with
     // active recording (only one consumer can hold the mic).
-    private var hotwordListener: HotwordListener? = null
+    // "Hey WiM" hotword wiring extracted to BubbleHotword 2026-05-25 —
+    // fifteenth slice. Owns the recognizer lifecycle + mic-handoff +
+    // pref auto-disable on unavailable device.
+    private var hotword: BubbleHotword? = null
 
     // L4 multi-pass decoder needs the recorded WAV after reconstruction
     // finishes so the clarifier check can run cross-pass disagreement
@@ -472,6 +475,22 @@ class BubbleService : Service() {
         regenIcon = BubbleRegenIcon(
             getBubbleView = { bubbleView },
             scope = scope,
+        )
+        hotword = BubbleHotword(
+            context = this,
+            getVibrator = { vibrator },
+            isRecording = { isRecording },
+            releaseAudioRecorder = {
+                if (audioRecorder != null) {
+                    Log.i(TAG, "Releasing AudioRecorder pre-roll buffer to free mic for hotword")
+                    audioRecorder?.release()
+                    audioRecorder = null
+                }
+            },
+            onHotwordFired = {
+                pulseRings?.start()
+                startListening()
+            },
         )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
@@ -1856,47 +1875,8 @@ class BubbleService : Service() {
      * skipped: hotword listener starts, never fires partials, never
      * fires errors — a dead-quiet recognizer session.
      */
-    private fun startHotwordIfEnabled() {
-        if (!WimApp.prefs.getBoolean("hotword_enabled", false)) return
-        if (isRecording) return
-        if (hotwordListener != null) return
-        if (audioRecorder != null) {
-            Log.i(TAG, "Releasing AudioRecorder pre-roll buffer to free mic for hotword")
-            audioRecorder?.release()
-            audioRecorder = null
-        }
-        val listener = HotwordListener(this) {
-            // Hotword fired — vibrate, drop the listener (it stops itself
-            // pre-callback), and kick off a normal recording session.
-            try {
-                vibrator?.vibrate(
-                    android.os.VibrationEffect.createOneShot(
-                        60, android.os.VibrationEffect.DEFAULT_AMPLITUDE
-                    )
-                )
-            } catch (_: Exception) {}
-            hotwordListener = null
-            pulseRings?.start()
-            startListening()
-        }
-        if (listener.start()) {
-            hotwordListener = listener
-        } else {
-            WimApp.prefs.edit().putBoolean("hotword_enabled", false).apply()
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                android.widget.Toast.makeText(
-                    this,
-                    "Hey WiM unavailable on this device.",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    private fun stopHotwordListener() {
-        hotwordListener?.stop()
-        hotwordListener = null
-    }
+    private fun startHotwordIfEnabled() { hotword?.startIfEnabled() }
+    private fun stopHotwordListener() { hotword?.stop() }
 
     /** Public alias so MainActivity can flip the listener off when the user
      *  toggles the hotword setting. */
