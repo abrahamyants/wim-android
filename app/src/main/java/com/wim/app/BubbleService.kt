@@ -413,6 +413,7 @@ class BubbleService : Service() {
             onLayerChanged = { updateIdleDisplay() },
             onThemeChanged = { applyBubbleTheme() }
         )
+        onboardingOverlay = BubbleOnboardingOverlay(this, windowManager!!)
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -567,7 +568,7 @@ class BubbleService : Service() {
                 }
             }
             "ONBOARDING" -> {
-                showOnboardingOverlay()
+                onboardingOverlay?.show()
                 showBubble()
                 // Run the bubble's live demo script — the bubble introduces itself.
                 // Skip-on-tap (Phase 7 step 43) — cache the script + its onComplete
@@ -576,7 +577,7 @@ class BubbleService : Service() {
                     val finish: () -> Unit = {
                         activeDemoScript = null
                         activeDemoFinish = null
-                        removeOnboardingOverlay()
+                        onboardingOverlay?.remove()
                         showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
                         timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
                     }
@@ -588,38 +589,9 @@ class BubbleService : Service() {
         return START_STICKY
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ONBOARDING OVERLAY — dark background behind bubble demo
-    // ═══════════════════════════════════════════════════════════
-
-    private var onboardingOverlay: View? = null
-
-    private fun showOnboardingOverlay() {
-        if (onboardingOverlay != null) return
-        val overlay = View(this).apply {
-            setBackgroundColor(0xF01A1A1E.toInt())
-        }
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        )
-        try {
-            windowManager?.addView(overlay, params)
-            onboardingOverlay = overlay
-        } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-    }
-
-    private fun removeOnboardingOverlay() {
-        onboardingOverlay?.let {
-            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-            onboardingOverlay = null
-        }
-    }
+    // Onboarding dim overlay extracted to BubbleOnboardingOverlay
+    // 2026-05-25 — fourth BubbleWindow slice.
+    private var onboardingOverlay: BubbleOnboardingOverlay? = null
 
     private fun showBubble(spawnCx: Int? = null, spawnCy: Int? = null) {
         if (bubbleView != null) {
@@ -2751,7 +2723,7 @@ class BubbleService : Service() {
         val finish: () -> Unit = {
             activeDemoScript = null
             activeDemoFinish = null
-            removeOnboardingOverlay()
+            onboardingOverlay?.remove()
             showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
             timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
         }
