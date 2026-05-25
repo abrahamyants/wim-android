@@ -154,6 +154,10 @@ object ClarifierController {
         cycleIndex = 0
         onLabelUpdateRef = null
         onExitRef = null
+        // Clear rejection memory — an aborted cycle was not user-rejected
+        // input; leaving recentSwaps populated suppresses real candidates
+        // in the next cycle.
+        recentSwaps.clear()
         BubbleService.instance?.hideWordHighlight()
     }
 

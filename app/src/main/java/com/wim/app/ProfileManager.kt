@@ -99,7 +99,17 @@ class ProfileManager(private val prefs: SharedPreferences) {
 
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers, ${wpsHistory.size} wps samples")
             } catch (e: Exception) {
-                Log.e(TAG, "Profile parse error, resetting to defaults: ${e.message}")
+                // Preserve the corrupt JSON before nuking the user's learned
+                // vocabulary / corrections / triggers / onset weights / wps
+                // history. One bad write should not silently delete every
+                // signal the user has accumulated across sessions.
+                try {
+                    val ts = System.currentTimeMillis()
+                    prefs.edit().putString("profile_json_corrupted_$ts", json).apply()
+                    Log.e(TAG, "Profile parse error, preserved as profile_json_corrupted_$ts: ${e.message}")
+                } catch (preserveErr: Exception) {
+                    Log.e(TAG, "Profile parse error AND backup failed: ${e.message}", preserveErr)
+                }
                 resetToDefaults()
             }
         } else {

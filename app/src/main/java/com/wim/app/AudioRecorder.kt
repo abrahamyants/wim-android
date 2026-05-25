@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.util.Log
 import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileOutputStream
@@ -122,13 +123,13 @@ class AudioRecorder(private val context: Context) {
      * Stop writing to file (but keep the mic primed for next recording).
      */
     fun stop(): File? {
-        isRecording = false
-        // Capture loop checks isRecording before every fos.write and the
-        // write itself is wrapped in try/catch — there is no race here.
-        // The previous 50ms Thread.sleep was dead time on every stop and
-        // was the L1-side of the perceived "slow whisper" complaint.
+        // Null outputStream BEFORE flipping isRecording so subsequent
+        // captureLoop iterations short-circuit on `fos != null` and skip
+        // the write. captureLoop may still hold a stale local fos reference
+        // from a check that crossed our flip — its write catch logs + bails.
         val fos = outputStream
         outputStream = null
+        isRecording = false
         try { fos?.flush(); fos?.close() } catch (_: Exception) {}
         outputFile?.let { fixWavHeader(it) }
         return outputFile
@@ -166,7 +167,13 @@ class AudioRecorder(private val context: Context) {
                     } else {
                         fos.write(buf, 0, read)
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    // Disk full, closed stream, or file deleted underneath us.
+                    // Bail the loop so stop() sees a short/empty WAV and skips
+                    // Whisper rather than transcribing silence/hallucination.
+                    Log.w("AudioRecorder", "capture write failed: ${e.message}")
+                    isRecording = false
+                }
             }
 
             // Always write to circular buffer (unprocessed raw audio)

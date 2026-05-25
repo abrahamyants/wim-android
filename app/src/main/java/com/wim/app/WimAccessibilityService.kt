@@ -480,7 +480,10 @@ class WimAccessibilityService : AccessibilityService() {
         return null
     }
 
-    /** Recursive descent: first node where isEditable && isFocused both hold. */
+    /** Recursive descent: first node where isEditable && isFocused both hold.
+     *  Children on dead-end branches MUST be recycled — the framework's node
+     *  pool is shared with the OS and a deep tree (Gmail compose, Telegram
+     *  thread) leaks fast enough to OOM the accessibility process. */
     private fun findEditableFocusedDescendant(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
         if (node == null) return null
         if (node.isEditable && node.isFocused) return node
@@ -488,6 +491,7 @@ class WimAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findEditableFocusedDescendant(child)
             if (result != null) return result
+            child.recycle()
         }
         return null
     }

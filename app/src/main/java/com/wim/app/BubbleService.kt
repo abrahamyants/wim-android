@@ -1379,7 +1379,10 @@ class BubbleService : Service() {
                             conn.doOutput = true
                             conn.connectTimeout = 5000
                             conn.readTimeout = 5000
-                            conn.outputStream.write(payload.toByteArray())
+                            // Samsung's OEM HttpURLConnection stalls TCP if the
+                            // output stream isn't closed before reading the
+                            // response — burns a socket fd until readTimeout.
+                            conn.outputStream.use { it.write(payload.toByteArray()) }
                             conn.responseCode // trigger request
                             conn.disconnect()
                         } catch (_: Exception) {}
@@ -4027,7 +4030,6 @@ class BubbleService : Service() {
                         // failure or exception doesn't leave wasL1DetectPrompted()
                         // false and spawn a new detection thread on every subsequent
                         // reconstruction (thread-per-call leak).
-                        profileRef.markL1DetectPrompted()
                         Thread {
                             try {
                                 val payload = org.json.JSONObject().apply {
@@ -4040,9 +4042,16 @@ class BubbleService : Service() {
                                 conn.doOutput = true
                                 conn.connectTimeout = 5000
                                 conn.readTimeout = 5000
-                                conn.outputStream.write(payload.toByteArray())
+                                // Samsung's OEM HttpURLConnection stalls TCP
+                                // if the output stream isn't closed before
+                                // reading the response.
+                                conn.outputStream.use { it.write(payload.toByteArray()) }
                                 val responseCode = conn.responseCode
                                 if (responseCode == 200) {
+                                    // Only mark prompted on a successful round-trip — otherwise
+                                    // a single network blip permanently suppresses the prompt
+                                    // and L1 pack injection never activates.
+                                    profileRef.markL1DetectPrompted()
                                     val responseText = conn.inputStream.bufferedReader().readText()
                                     conn.disconnect()
                                     val responseJson = org.json.JSONObject(responseText)
@@ -4399,6 +4408,10 @@ class BubbleService : Service() {
         VoiceCommandRouter.unregister("clarifier")
         ClarifierController.reset()
         timerHandler.removeCallbacksAndMessages(null)
+        // typewriterTick + cursorBlinkTick survive service death otherwise —
+        // they keep firing at 22ms/500ms forever, writing to nulled views via
+        // safe-call NPE suppression, never noticed.
+        stageAnimHandler.removeCallbacksAndMessages(null)
         audioPlaybackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
         try { scoReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         scope.cancel()
