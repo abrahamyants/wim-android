@@ -56,6 +56,11 @@ class BubbleService : Service() {
     // pref auto-disable on unavailable device.
     private var hotword: BubbleHotword? = null
 
+    // Notification channels + foreground notification + permission alerts
+    // extracted to BubbleStatusUI 2026-05-25 — sixteenth slice. Channel IDs
+    // and notification IDs stay as service constants.
+    private var statusUI: BubbleStatusUI? = null
+
     // L4 multi-pass decoder needs the recorded WAV after reconstruction
     // finishes so the clarifier check can run cross-pass disagreement
     // analysis. Cleaned up in setBubbleIdle / before next recording.
@@ -476,6 +481,7 @@ class BubbleService : Service() {
             getBubbleView = { bubbleView },
             scope = scope,
         )
+        statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleView })
         hotword = BubbleHotword(
             context = this,
             getVibrator = { vibrator },
@@ -2718,155 +2724,11 @@ class BubbleService : Service() {
         }
     }
 
-    private fun createNotificationChannel() {
-        val nm = getSystemService(NotificationManager::class.java)
-        // Routine status — required for the foreground service to exist, but
-        // suppressed at the launcher (no badge, no sound, low importance).
-        val statusChannel = NotificationChannel(
-            CHANNEL_ID,
-            "WiM Voice Dictation",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Keeps the voice dictation bubble active"
-            setSound(null, null)
-            enableVibration(false)
-            setShowBadge(false)
-        }
-        // Permission/error alerts — badge ON, higher importance so the user
-        // notices when accessibility / mic / overlay permission is missing.
-        val alertChannel = NotificationChannel(
-            ALERT_CHANNEL_ID,
-            "WiM Permission Alerts",
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Shown when WiM needs a permission to function"
-            setShowBadge(true)
-        }
-        nm.createNotificationChannel(statusChannel)
-        nm.createNotificationChannel(alertChannel)
-    }
-
-    private fun buildNotification(text: String = "Voice dictation active"): Notification {
-        val showIntent = Intent(this, BubbleService::class.java).apply { action = "SHOW" }
-        val pendingIntent = android.app.PendingIntent.getService(
-            this, 0, showIntent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-        // Notification-shade quick action — opens the bubble menu without
-        // having to interact with the bubble itself. Conflict-free with
-        // every gesture on the bubble.
-        val menuIntent = Intent(this, BubbleService::class.java).apply { action = "OPEN_MENU" }
-        val menuPending = android.app.PendingIntent.getService(
-            this, 1, menuIntent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-        // addAction(int, CharSequence, PendingIntent) was deprecated in API 23
-        // in favor of the Action.Builder form. Same payload, modern signature.
-        val menuAction = Notification.Action.Builder(
-            android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_preferences),
-            "MENU",
-            menuPending,
-        ).build()
-        return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("What I Meant")
-            .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentIntent(pendingIntent)
-            .setBadgeIconType(Notification.BADGE_ICON_NONE)
-            .setNumber(0)
-            .addAction(menuAction)
-            .build()
-    }
-
-    private fun updateNotification(text: String) {
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.notify(NOTIFICATION_ID, buildNotification(text))
-    }
-
-    /**
-     * Permission-broken alert. Routes through the high-importance alert
-     * channel so the launcher icon shows a real badge — the user sees a
-     * signal that's distinct from the routine "service is running" state.
-     * Cleared by [clearPermissionAlert] once permissions are restored.
-     */
-    private fun showPermissionAlert(missingLabel: String) {
-        val openSettings = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        val pi = android.app.PendingIntent.getActivity(
-            this, 100, openSettings,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-        val notif = Notification.Builder(this, ALERT_CHANNEL_ID)
-            .setContentTitle("WiM needs a permission")
-            .setContentText("Missing $missingLabel — tap to fix")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentIntent(pi)
-            .setAutoCancel(true)
-            .setBadgeIconType(Notification.BADGE_ICON_SMALL)
-            .setNumber(1)
-            .build()
-        getSystemService(NotificationManager::class.java)
-            .notify(ALERT_NOTIFICATION_ID, notif)
-    }
-
-    private fun clearPermissionAlert() {
-        getSystemService(NotificationManager::class.java).cancel(ALERT_NOTIFICATION_ID)
-    }
-
-    /**
-     * True if WiM's accessibility service is enabled. Reinstalling the APK
-     * silently revokes accessibility on Samsung — without this check the
-     * bubble appears normally but inject and auto-send fail invisibly.
-     */
-    private fun isAccessibilityEnabled(): Boolean {
-        val flat = android.provider.Settings.Secure.getString(
-            contentResolver,
-            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val ours = "$packageName/${WimAccessibilityService::class.java.name}"
-        val oursShort = "$packageName/.WimAccessibilityService"
-        return flat.split(":").any { it.equals(ours, ignoreCase = true) || it.equals(oursShort, ignoreCase = true) }
-    }
-
-    private fun hasMicPermission(): Boolean =
-        androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-
-    /**
-     * Surfaces missing-permission state so the user is never confused about
-     * why the bubble "looks fine but does nothing." Toast + label badge on
-     * the bubble + notification text update.
-     */
-    private fun alertOnMissingPermissions() {
-        val missing = mutableListOf<String>()
-        if (!isAccessibilityEnabled()) missing += "Accessibility"
-        if (!hasMicPermission()) missing += "Mic"
-        if (missing.isEmpty()) {
-            // All permissions granted — clear any stale alert so the launcher
-            // badge goes away the moment the user fixes the permission.
-            clearPermissionAlert()
-            return
-        }
-
-        val label = missing.joinToString(" + ")
-        val msg = "WiM needs $label permission — settings → accessibility → What I Meant"
-        Log.w(TAG, "Permissions missing: $label")
-        try {
-            android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show()
-        } catch (_: Exception) {}
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "FIX"
-            setTextColor(0xFFE05050.toInt())
-        }
-        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
-            text = "PERM"
-            setTextColor(0xFFE05050.toInt())
-        }
-        // Route through the high-importance alert channel — launcher badge ON,
-        // distinct from the routine status notification.
-        showPermissionAlert(label)
-    }
+    private fun createNotificationChannel() { statusUI?.createChannels(CHANNEL_ID, ALERT_CHANNEL_ID) }
+    private fun buildNotification(text: String = "Voice dictation active"): Notification =
+        statusUI?.buildForegroundNotification(CHANNEL_ID, text) ?: error("statusUI not initialized")
+    private fun updateNotification(text: String) { statusUI?.updateForegroundNotification(CHANNEL_ID, NOTIFICATION_ID, text) }
+    private fun alertOnMissingPermissions() { statusUI?.alertOnMissingPermissions(ALERT_CHANNEL_ID, ALERT_NOTIFICATION_ID) }
 
     override fun onDestroy() {
         instance = null

@@ -121,6 +121,17 @@ land without breaking pure relocation.
 
 Do NOT use this legacy token for any new surface.
 
+### Permission warning (legacy — extraction-grandfathered 2026-05-25)
+When required permissions (accessibility, mic) are missing, the bubble
+label flips to "FIX" / "PERM" in a vivid alert red so the user notices.
+Brighter than `red_primary` so it reads on both light and dark bezels.
+
+| Token | Hex | Use |
+|---|---|---|
+| permission_alert | #FFE05050 | "FIX" / "PERM" labels on the bubble when permissions are missing |
+
+Do NOT use this legacy token for any new surface.
+
 ## Permission cards — required set (5)
 Cards must appear in this order so the demo can paint and listen as soon as possible:
 
