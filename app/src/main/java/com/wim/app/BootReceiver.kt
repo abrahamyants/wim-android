@@ -1,6 +1,9 @@
 package com.wim.app
 
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
@@ -31,6 +34,13 @@ class BootReceiver : BroadcastReceiver() {
                 Log.i("WiM", "Bubble restarted after boot (mic=$micOk)")
             } catch (e: Exception) {
                 Log.e("WiM", "Failed to restart bubble after boot: ${e.message}")
+                val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+                val jobInfo = JobInfo.Builder(BubbleRestartJobService.JOB_ID, ComponentName(context, BubbleRestartJobService::class.java))
+                    .setMinimumLatency(30_000L)
+                    .setRequiresCharging(false)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
+                    .build()
+                jobScheduler.schedule(jobInfo)
             }
         } else {
             Log.i("WiM", "Boot: skipping bubble start — permissions not granted (overlay=$overlayOk, accessibility=$accessibilityOk, mic=$micOk)")
