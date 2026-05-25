@@ -59,15 +59,15 @@ class HotwordListener(
         }
     }
 
-    fun start() {
-        if (running) return
+    fun start(): Boolean {
+        if (running) return true
         running = true
         fired = false
 
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.w(TAG, "isRecognitionAvailable=false — bailing out")
             running = false
-            return
+            return false
         }
         recognizer = createGoogleOrDefaultRecognizer()
         recognizer?.setRecognitionListener(object : RecognitionListener {
@@ -128,7 +128,11 @@ class HotwordListener(
         } catch (e: Exception) {
             Log.w(TAG, "startListening failed: ${e.message}")
             running = false
+            recognizer?.destroy()
+            recognizer = null
+            return false
         }
+        return true
     }
 
     fun stop() {
