@@ -4,11 +4,16 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * Whisper-tiny.en ASR via sherpa-onnx — replaces Moonshine on the L1 path
@@ -38,6 +43,9 @@ class WhisperLocalEngine(private val context: Context) {
         const val ERROR_INIT = 301
         const val ERROR_INFERENCE = 302
         const val ERROR_AUDIO = 303
+
+        /** Guards the corruption-recovery path — fires at most once per process to avoid re-loop. */
+        @Volatile var redownloadTriggered = false
     }
 
     interface ResultListener {
@@ -92,6 +100,24 @@ class WhisperLocalEngine(private val context: Context) {
             return
         }
         if (ensureRecognizer() == null) {
+            // isReady() was true (files exist + size OK) but init still failed —
+            // model files are corrupted.  Delete and trigger a fresh download,
+            // but only once per process to avoid an infinite re-loop.
+            if (!redownloadTriggered) {
+                redownloadTriggered = true
+                Log.w(TAG, "isReady=true but recognizer init failed — deleting corrupted model dir and re-downloading")
+                val dir = WhisperLocalModelDownloader.modelDir(context)
+                dir.deleteRecursively()
+                WimApp.instance.appScope.launch {
+                    val dlResult = WhisperLocalModelDownloader.downloadAndUnpack(context) { _ -> }
+                    if (dlResult is WhisperLocalModelDownloader.Result.Failed) {
+                        Log.e(TAG, "re-download after corruption failed: ${dlResult.reason}")
+                    }
+                }
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "Speech model corrupted — re-downloading.", Toast.LENGTH_LONG).show()
+                }
+            }
             resultListener.onError(ERROR_INIT)
             return
         }
