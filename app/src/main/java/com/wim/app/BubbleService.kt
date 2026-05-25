@@ -108,11 +108,9 @@ class BubbleService : Service() {
     private var audioRecorder: AudioRecorder? = null
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
 
-    // Command Mode state — when armed, the next recording is a GPT transform command
-    private var commandModeArmed: Boolean = false
-    private var commandSourceText: String = ""
-    private var commandSelectionStart: Int = -1
-    private var commandSelectionEnd: Int = -1
+    // Command Mode cluster extracted to BubbleCommandMode 2026-05-25 —
+    // ninth slice. State (armed flag + selection) lives in the new class.
+    private var commandMode: BubbleCommandMode? = null
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
@@ -420,6 +418,19 @@ class BubbleService : Service() {
             onAppearanceChanged = { updateBubbleAppearance() },
             onPipelineStage = { stage, detail -> showPipelineStage(stage, detail) },
             onAcknowledged = { setBubbleIdle() },
+        )
+        commandMode = BubbleCommandMode(
+            context = this,
+            getBubbleView = { bubbleView },
+            getBubbleParams = { bubbleParams },
+            scope = scope,
+            timerHandler = timerHandler,
+            onPipelineStage = { stage, detail -> showPipelineStage(stage, detail) },
+            onConfirmPrompt = { q, ctx, cb -> clarifierUI?.show(q, ctx, cb) },
+            onStartListening = { startListening() },
+            isRecording = { isRecording },
+            onHideLiveTranscript = { hideLiveTranscript() },
+            onIdle = { setBubbleIdle() },
         )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
@@ -872,7 +883,7 @@ class BubbleService : Service() {
                         if (bezelBottom > hideZone) {
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
-                        } else if (checkCommandModePickup()) {
+                        } else if (commandMode?.checkPickup() == true) {
                             // Bubble dropped on highlighted text — command mode
                             return@setOnTouchListener true
                         } else if (bezelBottom > almostZone) {
@@ -2089,88 +2100,6 @@ class BubbleService : Service() {
      * Check if the bubble was dropped on a focused text field with highlighted text.
      * If yes, pick up the selection for Command Mode.
      */
-    private fun checkCommandModePickup(): Boolean {
-        val node = WimAccessibilityService.activeTextField ?: return false
-        try {
-            if (!node.refresh()) return false
-        } catch (_: Exception) { return false }
-
-        val start = node.textSelectionStart
-        val end = node.textSelectionEnd
-        if (start < 0 || end <= start) return false
-
-        val fullText = node.text?.toString() ?: return false
-        if (fullText.isEmpty() || end > fullText.length) return false
-
-        val selectedText = fullText.substring(start.coerceAtLeast(0), end.coerceAtMost(fullText.length))
-        if (selectedText.isBlank()) return false
-
-        // Check bubble center is over the field's bounds
-        val fieldRect = android.graphics.Rect()
-        node.getBoundsInScreen(fieldRect)
-        val params = bubbleParams ?: return false
-        val bubbleCenterX = params.x + (bubbleView?.width ?: 0) / 2
-        val bubbleCenterY = params.y + (bubbleView?.height ?: 0) / 2
-        if (!fieldRect.contains(bubbleCenterX, bubbleCenterY)) return false
-
-        // Pickup! Store selection and show in live transcript, then clarify
-        commandSourceText = selectedText
-        commandSelectionStart = start
-        commandSelectionEnd = end
-
-        // Show picked-up text (truncated to 3 lines ~= ~120 chars)
-        val preview = if (selectedText.length > 120) selectedText.substring(0, 117) + "..." else selectedText
-        showPipelineStage("📋 Picked up", preview)
-
-        // Ask user to confirm
-        clarifierUI?.show("?", "Rewrite this text?") { answer ->
-            if (answer == true) {
-                armCommandMode()
-            } else {
-                clearCommandPickup()
-            }
-        }
-        return true
-    }
-
-    private fun armCommandMode() {
-        commandModeArmed = true
-        showPipelineStage("🎤 Say the command", "formal · professional · casual · friend · shorter · fix · translate")
-        // Start listening immediately after clarifier dismisses
-        timerHandler.postDelayed({
-            if (commandModeArmed && !isRecording) startListening()
-        }, 600)
-    }
-
-    private fun clearCommandPickup() {
-        commandModeArmed = false
-        commandSourceText = ""
-        commandSelectionStart = -1
-        commandSelectionEnd = -1
-        hideLiveTranscript()
-    }
-
-    /**
-     * Replace the stored selection in the active text field with new text.
-     */
-    private fun replaceSelection(newText: String): Boolean {
-        val node = WimAccessibilityService.activeTextField ?: return false
-        try {
-            if (!node.refresh()) return false
-        } catch (_: Exception) { return false }
-
-        val fullText = node.text?.toString() ?: return false
-        val start = commandSelectionStart
-        val end = commandSelectionEnd
-        if (start < 0 || end < start || end > fullText.length) return false
-
-        val replaced = fullText.substring(0, start) + newText + fullText.substring(end)
-        val args = android.os.Bundle().apply {
-            putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, replaced)
-        }
-        return node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-    }
-
     // ═══════════════════════════════════════════════════════════
     // TWIST MODE — voice-triggered knob rotation for size/opacity
     // ═══════════════════════════════════════════════════════════
@@ -2386,135 +2315,6 @@ class BubbleService : Service() {
      * Process Command Mode voice input: send source text + command to GPT,
      * replace the original selection with the result.
      */
-    private fun processCommand(command: String) {
-        val source = commandSourceText
-        Log.i(TAG, "CMD: transform '$source' with command: '$command'")
-        showPipelineStage("⟳ Transforming...", command)
-
-        scope.launch {
-            try {
-                val apiKey = WimApp.apiKey()
-                val idToken = AuthManager.getIdToken()
-
-                // Signed-in path: backend handles OpenAI key + tier + rate
-                // limiting (action=command on wim-reconstruct). Fall back to
-                // direct OpenAI only when no Firebase auth is present (dev).
-                val result: String? = if (idToken != null) {
-                    callBackendCommandTransform(idToken, source, command)
-                } else if (apiKey.isNotBlank()) {
-                    val systemPrompt = "You are a text transformation assistant. The user highlighted some text and spoke a command to modify it. Apply the command and return ONLY the transformed text, nothing else. Preserve the meaning. Do not add explanations, quotes, or prefixes."
-                    val userContent = "TEXT:\n$source\n\nCOMMAND: $command"
-                    callOpenAiTransform(apiKey, systemPrompt, userContent)
-                } else {
-                    null
-                }
-
-                if (result.isNullOrBlank()) {
-                    Log.e(TAG, "CMD: transform failed")
-                    showPipelineStage("✕ Failed", "Try again")
-                    timerHandler.postDelayed({ setBubbleIdle() }, 2000)
-                    clearCommandPickup()
-                    return@launch
-                }
-
-                val replaced = replaceSelection(result)
-                if (replaced) {
-                    Log.i(TAG, "CMD: replaced selection with '$result'")
-                    val wordCount = result.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                    showPipelineStage("✓ Rewrote $wordCount words", result.take(80))
-                } else {
-                    Log.e(TAG, "CMD: replaceSelection failed, copying to clipboard")
-                    val clip = android.content.ClipData.newPlainText("wim", result)
-                    (getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
-                    showPipelineStage("✓ Copied", "Paste manually")
-                }
-                timerHandler.postDelayed({ setBubbleIdle() }, 1800)
-            } catch (e: Exception) {
-                Log.e(TAG, "CMD: exception: ${e.message}")
-                showPipelineStage("✕ Error", e.message ?: "")
-                timerHandler.postDelayed({ setBubbleIdle() }, 2000)
-            } finally {
-                clearCommandPickup()
-            }
-        }
-    }
-
-    /**
-     * Signed-in Command Mode path: POST {action: "command", source, command}
-     * to the wim-reconstruct Cloud Function. Backend uses its own OpenAI key,
-     * applies tier + daily-rate limits, returns {"transformed": "..."} or
-     * {"error": "..."}. Returns null on any non-200 / network failure so
-     * the caller can show "✕ Failed".
-     */
-    private suspend fun callBackendCommandTransform(
-        idToken: String,
-        source: String,
-        command: String
-    ): String? {
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val http = okhttp3.OkHttpClient.Builder()
-                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .build()
-                val body = org.json.JSONObject().apply {
-                    put("action", "command")
-                    put("source", source)
-                    put("command", command)
-                }
-                val req = okhttp3.Request.Builder()
-                    .url("https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct")
-                    .addHeader("Authorization", "Bearer $idToken")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-                val resp = http.newCall(req).execute()
-                val respBody = resp.body?.string() ?: return@withContext null
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "CMD backend ${resp.code}: ${respBody.take(200)}")
-                    return@withContext null
-                }
-                org.json.JSONObject(respBody).optString("transformed").takeIf { it.isNotBlank() }
-            } catch (e: Exception) {
-                Log.e(TAG, "CMD backend exception: ${e.message}")
-                null
-            }
-        }
-    }
-
-    private suspend fun callOpenAiTransform(apiKey: String, systemPrompt: String, userContent: String): String? {
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val http = okhttp3.OkHttpClient.Builder().readTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build()
-                val messages = org.json.JSONArray().apply {
-                    put(org.json.JSONObject().put("role", "system").put("content", systemPrompt))
-                    put(org.json.JSONObject().put("role", "user").put("content", userContent))
-                }
-                val body = org.json.JSONObject().apply {
-                    put("model", "gpt-4o")
-                    put("messages", messages)
-                    put("temperature", 0.3)
-                }
-                val req = okhttp3.Request.Builder()
-                    .url("https://api.openai.com/v1/chat/completions")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-                val resp = http.newCall(req).execute()
-                val respBody = resp.body?.string() ?: return@withContext null
-                if (!resp.isSuccessful) return@withContext null
-                org.json.JSONObject(respBody)
-                    .getJSONArray("choices")
-                    .getJSONObject(0)
-                    .getJSONObject("message")
-                    .getString("content")
-                    .trim()
-            } catch (e: Exception) {
-                Log.e(TAG, "callOpenAiTransform failed: ${e.message}", e)
-                null
-            }
-        }
-    }
 
     private fun processText(rawText: String) {
         val pipelineStart = System.currentTimeMillis()
@@ -2532,8 +2332,8 @@ class BubbleService : Service() {
         }
 
         // COMMAND mode: the voice is a transform command, not text to dictate
-        if (commandModeArmed) {
-            processCommand(rawText)
+        if (commandMode?.armed == true) {
+            commandMode?.processCommand(rawText)
             return
         }
 
