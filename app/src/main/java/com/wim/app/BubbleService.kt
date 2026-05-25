@@ -178,8 +178,10 @@ class BubbleService : Service() {
     )
     private var lastRegenCtx: RegenContext? = null
     private val previousOutputs = mutableListOf<String>()
-    private var isRegenAvailable: Boolean = false
-    private var regenHideJob: Job? = null
+    // Regen icon (lower-bezel re-roll hint) extracted to BubbleRegenIcon
+    // 2026-05-25 — fourteenth slice. isAvailable getter still used by the
+    // touch handler tap-zone test.
+    private var regenIcon: BubbleRegenIcon? = null
     private var isRegenInFlight: Boolean = false
     // Clarifier retry/timeout state moved to BubbleClarifierUI.
     // SupervisorJob: child coroutine failures don't cancel siblings.
@@ -466,6 +468,10 @@ class BubbleService : Service() {
             timerHandler = timerHandler,
             onPipelineStage = { title, body -> showPipelineStage(title, body) },
             onHideLiveTranscript = { hideLiveTranscript() },
+        )
+        regenIcon = BubbleRegenIcon(
+            getBubbleView = { bubbleView },
+            scope = scope,
         )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
@@ -960,7 +966,7 @@ class BubbleService : Service() {
                     // Takes precedence over the work/life toggle so the bottom
                     // half of the bezel is unambiguously the regen affordance
                     // while the icon is visible.
-                    if (isRegenAvailable && !isRecording && dist < outerR && ty > outerR * 0.45 && tapDuration < 300) {
+                    if ((regenIcon?.isAvailable == true) && !isRecording && dist < outerR && ty > outerR * 0.45 && tapDuration < 300) {
                         performRegen()
                         return@setOnTouchListener true
                     }
@@ -1204,30 +1210,8 @@ class BubbleService : Service() {
         }
     }
 
-    private fun showRegenIcon() {
-        val view = bubbleView ?: return
-        val icon = view.findViewById<android.widget.ImageView>(R.id.bezelRegen) ?: return
-        icon.alpha = 0f
-        icon.visibility = View.VISIBLE
-        icon.animate().alpha(1f).setDuration(200).start()
-        isRegenAvailable = true
-        regenHideJob?.cancel()
-        regenHideJob = scope.launch {
-            delay(8000)
-            hideRegenIcon()
-        }
-    }
-
-    private fun hideRegenIcon() {
-        val view = bubbleView ?: return
-        val icon = view.findViewById<android.widget.ImageView>(R.id.bezelRegen) ?: return
-        icon.animate().alpha(0f).setDuration(150).withEndAction {
-            icon.visibility = View.GONE
-        }.start()
-        isRegenAvailable = false
-        regenHideJob?.cancel()
-        regenHideJob = null
-    }
+    private fun showRegenIcon() { regenIcon?.show() }
+    private fun hideRegenIcon() { regenIcon?.hide() }
 
     private fun performRegen() {
         if (isRegenInFlight) return
@@ -1458,7 +1442,7 @@ class BubbleService : Service() {
 
         // Stale regen state: a fresh recording invalidates the cached
         // reconstruction context.
-        if (isRegenAvailable) hideRegenIcon()
+        if ((regenIcon?.isAvailable == true)) hideRegenIcon()
         lastRegenCtx = null
         previousOutputs.clear()
 
