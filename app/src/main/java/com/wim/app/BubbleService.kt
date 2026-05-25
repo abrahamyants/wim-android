@@ -2059,44 +2059,8 @@ class BubbleService : Service() {
         }
     }
 
-    /**
-     * Walk a reconstructed output, locate sentence boundaries, and record
-     * each (last-3-words-before-period, next-word) pair into PredictionEngine.
-     * Quiet on edge cases (single-sentence output, ending punctuation,
-     * blank tokens) — we just want clean trigrams when they exist.
-     */
-    private fun recordPredictionsFromOutput(pkg: String, text: String) {
-        if (text.isBlank()) return
-        val tokens = text.split(Regex("\\s+")).filter { it.isNotBlank() }
-        for (i in 0 until tokens.size - 1) {
-            val tok = tokens[i]
-            if (tok.lastOrNull() in setOf('.', '?', '!')) {
-                val priorStart = (i - 2).coerceAtLeast(0)
-                val priorWords = tokens.subList(priorStart, i + 1)
-                val rawNext = tokens[i + 1]
-                // Strip any leading/trailing punctuation off the next word
-                // so "Maybe." doesn't end up as a different trigram seed
-                // than "maybe".
-                val nextClean = rawNext.trim('"', '\'', '(', ')', ',', '.', '!', '?', ';', ':')
-                if (nextClean.isNotBlank()) {
-                    PredictionEngine.recordCompletion(pkg, priorWords, nextClean)
-                }
-            }
-        }
-    }
-
-    /** Jaccard similarity between two strings (word-level). */
-    private fun jaccard(a: String, b: String): Float {
-        val setA = a.lowercase().split("\\s+".toRegex()).toSet()
-        val setB = b.lowercase().split("\\s+".toRegex()).toSet()
-        if (setA.isEmpty() && setB.isEmpty()) return 1f
-        val intersection = setA.intersect(setB).size
-        val union = setA.union(setB).size
-        return if (union == 0) 0f else intersection.toFloat() / union
-    }
-
     private fun checkRedo(text: String) {
-        if (recentTexts.isNotEmpty() && jaccard(text, recentTexts.last()) > 0.7) {
+        if (recentTexts.isNotEmpty() && PipelineAnalytics.jaccard(text, recentTexts.last()) > 0.7) {
             redoCount++
             if (redoCount >= 3) {
                 Toast.makeText(this, getString(R.string.toast_redo_warning), Toast.LENGTH_LONG).show()
@@ -2597,7 +2561,7 @@ class BubbleService : Service() {
                 // your boss in Slack") plus future on-bubble prediction chips.
                 val predPkg = WimAccessibilityService.currentForegroundPackage
                 if (WimApp.predictionsEnabled() && !predPkg.isNullOrBlank()) {
-                    recordPredictionsFromOutput(predPkg, outputText)
+                    PipelineAnalytics.recordPredictionsFromOutput(predPkg, outputText)
                 }
                 val flagStr = if (reconResult.riskFlags.isNotEmpty()) " flags:[${reconResult.riskFlags.joinToString(",")}]" else ""
                 ConsoleLog.log("[L$layer] paste_clean | ${totalMs}ms (asr:${asrMs} recon:${reconResult.reconMs})$flagStr", "info")
