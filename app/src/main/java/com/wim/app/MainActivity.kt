@@ -903,6 +903,12 @@ class MainActivity : AppCompatActivity() {
         l1SourcePrefListener = null
         layerSubRowPrefListener?.let { WimApp.prefs.unregisterOnSharedPreferenceChangeListener(it) }
         layerSubRowPrefListener = null
+        // The process-scoped WimApp.onSessionsSynced callback captures
+        // `this` via the lambda registered in onResume / onCreate. Without
+        // nulling it, a destroyed activity is retained until process death
+        // because FirebaseAuth holds a strong reference to the listener
+        // that fires the callback.
+        WimApp.onSessionsSynced = null
     }
 
     private fun loadConsole() {
