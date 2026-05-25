@@ -67,6 +67,11 @@ class BubbleService : Service() {
     // cancel) without the full ~600 LOC extraction.
     private var currentReconJob: Job? = null
 
+    // One-time Toast guard: fires at most once per service lifetime when
+    // Sonnet L4 throws and the GPT-4o fallback runs.
+    @Volatile
+    var l4DowngradeNotified = false
+
     // Patent-clean word-highlight overlay (claim 13) extracted to
     // BubbleWordHighlight 2026-05-25 — first leaf-overlay slice of the
     // BubbleWindow cluster. This class owns the wrapper that fetches the
@@ -111,9 +116,11 @@ class BubbleService : Service() {
     private var processed = false
     private var menuView: View? = null
     private var menuParams: WindowManager.LayoutParams? = null
-    private var liveTextView: TextView? = null
-    private var liveTextParams: WindowManager.LayoutParams? = null
-    private var liveTextContainer: android.widget.FrameLayout? = null
+    // Live transcript + pipeline-stage comment-bubble overlay extracted to
+    // BubbleLiveTranscript 2026-05-25 — second BubbleWindow slice. Owns the
+    // overlay view, container, params, typewriter/cursor animations, and
+    // TranscriptBarController bind/unbind.
+    private var liveTranscript: BubbleLiveTranscript? = null
     private var lastTapTime = 0L
     private val DOUBLE_TAP_TIMEOUT = 300L
     // Press-and-hold threshold — 500ms is well above normal tap durations
@@ -389,6 +396,12 @@ class BubbleService : Service() {
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         wordHighlight = BubbleWordHighlight(this, windowManager!!)
+        liveTranscript = BubbleLiveTranscript(
+            context = this,
+            windowManager = windowManager!!,
+            getBubbleParams = { bubbleParams },
+            isDemoActive = { activeDemoScript != null }
+        )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -1256,6 +1269,12 @@ class BubbleService : Service() {
                     languageCode = ctx.languageCode,
                     previousOutputs = previousOutputs.toList(),
                 )
+                if (result.downgradedFromL4 && !l4DowngradeNotified) {
+                    l4DowngradeNotified = true
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        Toast.makeText(this@BubbleService, "L4 unavailable — using L3 this session.", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 val newText = result.cleanText.trim()
                 if (newText.isBlank() || previousOutputs.contains(newText)) {
                     ConsoleLog.log("Regen returned same/blank — keeping original", "warn")
@@ -2959,224 +2978,20 @@ class BubbleService : Service() {
         }
     }
 
-    /**
-     * Build the comment-bubble shaped transcript bar (theme-tinted, solid,
-     * borderless, anchored above the floating bubble with tail tip on the
-     * bezel top). Used by BOTH showLiveTranscript (live partials) and
-     * showPipelineStage (post-stop pipeline status). Single visual surface
-     * for everything that overlays the bubble.
-     */
-    private fun ensureTranscriptBar() {
-        if (liveTextView != null) return
-        val dp = resources.displayMetrics.density
-        val barWidthPx = (220 * dp).toInt()
-        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
-        val styleFor = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
-        val opaqueFill = (palette.fill or 0xFF000000.toInt())
-        val bgDrawable = CommentBubbleDrawable(
-            fillColor = opaqueFill,
-            strokeColor = palette.stroke,
-            displayMetrics = resources.displayMetrics,
-            backgroundStyle = styleFor,
-            drawOutline = false
-        )
-        val tv = TextView(this).apply {
-            setTextColor(palette.primaryText)
-            textSize = 12f
-            typeface = android.graphics.Typeface.MONOSPACE
-            setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (22 * dp).toInt())
-            minLines = 2
-            maxLines = 6
-            ellipsize = android.text.TextUtils.TruncateAt.END
-            text = ""
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-        liveTextView = tv
-        TranscriptBarController.bind { text -> liveTextView?.text = text }
-
-        val container = android.widget.FrameLayout(this).apply {
-            background = bgDrawable
-            addView(tv)
-        }
-        liveTextContainer = container
-
-        val bp = bubbleParams ?: run {
-            Log.w(TAG, "ensureTranscriptBar: bubbleParams null — cannot position")
-            return
-        }
-        val bubbleHeight = if (bp.height > 0) bp.height else (120 * dp).toInt()
-        val bubbleTop = bp.y
-        val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
-        val screenW = resources.displayMetrics.widthPixels
-        val ltParams = WindowManager.LayoutParams(
-            barWidthPx,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = (bubbleCenterX - barWidthPx / 2).coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
-            y = (bubbleTop - (90 * dp).toInt()).coerceAtLeast(0)
-        }
-        liveTextParams = ltParams
-        try { windowManager?.addView(container, ltParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-
-        val bezelTopOffset = (bubbleHeight * 0.20).toInt()
-        val anchor: () -> Unit = {
-            val measuredH = container.height.coerceAtLeast(1)
-            val newY = (bubbleTop - measuredH + bezelTopOffset).coerceAtLeast(0)
-            if (ltParams.y != newY) {
-                ltParams.y = newY
-                try { windowManager?.updateViewLayout(container, ltParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-            }
-        }
-        container.post(anchor)
-        container.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            if ((bottom - top) != (oldBottom - oldTop)) anchor()
-        }
-    }
-
     private fun showLiveTranscript() {
-        val enabled = WimApp.prefs.getBoolean("live_transcript", false)
-        if (!enabled) return
-        ensureTranscriptBar()
-        // Restore growable mode for live partials (vs pipeline-stage's locked 3 lines)
-        liveTextView?.minLines = 2
-        liveTextView?.maxLines = 6
-        stopStagePulse()
-        liveTextView?.text = "● Recording…"
+        liveTranscript?.showLive()
     }
 
     private fun updateLiveTranscript(text: String) {
-        liveTextView?.text = text
+        liveTranscript?.updateLive(text)
     }
-
-    // Pipeline-stage state — premium typewriter rendering. Title is
-    // static (no flickering glyph, no breathing alpha — those read as
-    // "epileptic" per operator). Body reveals char-by-char at 22ms/char.
-    // After body finishes typing, a single ▌ cursor blinks at 500ms cycle.
-    private var stageLabel: String = ""
-    private var stageDetail: String = ""
-    private var typewriterIdx = 0
-    private var cursorVisible = true
-    private val stageAnimHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val TYPEWRITER_INTERVAL_MS = 22L
-    private val CURSOR_BLINK_MS = 500L
 
     fun showPipelineStage(stage: String, detail: String) {
-        // L1 cloud (whisper-1 API) is the silent fast path. The bubble's
-        // own PROC color + bezel arc are enough feedback — narrating
-        // "Transcribing → Cleaning up → Cleaned" via the comment bubble
-        // adds no latency but reads as new slowness on a path the user
-        // expects to feel instant. Demo script overrides via activeDemoScript.
-        val isL1Cloud = WimApp.layer() < 2 && WimApp.l1CloudAsr()
-        if (isL1Cloud && activeDemoScript == null) return
-        // Reuse the comment-bubble shaped transcript bar. Pipeline state lives
-        // in the SAME surface as live partials. Locked to 3 lines so the bar
-        // doesn't jump between transcribe/recon/falcon calls. Cross-fades on
-        // each change. Three loading animations stack: rotating tape-reel glyph,
-        // breathing color on the stage label, typewriter dots after it.
-        ensureTranscriptBar()
-        val tv = liveTextView ?: return
-        tv.minLines = 3
-        tv.maxLines = 3
-        tv.ellipsize = android.text.TextUtils.TruncateAt.END
-
-        stageLabel = stage
-        stageDetail = detail
-        startStageAnimations()
-
-        // Cross-fade: dim → settle → restore
-        tv.animate().alpha(0.3f).setDuration(110)
-            .withEndAction {
-                renderStageFrame()
-                tv.animate().alpha(1f).setDuration(180).start()
-            }.start()
-    }
-
-    private fun renderStageFrame() {
-        val tv = liveTextView ?: return
-
-        // Theme-aware palette — bronze/aluminum have LIGHT fills (need dark
-        // text), gunmetal has DARK fill (needs cream-gold text). Single source
-        // of truth as the live-transcript surface.
-        val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
-        val labelRgb = palette.primaryText and 0x00FFFFFF
-        val detailColor = palette.secondaryText
-        val labelColor = 0xFF000000.toInt() or labelRgb
-
-        // Body text reveals char-by-char per typewriterIdx. Trailing cursor
-        // is visible while typing OR blinking after body completes.
-        val typedBody = if (typewriterIdx >= stageDetail.length) stageDetail
-                        else stageDetail.substring(0, typewriterIdx)
-        val cursorChar = if (cursorVisible) "▌" else " "
-
-        val styled = android.text.SpannableStringBuilder().apply {
-            val titleStart = length
-            append(stageLabel)
-            setSpan(android.text.style.ForegroundColorSpan(labelColor),
-                titleStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                titleStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append("\n")
-            val detailStart = length
-            append(typedBody)
-            append(cursorChar)
-            setSpan(android.text.style.RelativeSizeSpan(0.85f),
-                detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.ForegroundColorSpan(detailColor),
-                detailStart, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        tv.text = styled
-    }
-
-    // Two tickers — typewriter advance (22ms/char while body still has
-    // un-revealed characters) and cursor blink (500ms toggle). Title is
-    // static. No glyph rotation, no breathing alpha — those read as
-    // "epileptic" per operator and added zero information.
-    private val typewriterTick = object : Runnable {
-        override fun run() {
-            if (typewriterIdx < stageDetail.length) {
-                typewriterIdx += 1
-                renderStageFrame()
-                stageAnimHandler.postDelayed(this, TYPEWRITER_INTERVAL_MS)
-            }
-        }
-    }
-    private val cursorBlinkTick = object : Runnable {
-        override fun run() {
-            cursorVisible = !cursorVisible
-            renderStageFrame()
-            stageAnimHandler.postDelayed(this, CURSOR_BLINK_MS)
-        }
-    }
-
-    private fun startStageAnimations() {
-        stopStagePulse()
-        typewriterIdx = 0
-        cursorVisible = true
-        stageAnimHandler.postDelayed(typewriterTick, TYPEWRITER_INTERVAL_MS)
-        stageAnimHandler.postDelayed(cursorBlinkTick, CURSOR_BLINK_MS)
-    }
-
-    private fun stopStagePulse() {
-        stageAnimHandler.removeCallbacks(typewriterTick)
-        stageAnimHandler.removeCallbacks(cursorBlinkTick)
+        liveTranscript?.showStage(stage, detail)
     }
 
     private fun hideLiveTranscript() {
-        stopStagePulse()
-        liveTextContainer?.let {
-            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
-        }
-        liveTextContainer = null
-        liveTextView = null
-        liveTextParams = null
-        TranscriptBarController.unbind()
+        liveTranscript?.hide()
     }
 
     /**
@@ -3782,6 +3597,12 @@ class BubbleService : Service() {
                     audiencePackage = WimAccessibilityService.currentForegroundPackage,
                 )
                 turboTaxJob?.cancel()
+                if (reconResult.downgradedFromL4 && !l4DowngradeNotified) {
+                    l4DowngradeNotified = true
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        Toast.makeText(this@BubbleService, "L4 unavailable — using L3 this session.", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
                 ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")
 
@@ -4257,10 +4078,10 @@ class BubbleService : Service() {
         VoiceCommandRouter.unregister("clarifier")
         ClarifierController.reset()
         timerHandler.removeCallbacksAndMessages(null)
-        // typewriterTick + cursorBlinkTick survive service death otherwise —
-        // they keep firing at 22ms/500ms forever, writing to nulled views via
-        // safe-call NPE suppression, never noticed.
-        stageAnimHandler.removeCallbacksAndMessages(null)
+        // Cancel typewriter + cursor-blink ticks owned by the live transcript
+        // overlay — otherwise they keep firing at 22ms/500ms forever after
+        // the service dies.
+        liveTranscript?.destroy()
         audioPlaybackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
         try { scoReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         scope.cancel()
