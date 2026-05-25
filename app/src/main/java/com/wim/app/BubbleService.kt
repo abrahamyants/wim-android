@@ -85,7 +85,9 @@ class BubbleService : Service() {
     private var preJumpY = 0
     private var facehuggerActive = false
     private var audioPlaybackCallback: android.media.AudioManager.AudioPlaybackCallback? = null
-    private var scoReceiver: android.content.BroadcastReceiver? = null
+    // Bluetooth SCO bring-up + state tracking extracted to BubbleBluetoothSco
+    // 2026-05-25 — sixth slice. Owns the SCO receiver + routing call.
+    private var bluetoothSco: BubbleBluetoothSco? = null
     private var isRecording = false
         set(value) {
             if (field != value) {
@@ -381,7 +383,6 @@ class BubbleService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private var audioManager: android.media.AudioManager? = null
-    private var bluetoothScoActive = false
 
     override fun onCreate() {
         super.onCreate()
@@ -472,7 +473,9 @@ class BubbleService : Service() {
             }
         }
         createNotificationChannel()
-        setupBluetoothSco()
+        audioManager?.let {
+            bluetoothSco = BubbleBluetoothSco(this, it).also { sco -> sco.start() }
+        }
         val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         val fgsType = if (hasMic) {
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
@@ -493,52 +496,6 @@ class BubbleService : Service() {
                 if (bubbleView == null) showBubble() else hideBubble()
             }
         }.also { it.start() }
-    }
-
-    private fun setupBluetoothSco() {
-        val am = audioManager ?: return
-        // Listen for Bluetooth SCO state changes
-        scoReceiver = object : android.content.BroadcastReceiver() {
-            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
-                val state = intent?.getIntExtra(android.media.AudioManager.EXTRA_SCO_AUDIO_STATE, -1)
-                when (state) {
-                    android.media.AudioManager.SCO_AUDIO_STATE_CONNECTED -> {
-                        Log.i(TAG, "Bluetooth SCO connected — using BT mic")
-                        bluetoothScoActive = true
-                    }
-                    android.media.AudioManager.SCO_AUDIO_STATE_DISCONNECTED -> {
-                        Log.i(TAG, "Bluetooth SCO disconnected — using default mic")
-                        bluetoothScoActive = false
-                    }
-                }
-            }
-        }
-        scoReceiver?.let { registerReceiver(it, android.content.IntentFilter(android.media.AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)) }
-
-        // If Bluetooth headset is already connected, start SCO.
-        //
-        // startBluetoothSco() / isBluetoothScoOn / isBluetoothScoAvailableOffCall
-        // were deprecated in API 31 in favor of
-        // AudioManager.setCommunicationDevice(AudioDeviceInfo). The new API
-        // changes audio routing IMMEDIATELY (vs the old "request, wait for
-        // state callback" model) and unifies all communication devices under
-        // one mechanism. Migrating without phone-side validation of every
-        // BT headset scenario (already-connected, hot-swap, fallback to
-        // built-in mic) would risk silently breaking BT mic capture in the
-        // recording path. Suppressing for now; modernize in a session with
-        // a BT headset on hand to test the routing transitions.
-        @Suppress("DEPRECATION")
-        if (am.isBluetoothScoAvailableOffCall) {
-            try {
-                @Suppress("DEPRECATION")
-                am.startBluetoothSco()
-                @Suppress("DEPRECATION")
-                am.isBluetoothScoOn = true
-                Log.i(TAG, "Bluetooth SCO started")
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not start Bluetooth SCO: ${e.message}")
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -3701,7 +3658,8 @@ class BubbleService : Service() {
         // the service dies.
         liveTranscript?.destroy()
         audioPlaybackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
-        try { scoReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
+        bluetoothSco?.stop()
+        bluetoothSco = null
         scope.cancel()
         super.onDestroy()
     }
