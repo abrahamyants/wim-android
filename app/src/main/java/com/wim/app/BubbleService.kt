@@ -1889,6 +1889,22 @@ class BubbleService : Service() {
     private fun startHotwordIfEnabled() { hotword?.startIfEnabled() }
     private fun stopHotwordListener() { hotword?.stop() }
 
+    private fun relayToTermux(text: String) {
+        WimApp.instance.appScope.launch(Dispatchers.IO) {
+            try {
+                val url = java.net.URL("http://localhost:3133/wim")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.connectTimeout = 500
+                conn.readTimeout = 500
+                conn.outputStream.write(text.toByteArray())
+                conn.responseCode
+                conn.disconnect()
+            } catch (_: Exception) { /* relay not running — silent skip */ }
+        }
+    }
+
     /** Public alias so MainActivity can flip the listener off when the user
      *  toggles the hotword setting. */
     fun stopHotwordListenerPublic() = stopHotwordListener()
@@ -2178,6 +2194,7 @@ class BubbleService : Service() {
                 return
             }
             WimAccessibilityService.instance!!.injectText(l1Text)
+            relayToTermux(l1Text)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             setStageArc(3)
             val totalMs = System.currentTimeMillis() - recordingStartTime
@@ -2410,6 +2427,7 @@ class BubbleService : Service() {
 
                 if (WimAccessibilityService.instance != null) {
                     WimAccessibilityService.instance!!.injectText(outputText)
+                    relayToTermux(outputText)
                     val injectCue = if (previousOutputs.isNotEmpty()) SuccessCue.REGEN_SUCCESS else SuccessCue.PASTE
                     BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), injectCue))
                     setStageArc(3)
