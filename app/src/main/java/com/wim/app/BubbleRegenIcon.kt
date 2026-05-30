@@ -35,7 +35,11 @@ class BubbleRegenIcon(
 
     fun show() {
         val view = getBubbleView() ?: return
-        val icon = view.findViewById<ImageView>(R.id.bezelRegen) ?: return
+        // bezelRegen was an ImageView before the May 2026 bezel refactor,
+        // is now a FrameLayout. The methods we call (alpha, visibility,
+        // animate) are all on View, so widen the cast and we keep working
+        // through any future layout swap.
+        val icon = view.findViewById<View>(R.id.bezelRegen) ?: return
         icon.alpha = 0f
         icon.visibility = View.VISIBLE
         icon.animate().alpha(1f).setDuration(FADE_IN_MS).start()
@@ -49,7 +53,7 @@ class BubbleRegenIcon(
 
     fun hide() {
         val view = getBubbleView() ?: return
-        val icon = view.findViewById<ImageView>(R.id.bezelRegen) ?: return
+        val icon = view.findViewById<View>(R.id.bezelRegen) ?: return
         icon.animate().alpha(0f).setDuration(FADE_OUT_MS).withEndAction {
             icon.visibility = View.GONE
         }.start()

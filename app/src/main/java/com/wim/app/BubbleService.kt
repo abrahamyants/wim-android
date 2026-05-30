@@ -369,7 +369,13 @@ class BubbleService : Service() {
                     wavFile,
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
-                    verboseSegments = !l1CloudFastPath,
+                    // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
+                    // late May 2026) rejects `verbose_json` with HTTP 400.
+                    // Only whisper-1 accepts verbose_json; everything else
+                    // must use plain `json` (loses per-segment confidence,
+                    // which is fine for L1-cloud + L2/L3 — only L4's
+                    // MultiPassDecoder consumes the per-segment signal).
+                    verboseSegments = (whisperModel == "whisper-1"),
                     language = WimApp.appLanguage(),
                 )
                 Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
@@ -1747,7 +1753,13 @@ class BubbleService : Service() {
                     wavFile,
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
-                    verboseSegments = !l1CloudFastPath,
+                    // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
+                    // late May 2026) rejects `verbose_json` with HTTP 400.
+                    // Only whisper-1 accepts verbose_json; everything else
+                    // must use plain `json` (loses per-segment confidence,
+                    // which is fine for L1-cloud + L2/L3 — only L4's
+                    // MultiPassDecoder consumes the per-segment signal).
+                    verboseSegments = (whisperModel == "whisper-1"),
                     language = WimApp.appLanguage(),
                 )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
@@ -1845,8 +1857,14 @@ class BubbleService : Service() {
         BubbleStateBus.reset()
         pulseRings?.stop()
         hideLiveTranscript()
-        // L4 multi-pass wav is no longer needed once we're idle.
-        lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
+        // DO NOT delete lastWavFile here. The previous `lastWavFile?.delete()`
+        // raced with the cloud-Whisper transcribe coroutine launched from
+        // stopAndProcess(): on-device returns NO_MATCH → state goes Idle →
+        // file deleted → Whisper coroutine opens the file → ENOENT, which
+        // silently kills every L2+ session ("Whisper failed: ... ENOENT
+        // (No such file or directory)"). The file lives in cacheDir;
+        // Android handles eviction, and the next recording overwrites
+        // it at the same path. Bug introduced in 786c9e3 (2026-04-30).
         lastWavFile = null
         tipRotator?.maybeShow()
         // Cancel SEND-ready countdown ticker if still running.
