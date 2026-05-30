@@ -258,7 +258,11 @@ object ReconstructClient {
         val json = JSONObject(responseBody)
         val reconMs = System.currentTimeMillis() - t0
 
-        val cleanText = json.optString("clean", rawText)
+        if (!json.has("clean")) {
+            Log.e("WiM", "Backend response missing 'clean' field — keys=${json.keys().asSequence().toList()}")
+            throw RuntimeException("Backend response missing 'clean' field — wim-reconstruct contract broken")
+        }
+        val cleanText = json.getString("clean")
         // Trust backend's safety decisions — it runs Falcon and risk flags server-side
         val falconOk = json.optBoolean("falcon_ok", true)
         val finalText = if (falconOk) cleanText else rawText

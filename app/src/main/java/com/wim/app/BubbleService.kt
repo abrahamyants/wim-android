@@ -1155,7 +1155,22 @@ class BubbleService : Service() {
             params.y = spawnCy - newWindowPx / 2
         }
 
-        windowManager?.addView(bubbleView, params)
+        try {
+            windowManager?.addView(bubbleView, params)
+        } catch (e: Exception) {
+            // addView throws WindowManager.BadTokenException / SecurityException
+            // when the SYSTEM_ALERT_WINDOW permission was revoked between
+            // service start and now. Without this catch the service crashes
+            // and the bubble vanishes mid-use.
+            Log.e("BubbleService", "addView failed (overlay permission revoked?): ${e.message}")
+            Toast.makeText(this, "Overlay permission lost — re-enable in Settings", Toast.LENGTH_LONG).show()
+            val intent = Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                data = android.net.Uri.parse("package:$packageName")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            try { startActivity(intent) } catch (_: Exception) {}
+            return
+        }
 
         // Prime the pre-roll audio buffer so first words aren't lost on tap
         if (WimApp.apiKey().isNotBlank() && WimApp.layer() >= 2) {

@@ -1,5 +1,8 @@
 package com.wim.app
 
+import android.util.Log
+import android.widget.Toast
+
 /**
  * Drives the [BubbleState.Clarifying] lifecycle — spec §6 Phase 2 step 15.
  *
@@ -93,8 +96,17 @@ object ClarifierController {
             // Update the in-memory injection text so subsequent ranges still match.
             lastInjectionText = applyEdit(lastInjectionText, current.rangeStart, current.rangeEnd, replacement)
             recordSwap(current.originalWord, replacement)
+            next()
+        } else {
+            // Swap couldn't reach the host (focus lost, app changed, field cleared).
+            // Stay on this flag so the user can retry rather than silently
+            // advancing past an unfixed word.
+            Log.w("ClarifierController", "swap failed at idx=$cycleIndex word=${current.originalWord}; staying on flag")
+            BubbleService.instance?.let {
+                Toast.makeText(it, "Swap failed — tap again", Toast.LENGTH_SHORT).show()
+            }
+            armAutoDismiss()
         }
-        next()
     }
 
     /**
