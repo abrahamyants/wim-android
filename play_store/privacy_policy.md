@@ -1,50 +1,99 @@
-﻿# Privacy Policy for WiM
+# Privacy Policy for WiM (What I Meant)
 
-**Last Updated: [Date]**
+**Last Updated: May 29, 2026**
 
-This Privacy Policy describes how WiM ("we," "us," or "our") collects, uses, and protects your information when you use our mobile application. 
+This Privacy Policy describes how WiM ("we," "us," or "our") handles your information when you use the WiM mobile application ("the app"). Read it together with the Google Play store listing.
 
-WiM is designed as an offline-first, privacy-respecting voice-to-text application. Our core philosophy is that your voice and your data belong to you.
+WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in via the in-app layer selector.
 
-## 1. Data Collection and Usage
+## 1. What WiM does with your voice
 
-### A. Microphone and Audio Data
-To provide voice-to-text functionality, WiM requires access to your device's microphone. 
-- **On-Device Processing:** By default, all audio processing and transcription are performed locally on your device using on-device models (such as Vosk or Moonshine). Your audio data and raw transcripts are **not** sent to our servers.
-- **Optional Cloud Transcription (OpenAI Whisper):** If you explicitly choose to enable our optional cloud-based transcription service (e.g., OpenAI Whisper) for enhanced accuracy, your audio data will be securely transmitted to that third-party provider solely for the purpose of transcription. We do not store this audio on our servers.
+WiM groups voice processing into four layers (L1 – L4). The layer you pick determines whether your audio leaves the device.
 
-### B. Accessibility Service
-WiM may utilize the Android Accessibility Service API to enable seamless text insertion (e.g., placing transcribed text directly into other applications via our floating bubble). 
-- We only use this service to paste the text you have explicitly dictated.
-- We **do not** use the Accessibility Service to monitor, log, or collect data from other applications on your device, nor do we track your interactions outside of the text insertion process.
+### Layer 1 — local on-device (default)
+- All audio recording and transcription happen on your phone.
+- Transcription runs against a local speech model (whisper-tiny.en, ~40 MB, bundled via the sherpa-onnx runtime).
+- No audio, no transcript, and no metadata are transmitted to our servers or any third party.
+- You can also optionally enable a cloud transcription engine for L1 (OpenAI whisper-1) if you prefer cloud accuracy over local. This is off by default and surfaced as the "L1 Cloud" toggle in the bubble menu.
 
-## 2. Data Storage and Syncing
+### Layer 2 / Layer 3 — cloud reconstruction (opt-in)
+- Selecting L2 or L3 sends your audio to OpenAI's Whisper API for transcription and your transcript to OpenAI's GPT-4o model for grammar and tone cleanup.
+- Requests are routed through our Cloud Function backend (`wim-reconstruct` on Google Cloud) so the third-party API key is held server-side, not on your device.
+- We do not store your audio. The Cloud Function keeps short-lived request logs (uid, latency, layer, model) for reliability; logs do not include the contents of your audio or transcripts.
 
-### A. Primary Local Storage
-All generated text, settings, and usage preferences are stored locally on your device. We do not have access to this data.
+### Layer 4 — clinical reconstruction (opt-in)
+- L4 sends your audio to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript to Anthropic's Claude Sonnet 4.6 model for clinical-grade reconstruction.
+- L4 requests are sent to Anthropic directly from the app using a bundled API key, then logged the same way as L2/L3.
 
-### B. Optional Cloud Sync (Firebase/Firestore)
-Users may optionally create an account and sign in to enable cross-device syncing. 
-- If you opt into this feature, your user profile, app settings, and saved transcripts will be securely stored in Google Firebase/Firestore.
-- This data is used exclusively to sync your experience across devices. We do not sell, rent, or share this data with unauthorized third parties.
+### What this means in practice
+- Default install = nothing leaves your phone.
+- Tap the layer selector and pick L2 or higher = audio and transcripts leave your phone via the providers above for that session.
+- Switching back to L1 stops cloud transmission immediately.
 
-## 3. Third-Party Services
-WiM may use the following third-party services, which have their own privacy policies:
-- **Google Play Services:** For app distribution and billing.
-- **Google Firebase/Firestore:** (Optional) For user authentication and data syncing.
-- **OpenAI:** (Optional) If you enable cloud-based transcription via Whisper.
+## 2. Accessibility Service
 
-## 4. User Rights and Data Retention (GDPR & HIPAA Compatibility)
-While WiM is not inherently a medical application, we adhere to strict data minimization principles compatible with standard health and privacy regulations (like GDPR).
-- **Data Deletion:** If you use our optional cloud sync, you can delete your account and all associated data directly within the app settings. Upon deletion, all your data is permanently removed from our Firestore database.
-- **Local Data:** You can clear all locally stored data at any time by clearing the app's data in your Android system settings or uninstalling the app.
-- **Data Retention:** We retain your optional cloud data only for as long as your account is active.
+WiM uses Android's Accessibility Service API to detect the text field you are typing into and to paste cleaned text back into that field via the floating bubble.
 
-## 5. Security
-We implement industry-standard security measures to protect any data transmitted via our optional cloud features. However, please remember that no method of transmission over the internet or electronic storage is 100% secure.
+- The service is used only to find the active text field, inject the dictated text, and (if you enable Auto-Send) tap the Send button in the host app.
+- We do not log or transmit the content of other apps, your password fields, or your interactions outside the moment you dictate.
+- WiM blocks dictation entirely when the focused field is a password input.
 
-## 6. Changes to This Privacy Policy
-We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.
+## 3. Account, sync, and Firebase
 
-## 7. Contact Us
-If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at: **[Your Support Email Address Placeholder]**.
+If you sign in with Google, WiM creates an account in Google Firebase Authentication to associate your device with your subscription tier.
+
+- Optional Firestore sync stores your learned vocabulary, corrections list, and per-session reconstruction history under your user ID in our Firestore database (`bakers-agent` project on Google Cloud).
+- Sync is used only to keep your personal profile consistent across devices and to bill / quota-limit cloud requests.
+- You can disable sync from the app's Settings overlay. You can delete your account and all associated cloud data via Settings → User Profile → "Delete account and cloud data."
+- We do not share, sell, or rent your data to anyone.
+
+## 4. Crashes and product telemetry
+
+The app uses Firebase Crashlytics, Firebase Performance, and Firebase Analytics to detect crashes and reliability issues.
+
+- Crashlytics receives stack traces and device model. We do not attach transcripts or audio to crash payloads.
+- Performance receives anonymous timing data (cold-start time, reconstruction latency).
+- Analytics tracks anonymous feature usage so we can prioritize fixes.
+
+These can be limited at the OS level via Google Play Services privacy controls.
+
+## 5. Third-party services and processors
+
+| Provider | Used for | Triggered when |
+|---|---|---|
+| Google Play Services | App distribution, sign-in, billing | Always |
+| Google Firebase Authentication | Account creation | Only after you sign in with Google |
+| Google Firestore | Profile + history sync | Only after sign-in, only if sync enabled |
+| Google Firebase Crashlytics / Performance / Analytics | Reliability + telemetry | Always (can be limited via OS controls) |
+| OpenAI (Whisper, GPT-4o) | Cloud transcription + reconstruction | Only when you choose L1 Cloud, L2, L3, or L4 |
+| Anthropic (Claude Sonnet 4.6) | L4 reconstruction | Only when you choose L4 |
+
+## 6. Local storage
+
+All settings, learned vocabulary, your corrections list, and session history are stored on your device in standard Android SharedPreferences and SQLite. You can clear all of it at any time by clearing the app's data in Android Settings → Apps → What I Meant → Storage, or by uninstalling the app.
+
+## 7. Children
+
+WiM is not designed for children under 13 and is not directed at children.
+
+## 8. Your rights
+
+You can:
+- Export the data we hold about you (Settings → User Profile → Export data).
+- Delete the data we hold about you (Settings → User Profile → Delete account and cloud data).
+- Limit Crashlytics, Performance, and Analytics via Google Play Services system settings.
+- Stop all cloud transmission by selecting Layer 1 and disabling the L1 Cloud toggle.
+
+For users in jurisdictions with GDPR-style rights (EEA, UK, California, etc.), the export and delete tools above satisfy access and deletion requests.
+
+## 9. Security
+
+We use TLS for every network call to our backend and to third-party providers. No data transmission is 100% guaranteed, but we minimize what leaves the device and we never store raw audio.
+
+## 10. Changes to this policy
+
+If we update this policy we will publish the new version at the same URL and bump the "Last Updated" date. Material changes will be surfaced in the app on the next launch.
+
+## 11. Contact
+
+Questions about this policy: **gugosf@gmail.com**.
