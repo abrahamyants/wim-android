@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -198,12 +199,42 @@ class WimApp : Application() {
         fun profile(): ProfileManager = profileManager
     }
 
+    /**
+     * Uncaught-coroutine handler — mirrors the threading.excepthook added to
+     * Lavrentiy desktop on 05-30. Any exception that bubbles out of an
+     * [appScope] coroutine without being caught lands here. Without this,
+     * SupervisorJob silently swallows the failure (parent stays alive, child
+     * dies) and the user sees nothing — the same "learning silently stops"
+     * failure mode Lav's audit flagged for daemon threads.
+     */
+    private val coroutineExceptionHandler = CoroutineExceptionHandler { ctx, throwable ->
+        val name = ctx[kotlinx.coroutines.CoroutineName]?.name ?: "appScope-coroutine"
+        Log.e("WiM", "Uncaught in coroutine '$name': ${throwable.javaClass.simpleName}: ${throwable.message}", throwable)
+    }
+
     /** Application-lifetime scope for background work (Moonshine model download, etc.). */
-    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + coroutineExceptionHandler)
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // Catch uncaught exceptions on plain Threads (e.g. SDK helpers that
+        // spawn a non-coroutine worker — Firebase listeners, Whisper model
+        // downloader's IO calls, anything that doesn't run through appScope).
+        // Without this the JVM's default handler just kills the thread + logs
+        // to a place pywebview-equivalent (Logcat under noise) and the rest of
+        // the app degrades silently. Mirrors threading.excepthook added to
+        // Lavrentiy desktop on 05-30.
+        val existing = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                Log.e("WiM", "Uncaught in thread '${thread.name}': ${throwable.javaClass.simpleName}: ${throwable.message}", throwable)
+            } catch (_: Throwable) {
+                // handler itself must never raise
+            }
+            // Preserve the existing chain (Firebase Crashlytics, system crash UI).
+            existing?.uncaughtException(thread, throwable)
+        }
         // In production FirebaseInitProvider runs first; in Robolectric unit tests
         // manifest providers are skipped, so initialize explicitly. Idempotent.
         if (FirebaseApp.getApps(this).isEmpty()) FirebaseApp.initializeApp(this)
