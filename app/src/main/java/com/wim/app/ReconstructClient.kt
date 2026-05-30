@@ -247,12 +247,13 @@ object ReconstructClient {
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        val response = http.newCall(request).execute()
-        val responseBody = response.body?.string()
-            ?: throw RuntimeException("Empty response from backend")
-
-        if (!response.isSuccessful) {
-            throw RuntimeException("Backend error ${response.code}: $responseBody")
+        val responseBody = http.newCall(request).execute().use { response ->
+            val body = response.body?.string()
+                ?: throw RuntimeException("Empty response from backend")
+            if (!response.isSuccessful) {
+                throw RuntimeException("Backend error ${response.code}: $body")
+            }
+            body
         }
 
         val json = JSONObject(responseBody)
@@ -704,11 +705,13 @@ object ReconstructClient {
             .addHeader("Content-Type", "application/json")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
-        val response = http.newCall(request).execute()
-        val responseBody = response.body?.string()
-            ?: throw RuntimeException("Empty response from reconstruction API")
-        if (!response.isSuccessful) {
-            throw RuntimeException("Reconstruction API error ${response.code}: $responseBody")
+        val responseBody = http.newCall(request).execute().use { response ->
+            val body = response.body?.string()
+                ?: throw RuntimeException("Empty response from reconstruction API")
+            if (!response.isSuccessful) {
+                throw RuntimeException("Reconstruction API error ${response.code}: $body")
+            }
+            body
         }
         return JSONObject(responseBody)
             .getJSONArray("choices")
@@ -756,11 +759,13 @@ object ReconstructClient {
             .addHeader("Content-Type", "application/json")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
-        val response = http.newCall(request).execute()
-        val responseBody = response.body?.string()
-            ?: throw RuntimeException("Empty response from Sonnet reconstruction API")
-        if (!response.isSuccessful) {
-            throw RuntimeException("Sonnet reconstruction API error ${response.code}: $responseBody")
+        val responseBody = http.newCall(request).execute().use { response ->
+            val body = response.body?.string()
+                ?: throw RuntimeException("Empty response from Sonnet reconstruction API")
+            if (!response.isSuccessful) {
+                throw RuntimeException("Sonnet reconstruction API error ${response.code}: $body")
+            }
+            body
         }
         val content = JSONObject(responseBody).getJSONArray("content")
         // Skip thinking blocks, return the first text block.

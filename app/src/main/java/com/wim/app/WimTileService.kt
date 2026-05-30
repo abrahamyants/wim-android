@@ -26,9 +26,18 @@ class WimTileService : TileService() {
             startForegroundService(
                 Intent(this, BubbleService::class.java).apply { action = "SHOW" }
             )
-        } catch (_: Exception) {
-            // BubbleService not running yet — fall through; the SHOW
-            // action above will start it as a foreground service.
+        } catch (e: Exception) {
+            // Android 12+ blocks foreground-service-start-from-background
+            // unless one of the allowed cases applies (visible activity,
+            // notification interaction, FGS allowlist, etc). When blocked,
+            // the call throws and the service does NOT start — previous
+            // comment "fall through" was wrong.
+            android.util.Log.w("WimTileService", "startForegroundService blocked: ${e.message}")
+            android.widget.Toast.makeText(
+                this,
+                "Open WiM from the launcher first, then tap the tile again",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
         updateTile()
     }

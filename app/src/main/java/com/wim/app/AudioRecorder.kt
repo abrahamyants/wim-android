@@ -99,23 +99,32 @@ class AudioRecorder(private val context: Context) {
         val file = File(context.cacheDir, "wim_recording.wav")
         outputFile = file
         val fos = FileOutputStream(file)
-        fos.write(ByteArray(44))  // placeholder WAV header
+        try {
+            fos.write(ByteArray(44))  // placeholder WAV header
 
-        // Dump circular buffer contents (oldest → newest)
-        synchronized(bufferLock) {
-            val prerollBytes = ByteArray(bufferFilled)
-            if (bufferFilled > 0) {
-                val start = if (bufferFilled < PREROLL_BYTES) 0 else bufferPos
-                for (i in 0 until bufferFilled) {
-                    prerollBytes[i] = circularBuffer[(start + i) % PREROLL_BYTES]
+            // Dump circular buffer contents (oldest → newest)
+            synchronized(bufferLock) {
+                val prerollBytes = ByteArray(bufferFilled)
+                if (bufferFilled > 0) {
+                    val start = if (bufferFilled < PREROLL_BYTES) 0 else bufferPos
+                    for (i in 0 until bufferFilled) {
+                        prerollBytes[i] = circularBuffer[(start + i) % PREROLL_BYTES]
+                    }
+                    if (quietMode) applyQuietModeProcessing(prerollBytes, prerollBytes.size)
+                    fos.write(prerollBytes)
                 }
-                if (quietMode) applyQuietModeProcessing(prerollBytes, prerollBytes.size)
-                fos.write(prerollBytes)
             }
-        }
 
-        outputStream = fos
-        isRecording = true
+            outputStream = fos
+            isRecording = true
+        } catch (e: Exception) {
+            // Anything between fos creation and outputStream assignment fails
+            // (disk full, file deleted underneath, write IO error) — close the
+            // fd here so it doesn't leak per call. stop() won't see it because
+            // outputStream is still null.
+            try { fos.close() } catch (_: Exception) {}
+            throw e
+        }
         return file
     }
 
@@ -212,27 +221,27 @@ class AudioRecorder(private val context: Context) {
         val size = file.length().toInt()
         val dataSize = size - 44
 
-        val raf = RandomAccessFile(file, "rw")
-        val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
+        RandomAccessFile(file, "rw").use { raf ->
+            val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
 
-        header.put("RIFF".toByteArray())
-        header.putInt(size - 8)
-        header.put("WAVE".toByteArray())
+            header.put("RIFF".toByteArray())
+            header.putInt(size - 8)
+            header.put("WAVE".toByteArray())
 
-        header.put("fmt ".toByteArray())
-        header.putInt(16)
-        header.putShort(1)
-        header.putShort(1)
-        header.putInt(SAMPLE_RATE)
-        header.putInt(SAMPLE_RATE * 2)
-        header.putShort(2)
-        header.putShort(16)
+            header.put("fmt ".toByteArray())
+            header.putInt(16)
+            header.putShort(1)
+            header.putShort(1)
+            header.putInt(SAMPLE_RATE)
+            header.putInt(SAMPLE_RATE * 2)
+            header.putShort(2)
+            header.putShort(16)
 
-        header.put("data".toByteArray())
-        header.putInt(dataSize)
+            header.put("data".toByteArray())
+            header.putInt(dataSize)
 
-        raf.seek(0)
-        raf.write(header.array())
-        raf.close()
+            raf.seek(0)
+            raf.write(header.array())
+        }
     }
 }

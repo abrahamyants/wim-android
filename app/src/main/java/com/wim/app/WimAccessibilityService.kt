@@ -16,7 +16,17 @@ class WimAccessibilityService : AccessibilityService() {
         var instance: WimAccessibilityService? = null
             private set
         var activeTextField: AccessibilityNodeInfo? = null
-            private set
+            // Custom setter recycles the previous node so we don't exhaust the
+            // accessibility node pool on every focus/window-state event. The
+            // recycle() call is deprecated on API 33+ (no-op then) but still
+            // load-bearing on the minSdk=26 floor.
+            private set(value) {
+                val prev = field
+                field = value
+                if (prev != null && prev !== value) {
+                    try { @Suppress("DEPRECATION") prev.recycle() } catch (_: Exception) {}
+                }
+            }
         /** True if the currently focused text field is a password/sensitive field. */
         var isPasswordField: Boolean = false
             private set

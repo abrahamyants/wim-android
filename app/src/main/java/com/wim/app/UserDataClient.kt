@@ -45,13 +45,14 @@ object UserDataClient {
             .post(body)
             .build()
         try {
-            val resp = http.newCall(req).execute()
-            val respBody = resp.body?.string() ?: return@withContext null
-            if (!resp.isSuccessful) {
-                Log.e("UserDataClient", "exportData HTTP ${resp.code}")
-                return@withContext null
+            http.newCall(req).execute().use { resp ->
+                val respBody = resp.body?.string() ?: return@withContext null
+                if (!resp.isSuccessful) {
+                    Log.e("UserDataClient", "exportData HTTP ${resp.code}")
+                    return@withContext null
+                }
+                JSONObject(respBody)
             }
-            JSONObject(respBody)
         } catch (e: Exception) {
             Log.e("UserDataClient", "exportData failed: ${e.message}", e)
             null
@@ -75,13 +76,14 @@ object UserDataClient {
             .post(body)
             .build()
         try {
-            val resp = http.newCall(req).execute()
-            val respBody = resp.body?.string() ?: return@withContext false
-            if (!resp.isSuccessful) {
-                Log.e("UserDataClient", "deleteData HTTP ${resp.code}")
-                return@withContext false
+            http.newCall(req).execute().use { resp ->
+                val respBody = resp.body?.string() ?: return@withContext false
+                if (!resp.isSuccessful) {
+                    Log.e("UserDataClient", "deleteData HTTP ${resp.code}")
+                    return@withContext false
+                }
+                JSONObject(respBody).optBoolean("deleted", false)
             }
-            JSONObject(respBody).optBoolean("deleted", false)
         } catch (e: Exception) {
             Log.e("UserDataClient", "deleteData failed: ${e.message}", e)
             false

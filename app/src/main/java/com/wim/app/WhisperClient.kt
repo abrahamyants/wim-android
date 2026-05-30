@@ -163,12 +163,13 @@ object WhisperClient {
                 .post(body)
                 .build()
 
-            val response = http.newCall(request).execute()
-            val responseBody = response.body?.string()
-                ?: throw RuntimeException("Empty response from Whisper API")
-
-            if (!response.isSuccessful) {
-                throw RuntimeException("Whisper API error ${response.code}: $responseBody")
+            val responseBody = http.newCall(request).execute().use { response ->
+                val body = response.body?.string()
+                    ?: throw RuntimeException("Empty response from Whisper API")
+                if (!response.isSuccessful) {
+                    throw RuntimeException("Whisper API error ${response.code}: $body")
+                }
+                body
             }
 
             val json = JSONObject(responseBody)

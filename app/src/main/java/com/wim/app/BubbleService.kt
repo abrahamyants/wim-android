@@ -1313,7 +1313,7 @@ class BubbleService : Service() {
                     val l1 = profile.profileL1()!!
                     val anonId = profile.anonymousId()
                     val rawForContrib = ctx.rawText
-                    Thread {
+                    WimApp.instance.appScope.launch {
                         try {
                             val payload = org.json.JSONObject().apply {
                                 put("raw", rawForContrib.take(2000))
@@ -1336,7 +1336,7 @@ class BubbleService : Service() {
                             conn.responseCode // trigger request
                             conn.disconnect()
                         } catch (_: Exception) {}
-                    }.start()
+                    }
                 }
 
                 accessibility.replaceLastInjected(newText)
@@ -2482,7 +2482,7 @@ class BubbleService : Service() {
                         // failure or exception doesn't leave wasL1DetectPrompted()
                         // false and spawn a new detection thread on every subsequent
                         // reconstruction (thread-per-call leak).
-                        Thread {
+                        WimApp.instance.appScope.launch {
                             try {
                                 val payload = org.json.JSONObject().apply {
                                     put("text", textForGuess.take(3000))
@@ -2531,7 +2531,7 @@ class BubbleService : Service() {
                             } catch (e: Exception) {
                                 Log.w(TAG, "L1 detection network error: ${e.message}")
                             }
-                        }.start()
+                        }
                     }
                 }
 
@@ -2693,6 +2693,19 @@ class BubbleService : Service() {
         statusUI?.buildForegroundNotification(CHANNEL_ID, text) ?: error("statusUI not initialized")
     private fun updateNotification(text: String) { statusUI?.updateForegroundNotification(CHANNEL_ID, NOTIFICATION_ID, text) }
     private fun alertOnMissingPermissions() { statusUI?.alertOnMissingPermissions(ALERT_CHANNEL_ID, ALERT_NOTIFICATION_ID) }
+
+    // Android 15+: any FGS type can be subject to a time cap (MICROPHONE included
+    // under certain conditions). Without an onTimeout override, the system silently
+    // kills the service when the cap is reached and the user sees the bubble vanish
+    // mid-recording with no signal. Override surfaces it via toast + clean stop.
+    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        Log.w(TAG, "FGS timeout fired: startId=$startId fgsType=$fgsType — stopping service")
+        try {
+            Toast.makeText(this, "WiM mic session ended — re-open from launcher", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {}
+        stopSelf()
+    }
 
     override fun onDestroy() {
         instance = null

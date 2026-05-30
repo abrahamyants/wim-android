@@ -53,6 +53,13 @@ class BubbleCommandMode(
         private const val TAG = "WiM"
         private const val CMD_BACKEND_URL =
             "https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct"
+
+        // Shared client — was being created per-call in callBackendCommandTransform
+        // + callOpenAiTransform, leaking thread pools + sockets on every command.
+        private val http: OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
 
     var armed: Boolean = false
@@ -224,9 +231,6 @@ class BubbleCommandMode(
         command: String
     ): String? = withContext(Dispatchers.IO) {
         try {
-            val http = OkHttpClient.Builder()
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build()
             val body = JSONObject().apply {
                 put("action", "command")
                 put("source", source)
@@ -238,13 +242,14 @@ class BubbleCommandMode(
                 .addHeader("Content-Type", "application/json")
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
-            val resp = http.newCall(req).execute()
-            val respBody = resp.body?.string() ?: return@withContext null
-            if (!resp.isSuccessful) {
-                Log.w(TAG, "CMD backend ${resp.code}: ${respBody.take(200)}")
-                return@withContext null
+            http.newCall(req).execute().use { resp ->
+                val respBody = resp.body?.string() ?: return@withContext null
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "CMD backend ${resp.code}: ${respBody.take(200)}")
+                    return@withContext null
+                }
+                JSONObject(respBody).optString("transformed").takeIf { it.isNotBlank() }
             }
-            JSONObject(respBody).optString("transformed").takeIf { it.isNotBlank() }
         } catch (e: Exception) {
             Log.e(TAG, "CMD backend exception: ${e.message}")
             null
@@ -257,7 +262,6 @@ class BubbleCommandMode(
         userContent: String
     ): String? = withContext(Dispatchers.IO) {
         try {
-            val http = OkHttpClient.Builder().readTimeout(30, TimeUnit.SECONDS).build()
             val messages = JSONArray().apply {
                 put(JSONObject().put("role", "system").put("content", systemPrompt))
                 put(JSONObject().put("role", "user").put("content", userContent))
@@ -273,15 +277,16 @@ class BubbleCommandMode(
                 .addHeader("Content-Type", "application/json")
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
-            val resp = http.newCall(req).execute()
-            val respBody = resp.body?.string() ?: return@withContext null
-            if (!resp.isSuccessful) return@withContext null
-            JSONObject(respBody)
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-                .trim()
+            http.newCall(req).execute().use { resp ->
+                val respBody = resp.body?.string() ?: return@withContext null
+                if (!resp.isSuccessful) return@withContext null
+                JSONObject(respBody)
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+                    .trim()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "callOpenAiTransform failed: ${e.message}", e)
             null

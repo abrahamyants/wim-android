@@ -86,7 +86,16 @@ class HotwordListener(
             override fun onError(error: Int) {
                 if (!running) return
                 Log.w(TAG, "onError=$error (${errorName(error)})")
-                // Almost everything is recoverable for hotword purposes —
+                // Permission revoked — restarting just spawns the same error
+                // every ~120ms forever and burns battery. Disable the pref so
+                // it doesn't auto-resume next session, and bail.
+                if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || error == 9) {
+                    Log.w(TAG, "Mic permission denied — disabling hotword pref + stopping")
+                    WimApp.prefs.edit().putBoolean("hotword_enabled", false).apply()
+                    stop()
+                    return
+                }
+                // Almost everything else is recoverable for hotword purposes —
                 // we just want to keep a recognition session warm. Restart
                 // with a brief delay; longer when the recognizer is busy
                 // so we don't thrash.
