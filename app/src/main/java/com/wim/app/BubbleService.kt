@@ -138,6 +138,24 @@ class BubbleService : Service() {
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
+    // Set true when stopAndProcess fell to the "no wav, use on-device text"
+    // branch and is waiting for the Final ASR callback. handleFinal checks
+    // this and kicks off processText if it arrives after the fallback timer
+    // already gave up (common with whisper-tiny.en sherpa-onnx local — decode
+    // + thread-hop latency can exceed the timer window).
+    @Volatile private var awaitingPostStopAsr = false
+    private val postStopAsrFallback = Runnable {
+        if (!awaitingPostStopAsr) return@Runnable
+        awaitingPostStopAsr = false
+        val onDeviceText = lastRawText.trim()
+        if (onDeviceText.isNotBlank()) {
+            Log.i(TAG, "No wav, using on-device text: $onDeviceText")
+            processText(onDeviceText)
+        } else {
+            Log.w(TAG, "No audio captured and no on-device text")
+            setBubbleIdle()
+        }
+    }
     // Comment-bubble menu overlay extracted to BubbleMenu 2026-05-25 —
     // third BubbleWindow slice. Owns the menu view + params + inflation +
     // listeners + tail-anchored positioning.
@@ -1612,6 +1630,16 @@ class BubbleService : Service() {
                 finalizedSegments = if (finalizedSegments.isBlank()) text else "$finalizedSegments $text"
                 lastRawText = finalizedSegments
                 updateLiveTranscript(lastRawText)
+                // If stopAndProcess fell to the "no wav" branch and is waiting
+                // for this callback, kick off the pipeline NOW — don't wait
+                // for the 1500ms timer to fire. Cancel the timer so it doesn't
+                // double-process.
+                if (awaitingPostStopAsr) {
+                    awaitingPostStopAsr = false
+                    timerHandler.removeCallbacks(postStopAsrFallback)
+                    Log.i(TAG, "Post-stop Final ASR arrived: processing $lastRawText")
+                    processText(lastRawText.trim())
+                }
             } else {
                 Log.i(TAG, "Discarding hallucinated/empty ASR: '$trimmed'")
             }
@@ -1812,16 +1840,14 @@ class BubbleService : Service() {
             // lastRawText with the full utterance. Without this wait we paste a
             // truncated partial (e.g. "this is" instead of "this is a test").
             lastWhisperLowConf = emptyList()
-            timerHandler.postDelayed({
-                val onDeviceText = lastRawText.trim()
-                if (onDeviceText.isNotBlank()) {
-                    Log.i(TAG, "No wav, using on-device text: $onDeviceText")
-                    processText(onDeviceText)
-                } else {
-                    Log.w(TAG, "No audio captured and no on-device text")
-                    setBubbleIdle()
-                }
-            }, 400)
+            // 1500ms upper bound (was 400ms — too short for whisper-tiny.en
+            // sherpa-onnx; observed Stop→Final-callback latency was ~540ms
+            // on Samsung Z Flip 7 and scales with audio length). handleFinal
+            // recovers earlier than this if the callback arrives during the
+            // window; the timer is the bailout for when ASR never returns.
+            awaitingPostStopAsr = true
+            timerHandler.removeCallbacks(postStopAsrFallback)
+            timerHandler.postDelayed(postStopAsrFallback, 1500)
         }
     }
 
