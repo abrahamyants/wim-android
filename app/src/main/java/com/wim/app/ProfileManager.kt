@@ -118,16 +118,29 @@ class ProfileManager(private val prefs: SharedPreferences) {
     }
 
     fun saveProfile() {
-        val obj = JSONObject().apply {
-            put("vocabulary", JSONArray(vocabulary))
-            put("corrections", JSONObject(corrections as Map<*, *>))
-            put("filler_words", JSONArray(fillerWords))
-            put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
-            put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
-            put("wps_history", JSONArray(wpsHistory))
+        // CRITICAL: read-modify-write the existing profile_json so we PRESERVE
+        // fields ProfileManager doesn't hold in memory — trigger_words,
+        // onset_weights, covert_profile (synced from Lavrentiy via the
+        // Firestore listener at mergeRemoteProfile). Without this preserve
+        // step, saveProfile silently wipes the clinical sync data because
+        // it writes the whole profile_json blob from only the 6 fields the
+        // ProfileManager owns in memory — the other 3 fields don't survive.
+        // Bug verified by 2026-05-31 audit.
+        val existing = try {
+            prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: JSONObject()
+        } catch (_: Exception) {
+            JSONObject()
         }
-        prefs.edit().putString(PREF_KEY, obj.toString()).apply()
-        Log.i(TAG, "Profile saved")
+        existing.put("vocabulary", JSONArray(vocabulary))
+        existing.put("corrections", JSONObject(corrections as Map<*, *>))
+        existing.put("filler_words", JSONArray(fillerWords))
+        existing.put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
+        existing.put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
+        existing.put("wps_history", JSONArray(wpsHistory))
+        // trigger_words / onset_weights / covert_profile passed through
+        // untouched (already in `existing` from prefs read).
+        prefs.edit().putString(PREF_KEY, existing.toString()).apply()
+        Log.i(TAG, "Profile saved (preserving Firestore-synced fields)")
     }
 
     /**

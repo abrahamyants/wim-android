@@ -264,18 +264,28 @@ object ReconstructClient {
             throw RuntimeException("Backend response missing 'clean' field — wim-reconstruct contract broken")
         }
         val cleanText = json.getString("clean")
-        // Trust backend's safety decisions — it runs Falcon and risk flags server-side
-        val falconOk = json.optBoolean("falcon_ok", true)
+        val backendFalconOk = json.optBoolean("falcon_ok", true)
+
+        // CRITICAL: the backend (wim-reconstruct on bakers-agent) does NOT
+        // return riskFlags in its response — verified by reading the server
+        // source at lavrentiy/wim/api/main.py / reconstruct.py 2026-05-31.
+        // The earlier "trust backend's safety decisions" comment was wrong;
+        // it left the majority signed-in path with zero protection against
+        // critical-token drops (numbers, dates, currency). Run the
+        // client-side guard here so backend + device-direct paths (:623-631)
+        // are in parity.
+        val clientRiskFlags = computeRiskFlags(rawText, cleanText)
+        val falconOk = if (clientRiskFlags.contains("critical_token_lost")) false else backendFalconOk
         val finalText = if (falconOk) cleanText else rawText
 
         if (!falconOk) {
-            Log.w("WiM", "Backend Falcon rejected reconstruction, using raw text")
+            Log.w("WiM", "Backend reconstruction rejected (server falcon=$backendFalconOk, client flags=$clientRiskFlags), using raw text")
         }
 
         ReconstructResult(
             cleanText = finalText,
             reconMs = reconMs,
-            riskFlags = emptyList(),
+            riskFlags = clientRiskFlags,
             falconApproved = falconOk
         )
     }

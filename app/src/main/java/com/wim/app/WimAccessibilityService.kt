@@ -487,14 +487,39 @@ class WimAccessibilityService : AccessibilityService() {
      * nodes for apps whose WebViews or custom views report focus oddly.
      */
     private fun findFocusedEditableAcrossWindows(): AccessibilityNodeInfo? {
+        // CRITICAL: must recycle every root + non-returned focus result.
+        // The accessibility node pool is shared with the OS — a deep tree
+        // (Gmail compose, Telegram thread) leaks fast enough to OOM the
+        // entire accessibility process, which kills WiM + every other
+        // accessibility-consuming app on the phone. Sister method
+        // findEditableFocusedDescendant has always done this correctly;
+        // these two walkers never did until 2026-05-31 audit fix.
         val ownPackage = packageName
         for (window in windows) {
             val root = window.root ?: continue
-            if (root.packageName?.toString() == ownPackage) continue
+            if (root.packageName?.toString() == ownPackage) {
+                try { @Suppress("DEPRECATION") root.recycle() } catch (_: Exception) {}
+                continue
+            }
             val viaFocus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-            if (viaFocus != null && viaFocus.isEditable) return viaFocus
+            if (viaFocus != null && viaFocus.isEditable) {
+                // Returning viaFocus — DO NOT recycle it (caller owns it).
+                // Recycle root if it is a distinct node (often it IS the same
+                // window root but the cheap identity check is safe either way).
+                if (viaFocus !== root) {
+                    try { @Suppress("DEPRECATION") root.recycle() } catch (_: Exception) {}
+                }
+                return viaFocus
+            }
+            try { @Suppress("DEPRECATION") viaFocus?.recycle() } catch (_: Exception) {}
             val viaDescent = findEditableFocusedDescendant(root)
-            if (viaDescent != null) return viaDescent
+            if (viaDescent != null) {
+                if (viaDescent !== root) {
+                    try { @Suppress("DEPRECATION") root.recycle() } catch (_: Exception) {}
+                }
+                return viaDescent
+            }
+            try { @Suppress("DEPRECATION") root.recycle() } catch (_: Exception) {}
         }
         return null
     }

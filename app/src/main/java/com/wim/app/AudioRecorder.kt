@@ -39,6 +39,20 @@ class AudioRecorder(private val context: Context) {
         private const val QUIET_GAIN_DB = 18.0f
         private val QUIET_GAIN_LINEAR = Math.pow(10.0, (QUIET_GAIN_DB / 20.0)).toFloat()
         private const val HIGHPASS_ALPHA = 0.995f
+
+        // Silent-block detector (foundation pitch — bridges users with
+        // speech disfluency whose mid-utterance silent blocks produce no
+        // audio for ASR to transcribe). Fires onSilentBlockMidSpeech ONCE
+        // per recording when amplitude has stayed below SILENCE_RMS_THRESHOLD
+        // for at least MIN_SILENCE_DURATION_MS continuous milliseconds AFTER
+        // ≥1 chunk of speech-level amplitude was seen AND total recording time
+        // ≥ MIN_RECORDING_BEFORE_DETECT_MS. Consumer (BubbleService) decides
+        // whether to act on the signal — detector is opt-in via callback.
+        // Tuned to NOT fire on normal breath/think pauses (1.5s threshold) or
+        // short utterances (<3s ignored entirely).
+        private const val SILENCE_RMS_THRESHOLD = 500.0
+        private const val MIN_RECORDING_BEFORE_DETECT_MS = 3000L
+        private const val MIN_SILENCE_DURATION_MS = 1500L
     }
 
     private var recorder: AudioRecord? = null
@@ -49,6 +63,14 @@ class AudioRecorder(private val context: Context) {
     @Volatile private var isRecording = false
     @Volatile private var outputStream: FileOutputStream? = null
     @Volatile private var quietMode: Boolean = false
+
+    // Silent-block detector state. See companion-object constants for the
+    // tuning rationale.
+    var onSilentBlockMidSpeech: (() -> Unit)? = null
+    private var recordingStartMs = 0L
+    @Volatile private var lastSpeechMs = 0L
+    @Volatile private var hasSeenSpeechInRecording = false
+    @Volatile private var silentBlockFiredThisRecording = false
 
     // Circular pre-roll buffer
     private val circularBuffer = ByteArray(PREROLL_BYTES)
@@ -114,6 +136,14 @@ class AudioRecorder(private val context: Context) {
                     fos.write(prerollBytes)
                 }
             }
+
+            // Reset silent-block detector state for the new recording.
+            // Done here (not in primeBuffer) so the detector cycle aligns
+            // with actual user-initiated recording, not the always-on prime.
+            recordingStartMs = System.currentTimeMillis()
+            lastSpeechMs = recordingStartMs
+            hasSeenSpeechInRecording = false
+            silentBlockFiredThisRecording = false
 
             outputStream = fos
             isRecording = true
@@ -183,6 +213,31 @@ class AudioRecorder(private val context: Context) {
                     Log.w("AudioRecorder", "capture write failed: ${e.message}")
                     isRecording = false
                 }
+
+                // Silent-block detector. Only runs while actually recording.
+                // No-op (just state update) when no callback is registered —
+                // consumer (BubbleService) wires the callback at L4 only.
+                if (!silentBlockFiredThisRecording) {
+                    val rms = computeRms(buf, read)
+                    val now = System.currentTimeMillis()
+                    if (rms > SILENCE_RMS_THRESHOLD) {
+                        hasSeenSpeechInRecording = true
+                        lastSpeechMs = now
+                    } else if (hasSeenSpeechInRecording) {
+                        val silenceMs = now - lastSpeechMs
+                        val recordingMs = now - recordingStartMs
+                        if (silenceMs >= MIN_SILENCE_DURATION_MS &&
+                            recordingMs >= MIN_RECORDING_BEFORE_DETECT_MS) {
+                            silentBlockFiredThisRecording = true
+                            onSilentBlockMidSpeech?.let { cb ->
+                                Log.i("AudioRecorder", "silent-block detected: silence=${silenceMs}ms recording=${recordingMs}ms — firing callback")
+                                try { cb() } catch (e: Exception) {
+                                    Log.w("AudioRecorder", "silent-block callback threw: ${e.message}")
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Always write to circular buffer (unprocessed raw audio)
@@ -194,6 +249,22 @@ class AudioRecorder(private val context: Context) {
                 }
             }
         }
+    }
+
+    /**
+     * RMS amplitude of a 16-bit PCM little-endian chunk. Used by the
+     * silent-block detector in captureLoop. Returns 0.0 for empty chunks.
+     */
+    private fun computeRms(buf: ByteArray, length: Int): Double {
+        if (length < 2) return 0.0
+        val bb = ByteBuffer.wrap(buf, 0, length).order(ByteOrder.LITTLE_ENDIAN)
+        val samples = length / 2
+        var sumSquares = 0.0
+        for (i in 0 until samples) {
+            val s = bb.getShort(i * 2).toDouble()
+            sumSquares += s * s
+        }
+        return Math.sqrt(sumSquares / samples)
     }
 
     private fun applyQuietModeProcessing(buffer: ByteArray, length: Int) {

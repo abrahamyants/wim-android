@@ -80,5 +80,18 @@ class BubbleBluetoothSco(
             try { context.unregisterReceiver(it) } catch (_: Exception) {}
         }
         receiver = null
+        // Critical: SCO is a global ref-counted audio route. start() pinned it
+        // for the whole device — unpin it here, otherwise it stays bound to
+        // WiM's now-dead process and breaks call / media / mic routing for
+        // every other app until the user reboots.
+        try {
+            @Suppress("DEPRECATION")
+            audioManager.stopBluetoothSco()
+            @Suppress("DEPRECATION")
+            audioManager.isBluetoothScoOn = false
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not stop Bluetooth SCO: ${e.message}")
+        }
+        scoActive = false
     }
 }

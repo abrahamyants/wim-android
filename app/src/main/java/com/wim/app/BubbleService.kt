@@ -146,13 +146,33 @@ class BubbleService : Service() {
     @Volatile private var awaitingPostStopAsr = false
     private val postStopAsrFallback = Runnable {
         if (!awaitingPostStopAsr) return@Runnable
-        awaitingPostStopAsr = false
         val onDeviceText = lastRawText.trim()
         if (onDeviceText.isNotBlank()) {
+            // Text already arrived (via partial or finalized segment) — process it.
+            awaitingPostStopAsr = false
             Log.i(TAG, "No wav, using on-device text: $onDeviceText")
             processText(onDeviceText)
         } else {
-            Log.w(TAG, "No audio captured and no on-device text")
+            // No text yet — DO NOT disable handleFinal's recovery path.
+            // whisper-tiny decode can take 5-15 seconds for long audio; the
+            // Final ASR may still arrive after this timer fired. Keeping
+            // awaitingPostStopAsr=true lets handleFinal recover then. A
+            // separate outer safety cap (postStopAsrOuterTimeout) fires at
+            // 30s as a real bailout for engine-genuinely-died cases.
+            Log.w(TAG, "1500ms passed with no on-device text yet — waiting for late Final ASR (cap at 30s)")
+            timerHandler.removeCallbacks(postStopAsrOuterTimeout)
+            timerHandler.postDelayed(postStopAsrOuterTimeout, 30_000L - 1500L)
+        }
+    }
+    private val postStopAsrOuterTimeout = Runnable {
+        if (!awaitingPostStopAsr) return@Runnable
+        awaitingPostStopAsr = false
+        val onDeviceText = lastRawText.trim()
+        if (onDeviceText.isNotBlank()) {
+            Log.i(TAG, "30s outer cap reached but text now available — processing: $onDeviceText")
+            processText(onDeviceText)
+        } else {
+            Log.w(TAG, "30s outer cap reached, no audio captured and no on-device text — giving up")
             setBubbleIdle()
         }
     }
@@ -432,6 +452,40 @@ class BubbleService : Service() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
         instance = this
+
+        // CRITICAL: startForeground MUST run within ~5 seconds of onCreate
+        // or Android throws ForegroundServiceDidNotStartInTimeException and
+        // bricks the app on launch. Previously this call lived at the
+        // *bottom* of onCreate — after ~50 component constructions, any of
+        // which throwing would skip the foreground call and brick launch.
+        // Now: minimal channel + notification + foreground call happen
+        // FIRST, before any of the heavy wiring. The statusUI-backed
+        // notification rebuild happens later in onCreate as a no-op update.
+        run {
+            val nm = getSystemService(NotificationManager::class.java)
+            val ch = NotificationChannel(
+                CHANNEL_ID, "WiM Bubble", NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                setShowBadge(false)
+                setSound(null, null)
+            }
+            nm?.createNotificationChannel(ch)
+            val initialNotif = Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("WiM")
+                .setContentText("Voice dictation active")
+                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .setOngoing(true)
+                .build()
+            val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val fgsType = if (hasMic) {
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            } else {
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            }
+            startForeground(NOTIFICATION_ID, initialNotif, fgsType)
+        }
+
         // Restore session start from prefs if present, else start fresh now.
         // MainActivity's Sessions header reads this prefs key for the timer.
         val storedStart = WimApp.prefs.getLong("session_start_time", 0L)
@@ -1490,6 +1544,26 @@ class BubbleService : Service() {
     private fun startListening() {
         if (isRecording) return
 
+        // Critical: re-assert the foreground-service type to include
+        // MICROPHONE *now*, not relying on what was decided at onCreate.
+        // If the user granted RECORD_AUDIO after onCreate ran, the FGS
+        // was started as SPECIAL_USE only — calling AudioRecord on a
+        // service that never declared the MICROPHONE FGS type throws
+        // SecurityException on Android 14+. Cheap to re-assert; idempotent.
+        val hasMicNow = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasMicNow) {
+            try {
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "FGS type re-assert failed: ${e.message}")
+            }
+        }
+
         // Cancel any in-flight reconstruction from a prior utterance. Without
         // this, a slow L4 call could resume mid-cycle and paste the previous
         // recording's text into the field the user is now recording into.
@@ -1637,6 +1711,7 @@ class BubbleService : Service() {
                 if (awaitingPostStopAsr) {
                     awaitingPostStopAsr = false
                     timerHandler.removeCallbacks(postStopAsrFallback)
+                    timerHandler.removeCallbacks(postStopAsrOuterTimeout)
                     Log.i(TAG, "Post-stop Final ASR arrived: processing $lastRawText")
                     processText(lastRawText.trim())
                 }
@@ -2753,10 +2828,22 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         instance = null
+        // Cancel the demo script + clear refs FIRST — it has its own
+        // private Handler scheduling ~50 deferred steps that each hold a
+        // strong reference to this destroyed Service. Without cancel, the
+        // bubble view-tree + this Service stay leaked for ~2.5 min.
+        try { activeDemoScript?.cancel() } catch (_: Exception) {}
+        activeDemoScript = null
+        activeDemoFinish = null
+        try { onboardingOverlay?.remove() } catch (_: Exception) {}
+        onboardingOverlay = null
+
         shakeDetector?.stop()
         shakeDetector = null
         stopHotwordListener()
+        hotword = null
         bubbleMenu?.dismiss()
+        bubbleMenu = null
         hideLiveTranscript()
         dafPlayer?.stop()
         dafPlayer = null
@@ -2764,11 +2851,29 @@ class BubbleService : Service() {
         audioRecorder = null
         hideBubble()
         onDeviceRecognizer?.destroy()
+        onDeviceRecognizer = null
         whisperLocalEngine?.destroy()
+        whisperLocalEngine = null
         bubblePersona?.unbind()
         bubblePersona = null
         bubbleAffect?.unbind()
         bubbleAffect = null
+        // Stop visual animators + null references so the destroyed Service
+        // doesn't pin its view-tree through Animator callbacks.
+        try { pulseRings?.stop() } catch (_: Exception) {}
+        pulseRings = null
+        tipRotator = null
+        regenIcon = null
+        bubbleDock = null
+        bubbleAppearance = null
+        twistController = null
+        clarifierUI = null
+        commandMode = null
+        sendDisclaimer = null
+        wordHighlight = null
+        statusUI = null
+        stageArc = null
+
         TranscriptBarController.unbind()
         IdleTimer.cancelAll()
         VoiceCommandRouter.unregister("clarifier")
@@ -2778,7 +2883,10 @@ class BubbleService : Service() {
         // overlay — otherwise they keep firing at 22ms/500ms forever after
         // the service dies.
         liveTranscript?.destroy()
+        liveTranscript = null
         audioPlaybackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
+        audioPlaybackCallback = null
+        audioManager = null
         bluetoothSco?.stop()
         bluetoothSco = null
         scope.cancel()
