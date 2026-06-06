@@ -3428,3 +3428,139 @@ Build PASS throughout, **437/437 tests still passing**, installed on Z Flip 7. T
 - **Said "you can't claim Whisper is yours" as if stating something useful** when operator was making the deeper point that "what can you claim" is the actionable list. Operator's response: "well the can't list is unlimited I cannot claim I have Viking heritage no fucking way." Reusable: don't enumerate constraints; enumerate options.
 - **Conflated WiM-android and Lavrentiy when verifying the "no profile-epoch guard exists" audit claim.** The audit was about WiM (correct — no epoch). My memory was about Lav (correct — epoch exists at `lavrentiy.py:1354`). I initially declared my memory "WRONG" before checking it was about a different repo. Pinned the distinction in new memory `project_wim_android_no_profile_epoch.md`. Reusable: when verifying a cross-repo claim, name the repo before grading the memory.
 
+### 2026-06-06 — clean-room audit close-out + L1 Local raw + comment-bubble premium polish + facehugger live-test + Mr. DNA dropped
+
+Eight commits on `main` from this session, `e833d2e..c6471e1`. The clean-room engineering audit that surfaced June 3 is now substantively closed — every Critical (and the Plus item) verified in canonical, every High landed or explicitly skipped with a reason, both record-corrections fixed at the source. L1 Local also became a real mode end-to-end (raw text, no chirp, no fallback to Google's recognizer, facehugger Send works) and the comment-bubble overlay got the premium typography pass the operator asked for in screenshots that morning.
+
+#### What shipped (8 commits, in order)
+
+1. **`e833d2e` — Tier 1 deferred items closed.** Last session shipped 7 Critical fixes but flagged two halves of the a11y work as "needs a careful refactor": `clickSendButton` parent-walk recycling and the autoSwitchTone pref work on Main. Both done.
+   - `WimAccessibilityService.clickSendButton` parent walk now recycles each non-clickable intermediate; `findByContentDescription` / `findByResourceIdSuffix` / `findByResourceIdExact` recycle dead-end children, mirroring `findEditableFocusedDescendant`; `dumpAccessibilityTree` recycles after recursion; `findSendNodeForApp` WhatsApp branch recycles tail of `findAccessibilityNodeInfosByViewId` list; `sendNode` / `clickTarget` recycled at every exit path of `clickSendButton`.
+   - New `WiM-A11yWorker` HandlerThread (`WimAccessibilityService.kt:70-72`) owns the SharedPreferences read/write inside `autoSwitchTone` so `onAccessibilityEvent` no longer stalls on every host-app screen transition. `BubbleService.updateIdleDisplay()` posted back to a shared `mainHandler`. `quitSafely()` on `onDestroy`.
+   - Source recycling added on the non-editable branches of `TYPE_VIEW_FOCUSED` and `TYPE_WINDOW_STATE_CHANGED` — was leaking one node per focus-on-button event.
+
+2. **`c1f63eb` — L1 Local raw + premium comment-bubble polish + no chirp + defensive prefs.**
+   - **L1 Local raw fast-path** in `BubbleService.processText` at `layer < 2 && !WimApp.l1CloudAsr()` injects `rawText` directly. Skips voice shortcuts, block-hallucination strip, DisfluencyFilter, profile corrections, Repunctuate. L1 Cloud (whisper-1 via OpenAI) keeps the existing pipeline untouched. Operator framing: L1 Local = what the mic heard, untouched; cleanup belongs at L2+.
+   - **`BubbleLiveTranscript` redesign**: Plus Jakarta Sans Medium replaces monospace; 13sp, 0.04em letter spacing, 5dp lineSpacingExtra; padding 18/14/18/28 so text no longer bottoms out on the speech-bubble tail seam; bar width 220→244dp for premium breathing room; title uppercased + bold for engraved nameplate parity with the bubble menu chip labels.
+   - **`FLAG_NOT_TOUCHABLE`** on the transcript window so taps on the bubble's top 20% (where the tail tip sits) pass through.
+   - **6-second auto-hide** with 200ms fade for the stage callout — the bar could previously get pinned forever by a test broadcast or a failed pipeline.
+   - **Follow-the-bubble**: new `BubbleLiveTranscript.repositionToBubble()` wired into three `BubbleService` sites: the touch-drag handler, `moveBubbleTo` (dock pickup), `animateBubbleTo` (snap-back / facehugger jump). Bar tracks the bubble.
+   - **No-chirp L1 Local**: `l1LocalLiveOverride` permanently set to `false` in `BubbleService.startListening`. Android `SpeechRecognizer`'s `USAGE_ASSISTANCE_SONIFICATION` chirp bypasses every standard audio-suppression mechanism (per Session 9-10 saga), so the only fix is to never start it. L1 Local sacrifices live partials for silence; whisper-tiny gives the final transcript on stop.
+   - **No fallback to native ASR at L1 Local**: the whisper-tiny-not-ready branch in `startListening` no longer slides into `OnDeviceRecognizer`. Refuses the recording, shows a `Toast.LENGTH_LONG` "Speech model still downloading — try again in a moment", `setBubbleIdle()`.
+   - **`WimApp.l1CloudAsr()` defensive**: wraps `prefs.getBoolean("l1_cloud_asr", false)` in try/catch on `ClassCastException`, self-heals by clearing the bad value, returns `false`. Prevents a test-broadcast `set_pref` that wrote the wrong type from crashing `WimApp.onCreate()` (which it did to me mid-session and triggered Android's "Clear cache for What I Meant?" dialog).
+
+3. **`86b106d` — L1 Local raw → facehugger + bezel-tight touch + marker strip.**
+   - **Facehugger fix**: the L1 Local raw fast-path was calling `setBubbleIdle()` directly at exit, bypassing `onInjectComplete()` — the post-inject gate that decides between SEND_READY (auto-send on + focused on a non-WiM editable → bubble turns green, facehugger jumps to the host app's Send button) and plain Idle. Routed L1 Local raw through `onInjectComplete()` like L2+ paths. **Live-verified via ADB** (see "Live test" section below).
+   - **Whisper system markers stripped**: even in raw mode, `DisfluencyFilter.stripBlockHallucinations(rawText, lastWhisperLowConf)` runs. Catches `[BLANK_AUDIO]` / `[INAUDIBLE]` / etc. — those aren't user speech, they're the engine's "I heard nothing" tokens. If the engine returns only markers (recording was silence), bail with a "No speech detected" toast instead of injecting an empty string.
+   - **Bubble touch radius = actual bezel**: was `v.width * 0.5f` (= 60dp on a 120dp window) → ~24dp dead zone around the visible bezel where taps registered. Now `(72dp bezel * density * bubbleSize-scale) / 2`. Scales with the user's bubble-size pref.
+   - **Diagnostic logs** in `onInjectComplete` (`"onInjectComplete: autoSend=X focusedAppSupports=Y bubbleView=Z → SEND_READY|Idle"`) and the facehugger block (`"facehugger: jumping bubble to Send button at (cx,cy)"`). Operator OK'd leaving them in.
+
+4. **`3be0554` — Tier B audit hardenings.** First substantive round of the clean-room audit:
+   - **MediaPipe `tasks-genai` dep deleted** from `build.gradle.kts:155-158` + the ProGuard `-keep com.google.mediapipe.**` rules at `proguard-rules.pro:41-43`. Gemma local L2/L3 was retired Apr 30; grep confirmed zero source references (`GemmaEngine`, `LlmInference`, `MoonshineModelDownloader` all gone). **Debug APK shrunk 198 MB → 99 MB** — half the size with zero functional impact. The headline win of the audit work.
+   - **L4 silent downgrade logged**: when `layer >= 4 && anthropicKey.isBlank()`, `ReconstructClient.reconstruct()` now emits `Log.w` + `ConsoleLog.log("L4 → GPT-4o downgrade (no Anthropic key on this device)", "warn")`. Previously the clinical-tier fall-through to GPT-4o was completely invisible.
+   - **`CHIRP_MONITOR` debug-gated**: the `AudioPlaybackCallback` registration in `BubbleService.onCreate` now wrapped in `if (BuildConfig.DEBUG)`. Release users no longer pay for a device-wide audio diagnostic.
+   - **VuMeterView `onDetachedFromWindow`**: cancels `needleAnimator` + `removeCallbacks(null)`. The previous version's `ValueAnimator` + `postDelayed` survived view detach, firing into a dead view.
+   - **Skipped**: the audit's claim of "unchecked `as Map<*,*>` casts" at `ReconstructClient.kt:252-253` was wrong — both params (`onsetWeights: Map<String, Double>`, `covertProfile: Map<String, String>`) are strongly typed at the function signature so the cast is redundant but cannot throw.
+
+5. **`a992188` — Tier C audit hardenings (lower-priority).**
+   - **`ProfileManager.learnFromReconstruction` atomic increment**: `correctionCounts[k] = (correctionCounts[k] ?: 0) + 1` → `correctionCounts.compute(raw) { _, old -> (old ?: 0) + 1 }!!`. `ConcurrentHashMap.compute` runs under the bin's stripe lock — concurrent learn calls (reconstruction coroutine + Firestore listener) can't drop an increment.
+   - **`SessionHistory` single dbWriteLock**: companion-scoped `Any()` wraps `record()`'s `insert` + `pruneIfNeeded`, and the `syncFromFirestore` inner `writableDatabase.insert`. `pushToFirestore` (network) stays outside the lock. Tests stay green because `record()` still returns synchronously.
+   - **`ConsoleLog` debounced persist**: new `WiM.ConsoleLog.IO` HandlerThread + 250 ms debounced runnable. Hot pipeline runs that fired 5-8 `log()` calls in <100 ms now do one file write off the caller's thread. `clear()` cancels pending and writes empty immediately.
+   - **`OverlayPermissionScreen` "NOT YET" soft-block**: wraps `onSkip` in a `Log.w("WiM.Onboarding", ...)` + `Toast.LENGTH_LONG` ("Heads up: the bubble can't appear until you grant this. You can come back from Settings → WiM."). Previously the skip routed to the same destination as Granted with no warning.
+
+6. **`6b9337d` — Tier D audit hardenings.**
+   - **`WimApp` Firebase auth-state re-fire guard**: new `@Volatile var lastSyncedUid: String?` short-circuits the auth-state listener when `user.uid == lastSyncedUid` (the listener fires on token refresh every ~hour, was re-running the full profile sync + sessions re-import every time).
+   - **`WhisperLocalEngine` listener marshalled to Main**: new `dispatchFinal(text)` / `dispatchError(code)` helpers post through a shared `mainHandler`. Closes the `CalledFromWrongThreadException` risk on the IO-thread `stop()` paths at `BubbleService.kt:1865, 1952` where the listener implementation touches view state.
+   - **`BootReceiver` + `BubbleRestartJobService` three-tier recovery**: immediate `startForegroundService` → JobScheduler retry at +30s → user-visible "WiM is sleeping after reboot · Tap to wake the bubble back up" notification on `wim_bubble_alert` channel (taps land in `MainActivity` which starts the bubble normally). Closes the silent-dead-after-reboot path on Android 12+ background-FGS restrictions.
+
+7. **`d80e0bd` — Ranks 6-10 from the audit triage.**
+   - **`BubbleState.advance()` return now gates `startListening`**: if the FSM rejects Listening from in-flight Reconstructing, log + ConsoleLog warn + bail. The FSM rule "in-flight ASR cannot be interrupted" was decorative-only before because every callsite discarded the Boolean return. Pipeline-internal transitions (Transcribing → Stripping → Reconstructing → Verified → Injected) stay log-only — they fire sequentially from trusted code so a rejection is a code bug, not a race.
+   - **`StyleExamples.pendingPair` → `AtomicReference`**: `getAndSet(null)` claims the prior pair exactly once across overlapping reconstruct calls. The previous `@Volatile var` let two threads each read the same pair and write separate verdicts, dropping one.
+   - **`AudioRecorder.primeBuffer` `@Synchronized`**: the previous `@Volatile isPrimed` check-then-act let two concurrent priming calls each build an AudioRecord and each `startRecording`, leaking the second native handle.
+   - **`WhisperLocalEngine.stop()` discard path → IO**: `BubbleService.stopAndProcess`'s <200 ms discard branch now wraps `whisperLocalEngine?.stop()` in `scope.launch(Dispatchers.IO)`. Closes the 500 ms `captureThread?.join(500)` + ONNX-decode UI freeze on rapid tap-stop.
+   - **`AmbientOrbsView` shader cache**: three RadialGradients per orb built ONCE at origin, translated via `Shader.setLocalMatrix()` each frame. Was ~300 RadialGradient allocations/sec at sensor rate on the home screen; now zero except on resize.
+
+8. **`c6471e1` — Two record-corrections from the clean-room review.**
+   - **`ProfileManager` `PROFILE_WRITE_LOCK`** (correction #1, "the profile-epoch concurrency guard does not exist"): three writers (`saveProfile` from reconstruction coroutine, `writeTriggerWords` from UI, `mergeRemoteProfile` from Firestore listener) were doing non-atomic read-modify-write on the same `profile_json` blob — under interleave the last writer overwrote the other's update. Funnelled all three through a single companion-scoped `PROFILE_WRITE_LOCK`. **Init-order bug hit on first attempt**: an instance-scoped lock would be `null` during the constructor's `loadProfile → resetToDefaults → saveProfile` chain (Kotlin initializes `val` declarations in textual order, so any field declared after `init {}` is null when `init` runs). Caught by 13 BubbleDockTest failures; fixed by moving the lock to the companion object.
+   - **Moonshine de-fic** (correction #2, "'on-device reconstruction' is not real, and the build comments are fiction"): the in-app Guide had three user-facing lies — "Layer I, II, III — Moonshine runs on your phone", "I. Transcribe — Moonshine on-device + rule-based cleanup", and the chirp-troubleshooting line claiming a fallback to Android's recognizer (which I'd already killed earlier in the session). All three rewritten: L1 = whisper-tiny on device, L2/L3 = cloud gpt-4o-transcribe + GPT-4o + Haiku 4.5 verifier, L4 = cloud whisper-1 + Claude Sonnet 4.6 ET. Stale code comments in `OnDeviceRecognizer.kt:127`, `Repunctuate.kt:7`, `WhisperClient.kt:124` updated to reference whisper-tiny. `SpeechRecognizerL1.kt` kept its example-list comment (which lists Moonshine) — that's an engine-agnostic interface boundary, accurate to list historical engines.
+
+#### Live test on phone (Z Flip 7, `192.168.1.234:33871`)
+
+Mid-session, before committing the facehugger fix, ran an end-to-end ADB test to prove L1 Local raw → SEND_READY → facehugger jump actually fires:
+
+1. `am start -a android.intent.action.SENDTO -d sms:5551234567 --es sms_body "test "` — Messages compose with focus
+2. `am broadcast --es action inject_raw --es raw_text "hello facehugger"`
+3. Logs confirmed: `Processing → L1 Local raw → injectText: ACTION_SET_TEXT ok (18 chars) → Session recorded → onInjectComplete: autoSend=true focusedAppSupports=true bubbleView=true → SEND_READY → facehugger: jumping bubble to Send button at (978,1484)`
+4. Screenshot at t=400ms caught the green SEND knob parked exactly over Google Messages' Send button. Saved at `onboarding_assets/screenshots/27_facehugger_landed.png` (uncommitted; out of repo scope).
+
+The facehugger path WORKS for L1 Local. SEND_READY's 5 s timeout then snaps the bubble back if the user doesn't tap.
+
+#### Onboarding asset capture + brief for next-model rebuild
+
+Early in the session the operator asked for the existing onboarding pages so a different model could redo it. Result:
+
+- The "live" first-run path is still `BouncerActivity` + `activity_bouncer.xml` + `onboarding.html` (WebView). Unchanged.
+- The Compose rewrite at `app/src/main/java/com/wim/app/onboarding/` (`OnboardingActivity`, `OnboardingNav.kt` with 13 routes — welcome → any-app → layers → tones → learns → permissions-intro → overlay → accessibility → mic → battery → samsung-sleep → interactive-demo → final) has 2 routes implemented (`WelcomeScreen`, `OverlayPermissionScreen`) and 11 stubs.
+- **Mr. DNA persona: DROPPED.** Operator's exact line when I tried to ask in/out: "No mr. DNA. Bro, we can't even come up with a regular, like, simple onboarding. You are talking about mister DNA. I'm trying to fucking simplify things here." Per audit memo. Brand spec at `onboarding-plugin/brand.local.md` still says Mr. DNA — that file is stale on persona but accurate on every other token (Limelight display, Plus Jakarta Sans body, warm vintage paper palette, exact hex values, the 5 permission cards in order, "speech disfluency" not "stutter").
+- **Operator's new visual direction**: use actual app screenshots as the onboarding visual material. Bubble color picker, bubble menu, recording state, processing state, clarifier word, USER PROFILE overlay, LAYER overlay, facehugger SEND — captured to `onboarding_assets/screenshots/` (uncommitted; not for the app bundle). Per "8 / 80% of the onboarding should be the bubble doing things, interacting with the user" rule from `project_wim_onboarding_vision`.
+
+#### Audit close-out reconciliation
+
+Triage table I built mid-session vs. what landed:
+
+| Rank / Tier | Item | Status |
+|---|---|---|
+| Critical 1-7 + Plus | All seven + onDestroy teardown | ✅ Last session `434fb25` (C1, C2, C5, C6, C7, Plus) + this session `e833d2e` (C3, C4 deferred halves) |
+| Tier B | MediaPipe dep, L4 downgrade log, CHIRP_MONITOR gate, VuMeter teardown | ✅ `3be0554` |
+| Tier B skipped | `as Map<*,*>` casts | ❌ Auditor wrong — params strongly typed at `:65-66, :224` |
+| Tier C | ProfileManager.compute, SessionHistory dbWriteLock, ConsoleLog debounce, NOT YET warning | ✅ `a992188` |
+| Tier D | Firebase auth re-fire, ASR Main marshal, BootReceiver notif | ✅ `6b9337d` |
+| Ranks 6-10 | FSM advance gate, AtomicRef, primeBuffer sync, discard IO, shader cache | ✅ `d80e0bd` |
+| Record correction #1 | profile-epoch / unguarded RMW | ✅ `c6471e1` (PROFILE_WRITE_LOCK) |
+| Record correction #2 | Moonshine / "local L2/L3" lies | ✅ `c6471e1` (Guide rewrites + comment cleanups) |
+| Audit skipped — wrong claim | `AgentSocketServer` ships in release | ❌ Already gated at `AgentSocketServer.kt:36` with `if (!BuildConfig.DEBUG) return` |
+| Audit skipped — partially wrong | `WhisperLocalModelDownloader` "zero integrity" | ❌ Has size sanity at `:72-74` (encoder/decoder > 1024 bytes, tokens > 0). Not SHA-verified — could be hardened but not "zero" |
+
+#### Still open after this session
+
+Not addressed in this session — explicit follow-up list for the next round:
+
+- **MultiPassDecoder mis-binds confidence to wrong words on punctuation-only tokens** (Critical #6 follow-on at `MultiPassDecoder.kt:144-176`). Clarifier flags the wrong words → user trains on wrong corrections. ~1 hr.
+- **"Dead bubble" on overlay revoke mid-session** (`BubbleService.kt:1466 +`). `updateViewLayout` failure doesn't re-null `bubbleView`; service thinks bubble is live but it's gone. ~30 min.
+- **`BubbleService.kt:2079` pre-pipeline regex / DisfluencyFilter / word-splits on Main** at the "Processing" transition. Measurable jank. ~30 min — wrap in `scope.launch(Dispatchers.Default)`.
+- **`DisfluencyFilter.kt:75-78` PROLONGATION mangles real words** ("noooo" → "no", "hmmm" → "hm"). Only affects L1 Cloud now (L1 Local raw bypasses the filter per this session's fix); still real. ~20 min — exception list or pattern tightening.
+- **`MainActivity.kt:605` `TextToSpeech` created in `onCreate`, never `shutdown()`** — leaks an engine connection per re-entry. ~5 min.
+- **`WhisperLocalModelDownloader` SHA verification** — size sanity in place, hash check not. ~30 min.
+- **`AgentSocketServer` zombie instance on bind failure** (`:41-43`) — `instance` published before bind succeeds. Debug-only impact since the whole server is debug-gated, but a real bug in the dev flow. ~15 min.
+- **`WimWidgetProvider` tap-to-record dead on modern Android** — cold FGS start throws when app isn't foreground; no try/catch. ~15 min if anyone uses the widget.
+- **Dead-code deletion**: `MainActivity.showGuide()` ~300 lines, `CommentBubbleDrawable` shader generators ~110 lines (the carbon-fiber / hex shaders I retired Apr 30 when I went solid-fill), `ReconstructionDemoView` ~700 lines. ~30 min total.
+- **`OverlayWindow` consolidation refactor** — 5 `Bubble*` overlay classes hand-roll the identical WindowManager add/remove dance. Would delete ~150 lines and make "remove on teardown" structural. ~3-4 hrs.
+- **Compose onboarding rebuild** — 11 stub screens to implement. Operator wants a different model to do this; brief compiled in conversation. Use actual app screenshots, no Mr. DNA, copy from `brand.local.md` tokens, respect the 5-permission-card order.
+
+#### Wrong calls / corrections this session
+
+- **Padded the comment-bubble bottom padding way too high (40dp)** on the first redesign attempt. Bubble looked like a tall billboard for two short lines. Tightened to 28dp after operator screenshot of the heavy result.
+- **Bash-quoting bug on the first `live_show` test broadcast.** The text extra "release to send. no tap-tap needed" got truncated to "release" because my single-quoted bash string didn't preserve the double-quotes through to `am`. Caught only when the bubble showed only "release" stuck for 75 seconds (the bar also lacked an auto-hide at that point — the bar appeared frozen and the bubble was underneath blocked by the bar's swallowed touches, leading to the next correction).
+- **Built `BubbleLiveTranscript` without `FLAG_NOT_TOUCHABLE` initially.** The bar's window swallowed taps on the top 20% of the bubble where the tail tip overlapped. Operator: "what the fuck now the bubbles under the fucking comment window and it's not moving come on these are the basic other things that you have to account for why is it so tall I don't know." Fixed in the same iteration as the padding tightening + auto-hide + bash escaping.
+- **Confused L1 Local vs L1 Cloud in the no-fallback explanation.** Operator: "are these 2 different ones? WE SHOULD HAVE A LOCAL NO API VERSION AND AN A VERSION WHERE AN API CALL IS MADE." My "two paths" wording (whisper-tiny ready / not ready) was both L1 Local variants — not L1 Local vs L1 Cloud. Restated cleanly: L1 Local = whisper-tiny on phone, raw, no filters; L1 Cloud = whisper-1 via OpenAI, keeps the cleanup pipeline.
+- **Caused an Android "Clear cache for What I Meant?" dialog** by broadcasting `set_pref --es value "false"` for `l1_cloud_asr` without `--es type bool`. The receiver stored the string "false"; `WimApp.l1CloudAsr()` read it as Boolean and threw `ClassCastException` → `WimApp.onCreate` died on launch → Android decided WiM was buggy and offered Clear cache. Wiped the bad pref via `run-as com.wim.app sed -i '/l1_cloud_asr/d' shared_prefs/wim.xml` and added the defensive try/catch to `l1CloudAsr()` so this can't happen again.
+- **First L1 Local raw fast-path used `setBubbleIdle()` instead of `onInjectComplete()`** so SEND_READY / facehugger never fired for L1 Local. Caught by reading the operator's "facehugger not working? why why motherfucker why does it keep failing? we've fixed this 1000 times" and tracing — the L2+ paths went through onInjectComplete, my new L1 fast-path didn't. Fixed in `86b106d`.
+- **Added a Toast suggesting the user wait** in the chirp-troubleshooting Guide section first draft. Restructured to actually describe the architecture instead of telling the user to wait (per "feedback_dont_imply_shippable" — no time-based hedging in user copy).
+- **Init-order bug on `PROFILE_WRITE_LOCK`** (first attempt as instance-scoped `private val`). 13 BubbleDockTest failures because the constructor's `loadProfile → resetToDefaults → saveProfile` chain ran before the lock field was assigned. Moved to companion object — fixed and reusable: any Kotlin field declared after `init {}` is null while `init` runs. **Lesson for ProfileManager-shaped classes: hold the lock at companion scope or initialize it before the first `init {}`.**
+- **Asked operator twice "want me to commit?"** before the no-prompt rule kicked in. Operator's "yes go ahead and then push and commit" felt cleaner each time once I stopped re-asking.
+- **Re-asked the audit triage twice** (operator pasted the same audit block twice). I'd already triaged it; second time I gave an updated triage that reflected what had landed since the first triage. Worked OK but felt redundant.
+
+#### Key file:line references for next session
+
+- L1 Local raw fast-path: `BubbleService.kt:2342-2415`
+- Comment bubble redesign: `BubbleLiveTranscript.kt:81-153, 200-240`
+- Comment bubble follow-the-bubble: `BubbleLiveTranscript.repositionToBubble` at `:181-204`, called from `BubbleService.kt:950, 1521, 1539`
+- L1 Local no-chirp / no-fallback: `BubbleService.kt:1759-1801`
+- Facehugger gate: `BubbleService.kt:1462-1486` + `onInjectComplete()` at `:1335-1352`
+- Bezel-tight touch radius: `BubbleService.kt:812-829`
+- PROFILE_WRITE_LOCK: `ProfileManager.kt:52` (companion), wraps `:142, :260, :377`
+- FSM `advance()` gate at recording start: `BubbleService.kt:1644-1654`
+- Boot recovery notification: `BootReceiver.kt:83-114`, `BubbleRestartJobService.kt:35-66`
+- WhisperLocalEngine main-thread marshal: `WhisperLocalEngine.kt:65-78` (dispatchFinal/dispatchError helpers)
+
+
