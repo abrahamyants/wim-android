@@ -62,6 +62,16 @@ class WimAccessibilityService : AccessibilityService() {
      *  relative to the reconstruction (no leading space) instead of [lastInjectedExact]. */
     private var lastInjectedLeadingPad: Int = 0
 
+    // Single-thread background handler for prefs reads/writes and any
+    // non-UI accessibility-event follow-up. Host apps fire
+    // TYPE_WINDOW_STATE_CHANGED on every screen transition; doing
+    // SharedPreferences I/O on the main thread inside that handler
+    // serialised event delivery and made the phone feel laggy.
+    private val accessibilityWorkerThread =
+        android.os.HandlerThread("WiM-A11yWorker").also { it.start() }
+    private val accessibilityWorker = android.os.Handler(accessibilityWorkerThread.looper)
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -129,6 +139,10 @@ class WimAccessibilityService : AccessibilityService() {
                     if (isPasswordField) Log.i("WiM", "Password field focused — dictation disabled")
                 } else {
                     isPasswordField = false
+                    // Non-editable source is still a node we own; without
+                    // this recycle every focus-on-button event leaked one
+                    // node into the accessibility process's shared pool.
+                    try { @Suppress("DEPRECATION") source.recycle() } catch (_: Exception) {}
                 }
             }
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
@@ -138,15 +152,17 @@ class WimAccessibilityService : AccessibilityService() {
                     isPasswordField = detectPasswordField(source)
                 } else {
                     isPasswordField = false
+                    if (source != null) {
+                        try { @Suppress("DEPRECATION") source.recycle() } catch (_: Exception) {}
+                    }
                 }
-                // Auto-detect context and switch tone
+                // Auto-detect context and switch tone. Pref reads + write
+                // run on the dedicated worker thread so they don't stall
+                // main-thread accessibility event delivery on hot streams
+                // (every host-app screen transition triggers this branch).
                 val pkg = event.packageName?.toString() ?: return
-                // Cache the package for reconstruction-time READER-block
-                // formatting. AudienceContext.formatReaderBlock() reads this
-                // during ReconstructClient.reconstruct() to tune the model
-                // for the active app's audience and medium expectations.
                 currentForegroundPackage = pkg
-                autoSwitchTone(pkg)
+                accessibilityWorker.post { autoSwitchTone(pkg) }
             }
         }
     }
@@ -184,7 +200,9 @@ class WimAccessibilityService : AccessibilityService() {
         if (newTone != currentTone) {
             prefs.edit().putString("tone", newTone).apply()
             Log.i("WiM", "Auto-tone: $currentTone → $newTone (app: $packageName)")
-            BubbleService.instance?.updateIdleDisplay()
+            // updateIdleDisplay touches BubbleService views — must run on
+            // main. autoSwitchTone is invoked on accessibilityWorker.
+            mainHandler.post { BubbleService.instance?.updateIdleDisplay() }
         }
     }
 
@@ -197,6 +215,9 @@ class WimAccessibilityService : AccessibilityService() {
         com.wim.app.agent.AgentSocketServer.stop()
         recordingUnsub?.invoke()
         recordingUnsub = null
+        // Let pending pref work drain; quitSafely runs queued messages then
+        // tears the looper down. quit() would drop in-flight tone updates.
+        accessibilityWorkerThread.quitSafely()
         instance = null
         activeTextField = null
         isPasswordField = false
@@ -535,7 +556,7 @@ class WimAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findEditableFocusedDescendant(child)
             if (result != null) return result
-            child.recycle()
+            try { @Suppress("DEPRECATION") child.recycle() } catch (_: Exception) {}
         }
         return null
     }
@@ -606,14 +627,29 @@ class WimAccessibilityService : AccessibilityService() {
             return false
         }
         // Tier 1: ACTION_CLICK on the node, walking up to a clickable ancestor.
+        // Each .parent call allocates a fresh AccessibilityNodeInfo from the
+        // shared OS pool — every non-clickable intermediate we discard must
+        // be recycled, or a deep host-app tree (Gmail compose, Telegram
+        // thread) leaks fast enough to OOM the accessibility process and
+        // take down every accessibility-consuming app on the phone. Sister
+        // walker findEditableFocusedDescendant has always recycled; this
+        // one didn't until the 2026-06-05 fix.
         var clickTarget: AccessibilityNodeInfo? = sendNode
         while (clickTarget != null && !clickTarget.isClickable) {
-            clickTarget = clickTarget.parent
+            val parent = clickTarget.parent
+            if (clickTarget !== sendNode) {
+                try { @Suppress("DEPRECATION") clickTarget.recycle() } catch (_: Exception) {}
+            }
+            clickTarget = parent
         }
         if (clickTarget != null) {
             val actionOk = clickTarget.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            if (clickTarget !== sendNode) {
+                try { @Suppress("DEPRECATION") clickTarget.recycle() } catch (_: Exception) {}
+            }
             if (actionOk) {
                 Log.i("WiM", "clickSendButton: $pkg ACTION_CLICK ok")
+                try { @Suppress("DEPRECATION") sendNode.recycle() } catch (_: Exception) {}
                 return true
             }
             Log.i("WiM", "clickSendButton: $pkg ACTION_CLICK returned false — falling through to gesture")
@@ -623,6 +659,7 @@ class WimAccessibilityService : AccessibilityService() {
         // there. Works even when the node isn't exposed as clickable.
         val bounds = android.graphics.Rect()
         sendNode.getBoundsInScreen(bounds)
+        try { @Suppress("DEPRECATION") sendNode.recycle() } catch (_: Exception) {}
         if (bounds.width() <= 0 || bounds.height() <= 0) {
             Log.w("WiM", "clickSendButton: $pkg send node has zero bounds")
             return false
@@ -663,7 +700,8 @@ class WimAccessibilityService : AccessibilityService() {
         return ok
     }
 
-    /** Recursive tree dump — logs each node's class, desc, text, id, bounds. */
+    /** Recursive tree dump — logs each node's class, desc, text, id, bounds.
+     *  Each getChild() allocates a fresh node; recycle after visiting. */
     private fun dumpAccessibilityTree(node: AccessibilityNodeInfo?, depth: Int) {
         if (node == null || depth > 30) return
         val indent = "  ".repeat(depth)
@@ -675,7 +713,12 @@ class WimAccessibilityService : AccessibilityService() {
         val bounds = android.graphics.Rect().also { node.getBoundsInScreen(it) }
         Log.i("WiM.tree", "$indent[$click] $cls desc=\"$desc\" text=\"$text\" id=$id bounds=${bounds.flattenToString()}")
         for (i in 0 until node.childCount) {
-            dumpAccessibilityTree(node.getChild(i), depth + 1)
+            val child = node.getChild(i) ?: continue
+            try {
+                dumpAccessibilityTree(child, depth + 1)
+            } finally {
+                try { @Suppress("DEPRECATION") child.recycle() } catch (_: Exception) {}
+            }
         }
     }
 
@@ -706,8 +749,17 @@ class WimAccessibilityService : AccessibilityService() {
                     ?: findByResourceIdSuffix(root, "send")
             }
             "com.whatsapp", "com.whatsapp.w4b" -> {
-                val byId = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send").firstOrNull()
-                if (byId != null) return byId
+                val list = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send")
+                val byId = list.firstOrNull()
+                if (byId != null) {
+                    // Recycle any other matches we're not returning —
+                    // findAccessibilityNodeInfosByViewId allocates a node
+                    // per entry from the shared pool.
+                    for (i in 1 until list.size) {
+                        try { @Suppress("DEPRECATION") list[i].recycle() } catch (_: Exception) {}
+                    }
+                    return byId
+                }
                 return findByContentDescription(root, listOf("Send"))
             }
             "org.telegram.messenger", "org.thunderdog.challegram" -> {
@@ -748,6 +800,9 @@ class WimAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findByContentDescription(child, targets)
             if (result != null) return result
+            // Dead-end branch — recycle the child we just walked. Same
+            // shared-pool rule as findEditableFocusedDescendant.
+            try { @Suppress("DEPRECATION") child.recycle() } catch (_: Exception) {}
         }
         return null
     }
@@ -763,6 +818,7 @@ class WimAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findByResourceIdSuffix(child, suffix)
             if (result != null) return result
+            try { @Suppress("DEPRECATION") child.recycle() } catch (_: Exception) {}
         }
         return null
     }
@@ -784,6 +840,7 @@ class WimAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findByResourceIdExact(child, targetId)
             if (result != null) return result
+            try { @Suppress("DEPRECATION") child.recycle() } catch (_: Exception) {}
         }
         return null
     }
