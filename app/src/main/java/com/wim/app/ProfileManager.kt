@@ -29,6 +29,28 @@ class ProfileManager(private val prefs: SharedPreferences) {
         private const val TAG = "WiM"
         private const val PREF_KEY = "profile_json"
 
+        /**
+         * Single shared lock serialising every read-modify-write of
+         * `profile_json` in this class — saveProfile, writeTriggerWords,
+         * and mergeRemoteProfile. The 2026-05-31 audit fix
+         * (read-then-merge in saveProfile) stopped the *symptom* of the
+         * wipe (clinical fields surviving the round trip) but the
+         * underlying race — three threads (reconstruction coroutine,
+         * Firestore listener, main / trigger-word UI) doing non-atomic
+         * RMW on the same JSON blob — was still alive. Under interleave
+         * A and B can each read the same starting JSON, each write a
+         * different result, and the last writer wins, dropping the
+         * other's update.
+         *
+         * Companion-scoped because field-initialisation ordering bites:
+         * `ProfileManager.<init> → loadProfile() → resetToDefaults() →
+         * saveProfile()` runs BEFORE any instance `val` declared after
+         * `init {}` gets assigned, so an instance-scoped lock is null
+         * during the first saveProfile from the constructor. Audit
+         * finding 2026-06-06.
+         */
+        private val PROFILE_WRITE_LOCK = Any()
+
         /** Default filler words (EN + RU bilingual) */
         val DEFAULT_FILLERS = listOf(
             // English
@@ -118,29 +140,31 @@ class ProfileManager(private val prefs: SharedPreferences) {
     }
 
     fun saveProfile() {
-        // CRITICAL: read-modify-write the existing profile_json so we PRESERVE
-        // fields ProfileManager doesn't hold in memory — trigger_words,
-        // onset_weights, covert_profile (synced from Lavrentiy via the
-        // Firestore listener at mergeRemoteProfile). Without this preserve
-        // step, saveProfile silently wipes the clinical sync data because
-        // it writes the whole profile_json blob from only the 6 fields the
-        // ProfileManager owns in memory — the other 3 fields don't survive.
-        // Bug verified by 2026-05-31 audit.
-        val existing = try {
-            prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: JSONObject()
-        } catch (_: Exception) {
-            JSONObject()
+        synchronized(PROFILE_WRITE_LOCK) {
+            // CRITICAL: read-modify-write the existing profile_json so we PRESERVE
+            // fields ProfileManager doesn't hold in memory — trigger_words,
+            // onset_weights, covert_profile (synced from Lavrentiy via the
+            // Firestore listener at mergeRemoteProfile). Without this preserve
+            // step, saveProfile silently wipes the clinical sync data because
+            // it writes the whole profile_json blob from only the 6 fields the
+            // ProfileManager owns in memory — the other 3 fields don't survive.
+            // Bug verified by 2026-05-31 audit.
+            val existing = try {
+                prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: JSONObject()
+            } catch (_: Exception) {
+                JSONObject()
+            }
+            existing.put("vocabulary", JSONArray(vocabulary))
+            existing.put("corrections", JSONObject(corrections as Map<*, *>))
+            existing.put("filler_words", JSONArray(fillerWords))
+            existing.put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
+            existing.put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
+            existing.put("wps_history", JSONArray(wpsHistory))
+            // trigger_words / onset_weights / covert_profile passed through
+            // untouched (already in `existing` from prefs read).
+            prefs.edit().putString(PREF_KEY, existing.toString()).apply()
+            Log.i(TAG, "Profile saved (preserving Firestore-synced fields)")
         }
-        existing.put("vocabulary", JSONArray(vocabulary))
-        existing.put("corrections", JSONObject(corrections as Map<*, *>))
-        existing.put("filler_words", JSONArray(fillerWords))
-        existing.put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
-        existing.put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
-        existing.put("wps_history", JSONArray(wpsHistory))
-        // trigger_words / onset_weights / covert_profile passed through
-        // untouched (already in `existing` from prefs read).
-        prefs.edit().putString(PREF_KEY, existing.toString()).apply()
-        Log.i(TAG, "Profile saved (preserving Firestore-synced fields)")
     }
 
     /**
@@ -237,10 +261,12 @@ class ProfileManager(private val prefs: SharedPreferences) {
     }
 
     private fun writeTriggerWords(words: List<String>) {
-        val json = prefs.getString(PREF_KEY, null)
-        val obj = if (json != null) JSONObject(json) else JSONObject()
-        obj.put("trigger_words", org.json.JSONArray(words))
-        prefs.edit().putString(PREF_KEY, obj.toString()).apply()
+        synchronized(PROFILE_WRITE_LOCK) {
+            val json = prefs.getString(PREF_KEY, null)
+            val obj = if (json != null) JSONObject(json) else JSONObject()
+            obj.put("trigger_words", org.json.JSONArray(words))
+            prefs.edit().putString(PREF_KEY, obj.toString()).apply()
+        }
     }
 
     fun getFillerWords(): List<String> = fillerWords.toList()
@@ -349,6 +375,7 @@ class ProfileManager(private val prefs: SharedPreferences) {
     }
 
     private fun mergeRemoteProfile(doc: DocumentSnapshot) {
+        synchronized(PROFILE_WRITE_LOCK) {
         try {
             val json = prefs.getString(PREF_KEY, null)
             val obj = if (json != null) JSONObject(json) else JSONObject()
@@ -407,6 +434,7 @@ class ProfileManager(private val prefs: SharedPreferences) {
             Log.i(TAG, "Remote profile merged successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Remote profile merge failed: ${e.message}")
+        }
         }
     }
 

@@ -120,11 +120,11 @@ object WhisperClient {
     /**
      * Transcribe a WAV file via OpenAI's audio transcription API.
      *
-     * @param model defaults to `gpt-4o-transcribe` (used at L2/L3 when the
-     *   Moonshine fallback path is active). Pass `whisper-1` at L4 — older
-     *   model preserves more disfluencies and the verbose_json response shape
-     *   exposes per-segment `avg_logprob` + `no_speech_prob` confidence
-     *   signals that L4's clinical prompt depends on.
+     * @param model defaults to `gpt-4o-transcribe` (used at L2/L3 — the
+     *   on-device whisper-tiny only runs at L1). Pass `whisper-1` at L4 —
+     *   older model preserves more disfluencies and the verbose_json
+     *   response shape exposes per-segment `avg_logprob` + `no_speech_prob`
+     *   confidence signals that L4's clinical prompt depends on.
      */
     suspend fun transcribe(
         audioFile: File,

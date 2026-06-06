@@ -1778,7 +1778,8 @@ class MainActivity : AppCompatActivity() {
                 "The pipeline, top to bottom",
                 """<b>1. You tap the bubble and speak.</b><br>The mic captures your voice locally. No audio leaves the phone for Layer I.<br><br>
 <b>2. Speech-to-text.</b><br>
-&#8226; <b>Layer I, II, III</b> &#8212; Moonshine runs on your phone. Free, no internet, no chirp.<br>
+&#8226; <b>Layer I</b> &#8212; whisper-tiny runs on your phone (free, no internet, no chirp).<br>
+&#8226; <b>Layer II / III</b> &#8212; gpt-4o-transcribe in the cloud (your audio goes up so the model can hear inflection and disfluency before reconstruction).<br>
 &#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes per-segment confidence the clinical prompt needs).<br><br>
 <b>3. Rule cleanup (no AI).</b><br>
 &#8226; "p-p-pop" &#8594; "pop"<br>
@@ -1851,7 +1852,7 @@ class MainActivity : AppCompatActivity() {
             GuideSection(
                 "Layers",
                 "What each layer does",
-                """<b>I. Transcribe</b> &#8212; Moonshine on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
+                """<b>I. Transcribe</b> &#8212; whisper-tiny on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
 <b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
@@ -1908,7 +1909,7 @@ On in <b>Settings &#8594; DAF</b>. Use the slider to tune the delay."""
                 """<b>Bubble gone?</b> Open the app &#8212; it restarts automatically. Or double-shake the phone.<br><br>
 <b>Keeps disappearing?</b> Battery optimization is killing WiM in the background. Fix: phone Settings &#8594; Battery &#8594; Never sleeping apps &#8594; add What I Meant.<br><br>
 <b>Text not pasting?</b> Make sure a text field is active before you speak. Some apps refuse to accept programmatic text &#8212; try the keyboard's clipboard paste instead.<br><br>
-<b>Heard a chirp?</b> Means the Moonshine model isn't downloaded yet, or you turned it off. The app falls back to Android's recognizer (which chirps). Settings &#8594; check the speech model."""
+<b>Heard a chirp?</b> The on-device whisper-tiny model is silent, but Android's built-in recognizer chirps. If you hear a chirp during a Layer I recording, the whisper-tiny model probably hasn't finished downloading yet &#8212; wait a minute and try again."""
             ),
         )
 

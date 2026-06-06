@@ -4,9 +4,10 @@ package com.wim.app
  * Lightweight deterministic capitalization + terminal punctuation.
  *
  * Targets local ASR engines that emit flat lowercase text with no punctuation
- * (Moonshine, on-device SpeechRecognizer in some modes). Cheap (~10us per
- * typical utterance), no model load, no cloud round-trip. Idempotent — skips
- * text that already has BOTH a capital letter and terminal punctuation.
+ * (whisper-tiny via sherpa-onnx, on-device SpeechRecognizer in some modes).
+ * Cheap (~10us per typical utterance), no model load, no cloud round-trip.
+ * Idempotent — skips text that already has BOTH a capital letter and terminal
+ * punctuation.
  *
  * Adds:
  *   - Leading capital
