@@ -105,6 +105,16 @@ object ReconstructClient {
         val idToken = AuthManager.getIdToken()
         val anthropicKey = WimApp.anthropicApiKey()
         val forceDirectForL4Sonnet = layer >= 4 && anthropicKey.isNotBlank()
+        // L4 clinical-mode contract is Sonnet 4.6 with extended thinking. If
+        // the user is on L4 but the Anthropic key is blank, the request will
+        // silently fall through to GPT-4o (either via backend or via direct's
+        // useSonnet=false branch). Surface this in logcat + ConsoleLog so the
+        // user / operator can see when L4 is degraded — was completely
+        // invisible before per 2026-06-06 audit.
+        if (layer >= 4 && anthropicKey.isBlank()) {
+            android.util.Log.w("WiM", "L4 requested but no Anthropic key — downgrading to GPT-4o (no Sonnet ET)")
+            com.wim.app.ConsoleLog.log("L4 → GPT-4o downgrade (no Anthropic key on this device)", "warn")
+        }
         val result = if (idToken != null && !forceDirectForL4Sonnet) {
             reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
         } else {

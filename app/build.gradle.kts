@@ -152,11 +152,6 @@ dependencies {
     // (PhoneticMatcher post-hoc swaps ASR output against user vocabulary).
     implementation("commons-codec:commons-codec:1.17.1")
 
-    // MediaPipe tasks-genai — on-device LLM inference for local L2/L3
-    // reconstruction via Gemma 3 1B IT (text-in text-out). Paired with Vosk
-    // for ASR, this makes L2/L3 fully local with no cloud round-trip.
-    implementation("com.google.mediapipe:tasks-genai:0.10.24")
-
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

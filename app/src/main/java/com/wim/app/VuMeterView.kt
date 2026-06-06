@@ -48,6 +48,18 @@ class VuMeterView @JvmOverloads constructor(
         postDelayed({ runStartupSweep() }, 200)
     }
 
+    override fun onDetachedFromWindow() {
+        // Cancel any in-flight needle animation + any deferred sweep
+        // callback. Without this, ValueAnimator keeps holding a reference
+        // to the detached view + the queued postDelayed runnables fire
+        // into a dead view, wasting GPU time on an invalidate() that
+        // does nothing — audit finding 2026-06-06.
+        needleAnimator?.cancel()
+        needleAnimator = null
+        removeCallbacks(null)
+        super.onDetachedFromWindow()
+    }
+
     private fun runStartupSweep() {
         if (hasRunStartupSweep) return
         hasRunStartupSweep = true

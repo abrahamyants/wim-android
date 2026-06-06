@@ -38,10 +38,6 @@
 -keep class com.k2fsa.sherpa.onnx.** { *; }
 -dontwarn com.k2fsa.sherpa.onnx.**
 
-# MediaPipe tasks-genai — Gemma local LLM path.
--keep class com.google.mediapipe.** { *; }
--dontwarn com.google.mediapipe.**
-
 # Apache Commons (compress + codec).
 -keep class org.apache.commons.** { *; }
 -dontwarn org.apache.commons.**

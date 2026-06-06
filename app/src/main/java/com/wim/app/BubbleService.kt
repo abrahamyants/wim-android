@@ -595,19 +595,23 @@ class BubbleService : Service() {
         }
         audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
 
-        // Audio playback monitor — logs ANY sound played on the device so we can detect chirps
-        val apCb = object : android.media.AudioManager.AudioPlaybackCallback() {
-            override fun onPlaybackConfigChanged(configs: MutableList<android.media.AudioPlaybackConfiguration>) {
-                if (configs.isNotEmpty()) {
-                    Log.w(TAG, "CHIRP_MONITOR: ${configs.size} playback(s) detected")
-                    for (c in configs) {
-                        Log.w(TAG, "CHIRP_MONITOR: usage=${c.audioAttributes.usage} content=${c.audioAttributes.contentType}")
+        // Audio playback monitor — diagnostic for the Session 9-10 chirp saga.
+        // Gated to debug builds so release users don't pay for an unused
+        // device-wide audio-playback callback (audit finding 2026-06-06).
+        if (BuildConfig.DEBUG) {
+            val apCb = object : android.media.AudioManager.AudioPlaybackCallback() {
+                override fun onPlaybackConfigChanged(configs: MutableList<android.media.AudioPlaybackConfiguration>) {
+                    if (configs.isNotEmpty()) {
+                        Log.w(TAG, "CHIRP_MONITOR: ${configs.size} playback(s) detected")
+                        for (c in configs) {
+                            Log.w(TAG, "CHIRP_MONITOR: usage=${c.audioAttributes.usage} content=${c.audioAttributes.contentType}")
+                        }
                     }
                 }
             }
+            audioPlaybackCallback = apCb
+            audioManager?.registerAudioPlaybackCallback(apCb, null)
         }
-        audioPlaybackCallback = apCb
-        audioManager?.registerAudioPlaybackCallback(apCb, null)
 
         onDeviceRecognizer = OnDeviceRecognizer(this)
         whisperLocalEngine = WhisperLocalEngine(this)
