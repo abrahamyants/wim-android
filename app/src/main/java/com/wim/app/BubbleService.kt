@@ -1640,8 +1640,20 @@ class BubbleService : Service() {
             return
         }
 
+        // Gate the FSM transition FIRST. The "any → Listening" rule allows
+        // recording from Idle / SendReady / Failed / Clarifying / Listening
+        // but forbids it from Reconstructing — "in-flight ASR cannot be
+        // interrupted." Previously the return value was discarded and the
+        // recording proceeded regardless, leaving an in-flight reconstruction
+        // racing a fresh recording for the same audio source. Now: if the
+        // FSM refuses the transition, bail without starting recording.
+        // Audit finding 2026-06-06.
+        if (!BubbleStateBus.advance(BubbleState.Listening(System.currentTimeMillis()))) {
+            Log.w(TAG, "startListening: FSM rejected Listening transition from ${BubbleStateBus.current()} — bailing")
+            ConsoleLog.log("Recording blocked — wait for current reconstruction to finish", "warn")
+            return
+        }
         isRecording = true
-        BubbleStateBus.advance(BubbleState.Listening(System.currentTimeMillis()))
         lastRawText = ""
         finalizedSegments = ""
         processed = false
@@ -1904,7 +1916,12 @@ class BubbleService : Service() {
             isRecording = false
             audioRecorder?.stop(); audioRecorder = null
             onDeviceRecognizer?.stop()
-            whisperLocalEngine?.stop()
+            // WhisperLocalEngine.stop() does a captureThread?.join(500) +
+            // an ONNX decode of the buffered audio — heavy work that froze
+            // the UI on the discard path. Background it on Dispatchers.IO
+            // so setBubbleIdle() can land immediately. Mirrors the pattern
+            // at :1865 and :1952. Audit finding 2026-06-06.
+            scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
             dafPlayer?.stop(); dafPlayer = null
             setBubbleIdle()
             return

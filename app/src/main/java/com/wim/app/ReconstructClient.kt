@@ -85,15 +85,14 @@ object ReconstructClient {
         //
         // After reconstruction returns, this call's (raw, output) gets
         // staged as the new pending pair — next call decides its fate.
-        val pending = StyleExamples.pendingPair
+        // Atomic claim of the pending pair — exactly one caller wins
+        // the prior value, the other sees null and short-circuits.
+        // Closes the overlapping-reconstruct race.
+        val pending = StyleExamples.pendingPair.getAndSet(null)
         if (previousOutputs.isNotEmpty()) {
             RejectionStore.record(previousOutputs.last())
-            StyleExamples.pendingPair = null
-        } else {
-            if (pending != null) {
-                StyleExamples.record(pending.first, pending.second)
-            }
-            StyleExamples.pendingPair = null
+        } else if (pending != null) {
+            StyleExamples.record(pending.first, pending.second)
         }
 
         // Routing:
@@ -128,7 +127,7 @@ object ReconstructClient {
         // next reconstruct() call decides whether it gets promoted to
         // accepted (StyleExamples) or dropped (was a regenerate target).
         if (result.cleanText.isNotBlank()) {
-            StyleExamples.pendingPair = rawText to result.cleanText
+            StyleExamples.pendingPair.set(rawText to result.cleanText)
         }
         return result
     }

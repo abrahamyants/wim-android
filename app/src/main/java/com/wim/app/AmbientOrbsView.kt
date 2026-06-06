@@ -56,6 +56,16 @@ class AmbientOrbsView @JvmOverloads constructor(
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
+    // RadialGradient cache. Without this, onDraw built three brand-new
+    // RadialGradient objects per frame (at sensor rate on the home screen)
+    // — pure GC churn for shaders whose only changing input was screen
+    // position. Build the gradient ONCE at origin per orb, then translate
+    // via the shader's local matrix each frame; only rebuild when the
+    // view resizes (radius changes). Audit finding 2026-06-06.
+    private val orbShaders = arrayOfNulls<android.graphics.RadialGradient>(3)
+    private val cachedRadiusPx = IntArray(3) { -1 }
+    private val shaderMatrix = android.graphics.Matrix()
+
     // Raw sensor readings (accelerometer x, y in m/s^2)
     private var rawTiltX = 0f
     private var rawTiltY = 0f
@@ -131,21 +141,33 @@ class AmbientOrbsView @JvmOverloads constructor(
 
         val minDim = minOf(width, height).toFloat()
 
-        for (orb in orbs) {
+        for ((i, orb) in orbs.withIndex()) {
             val cx = width * orb.fx + offsetX
             val cy = height * orb.fy + offsetY
             val radius = minDim * orb.radiusFrac
+            val radiusRounded = radius.toInt()
 
-            // RadialGradient: core color at 30% alpha, fading to transparent.
-            // 30% core keeps the orb visible on a dark base but won't blow out
-            // the content layered above it.
-            val coreWithAlpha = (orb.coreColor and 0x00FFFFFF) or 0x4C000000
-            paint.shader = RadialGradient(
-                cx, cy, radius,
-                intArrayOf(coreWithAlpha, orb.coreColor and 0x00FFFFFF),
-                floatArrayOf(0f, 1f),
-                Shader.TileMode.CLAMP
-            )
+            // Cached gradient: built once at origin, translated each frame.
+            // Only rebuilt when the view resizes (radius changes). Saves
+            // ~300 RadialGradient allocations/sec at sensor rate.
+            var shader = orbShaders[i]
+            if (shader == null || cachedRadiusPx[i] != radiusRounded) {
+                // RadialGradient: core color at 30% alpha, fading to transparent.
+                // 30% core keeps the orb visible on a dark base but won't blow
+                // out the content layered above it.
+                val coreWithAlpha = (orb.coreColor and 0x00FFFFFF) or 0x4C000000
+                shader = RadialGradient(
+                    0f, 0f, radius,
+                    intArrayOf(coreWithAlpha, orb.coreColor and 0x00FFFFFF),
+                    floatArrayOf(0f, 1f),
+                    Shader.TileMode.CLAMP
+                )
+                orbShaders[i] = shader
+                cachedRadiusPx[i] = radiusRounded
+            }
+            shaderMatrix.setTranslate(cx, cy)
+            shader.setLocalMatrix(shaderMatrix)
+            paint.shader = shader
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         }
     }

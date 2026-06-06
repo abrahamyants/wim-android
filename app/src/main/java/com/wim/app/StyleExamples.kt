@@ -3,6 +3,7 @@ package com.wim.app
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Persistent style-examples — (raw_input, accepted_output) pairs the user
@@ -49,9 +50,19 @@ object StyleExamples {
     private const val MAX_ENTRIES = 20
     private const val DEFAULT_RECENT_N = 5
 
-    /** Pending pair: last reconstruction's (raw, output), awaiting accept-or-reject verdict on the next call. */
-    @Volatile
-    var pendingPair: Pair<String, String>? = null
+    /**
+     * Pending pair: last reconstruction's (raw, output), awaiting
+     * accept-or-reject verdict on the next call.
+     *
+     * AtomicReference closes a race the previous `@Volatile var` version
+     * had: two overlapping reconstruct() calls could each read the same
+     * pending pair, decide separately what to do with it (promote or
+     * drop), and both end up writing — losing the prior pair's verdict.
+     * `getAndSet(null)` is atomic: exactly one caller wins the previous
+     * value, the other gets null and short-circuits. Audit finding
+     * 2026-06-06.
+     */
+    val pendingPair: AtomicReference<Pair<String, String>?> = AtomicReference(null)
 
     data class Example(val raw: String, val output: String)
 

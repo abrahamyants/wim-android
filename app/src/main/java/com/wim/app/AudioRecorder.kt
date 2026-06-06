@@ -93,7 +93,15 @@ class AudioRecorder(private val context: Context) {
      * Start continuous mic capture into the circular pre-roll buffer.
      * Call this as early as possible (e.g. when the bubble becomes visible).
      * Safe to call multiple times — no-op if already primed.
+     *
+     * @Synchronized closes a check-then-act race in the previous version:
+     * `if (isPrimed) return` followed by the AudioRecord construction +
+     * `isPrimed = true` was not atomic, so two threads racing the prime
+     * could both pass the check, both build an AudioRecord, both start
+     * recording, and leak the second native handle (pinning the mic for
+     * the service's life). Audit finding 2026-06-06.
      */
+    @Synchronized
     fun primeBuffer() {
         if (isPrimed) return
         if (!hasPermission()) return
