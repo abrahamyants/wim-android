@@ -136,7 +136,14 @@
     <string name="profile_l1_russian">Russian</string>
     <string name="profile_l1_spanish">Spanish</string>
     <string name="profile_l1_mandarin">Mandarin</string>
-    <string name="profile_l1_other">Other (more packs coming)</string>
+    <string name="profile_l1_hindi">Hindi</string>
+    <string name="profile_l1_arabic">Arabic</string>
+    <string name="profile_l1_farsi">Farsi</string>
+    <string name="profile_l1_french">French</string>
+    <string name="profile_l1_german">German</string>
+    <string name="profile_l1_korean">Korean</string>
+    <string name="profile_l1_japanese">Japanese</string>
+    <string name="profile_l1_other">Other</string>
     <string name="profile_work_hours">WORK HOURS</string>
     <string name="profile_hours_morning">Morning</string>
     <string name="profile_hours_day">9–5</string>

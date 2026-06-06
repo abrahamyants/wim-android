@@ -2808,8 +2808,8 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 // load a pack the user hasn't actually picked.
             }
         }
-        val l1LangIds = listOf(R.id.l1Russian, R.id.l1Spanish, R.id.l1Mandarin, R.id.l1Other)
-        val l1LangValues = listOf("russian", "spanish", "mandarin", "other")
+        val l1LangIds = listOf(R.id.l1Russian, R.id.l1Spanish, R.id.l1Mandarin, R.id.l1Hindi, R.id.l1Arabic, R.id.l1Farsi, R.id.l1French, R.id.l1German, R.id.l1Korean, R.id.l1Japanese, R.id.l1Other)
+        val l1LangValues = listOf("russian", "spanish", "mandarin", "hindi", "arabic", "farsi", "french", "german", "korean", "japanese", "other")
         val savedLangChoice = if (savedL1 in l1LangValues) savedL1 else ""
         setupProfileGroup(overlay, l1LangIds, l1LangValues, "profile_l1", savedLangChoice)
 
