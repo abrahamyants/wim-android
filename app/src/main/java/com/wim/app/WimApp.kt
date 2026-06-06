@@ -93,7 +93,17 @@ class WimApp : Application() {
          * auto-flips to cloud because whisper-tiny.en is English-only;
          * a user-facing toggle is not yet wired into the bubble menu.
          */
-        fun l1CloudAsr(): Boolean = prefs.getBoolean("l1_cloud_asr", false)
+        fun l1CloudAsr(): Boolean = try {
+            prefs.getBoolean("l1_cloud_asr", false)
+        } catch (_: ClassCastException) {
+            // Self-heal if a test broadcast stored the wrong type for this key
+            // (set_pref defaults to type="string", so `--es value "false"`
+            // without `--es type bool` writes a String here and the next read
+            // crashes WimApp.onCreate). Clear the bad value, return the safe
+            // default so the app starts instead of dying on launch.
+            prefs.edit().remove("l1_cloud_asr").apply()
+            false
+        }
 
         /**
          * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps

@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
 
 /**
  * Comment-bubble shaped overlay above the bubble — shared surface for live
@@ -45,6 +46,10 @@ class BubbleLiveTranscript(
         private const val TAG = "WiM"
         private const val TYPEWRITER_INTERVAL_MS = 22L
         private const val CURSOR_BLINK_MS = 500L
+        // Stage callouts auto-fade after this window. Without it, any
+        // failed pipeline (or a test broadcast) leaves the bar pinned to
+        // the bubble forever — operator complaint 2026-06-06.
+        private const val STAGE_AUTO_HIDE_MS = 6_000L
     }
 
     private var view: TextView? = null
@@ -77,11 +82,18 @@ class BubbleLiveTranscript(
             stageAnimHandler.postDelayed(this, CURSOR_BLINK_MS)
         }
     }
+    private val stageAutoHideTick = Runnable {
+        // Fade then hide so the bar doesn't pop out abruptly.
+        view?.animate()?.alpha(0f)?.setDuration(200)
+            ?.withEndAction { hide() }?.start()
+    }
 
     private fun ensureBar() {
         if (view != null) return
         val dp = context.resources.displayMetrics.density
-        val barWidthPx = (220 * dp).toInt()
+        // Wider surface — gives premium breathing room and reduces aggressive
+        // wrap on conversational live transcripts.
+        val barWidthPx = (244 * dp).toInt()
         val palette = CommentBubbleDrawable.paletteFor(WimApp.bubbleTheme())
         val styleFor = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
         val opaqueFill = (palette.fill or 0xFF000000.toInt())
@@ -92,11 +104,33 @@ class BubbleLiveTranscript(
             backgroundStyle = styleFor,
             drawOutline = false
         )
+        // Premium typography pass (2026-06-06):
+        //   - Plus Jakarta Sans Medium replaces monospace — brand body font,
+        //     same family the bubble menu nameplates use.
+        //   - Bottom padding 40dp clears the 22dp tail with 18dp breathing
+        //     room above the rect→tail seam (was 22dp = text bottomed out
+        //     exactly on the seam, looked cheap).
+        //   - 22dp horizontal padding + 18dp top mirror each other for the
+        //     engraved-plate balance the menu uses.
+        //   - 5dp lineSpacingExtra + 0.04em tracking = engineered hi-fi feel.
+        val brandTypeface =
+            ResourcesCompat.getFont(context, R.font.plus_jakarta_sans_medium)
+                ?: Typeface.SANS_SERIF
         val tv = TextView(context).apply {
             setTextColor(palette.primaryText)
-            textSize = 12f
-            typeface = Typeface.MONOSPACE
-            setPadding((16 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt(), (22 * dp).toInt())
+            textSize = 13f
+            typeface = brandTypeface
+            letterSpacing = 0.04f
+            setLineSpacing(5f * dp, 1f)
+            // Bottom padding only needs to clear the 22dp tail height + a
+            // small breathing margin. Earlier value (40dp) doubled the bar
+            // height for two short lines and felt heavy.
+            setPadding(
+                (18 * dp).toInt(),
+                (14 * dp).toInt(),
+                (18 * dp).toInt(),
+                (28 * dp).toInt()
+            )
             minLines = 2
             maxLines = 6
             ellipsize = TextUtils.TruncateAt.END
@@ -123,11 +157,17 @@ class BubbleLiveTranscript(
         val bubbleTop = bp.y
         val bubbleCenterX = bp.x + (if (bp.width > 0) bp.width else 360) / 2
         val screenW = context.resources.displayMetrics.widthPixels
+        // FLAG_NOT_TOUCHABLE — the bar is purely informational; without
+        // this, its window swallows taps that overlap the bubble's top
+        // 20% (where the tail tip sits), making the bubble feel undraggable
+        // whenever a stage or live transcript is showing.
         val ltParams = WindowManager.LayoutParams(
             barWidthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -149,6 +189,38 @@ class BubbleLiveTranscript(
         box.post(anchor)
         box.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             if ((bottom - top) != (oldBottom - oldTop)) anchor()
+        }
+    }
+
+    /**
+     * Re-anchor the bar above the bubble at its current position. Cheap —
+     * safe to call on every drag MOVE event (updateViewLayout is sub-ms).
+     * No-ops if the bar isn't currently shown. Called from BubbleService
+     * whenever the bubble's WindowManager params are updated (touch drag,
+     * moveBubbleTo, animateBubbleTo).
+     */
+    fun repositionToBubble() {
+        val box = container ?: return
+        val ltParams = params ?: return
+        val bp = getBubbleParams() ?: return
+        val dp = context.resources.displayMetrics.density
+        val bubbleHeight = if (bp.height > 0) bp.height else (120 * dp).toInt()
+        val bubbleWidth = if (bp.width > 0) bp.width else (120 * dp).toInt()
+        val bubbleTop = bp.y
+        val bubbleCenterX = bp.x + bubbleWidth / 2
+        val barWidthPx = ltParams.width
+        val screenW = context.resources.displayMetrics.widthPixels
+        val bezelTopOffset = (bubbleHeight * 0.20).toInt()
+        val measuredH = box.height.coerceAtLeast(1)
+        val newX = (bubbleCenterX - barWidthPx / 2)
+            .coerceIn(0, (screenW - barWidthPx).coerceAtLeast(0))
+        val newY = (bubbleTop - measuredH + bezelTopOffset).coerceAtLeast(0)
+        if (ltParams.x != newX || ltParams.y != newY) {
+            ltParams.x = newX
+            ltParams.y = newY
+            try {
+                windowManager.updateViewLayout(box, ltParams)
+            } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         }
     }
 
@@ -211,9 +283,12 @@ class BubbleLiveTranscript(
                         else stageDetail.substring(0, typewriterIdx)
         val cursorChar = if (cursorVisible) "▌" else " "
 
+        // Title nameplate: uppercased + bold matches the bubble menu's
+        // engraved chip labels (premium parity within the bubble surface).
+        // Body stays mixed-case at 88% size for readable hierarchy.
         val styled = SpannableStringBuilder().apply {
             val titleStart = length
-            append(stageLabel)
+            append(stageLabel.uppercase())
             setSpan(ForegroundColorSpan(labelColor),
                 titleStart, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             setSpan(StyleSpan(Typeface.BOLD),
@@ -222,7 +297,7 @@ class BubbleLiveTranscript(
             val detailStart = length
             append(typedBody)
             append(cursorChar)
-            setSpan(RelativeSizeSpan(0.85f),
+            setSpan(RelativeSizeSpan(0.88f),
                 detailStart, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             setSpan(ForegroundColorSpan(detailColor),
                 detailStart, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -234,13 +309,16 @@ class BubbleLiveTranscript(
         stopStagePulse()
         typewriterIdx = 0
         cursorVisible = true
+        view?.alpha = 1f
         stageAnimHandler.postDelayed(typewriterTick, TYPEWRITER_INTERVAL_MS)
         stageAnimHandler.postDelayed(cursorBlinkTick, CURSOR_BLINK_MS)
+        stageAnimHandler.postDelayed(stageAutoHideTick, STAGE_AUTO_HIDE_MS)
     }
 
     private fun stopStagePulse() {
         stageAnimHandler.removeCallbacks(typewriterTick)
         stageAnimHandler.removeCallbacks(cursorBlinkTick)
+        stageAnimHandler.removeCallbacks(stageAutoHideTick)
     }
 
     fun hide() {

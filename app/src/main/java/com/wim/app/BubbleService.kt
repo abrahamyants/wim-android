@@ -948,6 +948,7 @@ class BubbleService : Service() {
 
                         windowManager?.updateViewLayout(bubbleView, params)
                         bubbleMenu?.updatePositionFromBubble()
+                        liveTranscript?.repositionToBubble()
 
                         // Taffy: stretch in drag direction
                         val speed = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
@@ -1518,6 +1519,7 @@ class BubbleService : Service() {
         params.y = cy - view.height / 2
         try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         bubbleMenu?.updatePositionFromBubble()
+        liveTranscript?.repositionToBubble()
     }
 
     private fun animateBubbleTo(toCx: Int, toCy: Int, durationMs: Long) {
@@ -1533,6 +1535,8 @@ class BubbleService : Service() {
                 params.x = (fromCx + (toCx - fromCx) * t).toInt() - view.width / 2
                 params.y = (fromCy + (toCy - fromCy) * t).toInt() - view.height / 2
                 try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+                bubbleMenu?.updatePositionFromBubble()
+                liveTranscript?.repositionToBubble()
             }
             start()
         }
@@ -1753,7 +1757,14 @@ class BubbleService : Service() {
         // SpeechRecognizer instead — it streams partials but is less accurate
         // and chirps. Trade-off accepted in exchange for actually-live text.
         val liveOn = WimApp.prefs.getBoolean("live_transcript", false)
-        val l1LocalLiveOverride = liveOn && !isL4 && !l1NeedsCloud
+        // L1 Local must be CHIRP-FREE. Android SpeechRecognizer emits
+        // USAGE_ASSISTANCE_SONIFICATION sounds on start AND stop that bypass
+        // every standard audio-suppression mechanism (see README session-9
+        // saga). The only fix is to never start it. Per operator 2026-06-06:
+        // L1 Local sacrifices live partials for silence. whisper-tiny.en
+        // gives the final transcript on stop, no chirp ever.
+        @Suppress("UNUSED_VARIABLE") val liveOnIgnoredForL1Local = liveOn
+        val l1LocalLiveOverride = false
 
         if (isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
@@ -1778,21 +1789,20 @@ class BubbleService : Service() {
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
         } else {
-            Log.w(TAG, "whisper-tiny model not ready — using Android SpeechRecognizer (offline-pinned)")
-            // Surface the fallback so the user understands why this recording
-            // chirped / is slower. Self-limits — once the ~40 MB model lands,
-            // this branch becomes unreachable.
+            // No silent fallback to Android SpeechRecognizer. Per operator
+            // 2026-06-06: L1 Local must never route through the native ASR
+            // (chirp + accuracy hit). If whisper-tiny.en isn't on disk yet,
+            // refuse the recording, reset the bubble, and tell the user the
+            // model is still downloading. The download is a one-time ~40 MB
+            // background fetch; usually completes within minutes of first
+            // launch. Subsequent taps work normally once the model lands.
+            Log.w(TAG, "whisper-tiny model not ready — refusing recording (no fallback to native ASR)")
             android.widget.Toast.makeText(
                 this,
-                "Speech model still downloading — using fallback for now",
-                android.widget.Toast.LENGTH_SHORT,
+                "Speech model still downloading — try again in a moment",
+                android.widget.Toast.LENGTH_LONG,
             ).show()
-            onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
-                override fun onPartialResult(text: String) = handlePartial(text)
-                override fun onFinalResult(text: String) = handleFinal(text)
-                override fun onSoundEvent(label: String) = handleSound(label)
-                override fun onError(errorCode: Int) = handleError(errorCode)
-            })
+            setBubbleIdle()
         }
     }
 
@@ -2333,6 +2343,63 @@ class BubbleService : Service() {
         if (rateGap.gapDetected) {
             Log.w(TAG, "Rate-gap: wps=${"%.2f".format(rateGap.wps)} baseline=${"%.2f".format(rateGap.baselineWps ?: 0.0)} ratio=${"%.2f".format(rateGap.ratio ?: 0.0)}")
             ConsoleLog.log("Rate-gap: ${((rateGap.ratio ?: 0.0) * 100).toInt()}% of baseline WPS — ASR likely dropped content", "warn")
+        }
+
+        // L1 Local raw fast-path. Per operator 2026-06-06: when the user is on
+        // L1 + the local engine (whisper-tiny.en on-device), inject pure ASR
+        // output. No voice shortcuts, no Whisper hallucination strip, no
+        // disfluency filter, no profile corrections, no Repunctuate. The user
+        // hears their own voice back, untouched. Any cleanup belongs at L2+.
+        if (layer < 2 && !WimApp.l1CloudAsr()) {
+            Log.i(TAG, "L1 Local raw — injecting rawText untouched (no filters)")
+            BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
+            setStageArc(1)
+            BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
+            setStageArc(2)
+            ConsoleLog.log("Raw: \"${rawText.take(80)}${if (rawText.length > 80) "..." else ""}\"", "raw")
+            ConsoleLog.log("-> [pure raw, no filters]", "out")
+            if (WimAccessibilityService.instance == null) {
+                Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
+                setBubbleIdle()
+                return
+            }
+            WimAccessibilityService.instance!!.injectText(rawText)
+            relayToTermux(rawText)
+            BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
+            setStageArc(3)
+            val totalMs = System.currentTimeMillis() - recordingStartTime
+            ConsoleLog.log("[L1 Local raw] inject | ${totalMs}ms (asr:${asrMs})", "info")
+            sessionHistory?.record(
+                rawText = rawText,
+                cleanText = rawText,
+                tone = tone,
+                layer = 1,
+                situation = situation,
+                asrMs = asrMs,
+                reconMs = 0,
+                totalMs = totalMs,
+                falconApproved = true,
+                riskFlags = emptyList()
+            )
+            SessionUpdateBus.emit()
+            if (BuildConfig.DEBUG) {
+                WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                    put("status", "ok")
+                    put("raw_text", rawText)
+                    put("clean_text", rawText)
+                    put("tone", tone)
+                    put("layer", 1)
+                    put("situation", situation)
+                    put("asr_ms", asrMs)
+                    put("recon_ms", 0)
+                    put("total_ms", totalMs)
+                    put("falcon_approved", true)
+                    put("risk_flags", org.json.JSONArray())
+                    put("wer", 0.0)
+                }
+            }
+            setBubbleIdle()
+            return
         }
 
         // Voice shortcuts — expand triggers before processing
