@@ -1662,6 +1662,12 @@ class BubbleService : Service() {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
                 Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for cloud-ASR fallback")
+                if (isL4) {
+                    // Silent-block bridging: when the speaker freezes mid-utterance
+                    // at L4, offer one tap-to-finish completion via the existing
+                    // clarifier. Handler self-gates on L4 + isRecording.
+                    audioRecorder?.onSilentBlockMidSpeech = { onSilentBlockBridge() }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
                 audioRecorder = null
@@ -1784,6 +1790,61 @@ class BubbleService : Service() {
                 override fun onSoundEvent(label: String) = handleSound(label)
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
+        }
+    }
+
+    /**
+     * Silent-block bridging consumer (L4). The detector fired mid-recording —
+     * the speaker froze. Stop the take WITHOUT the normal transcribe→inject
+     * pipeline (same shape as the too-short abort branch below; processed=true
+     * makes a later stopAndProcess a no-op), transcribe the partial audio, ask
+     * the fast model for ONE completion, and offer it through the existing
+     * clarifier (✓ types it, ✕ types nothing — speaker re-records).
+     *
+     * Stopping first is required: the clarifier's ✓/✕ taps only route while
+     * !isRecording (see the bezel tap handler). Best-effort — any failure
+     * quietly leaves the bubble idle.
+     */
+    private fun onSilentBlockBridge() {
+        // Callback fires from AudioRecorder's capture thread. scope is
+        // Dispatchers.Main, so this marshals onto Main; the suspend
+        // transcribe/completePartial calls switch to IO internally.
+        scope.launch {
+            if (!isRecording || processed || WimApp.layer() < 4) return@launch
+            if (clarifierUI?.isActive == true) return@launch
+
+            processed = true
+            isRecording = false
+            val wavFile = audioRecorder?.stop()
+            audioRecorder = null
+            onDeviceRecognizer?.stop()
+            scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
+            dafPlayer?.stop(); dafPlayer = null
+            setBubbleIdle()
+
+            if (wavFile == null || !wavFile.exists() || wavFile.length() <= 44L) return@launch
+
+            val partial = try {
+                WhisperClient.transcribe(wavFile, patienceMode = true, verboseSegments = false)
+                    .text.trim()
+            } catch (e: Exception) {
+                Log.w(TAG, "block bridge transcribe failed: ${e.message?.take(120)}")
+                return@launch
+            }
+            if (partial.isBlank()) return@launch
+
+            val completion = ReconstructClient.completePartial(partial, tone = WimApp.tone())
+                .firstOrNull()?.trim().orEmpty()
+            if (completion.isBlank()) return@launch
+
+            // Back on Main. Don't stomp a fresh recording or an active clarifier
+            // that started during the transcribe/complete window.
+            if (isRecording || clarifierUI?.isActive == true) return@launch
+            clarifierUI?.show("USE?", "Finish it for you?\n“$completion”") { answer ->
+                if (answer == true) {
+                    WimAccessibilityService.instance?.injectText(completion)
+                }
+            }
         }
     }
 
