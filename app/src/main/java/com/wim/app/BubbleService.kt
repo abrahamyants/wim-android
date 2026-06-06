@@ -138,6 +138,9 @@ class BubbleService : Service() {
     private var lastRawText = ""
     private var finalizedSegments = ""
     private var processed = false
+    // Auto Quiet Mode: set when the last take was boosted as whisper-soft, so
+    // setBubbleIdle() can flash the amber confirmation on the bubble.
+    private var pendingQuietAutoFlash = false
     // Set true when stopAndProcess fell to the "no wav, use on-device text"
     // branch and is waiting for the Final ASR callback. handleFinal checks
     // this and kicks off processText if it arrives after the fallback timer
@@ -1881,6 +1884,18 @@ class BubbleService : Service() {
 
         // Stop audio recorder immediately (captures full audio)
         val wavFile = audioRecorder?.stop()
+        // Auto Quiet Mode: when the user hasn't forced Quiet Mode on, boost the
+        // whole take before Whisper ONLY if it was whisper-soft. Amber confirms
+        // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -38 dBFS ~=
+        // whisper; the measured level is logged so the threshold can be tuned.
+        if (!WimApp.prefs.getBoolean("quiet_mode", false) && wavFile != null) {
+            val takeDbfs = audioRecorder?.lastTakeDbfs() ?: -120.0
+            if (takeDbfs in -110.0..-38.0) {
+                Log.i(TAG, "Auto Quiet Mode engaged (${"%.0f".format(takeDbfs)} dBFS) — whisper-soft take")
+                audioRecorder?.boostWavQuiet(wavFile)
+                pendingQuietAutoFlash = true
+            }
+        }
         audioRecorder = null
         // Track the WAV so the L4 multi-pass decoder can read it after
         // reconstruction completes. Previous file (if any) is cleaned up
@@ -2044,6 +2059,22 @@ class BubbleService : Service() {
                 else -> 0xFF555560.toInt()
             }
             setTextColor(idleColor)
+        }
+        // Auto Quiet Mode amber confirmation — flash "QUIET" in the brand amber
+        // on the bubble for 1.5s after a boosted whisper-soft take, then revert.
+        if (pendingQuietAutoFlash) {
+            pendingQuietAutoFlash = false
+            val lbl = bubbleView?.findViewById<TextView>(R.id.bubbleLabel)
+            val idleColor2 = when (WimApp.bubbleTheme()) {
+                "gunmetal" -> 0xFFC8B48A.toInt()
+                "bronze" -> 0xFF1F1208.toInt()
+                else -> 0xFF555560.toInt()
+            }
+            lbl?.apply {
+                text = "QUIET"
+                setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.orange_label))
+            }
+            timerHandler.postDelayed({ lbl?.apply { text = "IDLE"; setTextColor(idleColor2) } }, 1500)
         }
         // bubbleTime: show anticipatory prediction snippet during Idle if available,
         // otherwise hide. This surfaces the PredictionEngine's context-awareness

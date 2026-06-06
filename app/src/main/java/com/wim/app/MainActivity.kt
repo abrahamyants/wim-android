@@ -427,6 +427,16 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("daf_enabled", checked).apply()
         }
 
+        // Quiet Mode manual force-on. Auto-detect (BubbleService) handles
+        // whisper-soft takes on its own; this lets the user force the boost
+        // always-on. Reads/writes the same "quiet_mode" pref BubbleService checks.
+        val switchQuiet = findViewById<MaterialSwitch>(R.id.switchQuiet)
+        switchQuiet.isChecked = WimApp.prefs.getBoolean("quiet_mode", false)
+        styleToggle(switchQuiet)
+        switchQuiet.setOnCheckedChangeListener { _, checked ->
+            WimApp.prefs.edit().putBoolean("quiet_mode", checked).apply()
+        }
+
         seekDafDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val ms = progress + 30

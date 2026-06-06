@@ -72,6 +72,10 @@ class AudioRecorder(private val context: Context) {
     @Volatile private var hasSeenSpeechInRecording = false
     @Volatile private var silentBlockFiredThisRecording = false
 
+    // Running loudness accumulator for Auto Quiet Mode (mean RMS over the take).
+    private var takeRmsSum = 0.0
+    private var takeRmsCount = 0
+
     // Circular pre-roll buffer
     private val circularBuffer = ByteArray(PREROLL_BYTES)
     private var bufferPos = 0
@@ -144,6 +148,8 @@ class AudioRecorder(private val context: Context) {
             lastSpeechMs = recordingStartMs
             hasSeenSpeechInRecording = false
             silentBlockFiredThisRecording = false
+            takeRmsSum = 0.0
+            takeRmsCount = 0
 
             outputStream = fos
             isRecording = true
@@ -237,11 +243,16 @@ class AudioRecorder(private val context: Context) {
                     isRecording = false
                 }
 
+                // Auto Quiet Mode — accumulate mean RMS across the whole take.
+                val chunkRms = computeRms(buf, read)
+                takeRmsSum += chunkRms
+                takeRmsCount++
+
                 // Silent-block detector. Only runs while actually recording.
                 // No-op (just state update) when no callback is registered —
                 // consumer (BubbleService) wires the callback at L4 only.
                 if (!silentBlockFiredThisRecording) {
-                    val rms = computeRms(buf, read)
+                    val rms = chunkRms
                     val now = System.currentTimeMillis()
                     if (rms > SILENCE_RMS_THRESHOLD) {
                         hasSeenSpeechInRecording = true
@@ -308,6 +319,32 @@ class AudioRecorder(private val context: Context) {
                 else -> boosted.toInt()
             }
             bb.putShort(pos, clipped.toShort())
+        }
+    }
+
+    /** Mean loudness of the last take in dBFS (16-bit full scale). Drives the
+     *  Auto Quiet Mode decision in BubbleService. -120 if nothing recorded. */
+    fun lastTakeDbfs(): Double {
+        if (takeRmsCount <= 0) return -120.0
+        val mean = takeRmsSum / takeRmsCount
+        return 20.0 * Math.log10((mean / 32768.0).coerceAtLeast(1e-9))
+    }
+
+    /** Apply the Quiet Mode boost (high-pass + gain) to an already-written WAV.
+     *  Auto Quiet Mode keeps capture raw and boosts the whole take here, before
+     *  Whisper, only when the take was whisper-soft — mirrors the per-chunk
+     *  capture-time path used for the manual toggle, so the two stay consistent. */
+    fun boostWavQuiet(file: File) {
+        try {
+            val all = file.readBytes()
+            if (all.size <= 44) return
+            val data = all.copyOfRange(44, all.size)
+            hpLastInput = 0f
+            hpLastOutput = 0f
+            applyQuietModeProcessing(data, data.size)
+            RandomAccessFile(file, "rw").use { raf -> raf.seek(44); raf.write(data) }
+        } catch (e: Exception) {
+            Log.w("AudioRecorder", "boostWavQuiet failed: ${e.message}")
         }
     }
 
