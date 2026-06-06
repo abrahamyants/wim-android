@@ -808,13 +808,23 @@ class BubbleService : Service() {
                 return@setOnTouchListener twistController?.handleTouch(event, v) ?: false
             }
 
-            // Accept touches on the bezel area (up to 50% radius) — covers both knob and bezel ring
+            // Hit-test the touch against the ACTUAL visible bezel circle
+            // (72dp diameter base, scaled by the user's bubble-size pref).
+            // Previously this was 50% of view width (= the full 120dp bubble
+            // window radius), which added a ~24dp dead zone around the bezel
+            // where finger taps still registered as bubble taps even though
+            // the user wasn't touching anything visible. Per operator
+            // 2026-06-06: touch area must match the visible graphic, and
+            // resize when the user shrinks/grows the bubble.
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val cx = v.width / 2f
                 val cy = v.height / 2f
                 val tx = event.x - cx
                 val ty = event.y - cy
-                val r = v.width * 0.5f
+                val density = resources.displayMetrics.density
+                val bezelBaseDp = 72f
+                val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
+                val r = (bezelBaseDp * density * scale) / 2f
                 if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
             }
 
@@ -1327,10 +1337,15 @@ class BubbleService : Service() {
         // finished (common when reconstruction takes longer than the user's
         // reaction time), don't override the live recording UI with SEND or
         // IDLE — the fresh recording owns the bubble's UX surface.
-        if (isRecording) return
+        if (isRecording) {
+            Log.i(TAG, "onInjectComplete: isRecording=true → skip (fresh recording owns UI)")
+            return
+        }
         val autoSendOn = WimApp.autoSendEnabled()
         val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
-        if (autoSendOn && supported && bubbleView != null) {
+        val bv = bubbleView != null
+        Log.i(TAG, "onInjectComplete: autoSend=$autoSendOn focusedAppSupports=$supported bubbleView=$bv → ${if (autoSendOn && supported && bv) "SEND_READY" else "Idle"}")
+        if (autoSendOn && supported && bv) {
             setBubbleSendReady()
         } else {
             setBubbleIdle()
@@ -1459,15 +1474,27 @@ class BubbleService : Service() {
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
         ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
-        if (WimApp.facehuggerSendEnabled()) {
-            WimAccessibilityService.instance?.getSendButtonCenter()?.let { (cx, cy) ->
-                val view = bubbleView ?: return@let
-                val params = bubbleParams ?: return@let
-                preJumpX = params.x + view.width / 2
-                preJumpY = params.y + view.height / 2
-                facehuggerActive = true
-                animateBubbleTo(cx, cy, durationMs = 250)
+        val facehuggerOn = WimApp.facehuggerSendEnabled()
+        if (facehuggerOn) {
+            val sendCenter = WimAccessibilityService.instance?.getSendButtonCenter()
+            if (sendCenter == null) {
+                Log.w(TAG, "facehugger: pref=on but getSendButtonCenter()=null — no Send node detected in active window")
+            } else {
+                val (cx, cy) = sendCenter
+                val view = bubbleView
+                val params = bubbleParams
+                if (view == null || params == null) {
+                    Log.w(TAG, "facehugger: bubbleView/Params null — cannot jump")
+                } else {
+                    preJumpX = params.x + view.width / 2
+                    preJumpY = params.y + view.height / 2
+                    facehuggerActive = true
+                    Log.i(TAG, "facehugger: jumping bubble to Send button at ($cx,$cy)")
+                    animateBubbleTo(cx, cy, durationMs = 250)
+                }
             }
+        } else {
+            Log.i(TAG, "facehugger: pref=off → bubble stays put on SEND_READY")
         }
     }
 
@@ -2346,32 +2373,44 @@ class BubbleService : Service() {
         }
 
         // L1 Local raw fast-path. Per operator 2026-06-06: when the user is on
-        // L1 + the local engine (whisper-tiny.en on-device), inject pure ASR
-        // output. No voice shortcuts, no Whisper hallucination strip, no
-        // disfluency filter, no profile corrections, no Repunctuate. The user
-        // hears their own voice back, untouched. Any cleanup belongs at L2+.
+        // L1 + the local engine (whisper-tiny.en on-device), inject the user's
+        // ASR output untouched. No voice shortcuts, no DisfluencyFilter, no
+        // profile corrections, no Repunctuate. The user hears their own voice
+        // back, raw. ONE exception (added 2026-06-06): strip Whisper system
+        // markers like "[BLANK_AUDIO", "[INAUDIBLE]" etc. — those aren't user
+        // speech, they're the engine's "I heard nothing" tokens, and injecting
+        // them as text would be nonsense.
         if (layer < 2 && !WimApp.l1CloudAsr()) {
-            Log.i(TAG, "L1 Local raw — injecting rawText untouched (no filters)")
+            val outText = DisfluencyFilter.stripBlockHallucinations(rawText, lastWhisperLowConf)
+            Log.i(TAG, "L1 Local raw — injecting rawText (markers-only filtered): \"$outText\"")
             BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
             setStageArc(1)
             BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
             setStageArc(2)
             ConsoleLog.log("Raw: \"${rawText.take(80)}${if (rawText.length > 80) "..." else ""}\"", "raw")
-            ConsoleLog.log("-> [pure raw, no filters]", "out")
+            if (outText.isBlank()) {
+                // Engine returned only system markers (no speech). Don't inject
+                // an empty string — toast and bail.
+                ConsoleLog.log("No speech detected", "warn")
+                Toast.makeText(this@BubbleService, "No speech detected", Toast.LENGTH_SHORT).show()
+                setBubbleIdle()
+                return
+            }
+            ConsoleLog.log("-> \"${outText.take(80)}${if (outText.length > 80) "..." else ""}\" [pure raw, markers stripped]", "out")
             if (WimAccessibilityService.instance == null) {
                 Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 setBubbleIdle()
                 return
             }
-            WimAccessibilityService.instance!!.injectText(rawText)
-            relayToTermux(rawText)
+            WimAccessibilityService.instance!!.injectText(outText)
+            relayToTermux(outText)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             setStageArc(3)
             val totalMs = System.currentTimeMillis() - recordingStartTime
             ConsoleLog.log("[L1 Local raw] inject | ${totalMs}ms (asr:${asrMs})", "info")
             sessionHistory?.record(
                 rawText = rawText,
-                cleanText = rawText,
+                cleanText = outText,
                 tone = tone,
                 layer = 1,
                 situation = situation,
@@ -2386,7 +2425,7 @@ class BubbleService : Service() {
                 WimTestReceiver.lastResult = org.json.JSONObject().apply {
                     put("status", "ok")
                     put("raw_text", rawText)
-                    put("clean_text", rawText)
+                    put("clean_text", outText)
                     put("tone", tone)
                     put("layer", 1)
                     put("situation", situation)
@@ -2398,7 +2437,13 @@ class BubbleService : Service() {
                     put("wer", 0.0)
                 }
             }
-            setBubbleIdle()
+            // onInjectComplete() is the post-inject gate that decides between
+            // SEND_READY (auto-send enabled + focused on a real editable in a
+            // non-WiM app → bubble turns green, facehugger jumps to the Send
+            // button) and plain Idle. Earlier I was bypassing it with a
+            // setBubbleIdle() call, which is why L1 Local raw never reached
+            // facehugger — bug fixed 2026-06-06.
+            onInjectComplete()
             return
         }
 
