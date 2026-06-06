@@ -27,6 +27,17 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         // fresh install with hundreds of sessions. Single-thread executor
         // keeps writes serialized (no DB lock contention) and off Main.
         private val syncExecutor: Executor = Executors.newSingleThreadExecutor()
+
+        // Single mutex covering every writableDatabase access in this class.
+        // `record()` runs on its caller's thread (often the BubbleService
+        // main loop or a coroutine) while `syncFromFirestore()` writes on
+        // `syncExecutor`. Without coordination Android's per-connection
+        // mutex still serializes the writes correctly, but contention can
+        // hand the second writer a SQLiteDatabaseLockedException — and the
+        // pre-existing fd-leak history in this file is a hint that the
+        // OS-level serialization isn't a guarantee we should lean on.
+        // Audit finding 2026-06-06.
+        private val dbWriteLock = Any()
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -81,10 +92,15 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 put("falcon_approved", if (falconApproved) 1 else 0)
                 put("risk_flags", riskFlags.joinToString(","))
             }
-            writableDatabase.insert(TABLE, null, values)
+            // Lock guards every write on writableDatabase in this class
+            // (record + syncFromFirestore insert + pruneIfNeeded delete).
+            // pushToFirestore is a network call — kept outside the lock so
+            // the next caller's record() doesn't block on Firebase IO.
+            synchronized(dbWriteLock) {
+                writableDatabase.insert(TABLE, null, values)
+                pruneIfNeeded()
+            }
             Log.i(TAG, "Session recorded (asr=${asrMs}ms recon=${reconMs}ms total=${totalMs}ms falcon=$falconApproved)")
-            pruneIfNeeded()
-            // Backup to Firestore if signed in
             pushToFirestore(values)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to record session: ${e.message}")
@@ -209,7 +225,9 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                         put("falcon_approved", if (doc.getBoolean("falcon_approved") != false) 1 else 0)
                         put("risk_flags", doc.getString("risk_flags") ?: "")
                     }
-                    writableDatabase.insert(TABLE, null, values)
+                    synchronized(dbWriteLock) {
+                        writableDatabase.insert(TABLE, null, values)
+                    }
                     imported++
                 }
                 Log.i(TAG, "Synced $imported sessions from Firestore")

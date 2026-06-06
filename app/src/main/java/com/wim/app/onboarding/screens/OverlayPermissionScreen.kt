@@ -110,7 +110,25 @@ fun OverlayPermissionScreen(
         primaryCta = "OPEN SETTINGS",
         secondaryCta = "NOT YET",
         onPrimary = { activity?.let { PermissionLauncher.openOverlaySettings(it) } },
-        onSecondary = onSkip
+        // Soft skip — "NOT YET" was wired to the same destination as
+        // "Granted," letting the user advance past a permission the
+        // bubble fundamentally requires. Per audit 2026-06-06: warn
+        // explicitly on skip so the consequence is visible, then let
+        // the user proceed if they really want to. Better than a hard
+        // block (sideloaded testers uninstall if they hit a wall) and
+        // better than the silent pass-through this used to be.
+        onSecondary = {
+            android.util.Log.w(
+                "WiM.Onboarding",
+                "Overlay skipped — bubble cannot draw without this permission"
+            )
+            android.widget.Toast.makeText(
+                context,
+                "Heads up: the bubble can't appear until you grant this. You can come back from Settings → WiM.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            onSkip()
+        }
     )
 }
 

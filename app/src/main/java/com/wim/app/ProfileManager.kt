@@ -294,8 +294,13 @@ class ProfileManager(private val prefs: SharedPreferences) {
 
         for ((rawIdx, raw) in rawWords.withIndex()) {
             if (raw !in cleanWords && raw.length >= 3 && !corrections.containsKey(raw)) {
-                val count = (correctionCounts[raw] ?: 0) + 1
-                correctionCounts[raw] = count
+                // Atomic increment — ConcurrentHashMap.compute runs the
+                // remapping function under the bin's per-stripe lock, so two
+                // concurrent calls (reconstruction coroutine + Firestore
+                // listener can both fire learn at once) cannot race the
+                // read-then-write that the previous `[k] ?: 0 + 1` pattern
+                // allowed. Audit finding 2026-06-06.
+                val count = correctionCounts.compute(raw) { _, old -> (old ?: 0) + 1 }!!
 
                 if (count >= 3) {
                     // Find the closest positional replacement:

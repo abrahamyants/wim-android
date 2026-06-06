@@ -20,6 +20,25 @@ object ConsoleLog {
     private const val FILE_NAME = "console.json"
     private const val MAX_ENTRIES = 200
 
+    // File writes are debounced and run on a dedicated background thread.
+    // Without this, every log() call rewrote the entire ~16 KB JSON array
+    // on the caller's thread (often Main on UI paths); hot pipeline runs
+    // fire 5-8 log() calls in <100 ms, so the file was being rewritten N
+    // times per recording for no gain. Audit finding 2026-06-06.
+    private const val PERSIST_DEBOUNCE_MS = 250L
+    private val ioHandler by lazy {
+        val ht = android.os.HandlerThread("WiM.ConsoleLog.IO").apply { start() }
+        android.os.Handler(ht.looper)
+    }
+    private val persistRunnable = Runnable {
+        val snap = synchronized(_entries) { _entries.toList() }
+        persist(snap)
+    }
+    private fun schedulePersist() {
+        ioHandler.removeCallbacks(persistRunnable)
+        ioHandler.postDelayed(persistRunnable, PERSIST_DEBOUNCE_MS)
+    }
+
     data class Entry(
         val timestamp: Long = System.currentTimeMillis(),
         val text: String,
@@ -38,15 +57,13 @@ object ConsoleLog {
 
     fun log(text: String, kind: String = "info") {
         ensureLoaded()
-        val snapshot = synchronized(_entries) {
+        synchronized(_entries) {
             _entries.add(0, Entry(text = text, kind = kind))
             if (_entries.size > MAX_ENTRIES) _entries.removeAt(_entries.size - 1)
-            _entries.toList()
         }
-        // File write outside the lock — JSONArray is small (~200 entries × ~80
-        // chars = ~16 KB) but no point holding the read-side lock while we
-        // touch the disk.
-        persist(snapshot)
+        // Schedule a debounced write — coalesces a burst of log() calls
+        // into one file write on a dedicated IO thread.
+        schedulePersist()
         val listenersSnap = synchronized(listeners) { listeners.toList() }
         listenersSnap.forEach { it() }
     }
@@ -58,7 +75,11 @@ object ConsoleLog {
 
     fun clear() {
         synchronized(_entries) { _entries.clear() }
-        persist(emptyList())
+        // Cancel any pending debounced write and write the empty array
+        // right away — clear() is user-initiated so the file should match
+        // what the user just saw on screen.
+        ioHandler.removeCallbacks(persistRunnable)
+        ioHandler.post { persist(emptyList()) }
         val listenersSnap = synchronized(listeners) { listeners.toList() }
         listenersSnap.forEach { it() }
     }
