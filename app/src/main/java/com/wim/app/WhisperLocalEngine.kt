@@ -62,6 +62,23 @@ class WhisperLocalEngine(private val context: Context) {
     private val sampleBuffer = ArrayList<Float>(SAMPLE_RATE * 30)
     private var listener: ResultListener? = null
 
+    // Main-thread marshalling for the listener callbacks. stop() and the
+    // capture-thread error path both fire from background threads (IO
+    // dispatcher for stop, the capture worker for errors) and the
+    // BubbleService listener implementation touches views inside the
+    // callbacks — without this dispatch every successful decode is a
+    // CalledFromWrongThreadException waiting on a timing window.
+    // Audit finding 2026-06-06.
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private fun dispatchFinal(text: String) {
+        val cb = listener ?: return
+        mainHandler.post { cb.onFinalResult(text) }
+    }
+    private fun dispatchError(code: Int) {
+        val cb = listener ?: return
+        mainHandler.post { cb.onError(code) }
+    }
+
     fun isReady(): Boolean = WhisperLocalModelDownloader.isInstalled(context)
 
     private fun ensureRecognizer(): OfflineRecognizer? {
@@ -153,7 +170,7 @@ class WhisperLocalEngine(private val context: Context) {
         } catch (e: Throwable) {
             Log.e(TAG, "start failed: ${e.message}", e)
             cleanupAudio()
-            listener?.onError(ERROR_INIT)
+            dispatchError(ERROR_INIT)
         }
     }
 
@@ -184,7 +201,7 @@ class WhisperLocalEngine(private val context: Context) {
 
         val rec = recognizer
         if (rec == null) {
-            listener?.onError(ERROR_INFERENCE)
+            dispatchError(ERROR_INFERENCE)
             return
         }
         val samples: FloatArray = synchronized(sampleBuffer) {
@@ -193,7 +210,7 @@ class WhisperLocalEngine(private val context: Context) {
             }
         }
         if (samples.isEmpty()) {
-            listener?.onFinalResult("")
+            dispatchFinal("")
             return
         }
         try {
@@ -208,13 +225,13 @@ class WhisperLocalEngine(private val context: Context) {
                     "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
                         "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
                 )
-                listener?.onFinalResult(text)
+                dispatchFinal(text)
             } finally {
                 stream.release()
             }
         } catch (e: Throwable) {
             Log.e(TAG, "Decode failed: ${e.message}", e)
-            listener?.onError(ERROR_INFERENCE)
+            dispatchError(ERROR_INFERENCE)
         }
     }
 

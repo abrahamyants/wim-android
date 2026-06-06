@@ -310,10 +310,23 @@ class WimApp : Application() {
             androidx.core.os.LocaleListCompat.forLanguageTags(appLanguage())
         )
 
-        // Sync profile from Firestore when signed in (pulls Lavrentiy desktop learning)
+        // Sync profile from Firestore when signed in (pulls Lavrentiy desktop learning).
+        // Firebase auth-state listener fires on sign-in, sign-out, AND every
+        // hourly token refresh — the previous version re-ran the full profile
+        // pull + full sessions import on every fire, hammering Firestore with
+        // identical reads every hour. Guard with lastSyncedUid so a token
+        // refresh on the same account is a no-op. Audit finding 2026-06-06.
         FirebaseAuth.getInstance().addAuthStateListener { auth ->
             val user = auth.currentUser
             if (user != null) {
+                if (user.uid == lastSyncedUid) {
+                    android.util.Log.d(
+                        "WiM",
+                        "Auth state changed for ${user.uid.take(6)}… (token refresh) — skip re-sync"
+                    )
+                    return@addAuthStateListener
+                }
+                lastSyncedUid = user.uid
                 profileManager.startSync(user.uid)
                 // Restore sessions from Firestore on sign-in. Reuse the
                 // process-scoped SessionHistory so we don't leak SQLite fds
@@ -326,8 +339,12 @@ class WimApp : Application() {
                     }
                 }
             } else {
+                lastSyncedUid = null
                 profileManager.stopSync()
             }
         }
     }
+
+    @Volatile
+    private var lastSyncedUid: String? = null
 }
