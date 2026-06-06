@@ -124,6 +124,96 @@ object ReconstructClient {
     }
 
     /**
+     * Silent-block bridging: given a partial utterance captured when the speaker
+     * froze mid-sentence, return up to [n] completion candidates (full sentences)
+     * the bubble can show as a tap row. Mirrors the desktop
+     * complete_partial_candidates() and the wim-reconstruct `complete_partial`
+     * action. Fast GPT-4o on both paths — the speaker is frozen, latency beats
+     * depth. Returns [] on any failure (caller treats empty as a no-op).
+     *
+     * NOTE: foundation only — not yet consumed by BubbleService. The bubble
+     * tap-row overlay + L4 wiring is the remaining piece.
+     */
+    suspend fun completePartial(
+        partialText: String,
+        tone: String = "casual",
+        languageCode: String = "en",
+        n: Int = 3
+    ): List<String> = withContext(Dispatchers.IO) {
+        val partial = partialText.trim()
+        if (partial.isBlank()) return@withContext emptyList()
+
+        val idToken = AuthManager.getIdToken()
+        if (idToken != null) {
+            return@withContext try {
+                completePartialViaBackend(partial, tone, languageCode, idToken, n)
+            } catch (e: Exception) {
+                Log.w("WiM", "completePartial backend failed: ${e.message?.take(120)}")
+                emptyList()
+            }
+        }
+
+        // Device-direct fallback (bundled/user OpenAI key).
+        val apiKey = WimApp.apiKey()
+        if (apiKey.isBlank()) return@withContext emptyList()
+        return@withContext try {
+            val sys = buildCompletionPrompt(tone, languageCode, n)
+            parseCandidates(reconstructWithGpt4o(sys, partial, apiKey, 0.5, maxTokens = 200), n)
+        } catch (e: Exception) {
+            Log.w("WiM", "completePartial direct failed: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
+    private fun completePartialViaBackend(
+        partial: String, tone: String, languageCode: String, idToken: String, n: Int
+    ): List<String> {
+        val body = JSONObject().apply {
+            put("action", "complete_partial")
+            put("partial_text", partial)
+            put("tone", tone)
+            put("language_code", LangPackHelper.normalizeLangCode(languageCode))
+        }
+        val request = Request.Builder()
+            .url(BACKEND_URL)
+            .addHeader("Authorization", "Bearer $idToken")
+            .addHeader("Content-Type", "application/json")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val responseBody = http.newCall(request).execute().use { response ->
+            val b = response.body?.string() ?: throw RuntimeException("Empty response from backend")
+            if (!response.isSuccessful) throw RuntimeException("Backend error ${response.code}: $b")
+            b
+        }
+        val arr = JSONObject(responseBody).optJSONArray("candidates") ?: JSONArray()
+        return (0 until arr.length()).map { arr.getString(it).trim() }
+            .filter { it.isNotBlank() }.take(n)
+    }
+
+    private fun buildCompletionPrompt(tone: String, languageCode: String, n: Int): String {
+        val toneRule = TONE_RULES[tone] ?: TONE_RULES["casual"]!!
+        val langLine = if (languageCode.isNotBlank() && languageCode != "en")
+            "\nThe speaker is talking in language code '$languageCode'. Write the completions in that language.\n" else ""
+        return "You help someone who just froze mid-sentence (a speech block) finish what " +
+            "they were trying to say. You are given the partial utterance they managed to get " +
+            "out before freezing. Propose exactly $n natural, distinct ways the sentence could end.\n\n" +
+            "Tone: $toneRule\n$langLine" +
+            "Hard rules:\n" +
+            "- Output exactly $n lines, one option per line.\n" +
+            "- Each line is the COMPLETE sentence from the start — include the speaker's own words " +
+            "(cleaned of fillers and disfluent repetitions) followed by a natural ending. Do NOT output only the continuation.\n" +
+            "- No numbering, no bullets, no quotes, no preamble, no commentary.\n" +
+            "- Each line is a sentence the speaker could say verbatim, under ~22 words.\n" +
+            "- Stay faithful to the partial intent; do not invent unrelated content."
+    }
+
+    private fun parseCandidates(raw: String, n: Int): List<String> =
+        raw.lines()
+            .map { it.replace(Regex("^[\\s\\-\\d.)]+"), "").trim().trim('"').trim() }
+            .filter { it.isNotBlank() }
+            .take(n)
+
+    /**
      * Call the backend proxy (production path).
      * Server handles API key, tier enforcement, rate limiting.
      */

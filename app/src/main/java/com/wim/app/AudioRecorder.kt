@@ -175,6 +175,29 @@ class AudioRecorder(private val context: Context) {
     }
 
     /**
+     * Snapshot the audio captured so far into a self-contained WAV with a fixed
+     * header, WITHOUT stopping the recording. Used by the silent-block bridging
+     * consumer to transcribe the partial utterance at the moment a mid-utterance
+     * block fires. Returns null if nothing meaningful has been recorded yet.
+     *
+     * NOTE: foundation only — not yet consumed by BubbleService.
+     */
+    fun snapshotPartialWav(): File? {
+        val src = outputFile ?: return null
+        try { outputStream?.flush() } catch (_: Exception) {}
+        return try {
+            val snap = File(context.cacheDir, "wim_partial_snapshot.wav")
+            src.copyTo(snap, overwrite = true)
+            if (snap.length() <= 44L) { snap.delete(); return null }
+            fixWavHeader(snap)
+            snap
+        } catch (e: Exception) {
+            Log.w("AudioRecorder", "snapshotPartialWav failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
      * Fully stop and release the AudioRecord. Use when BubbleService is destroyed.
      */
     fun release() {
