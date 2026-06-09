@@ -244,27 +244,40 @@ class ProfileManager(private val prefs: SharedPreferences) {
         }
     }
 
-    /** Add a trigger word — written to the profile JSON's trigger_words array. */
+    /**
+     * Add a trigger word to the profile JSON's trigger_words array.
+     *
+     * Unlike vocabulary/corrections (which have thread-safe in-memory backing
+     * collections), trigger_words lives ONLY in the prefs JSON — so add/remove
+     * is a read-modify-write on that blob and the WHOLE cycle must hold
+     * PROFILE_WRITE_LOCK. A prior version read the list via getTriggerWords()
+     * OUTSIDE the lock and only took the lock for the write: two concurrent
+     * adds (or an add racing mergeRemoteProfile) each read the same starting
+     * list, each appended, each wrote — last writer wins, silently dropping the
+     * other's trigger word. Pinned by ProfileManagerTest
+     * .concurrent_writes_loseNoData_andPreserveSyncedFields.
+     */
     fun addTriggerWord(word: String) {
         val w = word.trim()
         if (w.isEmpty()) return
-        val current = getTriggerWords().toMutableList()
-        if (w in current) return
-        current.add(w)
-        writeTriggerWords(current)
+        synchronized(PROFILE_WRITE_LOCK) {
+            val obj = prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: JSONObject()
+            val arr = obj.optJSONArray("trigger_words") ?: JSONArray()
+            val current = (0 until arr.length()).map { arr.getString(it) }
+            if (w in current) return
+            obj.put("trigger_words", JSONArray(current + w))
+            prefs.edit().putString(PREF_KEY, obj.toString()).apply()
+        }
     }
 
     fun removeTriggerWord(word: String) {
         val w = word.trim()
-        val current = getTriggerWords().toMutableList()
-        if (current.remove(w)) writeTriggerWords(current)
-    }
-
-    private fun writeTriggerWords(words: List<String>) {
         synchronized(PROFILE_WRITE_LOCK) {
-            val json = prefs.getString(PREF_KEY, null)
-            val obj = if (json != null) JSONObject(json) else JSONObject()
-            obj.put("trigger_words", org.json.JSONArray(words))
+            val obj = prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: return
+            val arr = obj.optJSONArray("trigger_words") ?: return
+            val current = (0 until arr.length()).map { arr.getString(it) }
+            if (w !in current) return
+            obj.put("trigger_words", JSONArray(current - w))
             prefs.edit().putString(PREF_KEY, obj.toString()).apply()
         }
     }

@@ -35,7 +35,7 @@ object DisfluencyFilter {
     // Step 1a: Stutter fragments with whitespace — "p- p- pop" -> "pop",
     // "s- stop" -> "stop", "be- be- become" -> "become".
     private val STUTTER_FRAGMENT = Regex(
-        """(\b\w+)-\s+(?:\1-\s+)*""",
+        """(\b\w+)-\s+(?:\1-\s+){0,40}""",
         RegexOption.IGNORE_CASE
     )
 
@@ -43,13 +43,18 @@ object DisfluencyFilter {
     // "m-m-m-meeting" -> "meeting". Requires at least one repeat so legitimate
     // hyphenated words ("pre-existing", "well-known", "re-record") don't match.
     private val STUTTER_FRAGMENT_NOSPACE = Regex(
-        """(\b\w+)-(?:\1-)+""",
+        """(\b\w+)-(?:\1-){1,40}""",
         RegexOption.IGNORE_CASE
     )
 
-    // Step 2: Consecutive word repetitions — "I I I want" -> "I want"
+    // Step 2: Consecutive word repetitions — "I I I want" -> "I want".
+    // The repeat count is capped at 40 (not unbounded +): an open backreference
+    // quantifier makes java.util.regex recurse once per repeat, so a pathological
+    // ASR repetition loop (hundreds of identical tokens, which Whisper hallucinates
+    // on silence/noise) overflows the stack. No real disfluency repeats one word
+    // 40+ times; large runs simply collapse over successive matches instead.
     private val WORD_REPEAT = Regex(
-        """\b(\w+)(?:\s+\1)+\b""",
+        """\b(\w+)(?:\s+\1){1,40}\b""",
         RegexOption.IGNORE_CASE
     )
 
@@ -73,7 +78,7 @@ object DisfluencyFilter {
     // and collapse to one. Common double letters ("success", "Mississippi") stay intact
     // because the regex demands 3+ in a row.
     private val PROLONGATION = Regex(
-        """(\w)\1{2,}""",
+        """(\w)\1{2,200}""",
         RegexOption.IGNORE_CASE
     )
 

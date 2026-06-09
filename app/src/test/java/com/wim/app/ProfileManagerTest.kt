@@ -236,4 +236,56 @@ class ProfileManagerTest {
             errors.isEmpty(),
         )
     }
+
+    // ── Concurrent-WRITE data-integrity (PROFILE_WRITE_LOCK) ────────────
+    //
+    // The test above proves concurrent reads/writes never *throw*. This one
+    // proves they never *lose data*: PROFILE_WRITE_LOCK serialises the three
+    // writers (saveProfile / writeTriggerWords / mergeRemoteProfile) so that
+    // (a) no concurrent write is dropped by a last-writer-wins RMW race, and
+    // (b) the Firestore-synced fields the in-memory model doesn't hold
+    // (onset_weights / covert_profile) survive a concurrent saveProfile. Both
+    // were the actual wipe risks behind the 2026-05-31 / 06-06 audits.
+
+    @Test fun concurrent_writes_loseNoData_andPreserveSyncedFields() {
+        // Pre-seed a "synced from desktop" field ProfileManager never holds in
+        // memory — it must survive concurrent saveProfile read-modify-writes.
+        prefs.edit().putString(
+            "profile_json",
+            org.json.JSONObject()
+                .put("onset_weights", org.json.JSONObject(mapOf("p" to 0.9, "b" to 0.8)))
+                .put("filler_words", org.json.JSONArray(ProfileManager.DEFAULT_FILLERS))
+                .toString()
+        ).commit()
+        val profile = ProfileManager(prefs)
+
+        val perThread = 40
+        val writers = (1..3).map { tid ->
+            Thread {
+                for (i in 0 until perThread) {
+                    profile.addVocabulary("v_${tid}_$i")    // saveProfile RMW under lock
+                    profile.addTriggerWord("t_${tid}_$i")   // writeTriggerWords RMW under lock
+                }
+            }
+        }
+        writers.forEach { it.start() }
+        writers.forEach { it.join(10_000L) }
+
+        val reloaded = ProfileManager(prefs)
+        // (a) No lost writes — every distinct vocab + trigger word survived.
+        assertEquals(
+            "Lost vocab writes under concurrency (last-writer-wins race)",
+            3 * perThread,
+            reloaded.getVocabulary().count { it.startsWith("v_") },
+        )
+        assertEquals(
+            "Lost trigger writes under concurrency",
+            3 * perThread,
+            reloaded.getTriggerWords().count { it.startsWith("t_") },
+        )
+        // (b) Synced field survived the concurrent saveProfile RMW (not wiped).
+        val onset = reloaded.getOnsetWeights()
+        assertEquals("Synced onset_weights wiped under concurrency", 0.9, onset["p"]!!, 1e-9)
+        assertEquals(0.8, onset["b"]!!, 1e-9)
+    }
 }
