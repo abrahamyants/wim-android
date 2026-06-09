@@ -812,21 +812,21 @@ class BubbleService : Service() {
                 return@setOnTouchListener twistController?.handleTouch(event, v) ?: false
             }
 
-            // Hit-test the touch against the ACTUAL visible bezel circle
-            // (72dp diameter base, scaled by the user's bubble-size pref).
-            // Previously this was 50% of view width (= the full 120dp bubble
-            // window radius), which added a ~24dp dead zone around the bezel
-            // where finger taps still registered as bubble taps even though
-            // the user wasn't touching anything visible. Per operator
-            // 2026-06-06: touch area must match the visible graphic, and
-            // resize when the user shrinks/grows the bubble.
+            // Hit-test the touch against the ACTUAL visible bronze surface
+            // of the bezel, not the FrameLayout bounds. bubble_bg_idle.xml
+            // layer 1 is the outer ring at 72dp container size, but layer 2
+            // (the inner bronze face) is inset 5dp on each side and sized
+            // 50dp — that's what the operator perceives as the "tappable"
+            // metal surface. Operator 2026-06-06 (second pass): even the
+            // 72dp version still registered taps in the outer rim, so drop
+            // to 50dp. Scales with bubble-size pref.
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val cx = v.width / 2f
                 val cy = v.height / 2f
                 val tx = event.x - cx
                 val ty = event.y - cy
                 val density = resources.displayMetrics.density
-                val bezelBaseDp = 72f
+                val bezelBaseDp = 50f
                 val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
                 val r = (bezelBaseDp * density * scale) / 2f
                 if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
@@ -1676,24 +1676,19 @@ class BubbleService : Service() {
         showLiveTranscript()
         Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
-        // Visual: recording state — only the INNER KNOB lights up, the bezel
-        // (the dish around the knob) stays in the user's selected theme color.
+        // Visual: recording state — the inner knob warms to a glowing ember.
+        // The "alive" motion (lean-in + a slow breathe) is driven by BubbleAffect
+        // off the Listening FSM state — NOT a blink here. No "REC" tag, no
+        // brightness-blink overlay: the bubble's own posture says it's recording.
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "REC"
-            setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
+            text = ""
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             setTextColor(0xFFFFD580.toInt())
         }
         recordingStartTime = System.currentTimeMillis()
-        val pulse = AlphaAnimation(1.0f, 0.6f).apply {
-            duration = 600
-            repeatMode = Animation.REVERSE
-            repeatCount = Animation.INFINITE
-        }
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.startAnimation(pulse)
 
         // ASR routing for this session:
         //   L4 always cloud whisper-1 (clinical needs verbose_json segments).
@@ -1946,9 +1941,13 @@ class BubbleService : Service() {
         // whole take before Whisper ONLY if it was whisper-soft. Amber confirms
         // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -38 dBFS ~=
         // whisper; the measured level is logged so the threshold can be tuned.
-        if (!WimApp.prefs.getBoolean("quiet_mode", false) && wavFile != null) {
+        if (wavFile != null) {
             val takeDbfs = audioRecorder?.lastTakeDbfs() ?: -120.0
-            if (takeDbfs in -110.0..-38.0) {
+            // Always log so the operator can see the level whether or not
+            // auto-quiet triggers. Lets us tune the upper bound by sampling
+            // whispered vs. normal-voice takes side by side.
+            Log.i(TAG, "Take level: ${"%.1f".format(takeDbfs)} dBFS (auto-quiet range -110.0..-38.0)")
+            if (!WimApp.prefs.getBoolean("quiet_mode", false) && takeDbfs in -110.0..-38.0) {
                 Log.i(TAG, "Auto Quiet Mode engaged (${"%.0f".format(takeDbfs)} dBFS) — whisper-soft take")
                 audioRecorder?.boostWavQuiet(wavFile)
                 pendingQuietAutoFlash = true

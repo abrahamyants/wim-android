@@ -43,6 +43,7 @@ class BubbleAffect(
     private val mainHandler = Handler(Looper.getMainLooper())
     private var restingAnim: ValueAnimator? = null
     private var leaningAnim: ValueAnimator? = null
+    private var leanBreatheAnim: ValueAnimator? = null
     private var tadaAnim: ValueAnimator? = null
     private var headTiltAnim: ValueAnimator? = null
     private var swayAnim: ValueAnimator? = null
@@ -132,23 +133,50 @@ class BubbleAffect(
         val inner = view.findViewById<FrameLayout>(R.id.bubbleInner) ?: return
         val density = view.resources.displayMetrics.density
         val targetTransY = -3f * density
+        val leanScale = 1.04f
         val anim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 180
             interpolator = OvershootInterpolator(1.6f)
             addUpdateListener { v ->
                 val t = v.animatedValue as Float
                 bezel.translationY = targetTransY * t
-                inner.scaleX = 1.0f + 0.04f * t
-                inner.scaleY = 1.0f + 0.04f * t
+                inner.scaleX = 1.0f + (leanScale - 1.0f) * t
+                inner.scaleY = 1.0f + (leanScale - 1.0f) * t
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    // Hold the leaning pose for the duration of recording.
-                    // Reset on next state transition (handled in onState).
+                    // Recording isn't a static pose — once leaned in, the knob
+                    // breathes (slow swell/relax) for as long as we're Listening,
+                    // so the bubble reads as alive, not a blinking sticker.
+                    // Cancelled + reset on the next state transition.
+                    startLeanBreathe(inner, leanScale)
                 }
             })
         }
         leaningAnim = anim
+        anim.start()
+    }
+
+    /**
+     * Sustained recording presence: after the lean-in settles, the inner knob
+     * breathes — a slow scale swell and relax — until the next FSM transition
+     * cancels it. Replaces the old alpha "blink" overlay with organic motion.
+     */
+    private fun startLeanBreathe(inner: FrameLayout, leanBase: Float) {
+        leanBreatheAnim?.cancel()
+        val anim = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 2200
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = AccelerateDecelerateInterpolator()
+            addUpdateListener { v ->
+                val t = v.animatedValue as Float
+                val s = leanBase + 0.05f * t   // 1.04 → ~1.09 → 1.04, a calm breath
+                inner.scaleX = s
+                inner.scaleY = s
+            }
+        }
+        leanBreatheAnim = anim
         anim.start()
     }
 
@@ -327,6 +355,7 @@ class BubbleAffect(
     private fun cancelMotion(applyRestingFallback: Boolean) {
         restingAnim?.cancel(); restingAnim = null
         leaningAnim?.cancel(); leaningAnim = null
+        leanBreatheAnim?.cancel(); leanBreatheAnim = null
         tadaAnim?.cancel(); tadaAnim = null
         headTiltAnim?.cancel(); headTiltAnim = null
         swayAnim?.cancel(); swayAnim = null
