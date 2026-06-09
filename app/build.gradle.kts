@@ -18,6 +18,8 @@ android {
         versionCode = 4
         versionName = "1.0.0"
 
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         // Strip out unneeded library locales (Play Services injects ~80 locales).
         // WiM ships English plus the 4 native UI locales added Session 17.
         resourceConfigurations += listOf("en", "es", "ru", "pt", "fr")
@@ -158,6 +160,12 @@ dependencies {
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("androidx.test.ext:junit:1.2.1")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
+    // Instrumented (on-device) tests — first androidTest source set (2026-06-09).
+    // Runs ProfileManager against REAL SharedPreferences on a device, where the
+    // Robolectric shadow can't reproduce apply()/disk-marshal threading.
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }
 
 // assembleRelease auto-wires uploadCrashlyticsSymbolFileRelease, but bundleRelease
