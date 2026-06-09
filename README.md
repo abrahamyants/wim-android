@@ -3609,3 +3609,29 @@ Pure WiM-android session — `BubbleService` + `BubbleAffect` + one drawable. No
 - **Reported the first build as "exit 0 / success"** off a `./gradlew.bat … | tail` pipeline whose exit code was tail's, not gradle's — the build had actually failed on JAVA_HOME. Re-ran un-piped to get the real result.
 
 
+### Session Log — 2026-06-09 — L1–L4 parity remediation: trigger-word write-race fix, disfluency regex hardening, adversarial/fuzz/perf suite
+
+Pure WiM-android session (plus one Lavrentiy one-liner logged in `lavrentiy/README.md`). Came out of a Lav↔WiM L1–L4 parity audit that produced a 5-point plan; this session executed the WiM-side items. No Cloud Function touched.
+
+**The verify-before-acting chain (the point of the session).** The audit memo + memory `project_wim_android_no_profile_epoch` said WiM had a *live* profile write-race and was badly under-tested. Reading the actual code corrected that twice:
+1. The three-writer race the 06-06 `PROFILE_WRITE_LOCK` was built for is genuinely closed — `saveProfile`, `writeTriggerWords`, `mergeRemoteProfile` all serialise, and `saveProfile` already read-modify-writes to preserve the Firestore-synced fields. The "live race" framing was stale.
+2. A concurrency test already existed (`concurrent_readsAndWrites_neverThrow`) — but it only proves *no crash* (no `ConcurrentModificationException`), not *no data loss*. That was the real gap.
+
+So #1 collapsed from "port Lav's epoch guard" (which WiM doesn't need — no whole-profile switch) to "add the data-integrity assertion." Writing that assertion **exposed a real lost-update race the write-lock did NOT cover**: `addTriggerWord` / `removeTriggerWord` read `trigger_words` via `getTriggerWords()` *outside* `PROFILE_WRITE_LOCK` and only took the lock for the write — so two concurrent adds each read the same list and the last writer clobbered the other (silent trigger-word loss). Unlike vocabulary/corrections (thread-safe in-memory backing collections), `trigger_words` lives only in the prefs JSON, so its whole RMW must hold the lock. Fixed: the read now runs inside the lock.
+
+**What changed.**
+- `ProfileManager.addTriggerWord` / `removeTriggerWord`: full read-modify-write under `PROFILE_WRITE_LOCK`; deleted the now-unused `writeTriggerWords`.
+- `DisfluencyFilter`: the word-repeat and prolongation patterns used unbounded backreference quantifiers (`(?:\s+\1)+`, `\1{2,}`) that overflow `java.util.regex`'s recursive matcher on pathological ASR repetition (which Whisper hallucinates on silence/noise). Capped at `{1,40}` / `{2,200}` — behaviour-identical for real speech, no overflow on a few-thousand-token hallucination. Surfaced by the new fuzz test.
+- New tests: `ProfileManagerTest.concurrent_writes_loseNoData_andPreserveSyncedFields`, `PipelineAdversarialTest` (hostile input + seeded fuzz across DisfluencyFilter / Repunctuate / RateGapDetector / PhoneticRisk — the last had zero tests), `PipelinePerfTest`. Mirrors Лаврентий's `test_adversarial` / `test_fuzz` / `test_perf`.
+
+**Build.** Full unit suite **451/451 green**. Committed `18bbe38`.
+
+**Still open from the 5-point plan.**
+- **#4 — Auto Quiet cutoff** is measurement-blocked, not code-blocked. The per-take dBFS log at `BubbleService.kt:1949` already fires unconditionally (whisper + normal takes), so the instrument is in place; the `-38` upper bound needs one on-device sampling pass (whisper ~4 takes + speak ~4, read the levels off logcat, set the cutoff just above the whisper band). Not guessed — guessing it upward risks boosting normal-but-quiet speech into clipping.
+- **#2 — Instrumented (androidTest) E2E** still TODO. WiM has zero `androidTest`; from-scratch scaffold + device run.
+
+### Failure Log — 2026-06-09
+- **Declared "WiM's profile race is already fixed" before a test proved otherwise.** Trusted a memory + the `PROFILE_WRITE_LOCK` comment and almost moved on; the data-integrity test then caught that `addTriggerWord`'s read was still outside the lock. **Lesson: a lock on the WRITE half of a read-modify-write proves nothing; assert the actual invariant (no lost data), not just "no exception." "Already fixed" without a test that fails on the bug is a guess.**
+- **First adversarial/perf run conflated two problems at one symptom (slow/crash on huge input).** One real and fixed (regex overflow on repetition — a plausible ASR-hallucination input); one a non-issue (`FALSE_START` is O(n²) on punctuation-free text, but only at ~10k distinct words, a size WiM's tap-to-send takes never reach). Right-sized the perf test to a realistic long take instead of contorting a regex for an impossible input. **Lesson: separate "pathological but plausible" (fix the code) from "pathological and impossible" (fix the test).**
+
+
