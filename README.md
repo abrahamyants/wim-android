@@ -3565,7 +3565,7 @@ Not addressed in this session — explicit follow-up list for the next round:
 
 ---
 
-### 2026-06-08 — bubble recording-state redesign, pass 1 of N: "body language, not a status sticker"
+### Session Log — 2026-06-08 — bubble recording-state redesign, pass 1 of N: "body language, not a status sticker"
 
 Pure WiM-android session — `BubbleService` + `BubbleAffect` + one drawable. No LAV, no Cloud Function touched. UNCOMMITTED and unapproved at session end (see Status). First pass of a multi-state effort to make the bubble's visual feedback come from the bubble's own motion, not text labels + opacity-blinks painted over it.
 
@@ -3592,13 +3592,6 @@ Pure WiM-android session — `BubbleService` + `BubbleAffect` + one drawable. No
 2. **Operator verdict on the two tunables** (both one-line changes): amber ember vs revert-to-red (revert = restore the old red gradient in `bubble_inner_active.xml`); breath depth (currently +0.05 scale / 2200ms — too subtle / too much / right). Also confirm the lean+breathe motion actually reads on-device.
 3. **Then roll "body language, not sticker" to the rest of the operator's list:** Processing (THINKING_SWAY already exists; also reconsider the green re-skin in `bubble_inner_processing.xml` — same smell record-red had); Send-ready (lean toward the Send button / facehugger — NOTE `onState` currently does `SendReady → cancelMotion`, flat; needs a new lean-to-send affect); Clarify/regenerate (HEAD_TILT already exists); Live transcription (today a separate strip via `showLiveTranscript()`; operator wants the caption to "grow OUT of the bubble like a speech bubble").
 
-#### Wrong calls / corrections this session
-- **Saved the session log as a separate `SESSION_LOG_2026-06-08.md` file** when the operator's standing convention is to append it to the bottom of THIS README as a continuation. Operator: "I told you to save it as a continuation of the Redmi file… use the same language and continue with the Redmi file as we have always got." Deleted the stray file, moved the content here in the established voice. The prior WiM log `SESSION_LOG_2026-06-06.md` as a standalone file was the wrong precedent to follow — README-append is the convention.
-- **The "what's the point of this" answer read like I was trashing the whole redesign.** I meant the stray `→ CAS` chip only; the operator heard "the redesign has no point" → "are you saying there's no point now you fucking idiot." Lesson: when answering "what's the point of X" with "none," name X explicitly in the same breath so it can't be read as the parent effort.
-- **Didn't anticipate that emptying the "REC" label would expose the `→ CAS` prediction leak.** The `bubbleTime` idle-prediction chip was always bleeding into recording; "REC" was covering it. Should have audited everything else the knob renders before removing the label.
-- **First `bubble_inner_active.xml` rewrite used raw hex** → `wim-brand-guard` blocked (Rule 2: hex not in `brand.local.md`). Correct behavior; fixed by referencing approved `@color/` tokens. Never invent hex; extend `colors.xml` + `brand.local.md` if a new tone is genuinely needed.
-- **Reported the first build as "exit 0 / success"** off a `./gradlew.bat … | tail` pipeline whose exit code was tail's, not gradle's — the build had actually failed on JAVA_HOME. Re-ran un-piped to get the real result.
-
 #### Key file:line references for next session
 - Recording visual (post-change): `BubbleService.startListening` at `BubbleService.kt:1679` (ember bg swap + empty label; blink removed)
 - Lean→breathe: `BubbleAffect.applyLeaningForward` + new `BubbleAffect.startLeanBreathe`; field `leanBreatheAnim`; cancel in `BubbleAffect.cancelMotion`
@@ -3606,5 +3599,13 @@ Pure WiM-android session — `BubbleService` + `BubbleAffect` + one drawable. No
 - `→ CAS` leak source: `setBubbleIdle` `bubbleTime` prediction at `BubbleService.kt:2144`
 - Record color: `res/drawable/bubble_inner_active.xml` (amber ember, `@color/` tokens) — idle knob is `bubble_inner_knob.xml` (bronze), processing is `bubble_inner_processing.xml` (green)
 - Parked — FSM "sometimes it doesn't record": `startListening` bails if `BubbleStateBus.advance(Listening)` is rejected (`:1644-1654`); harden the reset path so the FSM can't get stuck rejecting. Investigation only, no change made.
+
+### Failure Log — 2026-06-08
+- **Saved the session log as a separate `SESSION_LOG_2026-06-08.md` file** when the operator's standing convention is to append it to the bottom of THIS README as a continuation. Operator: "I told you to save it as a continuation of the Redmi file… use the same language and continue with the Redmi file as we have always got." Deleted the stray file, moved the content here in the established voice. The prior WiM log `SESSION_LOG_2026-06-06.md` as a standalone file was the wrong precedent to follow — README-append is the convention.
+- **The "what's the point of this" answer read like I was trashing the whole redesign.** I meant the stray `→ CAS` chip only; the operator heard "the redesign has no point" → "are you saying there's no point now you fucking idiot." Lesson: when answering "what's the point of X" with "none," name X explicitly in the same breath so it can't be read as the parent effort.
+- **Mislabeled this section as "Wrong calls / corrections" and treated Session Log and Failure Log as interchangeable.** Operator: "failure log is wrong calls — No. The failure log must be the failure log, and the session log must be the session log. Nothing should be that it isn't." Fixed: the work narrative above is the **Session Log**; this is the **Failure Log** — each labeled as exactly what it is, neither renamed into the other.
+- **Didn't anticipate that emptying the "REC" label would expose the `→ CAS` prediction leak.** The `bubbleTime` idle-prediction chip was always bleeding into recording; "REC" was covering it. Should have audited everything else the knob renders before removing the label.
+- **First `bubble_inner_active.xml` rewrite used raw hex** → `wim-brand-guard` blocked (Rule 2: hex not in `brand.local.md`). Correct behavior; fixed by referencing approved `@color/` tokens. Never invent hex; extend `colors.xml` + `brand.local.md` if a new tone is genuinely needed.
+- **Reported the first build as "exit 0 / success"** off a `./gradlew.bat … | tail` pipeline whose exit code was tail's, not gradle's — the build had actually failed on JAVA_HOME. Re-ran un-piped to get the real result.
 
 
