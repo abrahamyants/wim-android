@@ -3563,4 +3563,48 @@ Not addressed in this session — explicit follow-up list for the next round:
 - Boot recovery notification: `BootReceiver.kt:83-114`, `BubbleRestartJobService.kt:35-66`
 - WhisperLocalEngine main-thread marshal: `WhisperLocalEngine.kt:65-78` (dispatchFinal/dispatchError helpers)
 
+---
+
+### 2026-06-08 — bubble recording-state redesign, pass 1 of N: "body language, not a status sticker"
+
+Pure WiM-android session — `BubbleService` + `BubbleAffect` + one drawable. No LAV, no Cloud Function touched. UNCOMMITTED and unapproved at session end (see Status). First pass of a multi-state effort to make the bubble's visual feedback come from the bubble's own motion, not text labels + opacity-blinks painted over it.
+
+**Why (operator critique).** On recording, the inner knob "becomes a pulsating red color, it feels like an overlay… it doesn't feel like the bubble itself is doing anything." The radiating rings he LIKES (they actually move). What felt fake: the knob flipped to a flat red face, stamped a "REC" label, and blinked its whole opacity up and down forever (`AlphaAnimation` 1.0↔0.6, infinite reverse) — the camera-red-dot trick. Reads as a sticker over the bubble, not the bubble coming alive.
+
+**Architecture finding (verified).** The knob (`R.id.bubbleInner`) is a passive view. Its look is driven by two systems: (1) the hand-rolled record visual in `BubbleService.startListening` (drawable swap + AlphaAnimation blink + "REC" text); (2) `BubbleAffect` — a persona/"body language" catalog (`BubbleAffect.kt:66-92`, `onState`) that observes the `BubbleStateBus` FSM and animates organic motion: RESTING (idle breathe), LEANING_FORWARD (fires on `Listening`), THINKING_SWAY (Reconstructing>1.5s), HEAD_TILT (Clarifying), TA_DA (Injected), COMMISERATE (Failed). `BubbleAffect.bind(scope)` confirmed live at `BubbleService.kt:627`. So the bubble ALREADY leans in when you record — the red blink was just painted on top of that lean. Recording was the lone state still on the old blink-and-label; every other state already speaks body language. Decision: recording catches up.
+
+**What changed (3 files).**
+- `BubbleService.startListening` (`:1679`): deleted the `AlphaAnimation` opacity-blink entirely; `bubbleLabel` text → `""` (no "REC"); kept the `bubble_inner_active` background swap + the `bubbleTime` cream-gold color line. Motion is now delegated to BubbleAffect off the `Listening` state — nothing visual-motion hand-rolled here.
+- `BubbleAffect.kt`: new field `leanBreatheAnim`; `applyLeaningForward` factors the lean to `leanScale=1.04f` and, on the lean-in's `onAnimationEnd`, hands off to a new `startLeanBreathe(inner, leanScale)` instead of freezing the pose; `startLeanBreathe` is an INFINITE REVERSE `ValueAnimator` (2200ms, AccelerateDecelerate) scaling `bubbleInner` 1.04→~1.09→1.04 — a slow calm breath for the whole `Listening` window; `cancelMotion` now cancels `leanBreatheAnim` (breath stops + knob resets on the next FSM transition).
+- `res/drawable/bubble_inner_active.xml`: flat red (#FFB04040…) → warm amber EMBER (the bronze idle knob "heated up", not re-skinned to a different-colored disk). Radial `@color/yellow_gold` → `@color/orange_amber` → `@color/copper_gold` on an `@color/orange_label` base. All approved tokens.
+
+**Build / install gotchas (for next model).**
+- `JAVA_HOME` is NOT set in the shell — `gradlew` dies with "JAVA_HOME is not set". Working JDK: `C:\Program Files\Android\Android Studio\jbr`. Run `export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"` before `./gradlew.bat assembleDebug`.
+- Do NOT pipe gradlew through `| tail` — the pipeline returns tail's exit 0 and masks a real build failure (did this first, reported a false success).
+- `adb` not on PATH — use `C:\Users\georg\AppData\Local\Android\Sdk\platform-tools\adb.exe`. Device `192.168.1.234:5555` (Fold). BUILD SUCCESSFUL 1m7s, installed OK.
+
+**On-device result + the bug to fix first.** Operator tested on the Fold: the knob goes amber and covers the knob area, BUT shows "a little arrow and says CAS inside," and the arrow+text are nearly the same color as the amber — looks pointless. Diagnosis (high confidence): that `→ CAS` is the idle tone-prediction chip — `setBubbleIdle` (`:2144`) sets `bubbleTime` to `"→ ${pred.tone.take(3).uppercase()}"` (CASual → CAS) when predictions are enabled; `startListening` empties `bubbleLabel` but never resets/hides `bubbleTime`, so the stale idle prediction persists INTO recording, recolored cream-gold (`#FFFFD580`, low-contrast on the amber). Removing "REC" simply uncovered the pre-existing leak. Must not show during recording.
+
+**Status: NOT committed, NOT approved.** The recording redesign awaits the operator's feel-check (amber vs red, breath depth, and whether the lean+breathe motion even reads — his report was about the CAS text, not the motion). Dirty files: `BubbleService.kt`, `BubbleAffect.kt`, `res/drawable/bubble_inner_active.xml`. APK on the Fold reflects them. Do NOT commit until the operator signs off; confirm before any commit/push (parallel sessions interleave this repo).
+
+#### Still open — next session (priority order)
+1. **Kill the `→ CAS` leak during recording.** In `startListening`, hide `bubbleTime` (`visibility = View.GONE`) OR repurpose it as a high-contrast elapsed-record timer. First check whether any ticker already updates `bubbleTime` from `recordingStartTime` during recording (it's set; unclear anything reads it). Operator's call: blank knob during record, or a live timer.
+2. **Operator verdict on the two tunables** (both one-line changes): amber ember vs revert-to-red (revert = restore the old red gradient in `bubble_inner_active.xml`); breath depth (currently +0.05 scale / 2200ms — too subtle / too much / right). Also confirm the lean+breathe motion actually reads on-device.
+3. **Then roll "body language, not sticker" to the rest of the operator's list:** Processing (THINKING_SWAY already exists; also reconsider the green re-skin in `bubble_inner_processing.xml` — same smell record-red had); Send-ready (lean toward the Send button / facehugger — NOTE `onState` currently does `SendReady → cancelMotion`, flat; needs a new lean-to-send affect); Clarify/regenerate (HEAD_TILT already exists); Live transcription (today a separate strip via `showLiveTranscript()`; operator wants the caption to "grow OUT of the bubble like a speech bubble").
+
+#### Wrong calls / corrections this session
+- **Saved the session log as a separate `SESSION_LOG_2026-06-08.md` file** when the operator's standing convention is to append it to the bottom of THIS README as a continuation. Operator: "I told you to save it as a continuation of the Redmi file… use the same language and continue with the Redmi file as we have always got." Deleted the stray file, moved the content here in the established voice. The prior WiM log `SESSION_LOG_2026-06-06.md` as a standalone file was the wrong precedent to follow — README-append is the convention.
+- **The "what's the point of this" answer read like I was trashing the whole redesign.** I meant the stray `→ CAS` chip only; the operator heard "the redesign has no point" → "are you saying there's no point now you fucking idiot." Lesson: when answering "what's the point of X" with "none," name X explicitly in the same breath so it can't be read as the parent effort.
+- **Didn't anticipate that emptying the "REC" label would expose the `→ CAS` prediction leak.** The `bubbleTime` idle-prediction chip was always bleeding into recording; "REC" was covering it. Should have audited everything else the knob renders before removing the label.
+- **First `bubble_inner_active.xml` rewrite used raw hex** → `wim-brand-guard` blocked (Rule 2: hex not in `brand.local.md`). Correct behavior; fixed by referencing approved `@color/` tokens. Never invent hex; extend `colors.xml` + `brand.local.md` if a new tone is genuinely needed.
+- **Reported the first build as "exit 0 / success"** off a `./gradlew.bat … | tail` pipeline whose exit code was tail's, not gradle's — the build had actually failed on JAVA_HOME. Re-ran un-piped to get the real result.
+
+#### Key file:line references for next session
+- Recording visual (post-change): `BubbleService.startListening` at `BubbleService.kt:1679` (ember bg swap + empty label; blink removed)
+- Lean→breathe: `BubbleAffect.applyLeaningForward` + new `BubbleAffect.startLeanBreathe`; field `leanBreatheAnim`; cancel in `BubbleAffect.cancelMotion`
+- Affect→FSM mapping: `BubbleAffect.kt:66-92` (`onState`); affect bound at `BubbleService.kt:627`
+- `→ CAS` leak source: `setBubbleIdle` `bubbleTime` prediction at `BubbleService.kt:2144`
+- Record color: `res/drawable/bubble_inner_active.xml` (amber ember, `@color/` tokens) — idle knob is `bubble_inner_knob.xml` (bronze), processing is `bubble_inner_processing.xml` (green)
+- Parked — FSM "sometimes it doesn't record": `startListening` bails if `BubbleStateBus.advance(Listening)` is rejected (`:1644-1654`); harden the reset path so the FSM can't get stuck rejecting. Investigation only, no change made.
+
 
