@@ -1686,6 +1686,9 @@ class BubbleService : Service() {
             text = ""
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            // The idle prediction chip ("→ CAS") otherwise persists into recording —
+            // setBubbleIdle writes it and nothing cleared it here.
+            text = ""
             setTextColor(0xFFFFD580.toInt())
         }
         recordingStartTime = System.currentTimeMillis()
