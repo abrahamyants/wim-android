@@ -75,19 +75,29 @@ class WimAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        // Auto-return-to-bouncer when the user toggles WiM accessibility on
+        // Auto-return-to-onboarding when the user toggles WiM accessibility on
         // mid-onboarding. Without this, the user has to back-back-back out
         // of Android Settings manually — kills the first-impression UX on
-        // sideloaded distribution. Bouncer's onResume → refreshPermissions
-        // picks up the new state and auto-advances the page when all
-        // permissions are granted.
+        // sideloaded distribution. The host's RESUME-driven permission check
+        // picks up the new state and advances (Bouncer: refreshPermissions;
+        // Compose flow: permissionGrantState).
         //
         // DO NOT REVERT — first-impression UX requirement for sideloaded
         // distribution. See CLAUDE.md "DO" + BouncerActivity.pollForOverlayGrant
         // for the parallel overlay-permission auto-return.
+        //
+        // Host-aware (2026-06-10): snaps back to whichever onboarding host is
+        // active. OnboardingActivity (Compose) writes onboarding_host="compose"
+        // in onCreate, BouncerActivity writes "bouncer"; default = bouncer,
+        // the live first-run route.
         if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
             try {
-                val back = Intent(this, BouncerActivity::class.java).apply {
+                val host =
+                    if (WimApp.prefs.getString("onboarding_host", "bouncer") == "compose")
+                        com.wim.app.onboarding.OnboardingActivity::class.java
+                    else
+                        BouncerActivity::class.java
+                val back = Intent(this, host).apply {
                     addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK
                             or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT

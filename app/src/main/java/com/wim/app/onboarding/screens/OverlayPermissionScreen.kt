@@ -41,6 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import android.content.res.Configuration
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
 import com.wim.app.R
 import com.wim.app.onboarding.MrDnaBubble
 import com.wim.app.onboarding.MrDnaMood
@@ -132,6 +136,23 @@ fun OverlayPermissionScreen(
     )
 }
 
+/** Forces the approved night palette to resolve regardless of the device light/dark
+ *  setting, so every onboarding surface stays Calm-dark. */
+@Composable
+internal fun CalmDark(content: @Composable () -> Unit) {
+    val baseCtx = LocalContext.current
+    val nightCtx = remember(baseCtx) {
+        val cfg = Configuration(baseCtx.resources.configuration)
+        cfg.uiMode = (cfg.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            Configuration.UI_MODE_NIGHT_YES
+        baseCtx.createConfigurationContext(cfg)
+    }
+    CompositionLocalProvider(
+        LocalContext provides nightCtx,
+        LocalConfiguration provides nightCtx.resources.configuration
+    ) { content() }
+}
+
 @Composable
 internal fun PermissionCard(
     heading: String,
@@ -140,62 +161,76 @@ internal fun PermissionCard(
     primaryCta: String,
     secondaryCta: String,
     onPrimary: () -> Unit,
-    onSecondary: () -> Unit
-) {
+    onSecondary: () -> Unit,
+    caveat: String? = null,
+    showBadge: Boolean = true
+) = CalmDark {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colorResource(R.color.bg_base))
+            .background(
+                Brush.verticalGradient(
+                    0f to colorResource(R.color.brand_dark_top),
+                    0.45f to colorResource(R.color.bg_base),
+                    1f to colorResource(R.color.bg_sunken)
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .padding(horizontal = 32.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.weight(0.5f))
+
             MrDnaBubble(
-                mood = if (granted) MrDnaMood.Satisfied else MrDnaMood.Excited,
-                size = 96.dp
+                mood = MrDnaMood.Idle,
+                size = 108.dp,
+                label = if (granted) "✓" else "WiM"
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(30.dp))
 
             Text(
                 text = heading,
                 fontFamily = LimelightFamily,
-                fontSize = 28.sp,
+                fontSize = 30.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 360.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colorResource(R.color.bg_surface))
-                    .border(
-                        1.dp,
-                        colorResource(R.color.border_accent).copy(alpha = 0.35f),
-                        RoundedCornerShape(12.dp)
-                    )
-                    .padding(20.dp)
-            ) {
+            Text(
+                text = body,
+                fontFamily = PlusJakartaFamily,
+                fontSize = 15.sp,
+                lineHeight = 24.sp,
+                color = colorResource(R.color.text_secondary),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 320.dp)
+            )
+
+            if (caveat != null) {
+                Spacer(Modifier.height(12.dp))
                 Text(
-                    text = body,
+                    text = caveat,
                     fontFamily = PlusJakartaFamily,
-                    fontSize = 14.sp,
-                    lineHeight = 22.sp,
-                    color = colorResource(R.color.text_primary)
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    color = colorResource(R.color.text_dim),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.widthIn(max = 320.dp)
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(22.dp))
 
-            StatusBadge(granted = granted)
+            if (showBadge) {
+                StatusBadge(granted = granted)
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -204,14 +239,14 @@ internal fun PermissionCard(
                 enabled = !granted,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 360.dp)
+                    .widthIn(max = 320.dp)
                     .height(56.dp),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(R.color.copper_gold),
-                    contentColor = colorResource(R.color.bg_base),
+                    contentColor = colorResource(R.color.bg_sunken),
                     disabledContainerColor = colorResource(R.color.green_active),
-                    disabledContentColor = colorResource(R.color.bg_base)
+                    disabledContentColor = colorResource(R.color.bg_sunken)
                 )
             ) {
                 Text(
@@ -223,7 +258,7 @@ internal fun PermissionCard(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
 
             TextButton(onClick = onSecondary, enabled = !granted) {
                 Text(
@@ -232,30 +267,32 @@ internal fun PermissionCard(
                     fontWeight = FontWeight.Medium,
                     fontSize = 12.sp,
                     letterSpacing = 1.5.sp,
-                    color = colorResource(R.color.copper_gold)
+                    color = colorResource(R.color.text_dim)
                 )
             }
+
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
 
 @Composable
 private fun StatusBadge(granted: Boolean) {
-    val container = if (granted) colorResource(R.color.green_active) else colorResource(R.color.chip_value)
+    val tint = if (granted) colorResource(R.color.green_active) else colorResource(R.color.copper_gold)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(container.copy(alpha = 0.15f))
-            .border(1.dp, container, RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.12f))
+            .border(1.dp, tint.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(7.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(container)
+                .background(tint)
         )
         Spacer(Modifier.size(10.dp))
         Text(
@@ -264,7 +301,7 @@ private fun StatusBadge(granted: Boolean) {
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
             letterSpacing = 1.4.sp,
-            color = container
+            color = tint
         )
     }
 }

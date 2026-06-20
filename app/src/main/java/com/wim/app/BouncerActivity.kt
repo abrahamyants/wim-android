@@ -45,6 +45,11 @@ class BouncerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bouncer)
 
+        // Mark this as the active onboarding host for the accessibility
+        // snap-back (WimAccessibilityService.onServiceConnected). The Compose
+        // OnboardingActivity writes "compose"; last-opened host wins.
+        WimApp.prefs.edit().putString("onboarding_host", "bouncer").apply()
+
         // Limelight font for WiM logo
         limelight = Typeface.createFromAsset(assets, "limelight.ttf")
         findViewById<TextView>(R.id.bouncerLogo).typeface = limelight

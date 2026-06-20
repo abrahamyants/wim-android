@@ -119,6 +119,18 @@ object PermissionLauncher {
         }
     }
 
+    /** App-details page — fallback when a runtime-permission dialog is exhausted
+     *  ("don't ask again") and the toggle only lives in Settings. */
+    fun openAppDetails(activity: Activity) {
+        runCatching {
+            activity.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${activity.packageName}")
+                }
+            )
+        }
+    }
+
     fun requestNotifications(activity: Activity) {
         if (Build.VERSION.SDK_INT >= 33) {
             ActivityCompat.requestPermissions(

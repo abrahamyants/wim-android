@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.wim.app.BubbleService
 import com.wim.app.MainActivity
 import com.wim.app.WimApp
 
@@ -24,6 +25,10 @@ class OnboardingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Tell the accessibility snap-back which onboarding host is active —
+        // WimAccessibilityService.onServiceConnected returns the user here
+        // (not BouncerActivity) while the Compose flow is running.
+        WimApp.prefs.edit().putString("onboarding_host", "compose").apply()
         setContent {
             com.wim.app.onboarding.theme.WimTheme {
                 OnboardingNavHost(
@@ -33,8 +38,17 @@ class OnboardingActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Hide the live floating bubble while onboarding is on screen so it doesn't draw
+        // over the flow. Starting our own (non-exported) service from in-app is allowed;
+        // only external uids are blocked. Restored on completion (below).
+        startService(Intent(this, BubbleService::class.java).apply { action = "HIDE" })
+    }
+
     private fun handleComplete() {
         WimApp.prefs.edit().putBoolean("onboarding_complete", true).apply()
+        startService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
