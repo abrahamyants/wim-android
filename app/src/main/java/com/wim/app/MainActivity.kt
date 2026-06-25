@@ -91,9 +91,12 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Route to bouncer if first run
+        // Route to onboarding if first run. The Compose OnboardingActivity is now
+        // the canonical first-run flow (was BouncerActivity) — George 2026-06-25.
+        // handleComplete() sets onboarding_complete, starts the bubble, and returns
+        // here. BouncerActivity is kept for now as a fallback, not deleted yet.
         if (!WimApp.prefs.getBoolean("onboarding_complete", false)) {
-            startActivity(Intent(this, BouncerActivity::class.java))
+            startActivity(Intent(this, com.wim.app.onboarding.OnboardingActivity::class.java))
             finish()
             return
         }

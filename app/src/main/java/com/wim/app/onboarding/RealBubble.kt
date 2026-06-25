@@ -18,8 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
+import androidx.annotation.DrawableRes
+import androidx.core.content.ContextCompat
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -67,7 +74,7 @@ fun RealBubble(
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(R.drawable.bubble_bezel_gunmetal),
+            painter = rememberLayerDrawablePainter(R.drawable.bubble_bezel_gunmetal),
             contentDescription = null,
             modifier = Modifier.fillMaxSize()
         )
@@ -81,13 +88,13 @@ fun RealBubble(
         }
 
         Image(
-            painter = painterResource(R.drawable.bubble_knob_gunmetal),
+            painter = rememberLayerDrawablePainter(R.drawable.bubble_knob_gunmetal),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(knobFraction)
         )
 
         Image(
-            painter = painterResource(R.drawable.knob_tick),
+            painter = rememberLayerDrawablePainter(R.drawable.knob_tick),
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -106,5 +113,32 @@ fun RealBubble(
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+/**
+ * Render any drawable — including the layer-list/shape XML the bubble uses — as a
+ * Compose Painter. painterResource ONLY accepts VectorDrawables and raster assets,
+ * so it throws "Only VectorDrawables and rasterized asset types are supported" on
+ * the bubble_*_gunmetal layer-lists. We bake the drawable into a bitmap (at 3x
+ * intrinsic so it stays crisp when upscaled to the onboarding's larger bubble
+ * sizes) and wrap it in a BitmapPainter. The live BubbleService dodges this by
+ * drawing these via View.setBackgroundResource, which Compose has no equivalent of.
+ */
+@Composable
+private fun rememberLayerDrawablePainter(@DrawableRes id: Int): Painter {
+    val context = LocalContext.current
+    return remember(id) {
+        val drawable = ContextCompat.getDrawable(context, id)
+            ?: return@remember BitmapPainter(
+                Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888).asImageBitmap()
+            )
+        val scale = 3
+        val w = drawable.intrinsicWidth.coerceAtLeast(1) * scale
+        val h = drawable.intrinsicHeight.coerceAtLeast(1) * scale
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        drawable.setBounds(0, 0, w, h)
+        drawable.draw(Canvas(bitmap))
+        BitmapPainter(bitmap.asImageBitmap())
     }
 }
