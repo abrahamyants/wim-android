@@ -1676,11 +1676,13 @@ class BubbleService : Service() {
         showLiveTranscript()
         Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
-        // Visual: recording state — the inner knob warms to a glowing ember.
-        // The "alive" motion (lean-in + a slow breathe) is driven by BubbleAffect
-        // off the Listening FSM state. "REC" label in brand red restored per George
-        // 2026-06-20, so the three live states read RED "REC" → AMBER "PROC" →
-        // GREEN "SEND". (Inner-knob per-state recolor is tracked separately.)
+        // Visual: recording state — the inner knob warms to a glowing RED ember
+        // (bubble_inner_active) to match the "REC" label. The "alive" motion
+        // (lean-in + a slow breathe) is driven by BubbleAffect off the Listening
+        // FSM state. "REC" label in brand red restored per George 2026-06-20, so
+        // the three live states read RED "REC" → AMBER "PROC" → GREEN "SEND".
+        // (REC + PROC knobs now recolor to match; SEND knob is label-only
+        // pending a green token family.)
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -2330,9 +2332,13 @@ class BubbleService : Service() {
 
     private fun setBubbleProcessing() {
         stageArc?.setProcessing()
-        // AMBER "PROC" label per George 2026-06-20 — the middle beat between
-        // RED "REC" and GREEN "SEND". Knob-color recolor is tracked separately
-        // (needs red/amber inner drawables + the affect observer that greens SEND).
+        // AMBER "PROC" knob + label per George 2026-06-20 — the middle beat
+        // between RED "REC" and GREEN "SEND". The inner knob now matches the
+        // label (amber ember, bubble_inner_processing); REC is the red-hot
+        // ember (bubble_inner_active). SEND knob stays label-only for now —
+        // a green token family still needs adding before its drawable.
+        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "PROC"
             setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.orange_amber))
