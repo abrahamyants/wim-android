@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.PermissionStatus
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
@@ -93,7 +93,7 @@ fun PermissionsIntroScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDar
 
             Text(
                 text = if (samsung) "FIVE QUICK THINGS" else "FOUR QUICK THINGS",
-                fontFamily = LimelightFamily,
+                fontFamily = TitleFamily,
                 fontSize = 30.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center

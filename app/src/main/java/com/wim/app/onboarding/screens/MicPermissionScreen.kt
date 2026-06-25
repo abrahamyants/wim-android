@@ -25,7 +25,7 @@ fun MicPermissionScreen(
     onSkip: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
     var attempts by remember { mutableStateOf(0) }
 
     val granted = permissionGrantState(

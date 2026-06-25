@@ -51,7 +51,7 @@ import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.PermissionLauncher
 import com.wim.app.onboarding.PermissionStatus
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 import kotlinx.coroutines.delay
 
@@ -75,7 +75,7 @@ fun OverlayPermissionScreen(
     onSkip: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
     var granted by remember { mutableStateOf(PermissionStatus.overlay(context)) }
 
     // Lifecycle-driven re-check on RESUME
@@ -221,7 +221,7 @@ internal fun PermissionCard(
 
             Text(
                 text = heading,
-                fontFamily = LimelightFamily,
+                fontFamily = TitleFamily,
                 fontSize = 30.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center

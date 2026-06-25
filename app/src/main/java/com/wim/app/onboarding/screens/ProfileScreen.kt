@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.WimApp
 import com.wim.app.onboarding.RealBubble
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
@@ -87,7 +87,7 @@ fun ProfileScreen(onBack: () -> Unit, onContinue: () -> Unit) {
 
                 Text(
                     text = "MAKE IT YOURS",
-                    fontFamily = LimelightFamily,
+                    fontFamily = TitleFamily,
                     fontSize = 30.sp,
                     color = colorResource(R.color.section_header),
                     textAlign = TextAlign.Center

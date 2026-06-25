@@ -24,6 +24,12 @@ import com.wim.app.R
  */
 val LimelightFamily = FontFamily(Font(R.font.limelight, FontWeight.Normal))
 
+/** Onboarding slide titles. Dropped Limelight (the WiM logo face) here per George
+ *  2026-06-25 — the wordmark isn't on these screens, so using the logo font for
+ *  every title added no brand signal and read heavy. Geist Bold: clean, strong,
+ *  and already the app's chrome face (see MainActivity). */
+val TitleFamily = FontFamily(Font(R.font.geist_bold, FontWeight.Normal))
+
 val PlusJakartaFamily = FontFamily(
     Font(R.font.plus_jakarta_sans, FontWeight.Normal),
     Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium)

@@ -20,7 +20,7 @@ fun SamsungSleepScreen(
     onContinue: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
 
     PermissionCard(
         onBack = onBack,

@@ -22,7 +22,7 @@ fun AccessibilityPermissionScreen(
     onSkip: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
 
     val granted = permissionGrantState(
         check = { PermissionStatus.accessibility(context) },

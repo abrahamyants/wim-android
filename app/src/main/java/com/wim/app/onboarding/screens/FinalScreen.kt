@@ -43,7 +43,7 @@ import com.wim.app.R
 import com.wim.app.onboarding.PermissionLauncher
 import com.wim.app.onboarding.PermissionStatus
 import com.wim.app.onboarding.RealBubble
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
@@ -70,7 +70,7 @@ fun FinalScreen(onBack: () -> Unit, onDone: () -> Unit) {
     // night-wrapped config context, which is not the Activity, so the grant
     // launchers (which need an Activity) would get null.
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
 
     // Re-check the bubble's load-bearing permissions on every ON_RESUME, so the
     // notice clears the moment the user grants one and returns from Settings.
@@ -114,7 +114,7 @@ fun FinalScreen(onBack: () -> Unit, onDone: () -> Unit) {
 
                 Text(
                     text = if (allGranted) "YOU'RE SET" else "ALMOST THERE",
-                    fontFamily = LimelightFamily,
+                    fontFamily = TitleFamily,
                     fontSize = 34.sp,
                     color = colorResource(R.color.section_header),
                     textAlign = TextAlign.Center

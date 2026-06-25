@@ -1,12 +1,18 @@
 package com.wim.app.onboarding
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.wim.app.BubbleService
 import com.wim.app.MainActivity
 import com.wim.app.WimApp
+
+/** Survives the CalmDark LocalContext override — all permission screens read this. */
+val LocalOnboardingActivity = staticCompositionLocalOf<Activity?> { null }
 
 /**
  * Compose-based onboarding host. Replaces the View/XML BouncerActivity.
@@ -31,15 +37,16 @@ class OnboardingActivity : ComponentActivity() {
         WimApp.prefs.edit().putString("onboarding_host", "compose").apply()
         setContent {
             com.wim.app.onboarding.theme.WimTheme {
-                // Force the Calm-dark palette across EVERY screen regardless of the
-                // device light/dark setting. Most screens wrap CalmDark themselves
-                // (via PermissionCard or directly), but Welcome and any future screen
-                // that doesn't would resolve light-mode colorResources and render
-                // low-contrast. Wrapping the whole graph once here is the backstop.
-                com.wim.app.onboarding.screens.CalmDark {
-                    OnboardingNavHost(
-                        onComplete = { handleComplete() }
-                    )
+                // Provide the Activity before CalmDark overwrites LocalContext with a
+                // ContextWrapper.  Permission screens read LocalOnboardingActivity.current
+                // (a separate CompositionLocal unaffected by that override) so their
+                // Settings launchers actually fire.
+                CompositionLocalProvider(LocalOnboardingActivity provides this@OnboardingActivity) {
+                    com.wim.app.onboarding.screens.CalmDark {
+                        OnboardingNavHost(
+                            onComplete = { handleComplete() }
+                        )
+                    }
                 }
             }
         }

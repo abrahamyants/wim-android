@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 import kotlinx.coroutines.delay
 
@@ -166,7 +166,7 @@ private fun WelcomeContent(onContinue: () -> Unit) {
 
             Text(
                 text = "WHAT I MEANT",
-                fontFamily = LimelightFamily,
+                fontFamily = TitleFamily,
                 fontSize = 30.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center,

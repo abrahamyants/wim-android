@@ -13,9 +13,13 @@ the plugin at a different voice-to-intent Android app.
   excluded.
 
 ## Type
-- **Display font:** Limelight (gold treatment for the WiM logo and key headers).
-  Bundled in `app/src/main/assets/limelight.ttf` (WebView) and `app/src/main/res/font/limelight.ttf`
-  (native — verify presence before referencing in Compose).
+- **Logo font:** Limelight — reserved for the WiM wordmark / Mr. DNA character elements only.
+  Do NOT use for slide titles or screen headers.
+  Bundled in `app/src/main/assets/limelight.ttf` (WebView) and `app/src/main/res/font/limelight.ttf`.
+- **Slide/screen title font:** Geist Bold (`TitleFamily` in WimTheme.kt — `R.font.geist_bold`).
+  Used for all onboarding `Text(fontFamily = TitleFamily, ...)` slide headings.
+  Reason: onboarding screens don't show the WiM logo, so using the logo font on every header
+  adds no brand signal and reads visually heavy (George, 2026-06-25).
 - **Body font:** Plus Jakarta Sans. Bundled in `app/src/main/res/font/plus_jakarta_sans.ttf` (regular) and `plus_jakarta_sans_medium.ttf` (medium). Fallback chain: Outfit, Roboto, -apple-system, sans-serif.
 - **Mono font:** JetBrains Mono. Fallback: Roboto Mono, monospace.
 
@@ -165,12 +169,12 @@ Cards must appear in this order so the demo can paint and listen as soon as poss
 
 ## Onboarding architecture
 - **Existing implementation:** `app/src/main/assets/onboarding.html` — 6-tile WebView slider, dark-mode brushed-metal background, CSS-driven transitions.
-- **Migration target:** native Compose under `app/src/main/java/com/wim/app/onboarding/`. Both implementations must use identical hex values and the same Limelight headers.
+- **Migration target:** native Compose under `app/src/main/java/com/wim/app/onboarding/`. Both implementations must use identical hex values. Compose screens use `TitleFamily` (Geist Bold) for slide headings; Limelight is logo-only.
 - New screens default to extending `onboarding.html` unless the user explicitly requests Compose. Mixed mode is supported.
 
 ## Forbidden
 - "Stutter" in user-facing strings → replace with "speech disfluency"
-- Roboto / Inter / SF Pro as display font → Limelight for headers, full stop
+- Limelight as a slide/screen title font → use `TitleFamily` (Geist Bold) for onboarding headings; Limelight is for logo / Mr. DNA only
 - Material defaults without explicit override → must look like WiM, not generic Material
 - Color approximations → only the hex values listed above
 - `tween` easing for Mr. DNA persona → spring only

@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
-import com.wim.app.onboarding.theme.LimelightFamily
+import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
@@ -83,7 +83,7 @@ fun SettingsMenuScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
 
             Text(
                 text = "IT'S ALL ON THE BUBBLE",
-                fontFamily = LimelightFamily,
+                fontFamily = TitleFamily,
                 fontSize = 26.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center
