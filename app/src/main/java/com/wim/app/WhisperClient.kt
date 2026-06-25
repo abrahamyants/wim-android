@@ -26,7 +26,13 @@ object WhisperClient {
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        // Sized for ~2-minute cloud recordings (George 2026-06-25). readTimeout is
+        // the idle wait while OpenAI transcribes (the socket stays silent during
+        // processing, so this must exceed total server time); writeTimeout covers
+        // uploading the WAV (~4 MB for 2 min) on mobile. Bumped from 60s read /
+        // 10s default write.
+        .writeTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
     // Thresholds from Лаврентий

@@ -39,6 +39,11 @@ class WhisperLocalEngine(private val context: Context) {
         private const val SAMPLE_RATE = 16000
         private const val CHUNK_SAMPLES = 1600
 
+        // Whisper's encoder is fixed at a 30-second window. sherpa-onnx silently
+        // truncates audio longer than this to the first 30s, so anything over
+        // ~30s must be split into <=30s chunks and stitched back together.
+        private const val WHISPER_WINDOW_SAMPLES = SAMPLE_RATE * 30
+
         const val ERROR_NO_MODEL = 300
         const val ERROR_INIT = 301
         const val ERROR_INFERENCE = 302
@@ -215,23 +220,48 @@ class WhisperLocalEngine(private val context: Context) {
         }
         try {
             val t0 = System.currentTimeMillis()
-            val stream = rec.createStream()
-            try {
-                stream.acceptWaveform(samples, SAMPLE_RATE)
-                rec.decode(stream)
-                val text = rec.getResult(stream).text.trim()
-                Log.i(
-                    TAG,
-                    "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
-                        "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
-                )
-                dispatchFinal(text)
-            } finally {
-                stream.release()
+            // Whisper only hears a 30s window; sherpa-onnx drops everything past
+            // it. Split long utterances into <=30s chunks and stitch the text so
+            // a minute-long recording keeps its tail (was silently cut off after
+            // ~30s — George 2026-06-25).
+            val text = if (samples.size <= WHISPER_WINDOW_SAMPLES) {
+                decodeChunk(rec, samples)
+            } else {
+                val sb = StringBuilder()
+                var start = 0
+                while (start < samples.size) {
+                    val end = minOf(start + WHISPER_WINDOW_SAMPLES, samples.size)
+                    val part = decodeChunk(rec, samples.copyOfRange(start, end))
+                    if (part.isNotEmpty()) {
+                        if (sb.isNotEmpty()) sb.append(' ')
+                        sb.append(part)
+                    }
+                    start = end
+                }
+                sb.toString().trim()
             }
+            Log.i(
+                TAG,
+                "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
+                    "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
+            )
+            dispatchFinal(text)
         } catch (e: Throwable) {
             Log.e(TAG, "Decode failed: ${e.message}", e)
             dispatchError(ERROR_INFERENCE)
+        }
+    }
+
+    /** Decode a single <=30s chunk through a fresh stream. Whisper is stateless
+     *  across streams, so chunks decode sequentially and concatenate cleanly. */
+    private fun decodeChunk(rec: OfflineRecognizer, chunk: FloatArray): String {
+        val stream = rec.createStream()
+        return try {
+            stream.acceptWaveform(chunk, SAMPLE_RATE)
+            rec.decode(stream)
+            rec.getResult(stream).text.trim()
+        } finally {
+            stream.release()
         }
     }
 
