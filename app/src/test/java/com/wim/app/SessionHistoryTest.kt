@@ -121,7 +121,11 @@ class SessionHistoryTest {
         }
         val sessions = history.getRecentSessions(10)
         assertEquals(4, sessions.size)
-        assertEquals(listOf(4, 3, 2, 1), sessions.map { it.layer })
+        // Order-insensitive: these 4 inserts can land in the same millisecond, tying
+        // on timestamp so their DESC order is undefined (flaky on fast CI runners).
+        // Deterministic ordering is covered by query_orderedByTimestampDesc, which
+        // sleeps between inserts. Here we only assert all four layers round-tripped.
+        assertEquals(setOf(1, 2, 3, 4), sessions.map { it.layer }.toSet())
     }
 
     @Test fun allTones() {
