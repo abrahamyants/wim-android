@@ -31,9 +31,16 @@ class OnboardingActivity : ComponentActivity() {
         WimApp.prefs.edit().putString("onboarding_host", "compose").apply()
         setContent {
             com.wim.app.onboarding.theme.WimTheme {
-                OnboardingNavHost(
-                    onComplete = { handleComplete() }
-                )
+                // Force the Calm-dark palette across EVERY screen regardless of the
+                // device light/dark setting. Most screens wrap CalmDark themselves
+                // (via PermissionCard or directly), but Welcome and any future screen
+                // that doesn't would resolve light-mode colorResources and render
+                // low-contrast. Wrapping the whole graph once here is the backstop.
+                com.wim.app.onboarding.screens.CalmDark {
+                    OnboardingNavHost(
+                        onComplete = { handleComplete() }
+                    )
+                }
             }
         }
     }

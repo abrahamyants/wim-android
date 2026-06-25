@@ -49,15 +49,15 @@
             android:theme="@style/Theme.WhatIMeant" />
 
         <!--
-            Compose-based onboarding rewrite (option 3, 2026-05-16). Parallel route
-            not yet wired into MainActivity.kt:95 first-run routing. Manually launch
-            for testing:  adb shell am start -n com.wim.app/.onboarding.OnboardingActivity
-            Once the screens reach feature parity, flip MainActivity routing and
-            delete BouncerActivity + activity_bouncer.xml + onboarding.html.
+            Compose-based onboarding rewrite (option 3, 2026-05-16). Now the canonical
+            first-run flow — MainActivity routes here when !onboarding_complete (George
+            2026-06-25). exported=false for release (was temporarily true for adb launch
+            during review). To test the flow, clear the onboarding_complete pref and
+            launch MainActivity; it routes here. BouncerActivity kept as a fallback.
         -->
         <activity
             android:name=".onboarding.OnboardingActivity"
-            android:exported="true"
+            android:exported="false"
             android:theme="@style/Theme.WhatIMeant" />
 
         <!-- Manual: WebView host for the illustrated user guide at
