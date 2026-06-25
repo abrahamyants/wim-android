@@ -3,8 +3,10 @@ package com.wim.app.onboarding.screens
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,8 +48,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalConfiguration
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.PermissionLauncher
 import com.wim.app.onboarding.PermissionStatus
 import com.wim.app.onboarding.theme.LimelightFamily
@@ -69,6 +70,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun OverlayPermissionScreen(
+    onBack: () -> Unit,
     onContinue: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -107,6 +109,7 @@ fun OverlayPermissionScreen(
     }
 
     PermissionCard(
+        onBack = onBack,
         heading = "LET WiM DRAW",
         body = "WiM is a bubble. It needs permission to float over your other apps so it can " +
             "sit there when you're texting, emailing, or in any app where you'd rather speak than type.",
@@ -153,6 +156,28 @@ internal fun CalmDark(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+/** Shared onboarding back arrow — top-left, copper. Place inside a CalmDark Box. */
+@Composable
+internal fun BoxScope.BackArrow(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(start = 12.dp, top = 4.dp)
+            .size(44.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onBack),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "‹",
+            fontFamily = PlusJakartaFamily,
+            fontSize = 30.sp,
+            color = colorResource(R.color.copper_gold)
+        )
+    }
+}
+
 @Composable
 internal fun PermissionCard(
     heading: String,
@@ -163,7 +188,8 @@ internal fun PermissionCard(
     onPrimary: () -> Unit,
     onSecondary: () -> Unit,
     caveat: String? = null,
-    showBadge: Boolean = true
+    showBadge: Boolean = true,
+    onBack: (() -> Unit)? = null
 ) = CalmDark {
     Box(
         modifier = Modifier
@@ -176,6 +202,7 @@ internal fun PermissionCard(
                 )
             )
     ) {
+        if (onBack != null) BackArrow(onBack)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -185,9 +212,8 @@ internal fun PermissionCard(
         ) {
             Spacer(Modifier.weight(0.5f))
 
-            MrDnaBubble(
-                mood = MrDnaMood.Idle,
-                size = 108.dp,
+            RealBubble(
+                size = 118.dp,
                 label = if (granted) "✓" else "WiM"
             )
 

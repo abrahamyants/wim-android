@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +48,7 @@ fun MrDnaBubble(
     mood: MrDnaMood = MrDnaMood.Idle,
     size: Dp = 96.dp,
     label: String = "WiM",
+    ringColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val breath = remember { Animatable(0f) }
@@ -102,8 +104,8 @@ fun MrDnaBubble(
                 )
             )
             .border(
-                width = 2.dp,
-                color = colorResource(R.color.copper_gold),
+                width = if (ringColor != null) 4.dp else 2.dp,
+                color = ringColor ?: colorResource(R.color.copper_gold),
                 shape = CircleShape
             ),
         contentAlignment = Alignment.Center

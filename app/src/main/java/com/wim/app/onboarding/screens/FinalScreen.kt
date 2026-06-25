@@ -26,8 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
@@ -42,7 +41,7 @@ import com.wim.app.onboarding.theme.PlusJakartaFamily
  * intentionally NOT here — pinned (see project_wim_onboarding_spec memory).
  */
 @Composable
-fun FinalScreen(onDone: () -> Unit) = CalmDark {
+fun FinalScreen(onBack: () -> Unit, onDone: () -> Unit) = CalmDark {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -54,6 +53,7 @@ fun FinalScreen(onDone: () -> Unit) = CalmDark {
                 )
             )
     ) {
+        BackArrow(onBack)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -63,7 +63,7 @@ fun FinalScreen(onDone: () -> Unit) = CalmDark {
         ) {
             Spacer(Modifier.weight(0.7f))
 
-            MrDnaBubble(mood = MrDnaMood.Idle, size = 124.dp, label = "✓")
+            RealBubble(size = 118.dp, label = "✓")
 
             Spacer(Modifier.height(30.dp))
 

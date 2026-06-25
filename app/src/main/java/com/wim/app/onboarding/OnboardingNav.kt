@@ -16,6 +16,7 @@ import com.wim.app.onboarding.screens.PermissionsIntroScreen
 import com.wim.app.onboarding.screens.ProfileScreen
 import com.wim.app.onboarding.screens.ReconstructionScreen
 import com.wim.app.onboarding.screens.SamsungSleepScreen
+import com.wim.app.onboarding.screens.SettingsMenuScreen
 import com.wim.app.onboarding.screens.WelcomeScreen
 
 /**
@@ -52,6 +53,7 @@ object OnboardingRoutes {
     const val RECONSTRUCTION     = "reconstruction"
     const val PROFILE            = "profile"
     const val AUTOSEND           = "autosend"
+    const val SETTINGS_MENU      = "settings-menu"
 }
 
 @Composable
@@ -72,16 +74,19 @@ fun OnboardingNavHost(
         }
         composable(OnboardingRoutes.RECONSTRUCTION) {
             ReconstructionScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.PERMISSIONS_INTRO) }
             )
         }
         composable(OnboardingRoutes.PERMISSIONS_INTRO) {
             PermissionsIntroScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.OVERLAY) }
             )
         }
         composable(OnboardingRoutes.OVERLAY) {
             OverlayPermissionScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.ACCESSIBILITY) },
                 onSkip = { navController.navigate(OnboardingRoutes.ACCESSIBILITY) }
             )
@@ -92,12 +97,14 @@ fun OnboardingNavHost(
         composable(OnboardingRoutes.LEARNS)             { StubScreen("learns")            { navController.navigate(OnboardingRoutes.PERMISSIONS_INTRO) } }
         composable(OnboardingRoutes.ACCESSIBILITY) {
             AccessibilityPermissionScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.MIC) },
                 onSkip = { navController.navigate(OnboardingRoutes.MIC) }
             )
         }
         composable(OnboardingRoutes.MIC) {
             MicPermissionScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.BATTERY) },
                 onSkip = { navController.navigate(OnboardingRoutes.BATTERY) }
             )
@@ -107,25 +114,34 @@ fun OnboardingNavHost(
                 if (PermissionStatus.isSamsung()) navController.navigate(OnboardingRoutes.SAMSUNG_SLEEP)
                 else navController.navigate(OnboardingRoutes.PROFILE)
             }
-            BatteryPermissionScreen(onContinue = next, onSkip = next)
+            BatteryPermissionScreen(onBack = { navController.popBackStack() }, onContinue = next, onSkip = next)
         }
         composable(OnboardingRoutes.SAMSUNG_SLEEP) {
             SamsungSleepScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.PROFILE) }
             )
         }
         composable(OnboardingRoutes.PROFILE) {
             ProfileScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.AUTOSEND) }
             )
         }
         composable(OnboardingRoutes.AUTOSEND) {
             AutoSendScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = { navController.navigate(OnboardingRoutes.SETTINGS_MENU) }
+            )
+        }
+        composable(OnboardingRoutes.SETTINGS_MENU) {
+            SettingsMenuScreen(
+                onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.FINAL) }
             )
         }
         // interactive-demo: orphaned (the live bubble show is pinned); kept defined for later.
         composable(OnboardingRoutes.INTERACTIVE_DEMO)   { StubScreen("interactive-demo")  { navController.navigate(OnboardingRoutes.FINAL) } }
-        composable(OnboardingRoutes.FINAL)              { FinalScreen(onDone = { onComplete() }) }
+        composable(OnboardingRoutes.FINAL)              { FinalScreen(onBack = { navController.popBackStack() }, onDone = { onComplete() }) }
     }
 }

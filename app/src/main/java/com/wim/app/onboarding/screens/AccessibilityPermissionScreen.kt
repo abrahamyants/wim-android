@@ -17,6 +17,7 @@ import com.wim.app.onboarding.PermissionStatus
  */
 @Composable
 fun AccessibilityPermissionScreen(
+    onBack: () -> Unit,
     onContinue: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -29,6 +30,7 @@ fun AccessibilityPermissionScreen(
     )
 
     PermissionCard(
+        onBack = onBack,
         heading = "LET WiM LISTEN",
         body = "WiM rewrites what you meant to say in the field you're typing into. " +
             "To do that, it needs to read the field's contents — which is what " +

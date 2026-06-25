@@ -49,8 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 import kotlinx.coroutines.delay
@@ -161,7 +160,7 @@ private fun WelcomeContent(onContinue: () -> Unit) {
 
             Spacer(Modifier.height(28.dp))
 
-            MrDnaBubble(mood = MrDnaMood.Idle, size = 118.dp, label = "WiM")
+            RealBubble(size = 118.dp, label = "WiM")
 
             Spacer(Modifier.height(18.dp))
 

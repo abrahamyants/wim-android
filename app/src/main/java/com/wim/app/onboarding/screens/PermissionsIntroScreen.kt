@@ -2,6 +2,7 @@ package com.wim.app.onboarding.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,8 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.PermissionStatus
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
@@ -46,7 +46,7 @@ import com.wim.app.onboarding.theme.PlusJakartaFamily
  * entry, so a returning user sees progress instead of a wall).
  */
 @Composable
-fun PermissionsIntroScreen(onContinue: () -> Unit) = CalmDark {
+fun PermissionsIntroScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
     val context = LocalContext.current
     val samsung = PermissionStatus.isSamsung()
 
@@ -61,6 +61,23 @@ fun PermissionsIntroScreen(onContinue: () -> Unit) = CalmDark {
                 )
             )
     ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 12.dp, top = 4.dp)
+                .size(44.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "‹",
+                fontFamily = PlusJakartaFamily,
+                fontSize = 30.sp,
+                color = colorResource(R.color.copper_gold)
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -70,7 +87,7 @@ fun PermissionsIntroScreen(onContinue: () -> Unit) = CalmDark {
         ) {
             Spacer(Modifier.weight(0.4f))
 
-            MrDnaBubble(mood = MrDnaMood.Idle, size = 96.dp)
+            RealBubble(size = 118.dp, label = "WiM")
 
             Spacer(Modifier.height(26.dp))
 

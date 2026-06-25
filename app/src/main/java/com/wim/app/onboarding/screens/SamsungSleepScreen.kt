@@ -16,12 +16,14 @@ import com.wim.app.onboarding.PermissionLauncher
  */
 @Composable
 fun SamsungSleepScreen(
+    onBack: () -> Unit,
     onContinue: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
 
     PermissionCard(
+        onBack = onBack,
         heading = "SAMSUNG ONE MORE THING",
         body = "Samsung overrides Android's battery exemption with a \"Deep sleeping apps\" " +
             "list. If WiM lands on that list, it dies anyway. Tap below and make sure WiM " +

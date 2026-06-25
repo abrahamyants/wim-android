@@ -1,16 +1,20 @@
 package com.wim.app.onboarding.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,20 +32,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
- * Reconstruction pitch — Calm-dark. The differentiator slide: WiM gauges INTENT,
- * not words (voice-to-intent, "Grammarly for voice"), and names the two layers plus
- * the "local transcription is free" point. Sits right after Welcome, before permissions
- * — sell the value, then ask for access. Content per George briefing 2026-06-20
- * (project_wim_onboarding_spec).
+ * Reconstruction pitch (page 2) — Calm-dark. Back arrow up top. Differentiator copy
+ * (George's words 2026-06-20) + the FOUR layers in minimal language, mirroring the in-app
+ * layer selector (I Transcribe / II Reconstruct / III Profile / IV Disfluency) so it's
+ * familiar when the user later opens settings. Local L1 = free; cloud = sharper (and paid).
  */
 @Composable
-fun ReconstructionScreen(onContinue: () -> Unit) = CalmDark {
+fun ReconstructionScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -53,23 +55,42 @@ fun ReconstructionScreen(onContinue: () -> Unit) = CalmDark {
                 )
             )
     ) {
+        // Back arrow — top-left
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 12.dp, top = 4.dp)
+                .size(44.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "‹",
+                fontFamily = PlusJakartaFamily,
+                fontSize = 30.sp,
+                color = colorResource(R.color.copper_gold)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 32.dp, vertical = 28.dp),
+                .padding(horizontal = 32.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.weight(0.4f))
+            Spacer(Modifier.weight(0.35f))
 
-            MrDnaBubble(mood = MrDnaMood.Idle, size = 92.dp)
+            RealBubble(size = 118.dp, label = "WiM")
 
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(20.dp))
 
             Text(
                 text = "IT GETS WHAT YOU MEANT",
                 fontFamily = LimelightFamily,
-                fontSize = 27.sp,
+                fontSize = 26.sp,
                 color = colorResource(R.color.section_header),
                 textAlign = TextAlign.Center
             )
@@ -77,33 +98,35 @@ fun ReconstructionScreen(onContinue: () -> Unit) = CalmDark {
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text = "Other voice apps race to type your exact words — and you still proofread " +
-                    "every one. WiM is different: you ramble, half-finish, talk like you think — " +
-                    "and it rewrites it into what you meant to say. Like handing Grammarly a draft.",
+                text = "Other voice apps race to type your exact words. We don't. Give us your " +
+                    "ramble — straight, messy, however it falls out. WiM knows what you meant. " +
+                    "Like handing Grammarly a draft.",
                 fontFamily = PlusJakartaFamily,
-                fontSize = 15.sp,
-                lineHeight = 24.sp,
+                fontSize = 14.sp,
+                lineHeight = 22.sp,
                 color = colorResource(R.color.text_secondary),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = 330.dp)
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(26.dp))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 340.dp)
+                    .widthIn(max = 350.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(colorResource(R.color.bg_surface))
-                    .padding(horizontal = 22.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(13.dp)
             ) {
-                LayerRow("TRANSCRIBE", "Your words, tidied up. Runs free, right on your phone.")
-                LayerRow("RECONSTRUCT", "Your intent, in your tone — Casual or Professional.")
+                LayerRow("I", "TRANSCRIBE", "Your words, tidied up. Free on your phone, sharper in the cloud.")
+                LayerRow("II", "RECONSTRUCT", "Your intent, your tone — Casual or Professional.")
+                LayerRow("III", "PROFILE", "Reconstruct, plus who you are.")
+                LayerRow("IV", "DISFLUENCY", "For people with speech disfluency.")
             }
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(0.7f))
 
             Button(
                 onClick = onContinue,
@@ -126,29 +149,39 @@ fun ReconstructionScreen(onContinue: () -> Unit) = CalmDark {
                 )
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun LayerRow(title: String, desc: String) {
-    Column {
+private fun LayerRow(numeral: String, name: String, desc: String) {
+    Row(verticalAlignment = Alignment.Top) {
         Text(
-            text = title,
+            text = numeral,
             fontFamily = PlusJakartaFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
-            letterSpacing = 1.5.sp,
-            color = colorResource(R.color.copper_gold)
+            color = colorResource(R.color.copper_gold),
+            modifier = Modifier.width(30.dp)
         )
-        Spacer(Modifier.height(3.dp))
-        Text(
-            text = desc,
-            fontFamily = PlusJakartaFamily,
-            fontSize = 12.sp,
-            lineHeight = 17.sp,
-            color = colorResource(R.color.text_dim)
-        )
+        Column {
+            Text(
+                text = name,
+                fontFamily = PlusJakartaFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                letterSpacing = 1.2.sp,
+                color = colorResource(R.color.section_header)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = desc,
+                fontFamily = PlusJakartaFamily,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                color = colorResource(R.color.text_dim)
+            )
+        }
     }
 }

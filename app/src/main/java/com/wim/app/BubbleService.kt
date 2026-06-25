@@ -1678,12 +1678,14 @@ class BubbleService : Service() {
 
         // Visual: recording state — the inner knob warms to a glowing ember.
         // The "alive" motion (lean-in + a slow breathe) is driven by BubbleAffect
-        // off the Listening FSM state — NOT a blink here. No "REC" tag, no
-        // brightness-blink overlay: the bubble's own posture says it's recording.
+        // off the Listening FSM state. "REC" label in brand red restored per George
+        // 2026-06-20, so the three live states read RED "REC" → AMBER "PROC" →
+        // GREEN "SEND". (Inner-knob per-state recolor is tracked separately.)
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
             ?.setBackgroundResource(R.drawable.bubble_inner_active)
         bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = ""
+            text = "REC"
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.red_hot))
         }
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             // The idle prediction chip ("→ CAS") otherwise persists into recording —
@@ -2326,7 +2328,16 @@ class BubbleService : Service() {
         activeDemoScript = BubbleDemoScript(finish).also { it.start() }
     }
 
-    private fun setBubbleProcessing() { stageArc?.setProcessing() }
+    private fun setBubbleProcessing() {
+        stageArc?.setProcessing()
+        // AMBER "PROC" label per George 2026-06-20 — the middle beat between
+        // RED "REC" and GREEN "SEND". Knob-color recolor is tracked separately
+        // (needs red/amber inner drawables + the affect observer that greens SEND).
+        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+            text = "PROC"
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.orange_amber))
+        }
+    }
 
     private fun checkRedo(text: String) {
         if (recentTexts.isNotEmpty() && PipelineAnalytics.jaccard(text, recentTexts.last()) > 0.7) {

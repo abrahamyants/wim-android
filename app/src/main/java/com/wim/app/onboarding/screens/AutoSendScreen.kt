@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,8 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
@@ -44,7 +41,7 @@ import com.wim.app.onboarding.theme.PlusJakartaFamily
  * beat. Per George briefing 2026-06-20 (project_wim_onboarding_spec / project_wim_bubble_spec).
  */
 @Composable
-fun AutoSendScreen(onContinue: () -> Unit) = CalmDark {
+fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -56,6 +53,7 @@ fun AutoSendScreen(onContinue: () -> Unit) = CalmDark {
                 )
             )
     ) {
+        BackArrow(onBack)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -65,7 +63,7 @@ fun AutoSendScreen(onContinue: () -> Unit) = CalmDark {
         ) {
             Spacer(Modifier.weight(0.4f))
 
-            MrDnaBubble(mood = MrDnaMood.Idle, size = 92.dp)
+            RealBubble(size = 118.dp, label = "WiM")
 
             Spacer(Modifier.height(26.dp))
 
@@ -144,13 +142,12 @@ fun AutoSendScreen(onContinue: () -> Unit) = CalmDark {
 @Composable
 private fun StepRow(colorRes: Int, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(colorResource(colorRes))
+        RealBubble(
+            size = 46.dp,
+            label = "",
+            ringColor = colorResource(colorRes)
         )
-        Spacer(Modifier.size(14.dp))
+        Spacer(Modifier.size(16.dp))
         Text(
             text = text,
             fontFamily = PlusJakartaFamily,

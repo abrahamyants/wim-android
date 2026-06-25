@@ -20,6 +20,7 @@ import com.wim.app.onboarding.PermissionStatus
  */
 @Composable
 fun MicPermissionScreen(
+    onBack: () -> Unit,
     onContinue: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -35,6 +36,7 @@ fun MicPermissionScreen(
     val exhausted = attempts >= 2 && !granted
 
     PermissionCard(
+        onBack = onBack,
         heading = "VOICE IN",
         body = "WiM takes voice and turns it into clean text. That requires a microphone.",
         caveat = if (exhausted)

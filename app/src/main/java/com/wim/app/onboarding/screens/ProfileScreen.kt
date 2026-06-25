@@ -37,8 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.WimApp
-import com.wim.app.onboarding.MrDnaBubble
-import com.wim.app.onboarding.MrDnaMood
+import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.LimelightFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
@@ -52,7 +51,7 @@ import com.wim.app.onboarding.theme.PlusJakartaFamily
  * asks only the two that change the very first message. Per George briefing 2026-06-20.
  */
 @Composable
-fun ProfileScreen(onContinue: () -> Unit) {
+fun ProfileScreen(onBack: () -> Unit, onContinue: () -> Unit) {
     val prefs = WimApp.prefs
     var setup by remember { mutableStateOf(prefs.getString("work_setup", null) ?: "both") }
     var hours by remember { mutableStateOf(prefs.getString("work_hours", null) ?: "flexible") }
@@ -72,6 +71,7 @@ fun ProfileScreen(onContinue: () -> Unit) {
                     )
                 )
         ) {
+            BackArrow(onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -81,7 +81,7 @@ fun ProfileScreen(onContinue: () -> Unit) {
             ) {
                 Spacer(Modifier.weight(0.4f))
 
-                MrDnaBubble(mood = MrDnaMood.Idle, size = 88.dp)
+                RealBubble(size = 118.dp, label = "WiM")
 
                 Spacer(Modifier.height(24.dp))
 

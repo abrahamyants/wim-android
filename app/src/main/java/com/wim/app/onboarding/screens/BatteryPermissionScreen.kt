@@ -14,6 +14,7 @@ import com.wim.app.onboarding.PermissionStatus
  */
 @Composable
 fun BatteryPermissionScreen(
+    onBack: () -> Unit,
     onContinue: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -26,6 +27,7 @@ fun BatteryPermissionScreen(
     )
 
     PermissionCard(
+        onBack = onBack,
         heading = "KEEP WiM AWAKE",
         body = "Android tries to put bubbles to sleep after a few minutes. WiM needs " +
             "to be exempt — otherwise it disappears mid-conversation.",
