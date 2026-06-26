@@ -36,7 +36,7 @@ sealed class BubbleState {
 }
 
 enum class SuccessCue { PASTE, AUTO_SEND, COMMAND_REPLACE, REGEN_SUCCESS }
-enum class FailReason { NETWORK, HALLUCINATED, FALCON_REJECT, INJECT_FAIL }
+enum class FailReason { NETWORK, HALLUCINATED, FALCON_REJECT, INJECT_FAIL, CONFIG, SERVER, UNKNOWN }
 
 /**
  * Forward declaration — full type lives in `Clarifier.kt` (Phase 2).

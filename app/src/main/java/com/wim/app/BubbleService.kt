@@ -1336,6 +1336,38 @@ class BubbleService : Service() {
      * gated on user opt-in + per-app whitelist so unsupported apps still
      * behave exactly as today.
      */
+    private data class FailureInfo(val reason: FailReason, val message: String)
+
+    /**
+     * Classify a pipeline exception so the user sees the real cause instead of a
+     * blanket "network" failure (finding H4). The reconstruction / transcription
+     * stack throws config errors (no API key), server errors (backend non-2xx,
+     * broken JSON contract) and genuine network errors — they must not all read
+     * as "check your connection".
+     */
+    private fun classifyFailure(e: Throwable): FailureInfo {
+        val msg = e.message ?: ""
+        return when {
+            e is IllegalStateException && msg.contains("API key", ignoreCase = true) ->
+                FailureInfo(FailReason.CONFIG, "No API key configured — sign in or set a key in Settings")
+            e is SecurityException ->
+                FailureInfo(FailReason.CONFIG, "Microphone permission missing — enable it in Settings")
+            e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ||
+                e is java.net.ConnectException || e is java.io.InterruptedIOException ->
+                FailureInfo(FailReason.NETWORK, "Network error — check your connection and try again")
+            msg.contains("Backend error", ignoreCase = true) ||
+                msg.contains("missing 'clean'", ignoreCase = true) ||
+                msg.contains("API error", ignoreCase = true) ->
+                FailureInfo(FailReason.SERVER, "Server error — please try again")
+            e is org.json.JSONException ->
+                FailureInfo(FailReason.SERVER, "Unexpected server response — please try again")
+            e is java.io.IOException ->
+                FailureInfo(FailReason.NETWORK, "Connection problem — try again")
+            else ->
+                FailureInfo(FailReason.UNKNOWN, "Something went wrong — tap to try again")
+        }
+    }
+
     private fun onInjectComplete() {
         // If the user has ALREADY started a new recording by the time inject
         // finished (common when reconstruction takes longer than the user's
@@ -1978,15 +2010,15 @@ class BubbleService : Service() {
         val wavFile = audioRecorder?.stop()
         // Auto Quiet Mode: when the user hasn't forced Quiet Mode on, boost the
         // whole take before Whisper ONLY if it was whisper-soft. Amber confirms
-        // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -38 dBFS ~=
-        // whisper; the measured level is logged so the threshold can be tuned.
+        // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -22 dBFS is
+        // the validated threshold from lavrentiy.py:263 (QUIET_AUTO_DBFS = -22.0).
         if (wavFile != null) {
             val takeDbfs = audioRecorder?.lastTakeDbfs() ?: -120.0
             // Always log so the operator can see the level whether or not
             // auto-quiet triggers. Lets us tune the upper bound by sampling
             // whispered vs. normal-voice takes side by side.
-            Log.i(TAG, "Take level: ${"%.1f".format(takeDbfs)} dBFS (auto-quiet range -110.0..-38.0)")
-            if (!WimApp.prefs.getBoolean("quiet_mode", false) && takeDbfs in -110.0..-38.0) {
+            Log.i(TAG, "Take level: ${"%.1f".format(takeDbfs)} dBFS (auto-quiet range -110.0..-22.0)")
+            if (!WimApp.prefs.getBoolean("quiet_mode", false) && takeDbfs in -110.0..-22.0) {
                 Log.i(TAG, "Auto Quiet Mode engaged (${"%.0f".format(takeDbfs)} dBFS) — whisper-soft take")
                 audioRecorder?.boostWavQuiet(wavFile)
                 pendingQuietAutoFlash = true
@@ -2056,10 +2088,11 @@ class BubbleService : Service() {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Whisper failed: ${e.message}")
-                    BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
-                    showPipelineStage("Error — tap to retry", "Transcription failed — tap bubble to try again")
-                    Toast.makeText(this@BubbleService, "Transcription failed — tap bubble to try again", Toast.LENGTH_SHORT).show()
+                    val failure = classifyFailure(e)
+                    Log.e(TAG, "Whisper failed (${failure.reason}): ${e.message}")
+                    BubbleStateBus.advance(BubbleState.Failed(failure.reason))
+                    showPipelineStage("Error — tap to retry", failure.message)
+                    Toast.makeText(this@BubbleService, failure.message, Toast.LENGTH_LONG).show()
                     sessionHistory?.record(
                         rawText = "",
                         cleanText = "",
@@ -3094,9 +3127,10 @@ class BubbleService : Service() {
                     ConsoleLog.log("Post-inject step failed: ${e.message?.take(60)}", "warn")
                     try { onInjectComplete() } catch (_: Exception) { setBubbleIdle() }
                 } else {
-                    BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
-                    Log.e(TAG, "Reconstruction error: ${e.message}", e)
-                    ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
+                    val failure = classifyFailure(e)
+                    BubbleStateBus.advance(BubbleState.Failed(failure.reason))
+                    Log.e(TAG, "Reconstruction error (${failure.reason}): ${e.message}", e)
+                    ConsoleLog.log("Reconstruction failed [${failure.reason}]: ${e.message?.take(60)}", "error")
                     // Fallback: inject pre-cleaned text
                     WimAccessibilityService.instance?.injectText(preCleaned)
                     // Still record the session even on API failure
@@ -3131,7 +3165,7 @@ class BubbleService : Service() {
                         }
                     }
                     try {
-                        Toast.makeText(this@BubbleService, "Reconstruction failed — raw text used", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@BubbleService, "${failure.message} (kept your original words)", Toast.LENGTH_LONG).show()
                     } catch (_: Exception) {}
                     setBubbleIdle()
                 }
