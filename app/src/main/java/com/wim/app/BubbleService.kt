@@ -2249,6 +2249,9 @@ class BubbleService : Service() {
     private fun stopHotwordListener() { hotword?.stop() }
 
     private fun relayToTermux(text: String) {
+        // M3: dev-only relay to the Termux listener. Never fire in release —
+        // it would POST every reconstruction to localhost on real users' phones.
+        if (!BuildConfig.DEBUG) return
         WimApp.instance.appScope.launch(Dispatchers.IO) {
             try {
                 val url = java.net.URL("http://localhost:3133/wim")
