@@ -108,9 +108,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.4")
 
-    // Lottie for Mr. DNA persona sequences. JSON assets go in res/raw/ — not yet
-    // designed, components currently fall back to Compose spring-physics primitives.
-    implementation("com.airbnb.android:lottie-compose:6.6.0")
+    // L2: removed lottie-compose — unused; persona uses Compose spring physics.
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 
@@ -141,9 +139,9 @@ dependencies {
     // Sherpa-onnx for Moonshine ASR — flat-file AAR (53.9 MB, ships .so for all 4 ABIs).
     // Released April 24, 2026. Pairs with Moonshine base-en quantized model
     // (encoder_model.ort 31 MB + decoder_model_merged.ort 109 MB + tokens.txt) downloaded
-    // at runtime via MoonshineModelDownloader. The Kotlin API surface is hand-copied
-    // into app/src/main/java/com/k2fsa/sherpa/onnx/ from the sherpa-onnx repo at the
-    // matching version — those classes are thin wrappers around the JNI in this AAR.
+    // at runtime via MoonshineModelDownloader. The Kotlin API surface ships inside
+    // the AAR; the previously hand-copied wrappers under com/k2fsa/sherpa/onnx/ were
+    // removed (R8 duplicate-class) and now live in .r8-displaced-sherpa-wrappers/.
     implementation(files("libs/sherpa-onnx-1.12.40.aar"))
 
     // Apache Commons Compress — needed to extract the tar.bz2 model archive at runtime.

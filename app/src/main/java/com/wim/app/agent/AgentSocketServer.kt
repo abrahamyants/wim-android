@@ -88,8 +88,9 @@ class AgentSocketServer(private val service: AccessibilityService) {
     }
 
     private fun handleClient(socket: Socket) {
-        // Close previous client if any
-        clientSocket?.close()
+        // L11: removed dead "close previous client" — handleClient runs serially
+        // from the accept loop and clientSocket is always null here (the finally
+        // nulls it before the next accept).
         clientSocket = socket
         Log.i(TAG, "Agent connected from ${socket.remoteSocketAddress}")
 

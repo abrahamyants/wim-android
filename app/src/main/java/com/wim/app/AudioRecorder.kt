@@ -217,11 +217,16 @@ class AudioRecorder(private val context: Context) {
     fun release() {
         isRecording = false
         isPrimed = false
-        captureThread?.join(500)
-        recorder?.stop()
-        recorder?.release()
+        // L10: null the field BEFORE stopping so the capture loop stops touching
+        // the recorder, then join the thread so it isn't mid-read() when we
+        // stop/release (native crash). Defensive try/catch covers any residual
+        // race if join(500) times out.
+        val rec = recorder
         recorder = null
+        captureThread?.join(500)
         captureThread = null
+        try { rec?.stop() } catch (_: Exception) {}
+        try { rec?.release() } catch (_: Exception) {}
         bufferFilled = 0
         bufferPos = 0
     }
