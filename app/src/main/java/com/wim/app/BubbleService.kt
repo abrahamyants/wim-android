@@ -1447,6 +1447,12 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "Regen error: ${e.message}", e)
                 ConsoleLog.log("Regen failed: ${e.message?.take(60)}", "error")
+                // Tell the user the re-roll failed — without this the regen icon
+                // just reappears and they tap into the void (finding H7). Mirrors
+                // the blank-result branch, which already toasts.
+                try {
+                    Toast.makeText(this@BubbleService, "Couldn't regenerate — tap to try again", Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {}
                 showRegenIcon()
             } finally {
                 isRegenInFlight = false
@@ -1721,8 +1727,21 @@ class BubbleService : Service() {
                     audioRecorder?.onSilentBlockMidSpeech = { onSilentBlockBridge() }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "AudioRecorder failed, will use on-device only: ${e.message}")
+                Log.e(TAG, "AudioRecorder failed: ${e.message}", e)
                 audioRecorder = null
+                if (isL4 || l1NeedsCloud) {
+                    // At L4 / L1-cloud the WAV recorder is the ONLY capture path —
+                    // there is no local engine to fall back to. Surface the failure
+                    // now instead of letting post-stop ASR time out after ~30s with
+                    // the bubble silently stuck (finding H6).
+                    isRecording = false
+                    Toast.makeText(this, "Couldn't start the microphone — try again", Toast.LENGTH_LONG).show()
+                    setBubbleIdle()
+                    return
+                }
+                // L2/L3: the local whisper engine still captures, so this is a soft
+                // fallback — keep going on-device only.
+                Log.w(TAG, "AudioRecorder unavailable — continuing on-device only (L${WimApp.layer()})")
             }
         }
 
@@ -1785,6 +1804,19 @@ class BubbleService : Service() {
             isRecording = false
             dafPlayer?.stop()
             dafPlayer = null
+            // Tell the user WHY the bubble just reset. Without this the engine
+            // simply went idle with no signal (finding H5) — the sibling
+            // "model not ready" branch already toasts, the real-error path didn't.
+            val msg = when (code) {
+                WhisperLocalEngine.ERROR_NO_MODEL -> "Speech model not ready — try again in a moment"
+                WhisperLocalEngine.ERROR_AUDIO -> "Microphone unavailable — try again"
+                WhisperLocalEngine.ERROR_INIT,
+                WhisperLocalEngine.ERROR_INFERENCE -> "Speech engine error — tap to try again"
+                else -> "Speech recognition failed — tap to try again"
+            }
+            try {
+                Toast.makeText(this@BubbleService, msg, Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {}
             setBubbleIdle()
             bubbleView?.scaleX = 1.0f
             bubbleView?.scaleY = 1.0f
