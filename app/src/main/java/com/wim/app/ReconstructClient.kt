@@ -828,7 +828,7 @@ object ReconstructClient {
             put(JSONObject().put("role", "user").put("content", rawText))
         }
         val body = JSONObject().apply {
-            put("model", "gpt-4o")
+            put("model", "gpt-4o-2024-11-20")
             put("messages", messages)
             put("temperature", temperature)
             put("max_tokens", maxTokens)
@@ -880,7 +880,7 @@ object ReconstructClient {
         }
         val body = JSONObject().apply {
             put("model", "claude-sonnet-4-6")
-            put("max_tokens", 10000)
+            put("max_tokens", 16000)
             put("temperature", 1.0)
             put("system", systemPrompt)
             put("thinking", thinkingConfig)

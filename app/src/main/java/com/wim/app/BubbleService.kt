@@ -398,12 +398,10 @@ class BubbleService : Service() {
         recordingStartTime = System.currentTimeMillis()
         scope.launch {
             try {
-                // L4 uses whisper-1; L1-cloud uses whisper-1; L2/L3 cloud
-                // fallback stays on gpt-4o-transcribe.
                 val whisperModel = when {
                     WimApp.layer() >= 4 -> "whisper-1"
                     WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
-                    else -> "gpt-4o-transcribe"
+                    else -> "whisper-1"
                 }
                 val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
                 val whisperResult = WhisperClient.transcribe(
@@ -2048,13 +2046,10 @@ class BubbleService : Service() {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
                 try {
-                    // L4 uses whisper-1; L1-cloud uses whisper-1; L2/L3 cloud
-                    // fallback stays on gpt-4o-transcribe (parity gap flagged
-                    // for follow-up).
                     val whisperModel = when {
                         WimApp.layer() >= 4 -> "whisper-1"
                         WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
-                        else -> "gpt-4o-transcribe"
+                        else -> "whisper-1"
                     }
                     val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
                 val whisperResult = WhisperClient.transcribe(
@@ -2808,7 +2803,7 @@ class BubbleService : Service() {
                 // even but still measurable.
                 run {
                     val wav = lastWavFile
-                    if (layer >= 2 && wav != null && wav.exists() && wav.length() > 44) {
+                    if (layer >= 4 && wav != null && wav.exists() && wav.length() > 44) {
                         multiPassDeferred = async(Dispatchers.IO) {
                             try {
                                 val recognizer = WhisperApiL1(
