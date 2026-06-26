@@ -2642,7 +2642,7 @@ class BubbleService : Service() {
             // Same reason — catch needs to cancel the parallel-launched
             // MultiPassDecoder so an in-flight Whisper call doesn't keep
             // burning API budget after reconstruction blew up.
-            var multiPassDeferred: Deferred<MultiPassDecoder.MultiPassResult>? = null
+            var multiPassDeferred: Deferred<MultiPassDecoder.MultiPassResult?>? = null
             // L4 reconstruction can run 60-70s on Sonnet ET; without a wake-lock
             // the screen turning off mid-call suspends the CPU and the round-trip
             // dies. PARTIAL_WAKE_LOCK keeps the CPU alive without the screen on.
@@ -2655,6 +2655,10 @@ class BubbleService : Service() {
                     }
                 } catch (_: Exception) { null }
             } else null
+            // Tracks whether the reconstruction was actually delivered to the
+            // field. Once true, a later exception must NOT overwrite it with raw
+            // or report a failure the user never experienced (finding C2).
+            var injected = false
             try {
                 val layerLabel = when (layer) {
                     2 -> "generic cleanup"
@@ -2740,12 +2744,23 @@ class BubbleService : Service() {
                     val wav = lastWavFile
                     if (layer >= 2 && wav != null && wav.exists() && wav.length() > 44) {
                         multiPassDeferred = async(Dispatchers.IO) {
-                            val recognizer = WhisperApiL1(
-                                model = "whisper-1",
-                                language = primaryLanguage,
-                                patienceMode = true,
-                            )
-                            MultiPassDecoder(recognizer).run(wav)
+                            try {
+                                val recognizer = WhisperApiL1(
+                                    model = "whisper-1",
+                                    language = primaryLanguage,
+                                    patienceMode = true,
+                                )
+                                MultiPassDecoder(recognizer).run(wav)
+                            } catch (e: Exception) {
+                                // Contain the failure INSIDE the async. A throwing
+                                // child async cancels its parent (currentReconJob),
+                                // which would abort the in-flight reconstruction —
+                                // the SupervisorJob on `scope` only shields siblings,
+                                // not children. Returning null keeps multipass
+                                // best-effort; the clarifier proceeds without it.
+                                Log.w(TAG, "MultiPassDecoder failed (contained): ${e.message}")
+                                null
+                            }
                         }
                     }
                 }
@@ -2803,11 +2818,13 @@ class BubbleService : Service() {
                 // Brief pause so user can see the final stage
                 kotlinx.coroutines.delay(800)
 
-                if (WimAccessibilityService.instance != null) {
-                    WimAccessibilityService.instance!!.injectText(outputText)
+                val accInstance = WimAccessibilityService.instance
+                val injectResult = accInstance?.injectText(outputText)
+                if (injectResult == WimAccessibilityService.InjectResult.FIELD) {
                     relayToTermux(outputText)
                     val injectCue = if (previousOutputs.isNotEmpty()) SuccessCue.REGEN_SUCCESS else SuccessCue.PASTE
                     BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), injectCue))
+                    injected = true
                     setStageArc(3)
                     // Cache so the user can re-roll on the bezel without re-recording.
                     lastRegenCtx = RegenContext(
@@ -2824,8 +2841,35 @@ class BubbleService : Service() {
                     previousOutputs.add(outputText)
                     showRegenIcon()
                 } else {
-                    Log.e(TAG, "No accessibility service instance!")
-                    Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
+                    // The reconstruction did NOT land in the target field: either
+                    // there is no accessibility service, or injectText fell back to
+                    // the clipboard (it already toasted the "tap a field" hint).
+                    // Report INJECT_FAIL instead of a clean paste, still record the
+                    // GOOD text so it isn't lost from history, and skip the
+                    // field-dependent clarifier/learning steps below.
+                    if (accInstance == null) {
+                        Log.e(TAG, "No accessibility service instance — cannot inject")
+                        Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.w(TAG, "injectText did not reach the field (result=$injectResult) — clipboard fallback")
+                    }
+                    BubbleStateBus.advance(BubbleState.Failed(FailReason.INJECT_FAIL))
+                    val totalMs = System.currentTimeMillis() - recordingStartTime
+                    sessionHistory?.record(
+                        rawText = preCleaned,
+                        cleanText = outputText,
+                        tone = tone,
+                        layer = layer,
+                        situation = situation,
+                        asrMs = asrMs,
+                        reconMs = reconResult.reconMs,
+                        totalMs = totalMs,
+                        falconApproved = reconResult.falconApproved,
+                        riskFlags = reconResult.riskFlags + "inject_fail",
+                    )
+                    SessionUpdateBus.emit()
+                    setBubbleIdle()
+                    return@launch
                 }
 
                 // L2+: learn from reconstruction results (skip if leak was filtered)
@@ -2969,12 +3013,14 @@ class BubbleService : Service() {
                         try {
                             showPipelineStage("⟳ Reviewing", "Cross-checking unsure words")
                             val multi = multiPassDeferred.await()
-                            // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
-                            // but Clarifier.evaluate is called with finalText = outputText
-                            // (GPT-reconstructed). Without realignment, approve-swap
-                            // corrupts the injected text. See ClarifierAlignment.kt.
-                            wordConfidences = alignWordConfidencesToText(multi.wordConfidences, outputText)
-                            Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words, ${wordConfidences.size} aligned to outputText")
+                            if (multi != null) {
+                                // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
+                                // but Clarifier.evaluate is called with finalText = outputText
+                                // (GPT-reconstructed). Without realignment, approve-swap
+                                // corrupts the injected text. See ClarifierAlignment.kt.
+                                wordConfidences = alignWordConfidencesToText(multi.wordConfidences, outputText)
+                                Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words, ${wordConfidences.size} aligned to outputText")
+                            }
                         } catch (e: Exception) {
                             Log.w(TAG, "MultiPassDecoder failed: ${e.message} — clarifier proceeds with empty confidences")
                         }
@@ -3005,46 +3051,58 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 turboTaxJob?.cancel()
                 multiPassDeferred?.cancel()
-                BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
-                Log.e(TAG, "Reconstruction error: ${e.message}", e)
-                ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
-                // Fallback: inject pre-cleaned text
-                WimAccessibilityService.instance?.injectText(preCleaned)
-                // Still record the session even on API failure
-                val totalMs = System.currentTimeMillis() - recordingStartTime
-                sessionHistory?.record(
-                    rawText = preCleaned,
-                    cleanText = preCleaned,
-                    tone = tone,
-                    layer = layer,
-                    situation = situation,
-                    asrMs = asrMs,
-                    reconMs = 0,
-                    totalMs = totalMs,
-                    falconApproved = false,
-                    riskFlags = listOf("reconstruction_failed")
-                )
-                SessionUpdateBus.emit()
-                // Test automation: capture error
-                if (BuildConfig.DEBUG) {
-                    WimTestReceiver.lastResult = org.json.JSONObject().apply {
-                        put("status", "error")
-                        put("error", e.message)
-                        put("raw_text", rawText)
-                        put("pre_cleaned", preCleaned)
-                        put("clean_text", preCleaned)
-                        put("tone", tone)
-                        put("layer", layer)
-                        put("situation", situation)
-                        put("total_ms", totalMs)
-                        put("falcon_approved", false)
-                        put("risk_flags", org.json.JSONArray(listOf("reconstruction_failed")))
+                if (injected) {
+                    // The reconstruction was already delivered to the field and the
+                    // FSM is at Injected — this exception came from a POST-injection
+                    // step (learning / L1-detect / prediction / clarifier). Do NOT
+                    // overwrite the good text with raw or tell the user it failed.
+                    // (advance(Failed) from Injected is a forbidden transition
+                    // anyway.) Log it and settle the bubble like the success path.
+                    Log.e(TAG, "Post-injection step failed (text already delivered): ${e.message}", e)
+                    ConsoleLog.log("Post-inject step failed: ${e.message?.take(60)}", "warn")
+                    try { onInjectComplete() } catch (_: Exception) { setBubbleIdle() }
+                } else {
+                    BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK))
+                    Log.e(TAG, "Reconstruction error: ${e.message}", e)
+                    ConsoleLog.log("Reconstruction failed: ${e.message?.take(60)}", "error")
+                    // Fallback: inject pre-cleaned text
+                    WimAccessibilityService.instance?.injectText(preCleaned)
+                    // Still record the session even on API failure
+                    val totalMs = System.currentTimeMillis() - recordingStartTime
+                    sessionHistory?.record(
+                        rawText = preCleaned,
+                        cleanText = preCleaned,
+                        tone = tone,
+                        layer = layer,
+                        situation = situation,
+                        asrMs = asrMs,
+                        reconMs = 0,
+                        totalMs = totalMs,
+                        falconApproved = false,
+                        riskFlags = listOf("reconstruction_failed")
+                    )
+                    SessionUpdateBus.emit()
+                    // Test automation: capture error
+                    if (BuildConfig.DEBUG) {
+                        WimTestReceiver.lastResult = org.json.JSONObject().apply {
+                            put("status", "error")
+                            put("error", e.message)
+                            put("raw_text", rawText)
+                            put("pre_cleaned", preCleaned)
+                            put("clean_text", preCleaned)
+                            put("tone", tone)
+                            put("layer", layer)
+                            put("situation", situation)
+                            put("total_ms", totalMs)
+                            put("falcon_approved", false)
+                            put("risk_flags", org.json.JSONArray(listOf("reconstruction_failed")))
+                        }
                     }
+                    try {
+                        Toast.makeText(this@BubbleService, "Reconstruction failed — raw text used", Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {}
+                    setBubbleIdle()
                 }
-                try {
-                    Toast.makeText(this@BubbleService, "Reconstruction failed — raw text used", Toast.LENGTH_SHORT).show()
-                } catch (_: Exception) {}
-                setBubbleIdle()
             } finally {
                 try { wakeLock?.release() } catch (_: Exception) {}
             }

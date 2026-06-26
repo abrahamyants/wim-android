@@ -261,10 +261,16 @@ class WimAccessibilityService : AccessibilityService() {
         return slice.takeIf { it.isNotBlank() }
     }
 
+    /** Outcome of an [injectText] call so callers can tell a real paste into the
+     *  focused field (FIELD) apart from a clipboard fallback (CLIPBOARD) or a
+     *  total loss (LOST). Lets the caller avoid claiming a clean paste that
+     *  didn't happen — finding H3. */
+    enum class InjectResult { FIELD, CLIPBOARD, LOST }
+
     /**
      * Paste text into the currently focused text field.
      */
-    fun injectText(text: String) {
+    fun injectText(text: String): InjectResult {
         // Try the stored reference first (fast path). When it goes stale or is
         // missing, re-find across ALL visible windows. rootInActiveWindow is
         // unreliable when WiM's own bubble overlay or the IME window is top-
@@ -286,13 +292,15 @@ class WimAccessibilityService : AccessibilityService() {
                 // Focus dropped — no field to paste into. Save the reconstruction
                 // to the clipboard so the user can long-press paste once they
                 // tap back into a text field. Better than silently losing it.
+                var clipped = false
                 try {
                     val clipboard = getSystemService(android.content.ClipboardManager::class.java)
                     val clip = android.content.ClipData.newPlainText("WiM reconstruction", text)
                     clipboard?.setPrimaryClip(clip)
+                    clipped = clipboard != null
                 } catch (_: Exception) {}
                 android.widget.Toast.makeText(this, "Tap a text field — your text is on the clipboard", android.widget.Toast.LENGTH_LONG).show()
-                return
+                return if (clipped) InjectResult.CLIPBOARD else InjectResult.LOST
             }
         }
         // Treat node.text as empty when it equals the hint/placeholder. Samsung
@@ -350,6 +358,7 @@ class WimAccessibilityService : AccessibilityService() {
             // Trimmed view used by [swapWordInLastInjection] when the
             // caller's range is relative to the unpadded reconstruction.
             lastInjectedLeadingPad = finalText.length - finalText.trimStart().length
+            return InjectResult.FIELD
         } else {
             Log.w("WiM", "injectText: ACTION_SET_TEXT failed — falling back to clipboard+PASTE")
             val clip = android.content.ClipData.newPlainText("wim", finalText)
@@ -358,6 +367,7 @@ class WimAccessibilityService : AccessibilityService() {
             val pasteOk = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
             if (pasteOk) {
                 Log.i("WiM", "injectText: ACTION_PASTE fallback ok")
+                return InjectResult.FIELD
             } else {
                 Log.e("WiM", "injectText: both ACTION_SET_TEXT and ACTION_PASTE failed — falling back to clipboard")
                 // Worst-case for someone fighting through a hard block: the
@@ -365,11 +375,14 @@ class WimAccessibilityService : AccessibilityService() {
                 // the focus-dropped branch above — keep the text on the
                 // clipboard so they can long-press paste once they tap into
                 // any text field.
+                var clipped = false
                 try {
                     val cb = getSystemService(android.content.ClipboardManager::class.java)
                     cb?.setPrimaryClip(android.content.ClipData.newPlainText("WiM reconstruction", finalText))
+                    clipped = cb != null
                 } catch (_: Exception) {}
                 android.widget.Toast.makeText(this, "Tap a text field — your text is on the clipboard", android.widget.Toast.LENGTH_LONG).show()
+                return if (clipped) InjectResult.CLIPBOARD else InjectResult.LOST
             }
         }
     }

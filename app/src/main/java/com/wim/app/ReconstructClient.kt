@@ -755,11 +755,36 @@ object ReconstructClient {
             )
         }
 
+    /**
+     * Self-correction markers. When the speaker retracts a value
+     * ("meeting at 3pm, I mean 4pm"), the reconstruction is SUPPOSED to drop
+     * the retracted token — that is the covert-revision behavior WiM exists to
+     * perform. Treating the dropped "3" as a lost critical token and reverting
+     * to raw would re-insert the mistake. So when a marker is present we trust
+     * the model and skip the critical-token revert.
+     */
+    private val SELF_CORRECTION_MARKERS = Regex(
+        """\b(i mean|i meant|no wait|scratch that|or rather|correction)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * Normalize a numeric token to its bare value so pure reformatting
+     * ("$5." ↔ "5", "1,000" ↔ "1000", "90%" ↔ "90") doesn't read as a dropped
+     * token. Keeps a decimal point so "3.5" and "35" stay distinct.
+     */
+    private fun normalizeNumericToken(tok: String): String =
+        tok.trim().removePrefix("$").removeSuffix("%").removeSuffix(".").replace(",", "")
+
     /** Check that numbers, percentages, dollar amounts survived reconstruction. */
     private fun checkCriticalTokens(raw: String, clean: String): Boolean {
+        // A self-correction legitimately removes the earlier value — don't flag.
+        if (SELF_CORRECTION_MARKERS.containsMatchIn(raw)) return true
         val tokenPattern = Regex("""\$?\d[\d,.]*%?""")
-        val rawTokens = tokenPattern.findAll(raw).map { it.value }.toSet()
-        val cleanTokens = tokenPattern.findAll(clean).map { it.value }.toSet()
+        val rawTokens = tokenPattern.findAll(raw)
+            .map { normalizeNumericToken(it.value) }.filter { it.isNotEmpty() }.toSet()
+        val cleanTokens = tokenPattern.findAll(clean)
+            .map { normalizeNumericToken(it.value) }.filter { it.isNotEmpty() }.toSet()
         return rawTokens.all { it in cleanTokens }
     }
 

@@ -42,6 +42,24 @@ class RiskFlagsTest {
         assertFalse(flags.contains("critical_token_lost"))
     }
 
+    @Test fun criticalToken_selfCorrection_notFlagged() {
+        // "I mean" retracts the 3 — dropping it is correct, not a loss.
+        val flags = compute("meeting at 3pm, I mean 4pm", "meeting at 4pm")
+        assertFalse(flags.contains("critical_token_lost"))
+    }
+
+    @Test fun criticalToken_currencyReformatting_notFlagged() {
+        // "5 dollars" reformatted to "$5" is the same value, not a dropped token.
+        val flags = compute("it was 5 dollars", "it was \$5")
+        assertFalse(flags.contains("critical_token_lost"))
+    }
+
+    @Test fun criticalToken_realDrop_stillFlagged() {
+        // No self-correction marker and the 42 genuinely vanished — must flag.
+        val flags = compute("I need 42 items", "I need items")
+        assertTrue(flags.contains("critical_token_lost"))
+    }
+
     // ── Very short output ──────────────────────────────
 
     @Test fun veryShort_twoChars() {
