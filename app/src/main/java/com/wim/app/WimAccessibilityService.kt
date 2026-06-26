@@ -10,7 +10,7 @@ import android.view.accessibility.AccessibilityNodeInfo
  * Detects when a text field is focused and shows/hides the floating bubble.
  * Injects reconstructed text into the active text field.
  */
-class WimAccessibilityService : AccessibilityService() {
+class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
 
     companion object {
         var instance: WimAccessibilityService? = null
@@ -240,7 +240,7 @@ class WimAccessibilityService : AccessibilityService() {
      * or when no field is active. Used to give the reconstructor conversational
      * context so it can disambiguate ambiguous dictations.
      */
-    fun getPreCursorContext(maxChars: Int = 200): String? {
+    override fun getPreCursorContext(maxChars: Int): String? {
         if (isPasswordField) return null
         val node = activeTextField ?: return null
         if (!node.refresh()) return null
@@ -270,7 +270,7 @@ class WimAccessibilityService : AccessibilityService() {
     /**
      * Paste text into the currently focused text field.
      */
-    fun injectText(text: String): InjectResult {
+    override fun injectText(text: String): InjectResult {
         // Try the stored reference first (fast path). When it goes stale or is
         // missing, re-find across ALL visible windows. rootInActiveWindow is
         // unreliable when WiM's own bubble overlay or the IME window is top-
@@ -394,7 +394,7 @@ class WimAccessibilityService : AccessibilityService() {
      * replacement falls back to a normal append via [injectText] so we never
      * clobber the user's edits.
      */
-    fun replaceLastInjected(replacement: String): Boolean {
+    override fun replaceLastInjected(replacement: String): Boolean {
         if (lastInjectStart < 0 || lastInjectEnd < lastInjectStart) {
             injectText(replacement); return false
         }
@@ -450,7 +450,7 @@ class WimAccessibilityService : AccessibilityService() {
      * doesn't match), the swap is refused — we never clobber the user's
      * own edits.
      */
-    fun swapWordInLastInjection(rangeStart: Int, rangeEnd: Int, replacement: String): Boolean {
+    override fun swapWordInLastInjection(rangeStart: Int, rangeEnd: Int, replacement: String): Boolean {
         if (lastInjectStart < 0 || lastInjectEnd < lastInjectStart) {
             Log.w("WiM", "swapWord: no recent injection to edit")
             return false
@@ -512,7 +512,7 @@ class WimAccessibilityService : AccessibilityService() {
      * "text-field cursor position remain unchanged" wherein-clause of
      * patent claim 1. The overlay-window approach reads coordinates only.
      */
-    fun focusedFieldBounds(): android.graphics.Rect? {
+    override fun focusedFieldBounds(): android.graphics.Rect? {
         var node = activeTextField
         if (node != null && !node.refresh()) node = null
         if (node == null) node = findFocusedEditableAcrossWindows()
@@ -608,7 +608,7 @@ class WimAccessibilityService : AccessibilityService() {
      *      tag "WiM.tree" so we can see what Samsung's Messages / whatever
      *      app is actually exposing. Third time's a diagnostic step.
      */
-    fun clickSendButton(): Boolean {
+    override fun clickSendButton(): Boolean {
         val editable = activeTextField ?: findFocusedEditableAcrossWindows()
         if (editable == null) {
             Log.w("WiM", "clickSendButton: no editable field — can't locate the app window")
@@ -691,7 +691,7 @@ class WimAccessibilityService : AccessibilityService() {
     }
 
     /** Dispatch a 50ms down+up gesture at the given screen coordinates. */
-    fun getSendButtonCenter(): Pair<Int, Int>? {
+    override fun getSendButtonCenter(): Pair<Int, Int>? {
         val editable = activeTextField ?: findFocusedEditableAcrossWindows() ?: return null
         val targetPkg = editable.packageName?.toString() ?: return null
         val root = editable.window?.root
@@ -874,7 +874,7 @@ class WimAccessibilityService : AccessibilityService() {
      * finder misses, the green SEND just reverts to IDLE on its timer;
      * worst case is no worse than the pre-feature baseline.
      */
-    fun focusedAppSupportsAutoSend(): Boolean {
+    override fun focusedAppSupportsAutoSend(): Boolean {
         val editable = activeTextField ?: findFocusedEditableAcrossWindows() ?: return false
         val pkg = editable.packageName?.toString() ?: return false
         return pkg != packageName

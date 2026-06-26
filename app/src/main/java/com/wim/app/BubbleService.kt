@@ -1334,6 +1334,14 @@ class BubbleService : Service() {
      * gated on user opt-in + per-app whitelist so unsupported apps still
      * behave exactly as today.
      */
+    // H8: the bubble reaches the host app's text field ONLY through this port,
+    // never by grabbing WimAccessibilityService directly. Defaults to the live
+    // accessibility service; a test sets [testInjectionPort] to a fake so the
+    // recording/reconstruction pipeline can run with no real device.
+    var testInjectionPort: BubbleInjectionPort? = null
+    private val injectionPort: BubbleInjectionPort?
+        get() = testInjectionPort ?: WimAccessibilityService.instance
+
     private data class FailureInfo(val reason: FailReason, val message: String)
 
     /**
@@ -1376,7 +1384,7 @@ class BubbleService : Service() {
             return
         }
         val autoSendOn = WimApp.autoSendEnabled()
-        val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
+        val supported = injectionPort?.focusedAppSupportsAutoSend() == true
         val bv = bubbleView != null
         Log.i(TAG, "onInjectComplete: autoSend=$autoSendOn focusedAppSupports=$supported bubbleView=$bv → ${if (autoSendOn && supported && bv) "SEND_READY" else "Idle"}")
         if (autoSendOn && supported && bv) {
@@ -1392,7 +1400,7 @@ class BubbleService : Service() {
     private fun performRegen() {
         if (isRegenInFlight) return
         val ctx = lastRegenCtx ?: return
-        val accessibility = WimAccessibilityService.instance ?: run {
+        val accessibility = injectionPort ?: run {
             Toast.makeText(this, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
             return
         }
@@ -1516,7 +1524,7 @@ class BubbleService : Service() {
         ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
         val facehuggerOn = WimApp.facehuggerSendEnabled()
         if (facehuggerOn) {
-            val sendCenter = WimAccessibilityService.instance?.getSendButtonCenter()
+            val sendCenter = injectionPort?.getSendButtonCenter()
             if (sendCenter == null) {
                 Log.w(TAG, "facehugger: pref=on but getSendButtonCenter()=null — no Send node detected in active window")
             } else {
@@ -1547,7 +1555,7 @@ class BubbleService : Service() {
     }
 
     private fun actuallySend() {
-        val ok = WimAccessibilityService.instance?.clickSendButton() == true
+        val ok = injectionPort?.clickSendButton() == true
         if (ok) {
             ConsoleLog.log("Auto-send dispatched", "info")
             Toast.makeText(this, "Sent", Toast.LENGTH_SHORT).show()
@@ -1962,7 +1970,7 @@ class BubbleService : Service() {
             if (isRecording || clarifierUI?.isActive == true) return@launch
             clarifierUI?.show("USE?", "Finish it for you?\n“$completion”") { answer ->
                 if (answer == true) {
-                    WimAccessibilityService.instance?.injectText(completion)
+                    injectionPort?.injectText(completion)
                 }
             }
         }
@@ -2274,7 +2282,7 @@ class BubbleService : Service() {
      * now the underline spans the full field.
      */
     fun showWordHighlight(rangeStart: Int, rangeEnd: Int) {
-        val rect = WimAccessibilityService.instance?.focusedFieldBounds() ?: return
+        val rect = injectionPort?.focusedFieldBounds() ?: return
         wordHighlight?.show(rect, rangeStart, rangeEnd, ClarifierController.injectionTextLength())
     }
 
@@ -2449,7 +2457,7 @@ class BubbleService : Service() {
         // INSTANT mode: bypass everything, paste raw ASR text directly
         if (WimApp.prefs.getBoolean("instant_mode", false)) {
             Log.i(TAG, "INSTANT mode: pasting raw text, no processing")
-            WimAccessibilityService.instance?.injectText(rawText)
+            injectionPort?.injectText(rawText)
             onInjectComplete()
             return
         }
@@ -2498,12 +2506,12 @@ class BubbleService : Service() {
                 return
             }
             ConsoleLog.log("-> \"${outText.take(80)}${if (outText.length > 80) "..." else ""}\" [pure raw, markers stripped]", "out")
-            if (WimAccessibilityService.instance == null) {
+            if (injectionPort == null) {
                 Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 setBubbleIdle()
                 return
             }
-            WimAccessibilityService.instance!!.injectText(outText)
+            injectionPort!!.injectText(outText)
             relayToTermux(outText)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             setStageArc(3)
@@ -2627,12 +2635,12 @@ class BubbleService : Service() {
                 showPipelineStage("\u2713 Cleaned", "$stripped words stripped$corrCount \u00B7 ${rawWordCount}w \u2192 ${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w")
             }
             ConsoleLog.log("-> \"${l1Text.take(80)}${if (l1Text.length > 80) "..." else ""}\"  [${l1Text.split("\\s+".toRegex()).filter { it.isNotBlank() }.size}w]", "out")
-            if (WimAccessibilityService.instance == null) {
+            if (injectionPort == null) {
                 Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
                 setBubbleIdle()
                 return
             }
-            WimAccessibilityService.instance!!.injectText(l1Text)
+            injectionPort!!.injectText(l1Text)
             relayToTermux(l1Text)
             BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
             setStageArc(3)
@@ -2763,7 +2771,7 @@ class BubbleService : Service() {
 
                 // Look-behind: scrape text already in the target field so the reconstructor
                 // can disambiguate using conversational context. Skipped for password fields.
-                val precedingContext = WimAccessibilityService.instance?.getPreCursorContext() ?: ""
+                val precedingContext = injectionPort?.getPreCursorContext() ?: ""
                 if (precedingContext.isNotBlank()) {
                     Log.i(TAG, "Look-behind context: ${precedingContext.length} chars")
                 }
@@ -2879,7 +2887,7 @@ class BubbleService : Service() {
                 // Brief pause so user can see the final stage
                 kotlinx.coroutines.delay(800)
 
-                val accInstance = WimAccessibilityService.instance
+                val accInstance = injectionPort
                 val injectResult = accInstance?.injectText(outputText)
                 if (injectResult == WimAccessibilityService.InjectResult.FIELD) {
                     relayToTermux(outputText)
@@ -3097,7 +3105,7 @@ class BubbleService : Service() {
                         threshold = WimApp.clarifierSensitivityThreshold(),
                     )
                     if (flags.isNotEmpty()) {
-                        val supported = WimAccessibilityService.instance?.focusedAppSupportsAutoSend() == true
+                        val supported = injectionPort?.focusedAppSupportsAutoSend() == true
                         val autoSendOn = WimApp.autoSendEnabled()
                         enterClarifierCycle(
                             flags = flags,
@@ -3128,7 +3136,7 @@ class BubbleService : Service() {
                     Log.e(TAG, "Reconstruction error (${failure.reason}): ${e.message}", e)
                     ConsoleLog.log("Reconstruction failed [${failure.reason}]: ${e.message?.take(60)}", "error")
                     // Fallback: inject pre-cleaned text
-                    WimAccessibilityService.instance?.injectText(preCleaned)
+                    injectionPort?.injectText(preCleaned)
                     // Still record the session even on API failure
                     val totalMs = System.currentTimeMillis() - recordingStartTime
                     sessionHistory?.record(
