@@ -56,8 +56,7 @@ object PhoneticRisk {
         return HIGH_RISK_ONSETS_EN + fromPack
     }
 
-    // English-only build. To re-enable multilingual, read primary_language from prefs.
-    private fun activeLanguage(): String = "en"
+    private fun activeLanguage(): String = WimApp.appLanguage()
 
     /**
      * Extract the initial onset (1-3 chars of consonants) from a word, using the

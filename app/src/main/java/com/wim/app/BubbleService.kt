@@ -2029,6 +2029,7 @@ class BubbleService : Service() {
         // reconstruction completes. Previous file (if any) is cleaned up
         // in setBubbleIdle when the cycle ends.
         lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
+        if (wavFile != null) WavSilenceTrimmer.trim(wavFile)
         lastWavFile = wavFile
 
         // Stop whichever engine was running this session; cheap defensive calls on all.

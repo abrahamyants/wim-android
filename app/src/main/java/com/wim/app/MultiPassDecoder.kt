@@ -29,7 +29,7 @@ class MultiPassDecoder(
 ) {
 
     companion object {
-        val DEFAULT_TEMPS = listOf(0.0, 0.4, 0.8)
+        val DEFAULT_TEMPS = listOf(0.0, 0.2, 0.4)
     }
 
     data class Pass(val temperature: Double, val result: TranscribeResult)
