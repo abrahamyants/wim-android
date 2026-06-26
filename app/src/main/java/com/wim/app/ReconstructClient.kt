@@ -71,7 +71,9 @@ object ReconstructClient {
         languageCode: String = "en",
         previousOutputs: List<String> = emptyList(),
         compressionRatioNote: String = "",
-        audiencePackage: String? = null
+        audiencePackage: String? = null,
+        wavFile: java.io.File? = null,
+        whisperSegments: List<WhisperClient.TimedSegment> = emptyList()
     ): ReconstructResult {
         // Persistent learning state machine (RejectionStore + StyleExamples):
         //
@@ -716,17 +718,29 @@ object ReconstructClient {
             // an L3-quality reconstruction instead of nothing.
             val anthropicKey = WimApp.anthropicApiKey()
             val useSonnet = layer >= 4 && anthropicKey.isNotBlank()
+
+            // L4: inject prosodic context block when wav + timed segments are available.
+            // Ported from lavrentiy.py extract_prosodic_features() + build_prosodic_context().
+            val finalSystemPrompt = if (useSonnet && wavFile != null && whisperSegments.isNotEmpty()) {
+                val prosodicFeatures = ProsodicAnalyzer.extractFromWav(wavFile, whisperSegments)
+                val prosodicBlock = ProsodicAnalyzer.buildProsodicContext(prosodicFeatures)
+                if (prosodicBlock.isNotEmpty()) {
+                    Log.i("WiM", "Prosodic: ${prosodicFeatures.size} segments analysed")
+                    "$systemPrompt\n\n$prosodicBlock"
+                } else systemPrompt
+            } else systemPrompt
+
             var sonnetDowngraded = false
             val cleanText = if (useSonnet) {
                 try {
-                    reconstructWithSonnet(systemPrompt, rawText, anthropicKey)
+                    reconstructWithSonnet(finalSystemPrompt, rawText, anthropicKey)
                 } catch (e: Exception) {
                     Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
                     sonnetDowngraded = true
-                    reconstructWithGpt4o(systemPrompt, rawText, apiKey, temperature)
+                    reconstructWithGpt4o(finalSystemPrompt, rawText, apiKey, temperature)
                 }
             } else {
-                reconstructWithGpt4o(systemPrompt, rawText, apiKey, temperature)
+                reconstructWithGpt4o(finalSystemPrompt, rawText, apiKey, temperature)
             }
 
             val riskFlags = computeRiskFlags(rawText, cleanText)

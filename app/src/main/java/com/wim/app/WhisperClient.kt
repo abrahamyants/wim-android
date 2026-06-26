@@ -181,9 +181,10 @@ object WhisperClient {
             val json = JSONObject(responseBody)
             val asrMs = System.currentTimeMillis() - t0
 
-            // Extract confidence data from segments
+            // Extract confidence data and timed segments
             val noSpeechThreshold = if (patienceMode) NO_SPEECH_THRESHOLD_PATIENCE else NO_SPEECH_THRESHOLD_DEFAULT
             val lowConfidenceSegments = mutableListOf<LowConfidenceSegment>()
+            val timedSegments = mutableListOf<TimedSegment>()
             val segmentsArray = json.optJSONArray("segments")
             if (segmentsArray != null) {
                 for (i in 0 until segmentsArray.length()) {
@@ -191,8 +192,12 @@ object WhisperClient {
                     val avgLogprob = seg.optDouble("avg_logprob", 0.0)
                     val noSpeechProb = seg.optDouble("no_speech_prob", 0.0)
                     val segText = seg.optString("text", "").trim()
+                    val segStart = seg.optDouble("start", 0.0)
+                    val segEnd = seg.optDouble("end", segStart + 0.5)
                     val blockSuspect = noSpeechProb > noSpeechThreshold
                     val lowConf = avgLogprob < LOGPROB_THRESHOLD
+
+                    timedSegments.add(TimedSegment(segStart, segEnd, segText))
 
                     if (lowConf || blockSuspect) {
                         lowConfidenceSegments.add(
@@ -222,6 +227,7 @@ object WhisperClient {
                 text = cleanText,
                 asrMs = asrMs,
                 lowConfidenceSegments = lowConfidenceSegments,
+                timedSegments = timedSegments,
                 wasFullyHallucinated = wasFullyHallucinated
             )
         }
@@ -233,10 +239,13 @@ object WhisperClient {
         val blockSuspect: Boolean
     )
 
+    data class TimedSegment(val startS: Double, val endS: Double, val text: String)
+
     data class TranscribeResult(
         val text: String,
         val asrMs: Long,
         val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList(),
+        val timedSegments: List<TimedSegment> = emptyList(),
         val wasFullyHallucinated: Boolean = false
     )
 }

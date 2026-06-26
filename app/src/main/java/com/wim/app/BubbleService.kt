@@ -119,6 +119,7 @@ class BubbleService : Service() {
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
+    private var lastWhisperSegments: List<WhisperClient.TimedSegment> = emptyList()
 
     // Command Mode cluster extracted to BubbleCommandMode 2026-05-25 —
     // ninth slice. State (armed flag + selection) lives in the new class.
@@ -2075,6 +2076,7 @@ class BubbleService : Service() {
                 )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
+                    lastWhisperSegments = whisperResult.timedSegments
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                         Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                     }
@@ -2855,6 +2857,8 @@ class BubbleService : Service() {
                     languageCode = primaryLanguage,
                     compressionRatioNote = compressionRatioNote,
                     audiencePackage = WimAccessibilityService.currentForegroundPackage,
+                    wavFile = if (layer >= 4) lastWavFile else null,
+                    whisperSegments = if (layer >= 4) lastWhisperSegments else emptyList(),
                 )
                 turboTaxJob?.cancel()
                 if (reconResult.downgradedFromL4 && !l4DowngradeNotified) {
