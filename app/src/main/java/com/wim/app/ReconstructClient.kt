@@ -122,6 +122,13 @@ object ReconstructClient {
             // Device-direct: bundled or user-supplied OpenAI key for L2/L3, plus
             // bundled or user-supplied Anthropic key for L4 Sonnet ET. Falls
             // back to GPT-4o at L4 when the Anthropic key is blank.
+            if (idToken == null) {
+                // M9: surface the reroute. A signed-in user whose token refresh
+                // failed silently drops off the backend onto the device path —
+                // previously invisible.
+                android.util.Log.w("WiM", "No auth token — using device-direct reconstruction (signed out or token refresh failed)")
+                com.wim.app.ConsoleLog.log("Auth token unavailable — using device-direct path", "warn")
+            }
             reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
         }
 

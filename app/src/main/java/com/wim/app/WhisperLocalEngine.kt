@@ -115,6 +115,13 @@ class WhisperLocalEngine(private val context: Context) {
     }
 
     fun start(resultListener: ResultListener) {
+        // M7: re-entrancy guard. Without this, a second start() while already
+        // capturing overwrites audioRecord + captureThread, leaking the mic and
+        // the running thread.
+        if (isCapturing) {
+            Log.w(TAG, "start() ignored — already capturing")
+            return
+        }
         listener = resultListener
         if (!isReady()) {
             Log.w(TAG, "Model missing at ${WhisperLocalModelDownloader.modelDir(context)}")

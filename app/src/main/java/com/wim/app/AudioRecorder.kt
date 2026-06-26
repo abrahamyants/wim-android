@@ -230,7 +230,17 @@ class AudioRecorder(private val context: Context) {
         val buf = ByteArray(bufferSize)
         while (isPrimed) {
             val read = recorder?.read(buf, 0, buf.size) ?: 0
-            if (read <= 0) continue
+            if (read <= 0) {
+                // M4: don't busy-spin at 100% CPU. A negative code is a real
+                // AudioRecord error (e.g. ERROR_DEAD_OBJECT) the loop can't
+                // recover from — bail. read == 0 is an empty tick — yield first.
+                if (read < 0) {
+                    Log.e("AudioRecorder", "read error $read — ending capture loop")
+                    break
+                }
+                try { Thread.sleep(5) } catch (_: InterruptedException) {}
+                continue
+            }
 
             // If recording, write to file (with quiet mode processing)
             val fos = outputStream

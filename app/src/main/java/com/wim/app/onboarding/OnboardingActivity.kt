@@ -17,12 +17,11 @@ val LocalOnboardingActivity = staticCompositionLocalOf<Activity?> { null }
 /**
  * Compose-based onboarding host. Replaces the View/XML BouncerActivity.
  *
- * Current status (2026-05-16): registered in AndroidManifest as a parallel route.
- * MainActivity still routes first-run to BouncerActivity. Once the screens here
- * reach feature parity and ship-quality, we will:
- *   1. Flip MainActivity.kt:95 to startActivity(OnboardingActivity::class.java)
- *   2. Delete BouncerActivity.kt + activity_bouncer.xml + onboarding.html
- *   3. Update brand.local.md to declare Compose canonical
+ * Current status (2026-06-26): this Compose flow IS the canonical first-run
+ * route — MainActivity routes first-run here (the old "flip MainActivity" step
+ * is done). BouncerActivity is kept as a fallback, not yet deleted. Remaining:
+ *   1. Delete BouncerActivity.kt + activity_bouncer.xml + onboarding.html
+ *   2. Update brand.local.md to declare Compose canonical
  *
  * Until then this can be launched manually for testing via:
  *   adb shell am start -n com.wim.app/.onboarding.OnboardingActivity

@@ -1479,7 +1479,13 @@ class BubbleService : Service() {
                     }
                 }
 
-                accessibility.replaceLastInjected(newText)
+                val replaced = accessibility.replaceLastInjected(newText)
+                if (!replaced) {
+                    // M10: replace fell back to an append (field diverged from our
+                    // snapshot) — the new phrasing was added, not swapped in.
+                    Log.w(TAG, "regen: replaceLastInjected fell back to append")
+                    ConsoleLog.log("Regen appended (couldn't replace in place)", "warn")
+                }
                 previousOutputs.add(newText)
                 ConsoleLog.log("Regen: ${result.reconMs}ms -> \"${newText.take(80)}\"", "out")
                 showRegenIcon()
@@ -2090,6 +2096,9 @@ class BubbleService : Service() {
                         if (finalText.isNotBlank()) {
                             processText(finalText)
                         } else {
+                            // M12: empty (non-hallucinated) result — tell the user
+                            // instead of silently resetting the bubble.
+                            Toast.makeText(this@BubbleService, "No speech detected — try again", Toast.LENGTH_SHORT).show()
                             setBubbleIdle()
                         }
                     }
@@ -3224,6 +3233,12 @@ class BubbleService : Service() {
         bubbleMenu?.dismiss()
         bubbleMenu = null
         hideLiveTranscript()
+        // M6: tear down the standalone overlay windows so their views (and the
+        // service context they hold) don't leak if one was showing at teardown.
+        wordHighlight?.hide()
+        wordHighlight = null
+        sendDisclaimer?.dismiss()
+        sendDisclaimer = null
         dafPlayer?.stop()
         dafPlayer = null
         audioRecorder?.release()

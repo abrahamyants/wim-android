@@ -108,6 +108,10 @@ class BubbleWordHighlight(
 
     fun hide() {
         val v = view ?: return
+        // M6: cancel any in-flight alpha animation first — a running animator
+        // keeps the view (and the service context it holds) reachable after
+        // removeView, leaking the service.
+        try { v.animate().cancel() } catch (_: Exception) {}
         try { windowManager.removeView(v) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
         view = null
         params = null
