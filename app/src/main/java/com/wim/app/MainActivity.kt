@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private var sessionUpdateUnsub: (() -> Unit)? = null
     private var consoleUnsub: (() -> Unit)? = null
     private var showingConsole = false
+    private var tts: android.speech.tts.TextToSpeech? = null
 
     // Session timer (relocated from bubble — shown next to the "Today" header
     // in the Sessions list, with a reset button beside it).
@@ -615,12 +616,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ── Type-to-speak ──
-        val tts = android.speech.tts.TextToSpeech(this) { status ->
+        tts = android.speech.tts.TextToSpeech(this) { status ->
             if (status != android.speech.tts.TextToSpeech.SUCCESS) Log.e("WiM", "TTS init failed")
         }
         findViewById<TextView>(R.id.ttsSpeak)?.setOnClickListener {
             val text = findViewById<EditText>(R.id.ttsInput)?.text?.toString()?.trim() ?: return@setOnClickListener
-            if (text.isNotBlank()) tts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
+            if (text.isNotBlank()) tts?.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_tts")
         }
 
         // ── Bubble color picker ──
@@ -908,6 +909,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
         sessionUpdateUnsub?.invoke()
         consoleUnsub?.invoke()
         // Unregister pref listeners — Android keeps SharedPreferences
