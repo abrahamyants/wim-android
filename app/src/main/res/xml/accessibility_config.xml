@@ -5,6 +5,7 @@
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
+    android:isAccessibilityTool="true"
     android:description="@string/accessibility_description"
     android:notificationTimeout="100"
     android:settingsActivity="com.wim.app.MainActivity" />

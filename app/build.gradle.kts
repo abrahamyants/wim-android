@@ -33,18 +33,25 @@ android {
         }
     }
 
+    // Release signing secrets come from ~/.gradle/gradle.properties (never the
+    // repo): WIM_STORE_PASSWORD / WIM_KEY_PASSWORD. If absent (e.g. CI without
+    // the secret) the release variant builds UNSIGNED instead of failing.
+    val wimStorePw = project.findProperty("WIM_STORE_PASSWORD") as? String
+    val wimKeyPw = (project.findProperty("WIM_KEY_PASSWORD") as? String) ?: wimStorePw
     signingConfigs {
-        create("release") {
-            storeFile = file("../wim-release.jks")
-            storePassword = "wimstore2026"
-            keyAlias = "wim"
-            keyPassword = "wimstore2026"
+        if (wimStorePw != null) {
+            create("release") {
+                storeFile = file("../wim-release.jks")
+                storePassword = wimStorePw
+                keyAlias = "wim"
+                keyPassword = wimKeyPw
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (wimStorePw != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             // Strip unused resources that R8 has proven unreachable. Pairs
             // with isMinifyEnabled — must be enabled together. Trims another

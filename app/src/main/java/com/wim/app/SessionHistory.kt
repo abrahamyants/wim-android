@@ -167,7 +167,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
     )
 
     private fun pushToFirestore(values: ContentValues) {
-        if (!WimApp.prefs.getBoolean("cloud_backup", true)) return
+        if (!WimApp.prefs.getBoolean("cloud_backup", false)) return
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val doc = hashMapOf(
             "timestamp" to values.getAsLong("timestamp"),
