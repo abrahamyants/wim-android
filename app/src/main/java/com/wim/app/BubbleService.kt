@@ -817,17 +817,18 @@ class BubbleService : Service() {
             // (the inner bronze face) is inset 5dp on each side and sized
             // 50dp — that's what the operator perceives as the "tappable"
             // metal surface. Operator 2026-06-06 (second pass): even the
-            // 72dp version still registered taps in the outer rim, then 50dp
-            // still caught a ~3dp margin of bezel around the knob. Match the
-            // 44dp inner knob (bubble.xml bubbleInner) exactly — "the bubble
-            // itself", nothing around it. Scales with the bubble-size pref.
+            // The knob (bubble_inner_knob.xml) layers a 44dp box, a 42dp
+            // shadow rim, and a 38dp SOLID face. 44dp caught the shadow ring
+            // around the solid knob; 40dp matches the solid face the user
+            // actually perceives as the bubble. Dial: 38 = tightest (fill
+            // only), 44 = the whole box. Scales with the bubble-size pref.
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val cx = v.width / 2f
                 val cy = v.height / 2f
                 val tx = event.x - cx
                 val ty = event.y - cy
                 val density = resources.displayMetrics.density
-                val bezelBaseDp = 44f
+                val bezelBaseDp = 40f
                 val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
                 val r = (bezelBaseDp * density * scale) / 2f
                 if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
