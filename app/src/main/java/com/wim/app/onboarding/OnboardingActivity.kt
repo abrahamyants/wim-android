@@ -1,7 +1,9 @@
 package com.wim.app.onboarding
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +29,23 @@ val LocalOnboardingActivity = staticCompositionLocalOf<Activity?> { null }
  *   adb shell am start -n com.wim.app/.onboarding.OnboardingActivity
  */
 class OnboardingActivity : ComponentActivity() {
+
+    /**
+     * Onboarding is always the Calm-dark palette by design. This is a plain
+     * ComponentActivity, so the app-wide AppCompatDelegate night mode never
+     * reaches it — on a phone in light mode, colorResource() resolved the
+     * cream values/ palette and text rendered near-invisible. Force night on
+     * this activity's own Configuration so every colorResource/painterResource
+     * resolves values-night/ regardless of the system setting.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase)
+        val night = Configuration().apply {
+            uiMode = Configuration.UI_MODE_NIGHT_YES or
+                (newBase.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv())
+        }
+        applyOverrideConfiguration(night)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

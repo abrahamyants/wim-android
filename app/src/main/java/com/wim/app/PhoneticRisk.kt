@@ -56,7 +56,11 @@ object PhoneticRisk {
         return HIGH_RISK_ONSETS_EN + fromPack
     }
 
-    private fun activeLanguage(): String = WimApp.appLanguage()
+    // PhoneticRisk is a pure-logic scorer; it must not hard-crash if it runs
+    // before WimApp.prefs is initialized (unit tests, or any early-boot call).
+    // Default to the English build's language when prefs aren't available.
+    private fun activeLanguage(): String =
+        try { WimApp.appLanguage() } catch (e: Exception) { "en" }
 
     /**
      * Extract the initial onset (1-3 chars of consonants) from a word, using the

@@ -129,7 +129,7 @@ object ReconstructClient {
                 android.util.Log.w("WiM", "No auth token — using device-direct reconstruction (signed out or token refresh failed)")
                 com.wim.app.ConsoleLog.log("Auth token unavailable — using device-direct path", "warn")
             }
-            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
+            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, wavFile, whisperSegments)
         }
 
         // Stage this reconstruction's (raw, output) pair as PENDING. The
@@ -410,7 +410,9 @@ object ReconstructClient {
         languageCode: String = "en",
         previousOutputs: List<String> = emptyList(),
         compressionRatioNote: String = "",
-        audiencePackage: String? = null
+        audiencePackage: String? = null,
+        wavFile: java.io.File? = null,
+        whisperSegments: List<WhisperClient.TimedSegment> = emptyList()
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
