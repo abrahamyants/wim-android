@@ -68,7 +68,7 @@ class BubbleShakeDetector(
                 val z = event.values[2]
                 val gForce = sqrt((x * x + y * y + z * z).toDouble()) / SensorManager.GRAVITY_EARTH
 
-                if (!prefs.getBoolean("shake_enabled", true)) return
+                if (!prefs.getBoolean("shake_enabled", false)) return
 
                 val highThreshold = if (shakeCount == 0) 2.6 else 2.0
                 val releaseThreshold = 1.5
