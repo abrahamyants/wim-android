@@ -681,7 +681,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Cloud backup toggle ──
         val cloudToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.cloudBackupToggle)
-        cloudToggle?.isChecked = WimApp.prefs.getBoolean("cloud_backup", true)
+        cloudToggle?.isChecked = WimApp.prefs.getBoolean("cloud_backup", false)
         styleToggle(cloudToggle!!)
         cloudToggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("cloud_backup", checked).apply()
