@@ -855,7 +855,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Privacy Policy ────────────────────────────────
         findViewById<TextView>(R.id.privacyLink).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/gugosf114/wim-android/blob/main/play_store/privacy_policy.md")))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://mybakingcreations.com/wim-privacy-policy")))
         }
 
         if (intent.getBooleanExtra("open_cloud_unlock", false)) {

@@ -140,7 +140,9 @@ dependencies {
 
     // One-time, non-consumable WiM Cloud Unlock. The backend verifies and
     // acknowledges every completed purchase before the app grants access.
-    implementation("com.android.billingclient:billing-ktx:9.1.0")
+    // Core artifact is Java API and stays compatible with this app's Kotlin
+    // 2.0 toolchain; billing-ktx 9.1 is compiled with newer Kotlin metadata.
+    implementation("com.android.billingclient:billing:9.1.0")
 
     // Credential Manager for Google Sign-In
     implementation("androidx.credentials:credentials:1.3.0")

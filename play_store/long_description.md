@@ -40,7 +40,7 @@ The default Layer 1 layer runs fully on your device. Nothing is transmitted, not
 
 Optional Google sign-in enables cross-device sync of your learned vocabulary and corrections. You can delete all of that data from in-app Settings at any time.
 
-Full Privacy Policy: github.com/gugosf114/wim-android/blob/main/play_store/privacy_policy.md
+Full Privacy Policy: https://mybakingcreations.com/wim-privacy-policy
 
 ## Languages
 

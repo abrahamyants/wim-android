@@ -4,7 +4,7 @@
 
 This Privacy Policy describes how WiM ("we," "us," or "our") handles your information when you use the WiM mobile application ("the app"). Read it together with the Google Play store listing.
 
-WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in via the in-app layer selector.
+WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in, require Google sign-in, and require the one-time WiM Cloud Unlock purchase.
 
 ## 1. What WiM does with your voice
 
@@ -51,7 +51,17 @@ If you sign in with Google, WiM creates an account in Google Firebase Authentica
 - You can disable sync from the app's Settings overlay. You can delete your account and all associated cloud data via Settings → User Profile → "Delete account and cloud data."
 - We do not share, sell, or rent your data to anyone.
 
-## 4. Crashes and product telemetry
+## 4. Purchase information
+
+WiM Cloud Unlock is a one-time, non-consumable purchase handled by Google Play Billing.
+
+- Google Play processes your payment; WiM never receives or stores your card or bank details.
+- The app sends the Play product ID, purchase token, and a one-way hash of your Firebase user ID to our authenticated backend.
+- Our backend asks the Google Play Developer API to verify and acknowledge the purchase, then stores the product ID, Google Play order ID, verification time, and entitlement under your Firebase user ID.
+- Purchase tokens are stored only as one-way hashes. Purchase records are used for access control, restoration, fraud prevention, and customer support.
+- Deleting your cloud data removes the entitlement record from our database. Your Google Play order remains in your Google account and in records Google must retain.
+
+## 5. Crashes and product telemetry
 
 The app uses Firebase Crashlytics, Firebase Performance, and Firebase Analytics to detect crashes and reliability issues.
 
@@ -61,26 +71,27 @@ The app uses Firebase Crashlytics, Firebase Performance, and Firebase Analytics 
 
 These can be limited at the OS level via Google Play Services privacy controls.
 
-## 5. Third-party services and processors
+## 6. Third-party services and processors
 
 | Provider | Used for | Triggered when |
 |---|---|---|
 | Google Play Services | App distribution and sign-in | Always |
+| Google Play Billing / Developer API | Purchase processing, verification, and restoration | When you buy or restore Cloud Unlock |
 | Google Firebase Authentication | Account creation | Only after you sign in with Google |
 | Google Firestore | Profile + history sync | Only after sign-in, only if sync enabled |
 | Google Firebase Crashlytics / Performance / Analytics | Reliability + telemetry | Always (can be limited via OS controls) |
 | OpenAI (Whisper, GPT-4o) | Cloud transcription + reconstruction | Only when you choose L1 Cloud, L2, L3, or L4 |
 | Anthropic (Claude Sonnet 4.6) | L4 reconstruction | Only when you choose L4 |
 
-## 6. Local storage
+## 7. Local storage
 
 All settings, learned vocabulary, your corrections list, and session history are stored on your device in standard Android SharedPreferences and SQLite. You can clear all of it at any time by clearing the app's data in Android Settings → Apps → What I Meant → Storage, or by uninstalling the app.
 
-## 7. Children
+## 8. Children
 
 WiM is not designed for children under 13 and is not directed at children.
 
-## 8. Your rights
+## 9. Your rights
 
 You can:
 - Export the data we hold about you (Settings → User Profile → Export data).
@@ -90,14 +101,14 @@ You can:
 
 For users in jurisdictions with GDPR-style rights (EEA, UK, California, etc.), the export and delete tools above satisfy access and deletion requests.
 
-## 9. Security
+## 10. Security
 
 We use TLS for every network call to our backend and to third-party providers. No data transmission is 100% guaranteed, but we minimize what leaves the device and we never store raw audio.
 
-## 10. Changes to this policy
+## 11. Changes to this policy
 
 If we update this policy we will publish the new version at the same URL and bump the "Last Updated" date. Material changes will be surfaced in the app on the next launch.
 
-## 11. Contact
+## 12. Contact
 
 Questions about this policy: **gugosf@gmail.com**.
