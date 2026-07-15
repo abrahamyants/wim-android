@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var consoleUnsub: (() -> Unit)? = null
     private var showingConsole = false
     private var tts: android.speech.tts.TextToSpeech? = null
+    private var billingManager: PlayBillingManager? = null
 
     // Session timer (relocated from bubble — shown next to the "Today" header
     // in the Sessions list, with a reset button beside it).
@@ -139,11 +140,15 @@ class MainActivity : AppCompatActivity() {
                 signedOutSection.visibility = View.GONE
                 signedInSection.visibility = View.VISIBLE
                 userEmail.text = user.email ?: user.uid.take(12)
-                userTier.text = "Invite"
+                userTier.text = if (WimApp.cloudUnlocked()) "Cloud unlocked" else "Local / Free"
+                findViewById<TextView>(R.id.settingsUserEmail)?.text = user.email ?: user.uid.take(12)
+                findViewById<TextView>(R.id.settingsUserTier)?.text = userTier.text
                 // Hide API key section — consumer doesn't need it
             } else {
                 signedOutSection.visibility = View.VISIBLE
                 signedInSection.visibility = View.GONE
+                findViewById<TextView>(R.id.settingsUserEmail)?.text = "Not signed in"
+                findViewById<TextView>(R.id.settingsUserTier)?.text = "Local / Free"
             }
         }
 
@@ -192,6 +197,7 @@ class MainActivity : AppCompatActivity() {
                     is SignInResult.Success -> {
                         Toast.makeText(this@MainActivity, "Signed in as ${result.user.email}", Toast.LENGTH_SHORT).show()
                         updateAuthUI()
+                        billingManager?.refresh()
                     }
                     is SignInResult.Failed -> {
                         Toast.makeText(this@MainActivity, result.reason, Toast.LENGTH_LONG).show()
@@ -202,9 +208,13 @@ class MainActivity : AppCompatActivity() {
 
         signOutBtn.setOnClickListener {
             AuthManager.signOut()
+            WimApp.clearCloudUnlock()
             updateAuthUI()
+            billingManager?.refresh()
             Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show()
         }
+
+        setupCloudBilling()
 
         // ── Sessions (collapsible) ───────────────────────
         // Sessions panel must be expanded on every app start — operator
@@ -353,6 +363,10 @@ class MainActivity : AppCompatActivity() {
             paintL1Source()
         }
         l1CloudBtn?.setOnClickListener {
+            if (!WimApp.cloudUnlocked()) {
+                requestCloudUnlock()
+                return@setOnClickListener
+            }
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
             paintL1Source()
         }
@@ -590,6 +604,11 @@ class MainActivity : AppCompatActivity() {
                 .setTitle(R.string.lang_picker_dialog_title)
                 .setSingleChoiceItems(labels, current) { dialog, which ->
                     val picked = codes[which]
+                    if (picked != "en" && !WimApp.cloudUnlocked()) {
+                        dialog.dismiss()
+                        requestCloudUnlock()
+                        return@setSingleChoiceItems
+                    }
                     if (picked != WimApp.appLanguage()) {
                         WimApp.setAppLanguage(picked)
                         // Force cloud ASR when locale leaves English
@@ -838,6 +857,48 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.privacyLink).setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/gugosf114/wim-android/blob/main/play_store/privacy_policy.md")))
         }
+
+        if (intent.getBooleanExtra("open_cloud_unlock", false)) {
+            window.decorView.post { requestCloudUnlock() }
+        }
+    }
+
+    private fun setupCloudBilling() {
+        val statusView = findViewById<TextView>(R.id.cloudUnlockStatus)
+        val priceView = findViewById<TextView>(R.id.cloudUnlockPrice)
+        val actionView = findViewById<TextView>(R.id.cloudUnlockAction)
+        billingManager = PlayBillingManager(this, lifecycleScope) { state ->
+            statusView?.text = state.message
+            priceView?.text = if (state.unlocked) "PERMANENT ACCESS"
+                else state.price ?: "Price unavailable"
+            actionView?.text = if (state.unlocked) "UNLOCKED" else "UNLOCK"
+            actionView?.isEnabled = !state.unlocked
+            actionView?.alpha = if (state.unlocked) 0.55f else 1f
+            findViewById<TextView>(R.id.userTier)?.text =
+                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+            findViewById<TextView>(R.id.settingsUserTier)?.text =
+                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+        }
+        actionView?.setOnClickListener { billingManager?.launchPurchase() }
+        billingManager?.start()
+    }
+
+    private fun requestCloudUnlock() {
+        if (!AuthManager.isSignedIn) {
+            Toast.makeText(this, "Sign in first, then unlock cloud speech", Toast.LENGTH_LONG).show()
+            return
+        }
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.cloud_unlock_title)
+            .setMessage(R.string.cloud_unlock_dialog)
+            .setPositiveButton(R.string.cloud_unlock_action) { _, _ ->
+                billingManager?.launchPurchase()
+            }
+            .setNeutralButton(R.string.cloud_unlock_restore) { _, _ ->
+                billingManager?.refresh()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     override fun onResume() {
@@ -889,6 +950,7 @@ class MainActivity : AppCompatActivity() {
         // every second). Stops in onPause.
         sessionTimerHandler.removeCallbacks(sessionTimerTick)
         sessionTimerHandler.post(sessionTimerTick)
+        billingManager?.refresh()
     }
 
     override fun onPause() {
@@ -911,7 +973,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        billingManager?.close()
+        billingManager = null
         tts?.stop()
         tts?.shutdown()
         tts = null
@@ -931,6 +994,7 @@ class MainActivity : AppCompatActivity() {
         // because FirebaseAuth holds a strong reference to the listener
         // that fires the callback.
         WimApp.onSessionsSynced = null
+        super.onDestroy()
     }
 
     private fun loadConsole() {
@@ -1341,6 +1405,10 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
+                if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
+                    requestCloudUnlock()
+                    return@setOnClickListener
+                }
                 triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)

@@ -138,6 +138,10 @@ dependencies {
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
 
+    // One-time, non-consumable WiM Cloud Unlock. The backend verifies and
+    // acknowledges every completed purchase before the app grants access.
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
+
     // Credential Manager for Google Sign-In
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")

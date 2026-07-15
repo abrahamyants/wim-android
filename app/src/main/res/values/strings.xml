@@ -321,4 +321,12 @@
     <string name="lang_picker_dialog_title">Choose language</string>
     <string name="lang_picker_restart_note">App will restart to apply</string>
 
+    <!-- Google Play one-time purchase -->
+    <string name="cloud_unlock_title">WiM Cloud Unlock</string>
+    <string name="cloud_unlock_status">Checking access…</string>
+    <string name="cloud_unlock_price">Price shown by Google Play</string>
+    <string name="cloud_unlock_action">UNLOCK</string>
+    <string name="cloud_unlock_restore">RESTORE</string>
+    <string name="cloud_unlock_dialog">Cloud speech, Layers II–IV, and non-English dictation need the one-time Cloud Unlock.</string>
+
 </resources>

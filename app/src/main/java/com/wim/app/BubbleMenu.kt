@@ -206,6 +206,10 @@ class BubbleMenu(
             btn.isSelected = isActive
             btn.setTextColor(if (isActive) brandCreamBright else brandCream)
             btn.setOnClickListener {
+                if (layerVal > 1 && !WimApp.cloudUnlocked()) {
+                    openCloudUnlock()
+                    return@setOnClickListener
+                }
                 WimApp.prefs.edit().putInt("layer", layerVal).apply()
                 layerEntries.forEach { (b, _) ->
                     b.isSelected = false
@@ -236,6 +240,10 @@ class BubbleMenu(
             paintL1Source()
         }
         l1CloudBtn.setOnClickListener {
+            if (!WimApp.cloudUnlocked()) {
+                openCloudUnlock()
+                return@setOnClickListener
+            }
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
             paintL1Source()
         }
@@ -338,6 +346,15 @@ class BubbleMenu(
         mParams.x = bubbleCenterX - mWidth / 2
         mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
         try { windowManager.updateViewLayout(mView, mParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+    }
+
+    private fun openCloudUnlock() {
+        dismiss()
+        val intent = Intent(context, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra("open_cloud_unlock", true)
+        }
+        context.startActivity(intent)
     }
 
     fun dismiss() {

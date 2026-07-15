@@ -78,6 +78,23 @@ class WimApp : Application() {
          * or settings.
          */
         fun layer(): Int = prefs.getInt("layer", 1)
+        /** A cached UI hint only; the backend independently enforces access. */
+        fun cloudUnlocked(): Boolean {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
+            return prefs.getBoolean("cloud_unlocked", false) &&
+                prefs.getString("cloud_unlock_uid", null) == uid
+        }
+
+        fun setCloudUnlocked(uid: String, unlocked: Boolean) {
+            prefs.edit()
+                .putBoolean("cloud_unlocked", unlocked)
+                .putString("cloud_unlock_uid", uid)
+                .apply()
+        }
+
+        fun clearCloudUnlock() {
+            prefs.edit().remove("cloud_unlocked").remove("cloud_unlock_uid").apply()
+        }
         fun situation(): String = prefs.getString("situation", "default") ?: "default"
         fun dafEnabled(): Boolean = prefs.getBoolean("daf_enabled", false)
         fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
