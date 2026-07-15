@@ -1,65 +1,64 @@
-# WiM: Voice typing built for speech disfluencies
+WiM (What I Meant) is voice typing for Android, designed for people whose speech includes blocks, repetitions, prolongations, false starts, or fillers — and for anyone who finds standard dictation rushed or inaccurate.
 
-## What WiM does
+VOICE TYPE WITHOUT LEAVING YOUR APP
 
-WiM (What I Meant) is a voice-typing app for Android, designed for people whose speech includes blocks, repetitions, prolongations, false starts, or fillers — and for anyone who finds standard dictation rushed and inaccurate.
+Tap WiM's floating bubble, speak naturally, and place the result into the text field you were already using in Gmail, Messages, WhatsApp, Signal, Slack, or another Android app.
 
-You tap a floating bubble. You speak however you naturally speak. WiM cleans up the transcript and drops the polished text into whatever app you're typing in — Gmail, WhatsApp, Messages, Signal, Slack, anything with a text field.
+BUILT AROUND REAL SPEECH
 
-## Who it's for
+WiM is especially useful for:
 
-- People who stutter or have other speech disfluencies who want a dictation tool that doesn't time out mid-block
-- People who want an assistive dictation tool designed around real, imperfect speech
-- People with accents that mainstream dictation engines mis-transcribe
-- Anyone who'd rather speak than type, without the friction of pausing perfectly
+• People who stutter or have other speech disfluencies
+• People who need dictation that does not time out during a speech block
+• People whose accents or speech patterns are often mistranscribed
+• Anyone who would rather speak than type
 
-## How the layers work
+CHOOSE HOW MUCH HELP YOU WANT
 
-WiM has four cleanup layers. You pick how much help you want.
+Layer 1 — Transcribe: Runs on your phone, works offline, and is free. Your dictation audio and transcript stay on the device. Layer 1 uses a small local speech model and inserts its raw transcript without cloud reconstruction.
 
-- **Layer 1 — Transcribe only.** Fully on-device, fully offline, free, and no dictation audio or transcript leaves your phone. Uses a small local speech model (whisper-tiny.en, ~40 MB) and a deterministic disfluency filter.
-- **Layer 2 — Reconstruct.** Adds cloud-based grammar cleanup and tone shaping (Casual / Professional / Friend / Formal).
-- **Layer 3 — Profile.** Adds your personal vocabulary, learned corrections, and voice patterns the app learns over time.
-- **Layer 4 — Speech Disfluency.** Deeper cloud reconstruction works through heavier disfluencies, covert avoidance, blocks, and transcription failures. Built with the speech-disfluency community in mind.
+Layer 2 — Reconstruct: Uses cloud processing for grammar cleanup and optional tone shaping.
 
-L1 is the default and free. L2 – L4 use cloud providers (OpenAI, Anthropic) for transcription and reconstruction and require an internet connection.
+Layer 3 — Profile: Also uses your saved vocabulary and corrections to better preserve the words that matter to you.
 
-## Why people pick WiM
+Layer 4 — Speech Disfluency: Applies deeper cloud transcription and reconstruction for heavier disfluencies, covert avoidance, blocks, and transcription failures.
 
-- **The microphone never times out on you mid-block.**
-- **The bubble follows you across apps.** You don't have to leave the app you're typing in.
-- **Tap-to-send assist preserves your place.** After pasting, WiM can find the host app's visible Send button and turn the bubble green for five seconds. A separate tap on that green bubble authorizes Send; doing nothing cancels without sending.
-- **A clarifier flags low-confidence words.** When the transcription is uncertain, the bubble offers tap-to-swap alternatives for individual words instead of failing silently.
-- **Three bubble themes.** Bronze, aluminum, gunmetal — swap whichever feels right.
-- **Twist mode.** Voice command turns the bubble into a volume knob for size and opacity.
-- **Local L1 is offline-first.** No internet required for default transcription.
+Layer 1 is the free default. Layers 2–4 require an internet connection and a WiM Cloud subscription.
 
-## Privacy
+DESIGNED TO REDUCE FRICTION
 
-The default Layer 1 layer runs fully on your device: no dictation audio or transcript is transmitted, and no account is required. Standard reliability telemetry is described in the privacy policy. If you select Layer 2, 3, or 4, audio and transcripts are sent to OpenAI and/or Anthropic for cloud processing — this is explicit, on you, and reversible by switching back to L1.
+• The microphone does not impose a short speech-block timeout.
+• The floating bubble follows you between apps.
+• A clarifier can offer alternatives for low-confidence words.
+• Optional tap-to-send assistance can identify a visible Send button after text is pasted. WiM never sends automatically: the bubble turns green briefly and a separate user tap is required to send.
+• Bubble size, opacity, and appearance can be adjusted.
 
-Optional Google sign-in enables cross-device sync of your learned vocabulary and corrections. You can delete all of that data from in-app Settings at any time.
+PRIVACY AND CONTROL
 
-Full Privacy Policy: https://mybakingcreations.com/wim-privacy-policy
+Layer 1 runs locally. No account is required, and dictation audio or transcripts are not transmitted for cloud processing.
 
-## Languages
+If you choose Layer 2, 3, or 4, the audio, transcript, and limited nearby text needed for sentence continuity are sent in an encrypted request to cloud providers. You can return to local Layer 1 at any time.
 
-WiM ships in English. Spanish, Russian, Portuguese, and French are supported for the app's own interface; voice input on L1 local is English-only at launch. Additional input languages are on the roadmap.
+Optional Google sign-in enables sync of learned vocabulary and corrections. Synced data can be deleted from WiM's Settings.
 
-## Pricing
+Privacy policy: https://mybakingcreations.com/wim-privacy-policy
 
-WiM is free to download and use indefinitely on Layer 1 (local and offline). WiM Cloud is an auto-renewing $5.99 monthly subscription with 300 cloud dictations, including up to 20 Layer IV dictations, each month. You can cancel anytime in Google Play; access continues through the paid period.
+PRICING
 
-WiM is an assistive dictation tool, not a medical device. It does not diagnose, treat, cure, or prevent any medical condition. Consult a qualified healthcare professional for medical advice, diagnosis, or treatment.
+Layer 1 is free to use indefinitely. WiM Cloud is an auto-renewing $5.99 monthly subscription that includes 300 cloud dictations, including up to 20 Layer 4 dictations, each month. Cancel anytime through Google Play; access continues through the paid period.
 
-## Permissions
+WHY WIM ASKS FOR PERMISSIONS
 
-- **Microphone** — to record your voice when you tap the bubble.
-- **Display over other apps** — for the floating bubble.
-- **Accessibility Service** — to find the text field you chose, read up to 200 characters immediately before the cursor for sentence continuity, insert your dictated text, and offer optional tap-to-send assistance. Local Layer 1 keeps that context on the phone; a cloud layer includes it in the encrypted reconstruction request. Password fields are blocked, and WiM never sends without a separate user tap.
-- **Foreground service** — keeps the bubble alive while you dictate.
-- **Notifications** — optional on Android 13+; keeps WiM's bubble status and recall shortcut visible in the notification drawer.
+• Microphone: records your voice only after you start dictation.
+• Display over other apps: shows the floating WiM bubble over the app you are using.
+• Accessibility Service: finds the text field you selected, reads up to 200 characters immediately before the cursor for sentence continuity, inserts dictated text, and offers optional tap-to-send assistance. Password fields are blocked. WiM never sends without a separate user tap.
+• Foreground service: keeps the bubble available while you dictate.
+• Notifications: optionally shows bubble status and a recall shortcut.
 
-## Built by
+LANGUAGES
 
-WiM is an independent project by an Armenian-American builder in Daly City, California. It exists because mainstream dictation tools don't handle disfluent speech and the builder needed one that does. Feedback and bug reports welcome: gugosf@gmail.com.
+WiM's interface supports English, Spanish, Russian, Portuguese, and French. Local Layer 1 voice input is English-only at launch.
+
+WiM is an assistive dictation tool, not a medical device. It does not diagnose, treat, cure, or prevent any medical condition.
+
+WiM is an independent project built in Daly City, California. Feedback and bug reports are welcome at gugosf@gmail.com.

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1080, initial-scale=1">
+  <title>WiM Play Store Screenshot</title>
+  <style>
+    @font-face {
+      font-family: "Limelight";
+      src: url("../app/src/main/assets/limelight.ttf") format("truetype");
+    }
+
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #1a1a1e;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 1080px;
+      height: 1920px;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      position: relative;
+      color: #f0ece4;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(208, 96, 96, .19), transparent 32%),
+        radial-gradient(circle at 8% 92%, rgba(196, 154, 108, .18), transparent 34%),
+        linear-gradient(165deg, #222226 0%, #1a1a1e 52%, #18181c 100%);
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .22;
+      background-image:
+        linear-gradient(30deg, #34343a 12%, transparent 12.5%, transparent 87%, #34343a 87.5%, #34343a),
+        linear-gradient(150deg, #34343a 12%, transparent 12.5%, transparent 87%, #34343a 87.5%, #34343a),
+        linear-gradient(30deg, #34343a 12%, transparent 12.5%, transparent 87%, #34343a 87.5%, #34343a),
+        linear-gradient(150deg, #34343a 12%, transparent 12.5%, transparent 87%, #34343a 87.5%, #34343a),
+        linear-gradient(60deg, #2b2b30 25%, transparent 25.5%, transparent 75%, #2b2b30 75%, #2b2b30),
+        linear-gradient(60deg, #2b2b30 25%, transparent 25.5%, transparent 75%, #2b2b30 75%, #2b2b30);
+      background-position: 0 0, 0 0, 36px 63px, 36px 63px, 0 0, 36px 63px;
+      background-size: 72px 126px;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      padding: 62px 70px 58px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+      color: #c8b48a;
+    }
+
+    .mark {
+      font: 76px/1 "Limelight", Georgia, serif;
+      letter-spacing: 2px;
+    }
+
+    .meaning {
+      color: #c49a6c;
+      font: 700 25px/1 Arial, sans-serif;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 54px 0 18px;
+      color: #f0ece4;
+      font-size: 70px;
+      line-height: 1.02;
+      letter-spacing: -2px;
+    }
+
+    .subhead {
+      max-width: 900px;
+      margin: 0;
+      color: #d4d0c8;
+      font-size: 32px;
+      line-height: 1.28;
+    }
+
+    .device-frame {
+      position: absolute;
+      left: 70px;
+      right: 70px;
+      top: 450px;
+      bottom: 58px;
+      overflow: hidden;
+      border: 3px solid rgba(200, 180, 138, .7);
+      border-radius: 44px;
+      background: #111216;
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, .5),
+        0 0 0 10px rgba(24, 24, 28, .86);
+    }
+
+    .device-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 0 2px rgba(238, 90, 36, .18);
+      border-radius: 40px;
+    }
+
+    .shot {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center var(--position, 0%);
+    }
+
+    .accent {
+      position: absolute;
+      right: 70px;
+      top: 392px;
+      width: 110px;
+      height: 8px;
+      border-radius: 8px;
+      background: #ee5a24;
+      box-shadow: 0 0 18px rgba(238, 90, 36, .45);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <header class="brand">
+      <div class="mark">WiM</div>
+      <div class="meaning">What I Meant</div>
+    </header>
+    <h1 id="headline"></h1>
+    <p class="subhead" id="subhead"></p>
+    <div class="accent"></div>
+    <div class="device-frame">
+      <img class="shot" id="shot" alt="WiM Android app screenshot">
+    </div>
+  </main>
+
+  <script>
+    const cards = {
+      1: {
+        headline: "Voice typing, anywhere.",
+        subhead: "The floating bubble stays with the app you are already using.",
+        image: "../onboarding_assets/screenshots/14_bubble_menu.png",
+        position: "2%",
+      },
+      2: {
+        headline: "Local by default.",
+        subhead: "Choose offline transcription or opt into deeper cloud reconstruction.",
+        image: "../onboarding_assets/screenshots/15_layers.png",
+        position: "43%",
+      },
+      3: {
+        headline: "Built around your words.",
+        subhead: "Add vocabulary and corrections that matter to the way you speak.",
+        image: "../onboarding_assets/screenshots/13_user_profile.png",
+        position: "2%",
+      },
+      4: {
+        headline: "Tap. Speak. Keep working.",
+        subhead: "Dictate without leaving the task or text field already in front of you.",
+        image: "../onboarding_assets/screenshots/16_bubble_recording.png",
+        position: "47%",
+      },
+    };
+
+    const number = new URLSearchParams(location.search).get("card") || "1";
+    const card = cards[number] || cards[1];
+    document.getElementById("headline").textContent = card.headline;
+    document.getElementById("subhead").textContent = card.subhead;
+    const shot = document.getElementById("shot");
+    shot.src = card.image;
+    shot.style.setProperty("--position", card.position);
+  </script>
+</body>
+</html>
