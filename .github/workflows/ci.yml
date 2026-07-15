@@ -36,6 +36,15 @@ jobs:
       - name: Run unit tests
         run: gradle testDebugUnitTest
 
+      - name: Lint release build
+        run: gradle lintRelease
+
+      # Signing secrets are intentionally absent in CI. build.gradle emits an
+      # unsigned bundle, which still catches R8/resource-shrinking and other
+      # release-only failures before a Play upload.
+      - name: Build release bundle
+        run: gradle bundleRelease -x uploadCrashlyticsSymbolFileRelease
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push'

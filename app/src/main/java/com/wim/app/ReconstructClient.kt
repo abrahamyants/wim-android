@@ -13,8 +13,6 @@ import java.util.concurrent.TimeUnit
 
 object ReconstructClient {
 
-    private const val BACKEND_URL = "https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct"
-
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -73,7 +71,8 @@ object ReconstructClient {
         compressionRatioNote: String = "",
         audiencePackage: String? = null,
         wavFile: java.io.File? = null,
-        whisperSegments: List<WhisperClient.TimedSegment> = emptyList()
+        whisperSegments: List<WhisperClient.TimedSegment> = emptyList(),
+        scriptPrepContext: String = ScriptPrepStore.activeContext()
     ): ReconstructResult {
         // Persistent learning state machine (RejectionStore + StyleExamples):
         //
@@ -97,27 +96,26 @@ object ReconstructClient {
             StyleExamples.record(pending.first, pending.second)
         }
 
-        // Routing:
-        //   signed-in + L2/L3              → backend (server holds OpenAI key)
-        //   signed-in + L4 w/ Anthropic    → device-direct (Sonnet ET — backend
-        //                                    has no Anthropic codepath, would
-        //                                    silently degrade to GPT-4o)
-        //   not signed in                   → device-direct (uses bundled keys)
+        // Build acoustic context before routing so backend and direct L4 share
+        // the same personal-baseline behavior.
+        var prosodicSummary: ProsodicAnalyzer.SessionSummary? = null
+        val prosodicContext = if (layer >= 4 && wavFile != null && whisperSegments.isNotEmpty()) {
+            val features = ProsodicAnalyzer.extractFromWav(wavFile, whisperSegments)
+            prosodicSummary = ProsodicAnalyzer.summarize(features)
+            ProsodicAnalyzer.buildProsodicContext(features, WimApp.profile().prosodicBaseline())
+        } else ""
+
+        // Routing: every signed-in layer uses the authenticated backend. The
+        // backend supports L4 Sonnet extended thinking, so release builds do
+        // not need OpenAI or Anthropic secrets stored on the phone.
         val idToken = AuthManager.getIdToken()
         val anthropicKey = WimApp.anthropicApiKey()
-        val forceDirectForL4Sonnet = layer >= 4 && anthropicKey.isNotBlank()
-        // L4 clinical-mode contract is Sonnet 4.6 with extended thinking. If
-        // the user is on L4 but the Anthropic key is blank, the request will
-        // silently fall through to GPT-4o (either via backend or via direct's
-        // useSonnet=false branch). Surface this in logcat + ConsoleLog so the
-        // user / operator can see when L4 is degraded — was completely
-        // invisible before per 2026-06-06 audit.
-        if (layer >= 4 && anthropicKey.isBlank()) {
+        if (layer >= 4 && idToken == null && anthropicKey.isBlank()) {
             android.util.Log.w("WiM", "L4 requested but no Anthropic key — downgrading to GPT-4o (no Sonnet ET)")
             com.wim.app.ConsoleLog.log("L4 → GPT-4o downgrade (no Anthropic key on this device)", "warn")
         }
-        val result = if (idToken != null && !forceDirectForL4Sonnet) {
-            reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage)
+        val result = if (idToken != null) {
+            reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext)
         } else {
             // Device-direct: bundled or user-supplied OpenAI key for L2/L3, plus
             // bundled or user-supplied Anthropic key for L4 Sonnet ET. Falls
@@ -129,8 +127,10 @@ object ReconstructClient {
                 android.util.Log.w("WiM", "No auth token — using device-direct reconstruction (signed out or token refresh failed)")
                 com.wim.app.ConsoleLog.log("Auth token unavailable — using device-direct path", "warn")
             }
-            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, wavFile, whisperSegments)
+            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext)
         }
+
+        prosodicSummary?.let { WimApp.profile().recordProsodic(it) }
 
         // Stage this reconstruction's (raw, output) pair as PENDING. The
         // next reconstruct() call decides whether it gets promoted to
@@ -193,7 +193,7 @@ object ReconstructClient {
             put("language_code", LangPackHelper.normalizeLangCode(languageCode))
         }
         val request = Request.Builder()
-            .url(BACKEND_URL)
+            .url(BackendConfig.URL)
             .addHeader("Authorization", "Bearer $idToken")
             .addHeader("Content-Type", "application/json")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
@@ -248,7 +248,9 @@ object ReconstructClient {
         languageCode: String = "en",
         previousOutputs: List<String> = emptyList(),
         compressionRatioNote: String = "",
-        audiencePackage: String? = null
+        audiencePackage: String? = null,
+        scriptPrepContext: String = "",
+        prosodicContext: String = ""
     ): ReconstructResult = withContext(Dispatchers.IO) {
         val t0 = System.currentTimeMillis()
 
@@ -300,6 +302,10 @@ object ReconstructClient {
             if (precedingContext.isNotBlank()) {
                 put("preceding_context", precedingContext)
             }
+            if (scriptPrepContext.isNotBlank()) {
+                put("script_prep", scriptPrepContext.take(ScriptPrepStore.MAX_CHARS))
+            }
+            if (prosodicContext.isNotBlank()) put("prosodic_context", prosodicContext)
             put("language_code", LangPackHelper.normalizeLangCode(languageCode))
             // Rate-gap note: pre-formatted string (caller has wordCount,
             // audioDurationSec, and the baseline). When non-empty it's
@@ -349,7 +355,7 @@ object ReconstructClient {
         }
 
         val request = Request.Builder()
-            .url(BACKEND_URL)
+            .url(BackendConfig.URL)
             .addHeader("Authorization", "Bearer $idToken")
             .addHeader("Content-Type", "application/json")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
@@ -411,8 +417,8 @@ object ReconstructClient {
         previousOutputs: List<String> = emptyList(),
         compressionRatioNote: String = "",
         audiencePackage: String? = null,
-        wavFile: java.io.File? = null,
-        whisperSegments: List<WhisperClient.TimedSegment> = emptyList()
+        scriptPrepContext: String = "",
+        prosodicContext: String = ""
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
@@ -447,6 +453,10 @@ object ReconstructClient {
                     append("\n\nText already in the target field before this dictation (CONTEXT — do NOT include in output, do NOT repeat, do NOT acknowledge):\n\"")
                     append(precedingContext.takeLast(500))
                     append("\"\nUse this only to disambiguate words and match the speaker's running topic.")
+                }
+                if (scriptPrepContext.isNotBlank()) {
+                    append("\n\nSCRIPT PREP CONTEXT (provided before dictation; use only to resolve names, jargon, topic, and intended phrasing; never repeat or acknowledge unless actually dictated):\n")
+                    append(scriptPrepContext.take(ScriptPrepStore.MAX_CHARS))
                 }
 
                 // Audience-context: READER block formatted from the foreground
@@ -728,15 +738,8 @@ object ReconstructClient {
             val anthropicKey = WimApp.anthropicApiKey()
             val useSonnet = layer >= 4 && anthropicKey.isNotBlank()
 
-            // L4: inject prosodic context block when wav + timed segments are available.
-            // Ported from lavrentiy.py extract_prosodic_features() + build_prosodic_context().
-            val finalSystemPrompt = if (useSonnet && wavFile != null && whisperSegments.isNotEmpty()) {
-                val prosodicFeatures = ProsodicAnalyzer.extractFromWav(wavFile, whisperSegments)
-                val prosodicBlock = ProsodicAnalyzer.buildProsodicContext(prosodicFeatures)
-                if (prosodicBlock.isNotEmpty()) {
-                    Log.i("WiM", "Prosodic: ${prosodicFeatures.size} segments analysed")
-                    "$systemPrompt\n\n$prosodicBlock"
-                } else systemPrompt
+            val finalSystemPrompt = if (prosodicContext.isNotBlank()) {
+                "$systemPrompt\n\n$prosodicContext"
             } else systemPrompt
 
             var sonnetDowngraded = false

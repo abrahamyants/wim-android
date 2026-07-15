@@ -13,8 +13,9 @@ WiM captures your voice, transcribes it on-device, and optionally reconstructs i
 
 ## Architecture
 
-- **On-device ASR** — Android SpeechRecognizer, zero cost, zero latency, continuous listening
-- **GPT reconstruction** — OpenAI API (gpt-4o for all layers, Gemini removed)
+- **On-device ASR** — local whisper-tiny.en for the default L1 path
+- **Authenticated cloud speech** — signed-in audio goes through the WiM backend; release builds hold no provider secrets
+- **Reconstruction** — GPT-4o at L2/L3 and Sonnet extended thinking at L4
 - **Falcon validation** — Meaning-preservation check after reconstruction
 - **Accessibility injection** — Clipboard + ACTION_PASTE into any text field
 - **Floating bubble** — TYPE_APPLICATION_OVERLAY foreground service with pulse ring animations
@@ -34,6 +35,9 @@ WiM captures your voice, transcribes it on-device, and optionally reconstructs i
 - **3 situation modes** — Default, High Stress, Reading
 - **DAF** — Delayed Auditory Feedback (30-300ms configurable)
 - **Profile learning** — Auto-learns corrections from usage, persists across sessions
+- **Script Prep** — Prepared names, jargon, and topic notes guide transcription without being inserted into output
+- **Visible learning** — Profile shows learned words, corrections, difficult sounds, and personal speech calibration
+- **Personal baseline** — L4 compares pitch, energy, and speaking rate with the user's own rolling baseline
 - **Disfluency filtering** — Stutter fragments, word/phrase repetitions, prolongations, fillers, false starts
 - **Falcon validation** — GPT meaning-check rejects bad reconstructions
 - **Risk flags** — Critical token retention, length delta, short output detection
@@ -65,7 +69,7 @@ Twist commands are self-contained on the bubble — no text field or target app 
 
 ## Two API Paths
 
-1. **Signed in with Google** — Requests go through Cloud Function backend at `bakers-agent.cloudfunctions.net`. Server holds the API key.
+1. **Signed in with Google** — Audio transcription and reconstruction go through the Cloud Function backend at `bakers-agent.cloudfunctions.net`. Server holds the provider keys.
 2. **Local API key** — Direct OpenAI calls. Enter your `sk-proj-...` key in the app settings.
 
 ## Build & Deploy

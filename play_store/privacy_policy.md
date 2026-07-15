@@ -1,6 +1,6 @@
 # Privacy Policy for WiM (What I Meant)
 
-**Last Updated: May 29, 2026**
+**Last Updated: July 14, 2026**
 
 This Privacy Policy describes how WiM ("we," "us," or "our") handles your information when you use the WiM mobile application ("the app"). Read it together with the Google Play store listing.
 
@@ -17,13 +17,17 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 - You can also optionally enable a cloud transcription engine for L1 (OpenAI whisper-1) if you prefer cloud accuracy over local. This is off by default and surfaced as the "L1 Cloud" toggle in the bubble menu.
 
 ### Layer 2 / Layer 3 — cloud reconstruction (opt-in)
-- Selecting L2 or L3 sends your audio to OpenAI's Whisper API for transcription and your transcript to OpenAI's GPT-4o model for grammar and tone cleanup.
-- Requests are routed through our Cloud Function backend (`wim-reconstruct` on Google Cloud) so the third-party API key is held server-side, not on your device.
+- Selecting L2 or L3 uploads your audio to our authenticated Cloud Function (`wim-reconstruct` on Google Cloud). The backend sends it to OpenAI's transcription API and sends the resulting transcript to OpenAI's GPT-4o model for grammar and tone cleanup.
+- The third-party API key is held server-side, not on your device. A developer who explicitly enters a personal OpenAI key can instead use the direct API path.
 - We do not store your audio. The Cloud Function keeps short-lived request logs (uid, latency, layer, model) for reliability; logs do not include the contents of your audio or transcripts.
 
 ### Layer 4 — clinical reconstruction (opt-in)
-- L4 sends your audio to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript to Anthropic's Claude Sonnet 4.6 model for clinical-grade reconstruction.
-- L4 requests are sent to Anthropic directly from the app using a bundled API key, then logged the same way as L2/L3.
+- L4 uploads audio through the same authenticated Cloud Function. The backend sends it to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript and derived acoustic context to Anthropic's Claude Sonnet model for clinical reconstruction.
+- OpenAI and Anthropic credentials remain on the server and are not bundled into the release app.
+
+### Script Prep and personal learning
+- If you activate Script Prep, the notes you enter are sent with cloud transcription and reconstruction requests as context. The model is instructed not to insert those notes unless you actually dictate the content.
+- WiM stores your personal speaking-rate, pitch, and energy baselines locally on your device. Cloud reconstruction can receive a short derived summary; the baseline history itself is not uploaded as profile data.
 
 ### What this means in practice
 - Default install = nothing leaves your phone.
@@ -61,7 +65,7 @@ These can be limited at the OS level via Google Play Services privacy controls.
 
 | Provider | Used for | Triggered when |
 |---|---|---|
-| Google Play Services | App distribution, sign-in, billing | Always |
+| Google Play Services | App distribution and sign-in | Always |
 | Google Firebase Authentication | Account creation | Only after you sign in with Google |
 | Google Firestore | Profile + history sync | Only after sign-in, only if sync enabled |
 | Google Firebase Crashlytics / Performance / Analytics | Reliability + telemetry | Always (can be limited via OS controls) |

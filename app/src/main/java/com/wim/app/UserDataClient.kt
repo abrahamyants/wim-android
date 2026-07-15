@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
  */
 object UserDataClient {
 
-    private const val ENDPOINT = "https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct"
+    private const val ENDPOINT = BackendConfig.URL
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

@@ -1,0 +1,24 @@
+{
+  "source": "Lavrentiy heavy_stutter_test_scripts.json v2",
+  "purpose": "Release-gate corpus for hard silent blocks and realistic ASR artifacts",
+  "cases": [
+    {"id":"h01","intended":"I want to present the proposal on Tuesday","disfluent":"i want to thank you for watching present the proposal on tuesday"},
+    {"id":"h02","intended":"Can you call the doctor","disfluent":"can you so so so call the doctor"},
+    {"id":"h03","intended":"My biggest concern is the deadline","disfluent":"my biggest thanks for watching uhh my my biggest concern is the deadline"},
+    {"id":"h04","intended":"I think we should reschedule the meeting","disfluent":"i think we sh-- we should res-- we should reschedule the meeting"},
+    {"id":"h05","intended":"I disagree with the recommendation","disfluent":"i agree with i mean i i disagree with the recommendation"},
+    {"id":"h06","intended":"The cost is forty thousand dollars","disfluent":"the cost is uh fourteen actually forty thousand dollars"},
+    {"id":"h07","intended":"Hi this is George I am calling about the appointment on Thursday","disfluent":"hi this is thanks for watching g g george i am calling about the the appointment on thursday"},
+    {"id":"h08","intended":"I need to talk to my manager about the raise","disfluent":"i need to uhm uh well you know like uhm talk to my manager about the the raise"},
+    {"id":"h09","intended":"Please send the revised contract before close of business Friday","disfluent":"please uhh please please send the the revised contract uh before close of of business friday"},
+    {"id":"h10","intended":"I met with Henderson at the Marriott yesterday","disfluent":"i met with thank you for watching henderson at the the m m marriott yesterday"},
+    {"id":"h11","intended":"Good morning everyone today I want to talk about the quarterly results","disfluent":"good uhm good morning everyone uh today i i want to talk about the the quarterly results"},
+    {"id":"h12","intended":"I have been experiencing chest pain for about two weeks","disfluent":"i have been experiencing uhh ch-- ch-- chest pain for about uh two weeks"},
+    {"id":"h13","intended":"Want to grab dinner tonight","disfluent":"want to uh g g grab dinner thanks tonight"},
+    {"id":"h14","intended":"I do not consent to that condition","disfluent":"i do not thank you for watching consent to that uh that condition"},
+    {"id":"h15","intended":"Can you please pass me the salt","disfluent":"can you ну ну please p p pass me the salt"},
+    {"id":"h16","intended":"I went to the conference last weekend","disfluent":"i went to the the the the conference last weekend"},
+    {"id":"h17","intended":"I think the new policy is unfair to junior staff","disfluent":"i think the new the the i i think the new policy is unfair to to junior staff"},
+    {"id":"h18","intended":"I need to call my therapist","disfluent":"i need to uh c c reach out to my therapist"}
+  ]
+}

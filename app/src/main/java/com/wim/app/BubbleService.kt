@@ -1271,7 +1271,7 @@ class BubbleService : Service() {
         }
 
         // Prime the pre-roll audio buffer so first words aren't lost on tap
-        if (WimApp.apiKey().isNotBlank() && WimApp.layer() >= 2) {
+        if ((WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn) && WimApp.layer() >= 2) {
             if (audioRecorder == null) audioRecorder = AudioRecorder(this)
             audioRecorder?.primeBuffer()
         }
@@ -1358,8 +1358,10 @@ class BubbleService : Service() {
     private fun classifyFailure(e: Throwable): FailureInfo {
         val msg = e.message ?: ""
         return when {
-            e is IllegalStateException && msg.contains("API key", ignoreCase = true) ->
-                FailureInfo(FailReason.CONFIG, "No API key configured — sign in or set a key in Settings")
+            e is IllegalStateException &&
+                (msg.contains("API key", ignoreCase = true) ||
+                    msg.contains("Sign in", ignoreCase = true)) ->
+                FailureInfo(FailReason.CONFIG, "Sign in to use cloud speech, or add your own API key in Settings")
             e is SecurityException ->
                 FailureInfo(FailReason.CONFIG, "Microphone permission missing — enable it in Settings")
             e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ||
@@ -1763,7 +1765,8 @@ class BubbleService : Service() {
         val l1Cloud = WimApp.l1CloudAsr()
         val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
         val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
-        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
+        val cloudAvailable = WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn
+        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && cloudAvailable) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))

@@ -2119,6 +2119,111 @@
             android:layout_marginBottom="10dp" />
 
         <!-- ═══════════════════════════════════════════ -->
+        <!-- SCRIPT PREP / DICTATION CONTEXT -->
+        <!-- ═══════════════════════════════════════════ -->
+        <TextView
+            android:id="@+id/headerScriptPrep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tile_script_prep"
+            android:textColor="@color/section_header"
+            android:textSize="14sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/geist_bold"
+            android:elevation="4dp"
+            android:textStyle="bold"
+            android:background="@drawable/glass_panel_bg_pressable"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/contentScriptPrep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/grille_pattern_bg"
+            android:padding="10dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/script_prep_help"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:fontFamily="@font/plus_jakarta_sans"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/scriptPrepText"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:gravity="top|start"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLength="6000"
+                android:padding="12dp"
+                android:hint="@string/script_prep_hint"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp"
+                android:fontFamily="@font/plus_jakarta_sans"
+                android:background="@drawable/card_bg" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/scriptPrepEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/script_prep_use"
+                android:textColor="@color/text_bright"
+                android:textSize="13sp"
+                android:fontFamily="@font/geist_bold"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:id="@+id/scriptPrepStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="OFF — no prepared context"
+                android:textColor="@color/text_dim"
+                android:textSize="10sp"
+                android:fontFamily="@font/plus_jakarta_sans"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/scriptPrepSave"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:text="@string/script_prep_save"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_bright"
+                    android:background="@drawable/card_bg_selected" />
+
+                <Button
+                    android:id="@+id/scriptPrepClear"
+                    android:layout_width="96dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/script_prep_clear"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/card_bg" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════ -->
         <!-- SESSIONS (moved here from above per George 2026-04-30) -->
         <!-- ═══════════════════════════════════════════ -->
         <TextView

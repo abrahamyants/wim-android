@@ -164,7 +164,9 @@ class WimApp : Application() {
          * each individual send. Per-app whitelist lives in
          * WimAccessibilityService.SUPPORTED_AUTOSEND_APPS.
          */
-        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
+        // Destructive follow-up action: opt-in only. A fresh install must never
+        // press another app's Send button without the user enabling it.
+        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", false)
 
         fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", false)
 

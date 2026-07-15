@@ -213,6 +213,8 @@ class MainActivity : AppCompatActivity() {
         // "section_" prefix to match what setupCollapsible actually reads.
         WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerScriptPrep, R.id.contentScriptPrep, "script_prep_section", defaultExpanded = false)
+        setupScriptPrep()
         // Apply maroon background + grille mesh overlay
         val sessionsPanel = findViewById<FrameLayout>(R.id.sessionsPanel)
         val panelBg = getDrawable(R.drawable.sessions_panel_bg)!!
@@ -521,7 +523,8 @@ class MainActivity : AppCompatActivity() {
             R.id.headerDaf,
             R.id.headerPermissions,
             R.id.headerSettings,
-            R.id.headerGuide
+            R.id.headerGuide,
+            R.id.headerScriptPrep
         ).forEach { applyHeaderShimmer(it) }
 
         // Layer tile labels
@@ -1569,6 +1572,47 @@ class MainActivity : AppCompatActivity() {
             updateCollapseArrow(header, !isVisible)
             WimApp.prefs.edit().putBoolean("section_$prefKey", !isVisible).apply()
         }
+    }
+
+    private fun setupScriptPrep() {
+        val input = findViewById<EditText>(R.id.scriptPrepText)
+        val enabled = findViewById<MaterialSwitch>(R.id.scriptPrepEnabled)
+        val status = findViewById<TextView>(R.id.scriptPrepStatus)
+        input.setText(ScriptPrepStore.text())
+        enabled.isChecked = ScriptPrepStore.isEnabled()
+
+        fun refresh() {
+            val chars = ScriptPrepStore.text().length
+            val active = ScriptPrepStore.isEnabled()
+            status.text = if (active) "ACTIVE — $chars characters sent as private context" else "OFF — no prepared context is being used"
+            status.setTextColor(getColor(if (active) R.color.green_active else R.color.text_dim))
+            enabled.isChecked = active
+        }
+
+        findViewById<Button>(R.id.scriptPrepSave).setOnClickListener {
+            val text = input.text.toString().trim()
+            if (text.isBlank()) {
+                Toast.makeText(this, "Paste or type context first", Toast.LENGTH_SHORT).show()
+            } else {
+                ScriptPrepStore.save(text, enabled = true)
+                refresh()
+                Toast.makeText(this, "Script Prep is active", Toast.LENGTH_SHORT).show()
+            }
+        }
+        findViewById<Button>(R.id.scriptPrepClear).setOnClickListener {
+            ScriptPrepStore.clear()
+            input.setText("")
+            refresh()
+        }
+        enabled.setOnCheckedChangeListener { _, checked ->
+            if (checked && input.text.toString().trim() != ScriptPrepStore.text()) {
+                ScriptPrepStore.save(input.text.toString(), enabled = true)
+            } else {
+                ScriptPrepStore.setEnabled(checked)
+            }
+            refresh()
+        }
+        refresh()
     }
 
     private fun findScrollView(view: android.view.View?): ScrollView? {
@@ -2834,6 +2878,37 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val profile = WimApp.profile()
         val pillDp = resources.displayMetrics.density
 
+        fun renderLearned() {
+            val summary = profile.learnedSummary()
+            overlay.findViewById<TextView>(R.id.learnedCounts)?.text =
+                "${summary.vocabulary} words  ·  ${summary.corrections} corrections  ·  ${summary.triggerWords} triggers"
+            overlay.findViewById<TextView>(R.id.learnedOnsets)?.text =
+                if (summary.difficultOnsets.isEmpty()) "Still learning — no reliable pattern yet"
+                else summary.difficultOnsets.joinToString("   ") { (sound, weight) -> "$sound ${"%.1f".format(weight)}" }
+            val acoustic = profile.prosodicBaseline()
+            val wps = profile.baselineWps()
+            overlay.findViewById<TextView>(R.id.learnedBaseline)?.text = when {
+                acoustic != null -> buildString {
+                    append("${acoustic.samples} recordings · ${"%.1f".format(acoustic.rateMean)} syllables/sec")
+                    if (wps != null) append(" · ${"%.1f".format(wps)} words/sec")
+                }
+                else -> "Calibrating: ${profile.prosodicSampleCount()}/5 L4 recordings"
+            }
+        }
+
+        overlay.findViewById<TextView>(R.id.clearSpeechBaselineBtn)?.setOnClickListener {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Reset personal baseline?")
+                .setMessage("WiM will forget your learned speaking rate, pitch, and energy. Your vocabulary and corrections will stay.")
+                .setPositiveButton("Reset") { _, _ ->
+                    profile.clearPersonalSpeechBaseline()
+                    renderLearned()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        renderLearned()
+
         fun makePill(label: String, onTap: () -> Unit): View {
             return TextView(this).apply {
                 text = "$label  ✕"
@@ -2858,6 +2933,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 vocabChips?.addView(makePill(word) {
                     profile.removeVocabulary(word)
                     renderVocab()
+                    renderLearned()
                 })
             }
         }
@@ -2868,6 +2944,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 profile.addVocabulary(w)
                 vocabAddInput?.setText("")
                 renderVocab()
+                renderLearned()
             }
         }
         vocabAddBtn?.setOnClickListener { addVocab() }
@@ -2884,6 +2961,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 corrChips?.addView(makePill("$from → $to") {
                     profile.removeCorrection(from)
                     renderCorr()
+                    renderLearned()
                 })
             }
         }
@@ -2896,6 +2974,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 corrAddFrom?.setText("")
                 corrAddTo?.setText("")
                 renderCorr()
+                renderLearned()
             }
         }
         corrAddBtn?.setOnClickListener { addCorr() }
@@ -2911,6 +2990,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 triggerChips?.addView(makePill(word) {
                     profile.removeTriggerWord(word)
                     renderTriggers()
+                    renderLearned()
                 })
             }
         }
@@ -2921,6 +3001,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 profile.addTriggerWord(w)
                 triggerAddInput?.setText("")
                 renderTriggers()
+                renderLearned()
             }
         }
         triggerAddBtn?.setOnClickListener { addTrigger() }
