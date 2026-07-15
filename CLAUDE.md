@@ -6,7 +6,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 ## Architecture
 
 - **Language / SDK**: Kotlin 2.0.21, AGP 8.7.0, `compileSdk = 35`, `minSdk = 26`, `targetSdk = 35`. View-based UI with `viewBinding` enabled (no Compose yet — the `brand.local.md` migration target is Compose under `app/src/main/java/com/wim/app/onboarding/`).
-- **Package**: `com.wim.app` (`applicationId = com.wim.app`, `versionCode = 3`, `versionName = 0.2.0`).
+- **Package**: Play application ID `com.wimlabs.wim`; Kotlin namespace `com.wim.app` (`versionCode = 6`, `versionName = 1.0.0`).
 - **Entry points** (see `app/src/main/AndroidManifest.xml`):
   - `MainActivity` — launcher, dashboard (frozen-top + scrolling-middle + frozen-bottom layout). `singleTask`.
   - `BouncerActivity` — first-run permission gate (the active onboarding entry per Session 9).
@@ -15,7 +15,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
   - `WimAccessibilityService` — `BIND_ACCESSIBILITY_SERVICE`. Reads pre-cursor context, injects text via `ACTION_SET_TEXT`, performs auto-send `ACTION_CLICK` on host-app Send buttons.
   - `WimTileService` — Quick Settings tile; tap = summon bubble (NOT toggle recording).
   - `WimWidgetProvider` — 1×1 home-screen widget, tap-to-record.
-  - `WimTestReceiver` — `com.wim.app.TEST` broadcast receiver; ADB/LLM agent control surface (`exported="true"`). 16+ actions (`inject_raw`, `trigger_clarifier`, `set_pref`, `click_send`, `live_show`, `toggle_recording`, `test_chirp`, `reset_auto_send_disclaimer_count`, etc.).
+  - `WimTestReceiver` — `com.wimlabs.wim.TEST` broadcast receiver; ADB/LLM agent control surface (`exported="true"`). 16+ actions (`inject_raw`, `trigger_clarifier`, `set_pref`, `click_send`, `live_show`, `toggle_recording`, `test_chirp`, `reset_auto_send_disclaimer_count`, etc.).
   - `BootReceiver` — restart bubble after device reboot.
 - **Source layout** (`app/src/main/java/com/wim/app/`):
   - **Bubble runtime**: `BubbleService.kt` (largest file, ~4300 lines), `BubbleState.kt` + `BubbleStateBus`, `BubblePersona.kt`, `BubbleAffect.kt`, `BubbleDemoScript.kt`, `CommentBubbleDrawable.kt` (menu shape), `BezelStageArcView.kt`, `LogoBarsView` (in `BubbleService`), `KnobPins.kt`.
@@ -151,7 +151,7 @@ Or run `scripts/screenshot.sh` (auto-pulls + Pillow-shrinks to ≤1500px JPG for
 
 **Headless test broadcast**:
 ```bash
-adb shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver \
+adb shell am broadcast -a com.wimlabs.wim.TEST -n com.wimlabs.wim/com.wim.app.WimTestReceiver \
     --es action set_pref --es key use_moonshine --es value true --es type bool
 ```
 

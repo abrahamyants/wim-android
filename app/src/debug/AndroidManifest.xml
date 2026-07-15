@@ -6,7 +6,7 @@
             android:name=".WimTestReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.wim.app.TEST" />
+                <action android:name="${applicationId}.TEST" />
             </intent-filter>
         </receiver>
     </application>

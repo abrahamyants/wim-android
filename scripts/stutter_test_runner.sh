@@ -14,16 +14,19 @@ set -euo pipefail
 export MSYS_NO_PATHCONV=1
 
 ADB="C:/Users/georg/AppData/Local/Android/Sdk/platform-tools/adb.exe"
+APP_ID="com.wimlabs.wim"
+TEST_ACTION="$APP_ID.TEST"
+TEST_RECEIVER="$APP_ID/com.wim.app.WimTestReceiver"
 OUT_DIR="C:/Users/georg/AppData/Local/Temp/wim_stutter_test"
 mkdir -p "$OUT_DIR"
 RESULTS_JSON="$OUT_DIR/results.json"
 
 broadcast() {
-  "$ADB" shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver "$@" 2>&1 | tail -1 >/dev/null
+  "$ADB" shell am broadcast -a "$TEST_ACTION" -n "$TEST_RECEIVER" "$@" 2>&1 | tail -1 >/dev/null
 }
 
 pull_result() {
-  "$ADB" shell "run-as com.wim.app cat files/test_result.json" 2>/dev/null
+  "$ADB" shell "run-as $APP_ID cat files/test_result.json" 2>/dev/null
 }
 
 inject_text_via_file() {
@@ -33,12 +36,12 @@ inject_text_via_file() {
   # the app doesn't hold. Don't use /sdcard/.
   local device_path="/data/local/tmp/wim_inject.txt"
   "$ADB" push "$local_text_file" "//data/local/tmp/wim_inject.txt" >/dev/null 2>&1
-  MSYS_NO_PATHCONV=1 "$ADB" shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver --es action inject_raw_file --es path "$device_path" >/dev/null 2>&1
+  MSYS_NO_PATHCONV=1 "$ADB" shell am broadcast -a "$TEST_ACTION" -n "$TEST_RECEIVER" --es action inject_raw_file --es path "$device_path" >/dev/null 2>&1
 }
 
 # ── 0. Key check ───────────────────────────────────────────────────────────
 echo "[0/6] Checking API keys on device..."
-keys_xml=$("$ADB" shell "run-as com.wim.app cat /data/data/com.wim.app/shared_prefs/wim.xml" 2>/dev/null || true)
+keys_xml=$("$ADB" shell "run-as $APP_ID cat /data/data/$APP_ID/shared_prefs/wim.xml" 2>/dev/null || true)
 if ! echo "$keys_xml" | grep -q "anthropic_api_key"; then
   echo "  ⚠ anthropic_api_key not set — L4 Sonnet path will fail"
 fi

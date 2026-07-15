@@ -26,7 +26,7 @@ val LocalOnboardingActivity = staticCompositionLocalOf<Activity?> { null }
  *   2. Update brand.local.md to declare Compose canonical
  *
  * Until then this can be launched manually for testing via:
- *   adb shell am start -n com.wim.app/.onboarding.OnboardingActivity
+ *   adb shell am start -n com.wimlabs.wim/com.wim.app.onboarding.OnboardingActivity
  */
 class OnboardingActivity : ComponentActivity() {
 

@@ -47,11 +47,11 @@ def adb(cmd: str, timeout: float = 10) -> str:
 
 
 def adb_broadcast(action: str, extras: str = "") -> str:
-    return adb(f'shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver --es action {action} {extras}')
+    return adb(f'shell am broadcast -a com.wimlabs.wim.TEST -n com.wimlabs.wim/com.wim.app.WimTestReceiver --es action {action} {extras}')
 
 
 def adb_read_result() -> dict | None:
-    raw = adb("shell run-as com.wim.app cat files/test_result.json")
+    raw = adb("shell run-as com.wimlabs.wim cat files/test_result.json")
     if not raw or "No such file" in raw:
         return None
     try:
