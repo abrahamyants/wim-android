@@ -1405,10 +1405,6 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
-                if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
-                    requestCloudUnlock()
-                    return@setOnClickListener
-                }
                 triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
@@ -1428,6 +1424,10 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
+                if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
+                    requestCloudUnlock()
+                    return@setOnClickListener
+                }
                 triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
