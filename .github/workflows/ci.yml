@@ -58,8 +58,10 @@ jobs:
 
       - name: Reject bundled provider keys
         run: |
-          if unzip -Z1 app/build/outputs/bundle/release/app-release.aab | rg -q '(^|/)(api_key|anthropic_key)\.txt$'; then
+          forbidden="$(unzip -Z1 app/build/outputs/bundle/release/app-release.aab | rg '(^|/)(api_key|anthropic_key)\.txt$' || true)"
+          if test -n "$forbidden"; then
             echo 'Release bundle contains a forbidden provider-key asset.'
+            printf '%s\n' "$forbidden"
             exit 1
           fi
 

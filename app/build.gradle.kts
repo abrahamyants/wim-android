@@ -33,6 +33,12 @@ android {
         }
     }
 
+    // Defense in depth: even zero-byte debug placeholders must never appear
+    // in a distributable APK/AAB.
+    androidResources {
+        ignoreAssetsPattern = "api_key.txt:anthropic_key.txt"
+    }
+
     // Release signing secrets come from ~/.gradle/gradle.properties (never the
     // repo): WIM_STORE_PASSWORD / WIM_KEY_PASSWORD. If absent (e.g. CI without
     // the secret) the release variant builds UNSIGNED instead of failing.
