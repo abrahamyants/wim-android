@@ -1,7 +1,7 @@
 # Short Description Variants for WiM Android Play Store
 
 ## Variant 1
-Offline voice-to-text built for people with speech disfluencies. Private and fast. (78 chars)
+Offline voice typing for speech disfluencies. Private and fast. (63 chars)
 
 ## Variant 2
 Private, offline dictation that understands speech disfluencies perfectly. (74 chars)

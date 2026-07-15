@@ -1,33 +1,27 @@
 # Screenshot Callouts for WiM Play Store Listing
 
-## Screenshot 1: Bubble floating over a texting app
-**Headline:** Type With Your Voice, Anywhere.
-**Subheadline:** A floating bubble lets you dictate and drop clean text into your favorite messaging apps.
+The current Play-ready set is in `screenshots_v2/`. Each image is 1080×1920 (9:16).
 
-## Screenshot 2: Layer selector in the bubble menu
-**Headline:** Pick Your Layer.
-**Subheadline:** Local + offline, or cloud reconstruction with grammar, profile, and deep disfluency cleanup. You decide every time.
+## Screenshot 1: Floating bubble menu
 
-## Screenshot 3: Mid-recording with live transcript
-**Headline:** See Your Words As You Speak.
-**Subheadline:** Watch the live transcript build instantly, no matter how fast or slow you talk.
+**Headline:** Voice typing, anywhere.
 
-## Screenshot 4: Post-reconstruction clean text
-**Headline:** Clean, Polished Text.
-**Subheadline:** WiM reconstructs your speech into ready-to-send text — disfluencies handled, intent preserved.
+**Subheadline:** The floating bubble stays with the app you are already using.
 
-## Screenshot 5: Clarifier flagging an uncertain word
-**Headline:** Tap-To-Swap When We're Not Sure.
-**Subheadline:** Low-confidence words light up — pick the alternative or keep the original. Patent-pending.
+## Screenshot 2: Layer selector
 
-## Screenshot 6: Tap-to-send confirmation
-**Headline:** Bubble Hits Send For You.
-**Subheadline:** After pasting, the bubble turns green. A separate tap authorizes Send; waiting cancels.
+**Headline:** Local by default.
 
-## Screenshot 7: Default Layer 1 — local + offline indicator
-**Headline:** Default Is Local. Default Is Yours.
-**Subheadline:** Layer 1 runs fully on-device. Audio never leaves the phone unless you opt into a cloud layer.
+**Subheadline:** Choose offline transcription or opt into deeper cloud reconstruction.
 
-## Screenshot 8: Three bubble themes (bronze / aluminum / gunmetal)
-**Headline:** Make It Yours.
-**Subheadline:** Three brushed-metal bubble themes. Pick whichever sits right on your screen.
+## Screenshot 3: User profile
+
+**Headline:** Built around your words.
+
+**Subheadline:** Add vocabulary and corrections that matter to the way you speak.
+
+## Screenshot 4: Recording over another app
+
+**Headline:** Tap. Speak. Keep working.
+
+**Subheadline:** Dictate without leaving the task or text field already in front of you.
