@@ -17,7 +17,7 @@ You tap a floating bubble. You speak however you naturally speak. WiM cleans up 
 
 WiM has four cleanup layers. You pick how much help you want.
 
-- **Layer 1 — Transcribe only.** Fully on-device, fully offline, free, zero data leaves your phone. Uses a small local speech model (whisper-tiny.en, ~40 MB) and a deterministic disfluency filter.
+- **Layer 1 — Transcribe only.** Fully on-device, fully offline, free, and no dictation audio or transcript leaves your phone. Uses a small local speech model (whisper-tiny.en, ~40 MB) and a deterministic disfluency filter.
 - **Layer 2 — Reconstruct.** Adds cloud-based grammar cleanup and tone shaping (Casual / Professional / Friend / Formal).
 - **Layer 3 — Profile.** Adds your personal vocabulary, learned corrections, and voice patterns the app learns over time.
 - **Layer 4 — Speech Disfluency.** Deeper cloud reconstruction works through heavier disfluencies, covert avoidance, blocks, and transcription failures. Built with the speech-disfluency community in mind.
@@ -36,7 +36,7 @@ L1 is the default and free. L2 – L4 use cloud providers (OpenAI, Anthropic) fo
 
 ## Privacy
 
-The default Layer 1 layer runs fully on your device. Nothing is transmitted, nothing is logged, no account required. If you select Layer 2, 3, or 4, audio and transcripts are sent to OpenAI and/or Anthropic for cloud processing — this is explicit, on you, and reversible by switching back to L1.
+The default Layer 1 layer runs fully on your device: no dictation audio or transcript is transmitted, and no account is required. Standard reliability telemetry is described in the privacy policy. If you select Layer 2, 3, or 4, audio and transcripts are sent to OpenAI and/or Anthropic for cloud processing — this is explicit, on you, and reversible by switching back to L1.
 
 Optional Google sign-in enables cross-device sync of your learned vocabulary and corrections. You can delete all of that data from in-app Settings at any time.
 

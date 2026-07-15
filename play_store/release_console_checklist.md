@@ -22,6 +22,7 @@ Permanent Play package: `com.wimlabs.wim`.
    - Do not add a free trial or introductory offer at launch. Keep the purchase terms simple until real usage and cost data exist.
    - Monetization setup → Real-time developer notifications: set `projects/bakers-agent/topics/wim-play-billing`, choose subscription notifications, then send a test notification and confirm `wim-billing-events` logs it.
 4. **Privacy policy URL:** `https://mybakingcreations.com/wim-privacy-policy`
+   - Account deletion URL: `https://mybakingcreations.com/wim-delete-account`
 5. **Data Safety:** enter [data_safety_answers.md](data_safety_answers.md).
 6. **Accessibility Service:** enter [accessibility_service_declaration.md](accessibility_service_declaration.md) and upload the unlisted review video described there.
 7. **Health apps:** select **My app doesn't provide any health features**, following [health_apps_declaration.md](health_apps_declaration.md).

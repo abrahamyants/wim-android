@@ -2015,11 +2015,12 @@ On in <b>Settings &#8594; DAF</b>. Use the slider to tune the delay."""
             GuideSection(
                 "Privacy + Cloud",
                 "What's saved, who can see it",
-                """<b>Always local, never sent:</b> the audio itself. Always.<br><br>
+                """<b>Layer I Local:</b> dictation audio and text stay on your phone.<br><br>
+<b>L1 Cloud / Layers II–IV:</b> your recording is encrypted in transit and uploaded through WiM's authenticated backend for transcription. OpenAI processes the audio; reconstruction may also send the transcript and selected context to OpenAI or Anthropic. WiM does not keep raw audio after processing.<br><br>
 <b>Local:</b> your settings, profile, console log. Stored on the phone in private app storage.<br><br>
 <b>Cloud (Firestore, only if you sign in):</b> the text of each recording (raw + clean), tone, layer, timing, success/failure flags. Per session, ~1 KB. Used so your sessions and profile sync to a new phone when you sign in.<br><br>
 <b>Toggle off:</b> Settings &#8594; Backup sessions to cloud.<br>
-<b>Delete everything:</b> Profile &#8594; Delete data. Hard delete on the cloud, signs you out, immediate."""
+<b>Delete account and data:</b> Profile &#8594; Delete my cloud account and data. This does not cancel a Google Play subscription; cancel that separately in Google Play."""
             ),
 
             GuideSection(
@@ -2831,7 +2832,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                         val ok = UserDataClient.deleteData()
                         if (ok) {
                             AuthManager.signOut()
-                            android.widget.Toast.makeText(this@MainActivity, "Cloud data deleted. Signed out.", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(this@MainActivity, "Cloud account and data deleted.", android.widget.Toast.LENGTH_LONG).show()
                             dismissProfileOverlay()
                             recreate()
                         } else {

@@ -177,7 +177,7 @@
     <string name="profile_your_data">YOUR DATA</string>
     <string name="profile_data_synced">Everything above is synced to your account when signed in.</string>
     <string name="profile_export_data">Export my data</string>
-    <string name="profile_delete_data">Delete all my cloud data</string>
+    <string name="profile_delete_data">Delete my cloud account and data</string>
 
     <!-- ═══ Sign-in ═══ -->
     <string name="sign_in_google">Sign in with Google</string>
@@ -280,7 +280,7 @@
     <string name="toast_open_battery_settings">Open battery settings manually</string>
     <string name="toast_notifications_already_granted">Notifications already granted</string>
     <string name="toast_export_failed">Export failed — check your connection</string>
-    <string name="toast_cloud_data_deleted">Cloud data deleted. Signed out.</string>
+    <string name="toast_cloud_data_deleted">Cloud account and data deleted.</string>
     <string name="toast_delete_failed">Delete failed — try again</string>
     <string name="toast_switch_to_app">Switch to the app you want to add, then come back and tap again</string>
     <string name="toast_already_added">Already added</string>
@@ -291,8 +291,8 @@
     <string name="toast_invite">Invite</string>
 
     <!-- ═══ Confirm dialogs ═══ -->
-    <string name="dialog_delete_cloud_title">Delete all cloud data?</string>
-    <string name="dialog_delete_cloud_message">This permanently deletes your synced profile from our servers. It does not cancel WiM Cloud; cancel the subscription separately in Google Play. Your local data stays on this device until you uninstall. You will be signed out.</string>
+    <string name="dialog_delete_cloud_title">Delete cloud account and data?</string>
+    <string name="dialog_delete_cloud_message">This permanently deletes your Firebase account, synced profile, session backups, and WiM purchase-entitlement binding. It does not cancel WiM Cloud; cancel the subscription separately in Google Play. Local data stays on this device until you clear app storage or uninstall.</string>
     <string name="dialog_delete">Delete</string>
     <string name="dialog_cancel">Cancel</string>
 

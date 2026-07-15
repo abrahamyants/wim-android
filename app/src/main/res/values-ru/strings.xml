@@ -143,7 +143,7 @@
     <string name="profile_your_data">ВАШИ ДАННЫЕ</string>
     <string name="profile_data_synced">Всё выше синхронизируется с вашим аккаунтом, когда вы вошли.</string>
     <string name="profile_export_data">Экспортировать мои данные</string>
-    <string name="profile_delete_data">Удалить все мои данные в облаке</string>
+    <string name="profile_delete_data">Удалить мой облачный аккаунт и данные</string>
 
     <string name="sign_in_google">Войти через Google</string>
     <string name="sign_out">Выйти</string>
@@ -241,8 +241,8 @@
     <string name="toast_bubble_color">Цвет пузыря: %1$s</string>
     <string name="toast_invite">Пригласить</string>
 
-    <string name="dialog_delete_cloud_title">Удалить все данные в облаке?</string>
-    <string name="dialog_delete_cloud_message">Это навсегда удалит ваш синхронизированный профиль с наших серверов. Это не отменяет WiM Cloud; отмените подписку отдельно в Google Play. Локальные данные останутся на устройстве до удаления приложения. Вы выйдете из аккаунта.</string>
+    <string name="dialog_delete_cloud_title">Удалить облачный аккаунт и данные?</string>
+    <string name="dialog_delete_cloud_message">Это навсегда удалит ваш аккаунт Firebase, синхронизированный профиль, резервные копии сеансов и привязку покупки WiM. Это не отменяет WiM Cloud; отмените подписку отдельно в Google Play. Локальные данные останутся до очистки данных приложения или его удаления.</string>
     <string name="dialog_delete">Удалить</string>
     <string name="dialog_cancel">Отмена</string>
 

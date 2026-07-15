@@ -13,7 +13,7 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 ### Layer 1 — local on-device (default)
 - All audio recording and transcription happen on your phone.
 - Transcription runs against a local speech model (whisper-tiny.en, ~40 MB, bundled via the sherpa-onnx runtime).
-- No audio, no transcript, and no metadata are transmitted to our servers or any third party.
+- No dictation audio or transcript is transmitted to our servers or any speech provider. Standard reliability telemetry described in Section 5 may still be collected.
 - You can also optionally enable a cloud transcription engine for L1 (OpenAI whisper-1) if you prefer cloud accuracy over local. This is off by default and surfaced as the "L1 Cloud" toggle in the bubble menu.
 
 ### Layer 2 / Layer 3 — cloud reconstruction (opt-in)
@@ -30,7 +30,7 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 - WiM stores your personal speaking-rate, pitch, and energy baselines locally on your device. Cloud reconstruction can receive a short derived summary; the baseline history itself is not uploaded as profile data.
 
 ### What this means in practice
-- Default install = nothing leaves your phone.
+- Default local Layer 1 = no dictation audio or transcript leaves your phone. Standard reliability telemetry described in Section 5 may still be collected.
 - Tap the layer selector and pick L2 or higher = audio and transcripts leave your phone via the providers above for that session.
 - Switching back to L1 stops cloud transmission immediately.
 
@@ -48,7 +48,7 @@ If you sign in with Google, WiM creates an account in Google Firebase Authentica
 
 - Optional Firestore sync stores your learned vocabulary, corrections list, and per-session reconstruction history under your user ID in our Firestore database (`bakers-agent` project on Google Cloud).
 - Sync is used only to keep your personal profile consistent across devices and to bill / quota-limit cloud requests.
-- You can disable sync from the app's Settings overlay. You can delete your account and all associated cloud data via Settings → User Profile → "Delete account and cloud data."
+- You can disable sync from the app's Settings overlay. You can delete the Firebase account and associated cloud data via Settings → User Profile → "Delete my cloud account and data," or request deletion at https://mybakingcreations.com/wim-delete-account.
 - We do not share, sell, or rent your data to anyone.
 
 ## 4. Purchase information

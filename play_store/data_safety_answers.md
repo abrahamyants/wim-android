@@ -6,7 +6,8 @@ Use these answers for the release represented by this repository. Re-check them 
 
 - Does the app collect or share required user data types? **Yes — collects.**
 - Is all collected user data encrypted in transit? **Yes.**
-- Can users request deletion? **Yes — in-app Settings → User Profile → Delete account and cloud data.**
+- Can users request deletion? **Yes — in-app Settings → User Profile → Delete my cloud account and data.**
+- Account deletion URL: **https://mybakingcreations.com/wim-delete-account**
 - Account creation: **Optional for local L1; required for paid cloud features.**
 - Data shared with third parties: **No for the Play form.** OpenAI, Anthropic, Firebase, and Google Cloud act as service providers processing data on our behalf. Do not select advertising, sale, or cross-company profiling.
 
@@ -36,3 +37,4 @@ Use these answers for the release represented by this repository. Re-check them 
 - Cloud audio is processed and not stored by WiM; mark voice recordings as processed ephemerally.
 - Synced vocabulary, corrections, Script Prep/context, transcripts, and session history belong under other user-generated content.
 - Google Play handles payment credentials. WiM stores only subscription entitlement metadata (product, base plan, order, state, expiry, and verification), quota counters, and a one-way purchase-token hash.
+- Account deletion removes the Firebase Authentication user, synced profile, nested session backups, entitlement binding, and purchase-token hashes. It does not cancel the separate Google Play subscription or erase records Google must retain.
