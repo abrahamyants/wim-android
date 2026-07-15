@@ -409,12 +409,12 @@ class BubbleService : Service() {
                     wavFile,
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
-                    // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
-                    // late May 2026) rejects `verbose_json` with HTTP 400.
-                    // Only whisper-1 accepts verbose_json; everything else
-                    // must use plain `json` (loses per-segment confidence,
-                    // which is fine for L1-cloud + L2/L3 — only L4's
-                    // MultiPassDecoder consumes the per-segment signal).
+                        // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
+                        // late May 2026) rejects `verbose_json` with HTTP 400.
+                        // Only whisper-1 accepts verbose_json; everything else
+                        // must use plain `json` (loses per-segment confidence,
+                        // which is fine for L1-cloud + L2/L3 — only L4's
+                        // MultiPassDecoder consumes the per-segment signal).
                     verboseSegments = (whisperModel == "whisper-1"),
                     language = WimApp.appLanguage(),
                 )
@@ -485,7 +485,7 @@ class BubbleService : Service() {
             } else {
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             }
-            startForeground(NOTIFICATION_ID, initialNotif, fgsType)
+            startForegroundCompat(initialNotif, fgsType)
         }
 
         // Restore session start from prefs if present, else start fresh now.
@@ -654,7 +654,7 @@ class BubbleService : Service() {
         } else {
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         }
-        startForeground(NOTIFICATION_ID, buildNotification(), fgsType)
+        startForegroundCompat(buildNotification(), fgsType)
         shakeDetector = BubbleShakeDetector(this, WimApp.prefs) {
             timerHandler.post {
                 try {
@@ -716,6 +716,14 @@ class BubbleService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    private fun startForegroundCompat(notification: Notification, serviceType: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, serviceType)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     // Onboarding dim overlay extracted to BubbleOnboardingOverlay
@@ -1647,8 +1655,7 @@ class BubbleService : Service() {
         val hasMicNow = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasMicNow) {
             try {
-                startForeground(
-                    NOTIFICATION_ID,
+                startForegroundCompat(
                     buildNotification(),
                     android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
                         android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
@@ -2077,19 +2084,19 @@ class BubbleService : Service() {
                         else -> "whisper-1"
                     }
                     val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
-                val whisperResult = WhisperClient.transcribe(
-                    wavFile,
-                    patienceMode = WimApp.layer() >= 4,
-                    model = whisperModel,
+                    val whisperResult = WhisperClient.transcribe(
+                        wavFile,
+                        patienceMode = WimApp.layer() >= 4,
+                        model = whisperModel,
                     // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
                     // late May 2026) rejects `verbose_json` with HTTP 400.
                     // Only whisper-1 accepts verbose_json; everything else
                     // must use plain `json` (loses per-segment confidence,
                     // which is fine for L1-cloud + L2/L3 — only L4's
                     // MultiPassDecoder consumes the per-segment signal).
-                    verboseSegments = (whisperModel == "whisper-1"),
-                    language = WimApp.appLanguage(),
-                )
+                        verboseSegments = (whisperModel == "whisper-1"),
+                        language = WimApp.appLanguage(),
+                    )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     lastWhisperSegments = whisperResult.timedSegments
