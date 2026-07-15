@@ -1,6 +1,8 @@
 package com.wim.app
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -8,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
@@ -120,6 +123,13 @@ class WhisperLocalEngine(private val context: Context) {
         // the running thread.
         if (isCapturing) {
             Log.w(TAG, "start() ignored — already capturing")
+            return
+        }
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "start() blocked — microphone permission missing")
+            resultListener.onError(ERROR_AUDIO)
             return
         }
         listener = resultListener

@@ -1656,6 +1656,10 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.w(TAG, "FGS type re-assert failed: ${e.message}")
             }
+        } else {
+            Toast.makeText(this, "Microphone permission is required", Toast.LENGTH_LONG).show()
+            Log.w(TAG, "startListening blocked: RECORD_AUDIO not granted")
+            return
         }
 
         // Cancel any in-flight reconstruction from a prior utterance. Without
@@ -1798,7 +1802,7 @@ class BubbleService : Service() {
 
         // Start DAF playback if enabled
         if (WimApp.dafEnabled()) {
-            dafPlayer = DafPlayer()
+            dafPlayer = DafPlayer(this)
             dafPlayer?.start()
         }
 

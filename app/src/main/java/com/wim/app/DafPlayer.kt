@@ -1,5 +1,8 @@
 package com.wim.app
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
@@ -20,7 +23,7 @@ import android.util.Log
  * on most devices. Falls back to UNPROCESSED, then DEFAULT if the primary source
  * is unavailable.
  */
-class DafPlayer {
+class DafPlayer(private val context: Context) {
 
     companion object {
         private const val TAG = "WiM-DAF"
@@ -36,6 +39,13 @@ class DafPlayer {
 
     fun start() {
         if (running) return
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "DAF not started: microphone permission missing")
+            return
+        }
         running = true
 
         thread = Thread({

@@ -107,12 +107,19 @@ class AudioRecorder(private val context: Context) {
         if (!hasPermission()) return
 
         val bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL, ENCODING)
-        recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE, CHANNEL, ENCODING,
-            bufferSize * 2
-        )
-        recorder?.startRecording()
+        val newRecorder = try {
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE, CHANNEL, ENCODING,
+                bufferSize * 2
+            ).also { it.startRecording() }
+        } catch (e: SecurityException) {
+            // Permission can be revoked between hasPermission() and opening
+            // the microphone. Treat that race exactly like a missing grant.
+            Log.w("AudioRecorder", "Microphone permission was revoked: ${e.message}")
+            return
+        }
+        recorder = newRecorder
         isPrimed = true
 
         captureThread = Thread {
