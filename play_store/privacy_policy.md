@@ -1,10 +1,10 @@
 # Privacy Policy for WiM (What I Meant)
 
-**Last Updated: May 29, 2026**
+**Last Updated: July 14, 2026**
 
 This Privacy Policy describes how WiM ("we," "us," or "our") handles your information when you use the WiM mobile application ("the app"). Read it together with the Google Play store listing.
 
-WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in via the in-app layer selector.
+WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in, require Google sign-in, and require the one-time WiM Cloud Unlock purchase.
 
 ## 1. What WiM does with your voice
 
@@ -17,13 +17,17 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 - You can also optionally enable a cloud transcription engine for L1 (OpenAI whisper-1) if you prefer cloud accuracy over local. This is off by default and surfaced as the "L1 Cloud" toggle in the bubble menu.
 
 ### Layer 2 / Layer 3 — cloud reconstruction (opt-in)
-- Selecting L2 or L3 sends your audio to OpenAI's Whisper API for transcription and your transcript to OpenAI's GPT-4o model for grammar and tone cleanup.
-- Requests are routed through our Cloud Function backend (`wim-reconstruct` on Google Cloud) so the third-party API key is held server-side, not on your device.
+- Selecting L2 or L3 uploads your audio to our authenticated Cloud Function (`wim-reconstruct` on Google Cloud). The backend sends it to OpenAI's transcription API and sends the resulting transcript to OpenAI's GPT-4o model for grammar and tone cleanup.
+- The third-party API key is held server-side, not on your device. A developer who explicitly enters a personal OpenAI key can instead use the direct API path.
 - We do not store your audio. The Cloud Function keeps short-lived request logs (uid, latency, layer, model) for reliability; logs do not include the contents of your audio or transcripts.
 
-### Layer 4 — clinical reconstruction (opt-in)
-- L4 sends your audio to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript to Anthropic's Claude Sonnet 4.6 model for clinical-grade reconstruction.
-- L4 requests are sent to Anthropic directly from the app using a bundled API key, then logged the same way as L2/L3.
+### Layer 4 — deep speech-disfluency reconstruction (opt-in)
+- L4 uploads audio through the same authenticated Cloud Function. The backend sends it to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript and derived acoustic context to Anthropic's Claude Sonnet model for deeper reconstruction.
+- OpenAI and Anthropic credentials remain on the server and are not bundled into the release app.
+
+### Script Prep and personal learning
+- If you activate Script Prep, the notes you enter are sent with cloud transcription and reconstruction requests as context. The model is instructed not to insert those notes unless you actually dictate the content.
+- WiM stores your personal speaking-rate, pitch, and energy baselines locally on your device. Cloud reconstruction can receive a short derived summary; the baseline history itself is not uploaded as profile data.
 
 ### What this means in practice
 - Default install = nothing leaves your phone.
@@ -47,7 +51,17 @@ If you sign in with Google, WiM creates an account in Google Firebase Authentica
 - You can disable sync from the app's Settings overlay. You can delete your account and all associated cloud data via Settings → User Profile → "Delete account and cloud data."
 - We do not share, sell, or rent your data to anyone.
 
-## 4. Crashes and product telemetry
+## 4. Purchase information
+
+WiM Cloud Unlock is a one-time, non-consumable purchase handled by Google Play Billing.
+
+- Google Play processes your payment; WiM never receives or stores your card or bank details.
+- The app sends the Play product ID, purchase token, and a one-way hash of your Firebase user ID to our authenticated backend.
+- Our backend asks the Google Play Developer API to verify and acknowledge the purchase, then stores the product ID, Google Play order ID, verification time, and entitlement under your Firebase user ID.
+- Purchase tokens are stored only as one-way hashes. Purchase records are used for access control, restoration, fraud prevention, and customer support.
+- Deleting your cloud data removes the entitlement record from our database. Your Google Play order remains in your Google account and in records Google must retain.
+
+## 5. Crashes and product telemetry
 
 The app uses Firebase Crashlytics, Firebase Performance, and Firebase Analytics to detect crashes and reliability issues.
 
@@ -57,26 +71,27 @@ The app uses Firebase Crashlytics, Firebase Performance, and Firebase Analytics 
 
 These can be limited at the OS level via Google Play Services privacy controls.
 
-## 5. Third-party services and processors
+## 6. Third-party services and processors
 
 | Provider | Used for | Triggered when |
 |---|---|---|
-| Google Play Services | App distribution, sign-in, billing | Always |
+| Google Play Services | App distribution and sign-in | Always |
+| Google Play Billing / Developer API | Purchase processing, verification, and restoration | When you buy or restore Cloud Unlock |
 | Google Firebase Authentication | Account creation | Only after you sign in with Google |
 | Google Firestore | Profile + history sync | Only after sign-in, only if sync enabled |
 | Google Firebase Crashlytics / Performance / Analytics | Reliability + telemetry | Always (can be limited via OS controls) |
 | OpenAI (Whisper, GPT-4o) | Cloud transcription + reconstruction | Only when you choose L1 Cloud, L2, L3, or L4 |
 | Anthropic (Claude Sonnet 4.6) | L4 reconstruction | Only when you choose L4 |
 
-## 6. Local storage
+## 7. Local storage
 
 All settings, learned vocabulary, your corrections list, and session history are stored on your device in standard Android SharedPreferences and SQLite. You can clear all of it at any time by clearing the app's data in Android Settings → Apps → What I Meant → Storage, or by uninstalling the app.
 
-## 7. Children
+## 8. Children
 
 WiM is not designed for children under 13 and is not directed at children.
 
-## 8. Your rights
+## 9. Your rights
 
 You can:
 - Export the data we hold about you (Settings → User Profile → Export data).
@@ -86,14 +101,14 @@ You can:
 
 For users in jurisdictions with GDPR-style rights (EEA, UK, California, etc.), the export and delete tools above satisfy access and deletion requests.
 
-## 9. Security
+## 10. Security
 
 We use TLS for every network call to our backend and to third-party providers. No data transmission is 100% guaranteed, but we minimize what leaves the device and we never store raw audio.
 
-## 10. Changes to this policy
+## 11. Changes to this policy
 
 If we update this policy we will publish the new version at the same URL and bump the "Last Updated" date. Material changes will be surfaced in the app on the next launch.
 
-## 11. Contact
+## 12. Contact
 
 Questions about this policy: **gugosf@gmail.com**.

@@ -84,6 +84,11 @@ class ProfileManager(private val prefs: SharedPreferences) {
     /** Rolling history of words-per-second per session; RateGapDetector uses the median. */
     private val wpsHistory: CopyOnWriteArrayList<Double> = CopyOnWriteArrayList()
     private val WPS_HISTORY_SIZE = 30
+    private val prosodicF0History: CopyOnWriteArrayList<Double> = CopyOnWriteArrayList()
+    private val prosodicEnergyHistory: CopyOnWriteArrayList<Double> = CopyOnWriteArrayList()
+    private val prosodicRateHistory: CopyOnWriteArrayList<Double> = CopyOnWriteArrayList()
+    private val PROSODIC_HISTORY_SIZE = 30
+    private val MIN_PROSODIC_SAMPLES = 5
 
     init {
         loadProfile()
@@ -118,6 +123,10 @@ class ProfileManager(private val prefs: SharedPreferences) {
                 wpsHistory.clear()
                 val wpsArr = obj.optJSONArray("wps_history") ?: JSONArray()
                 for (i in 0 until wpsArr.length()) wpsHistory.add(wpsArr.getDouble(i))
+
+                loadDoubleHistory(obj, "prosodic_f0_history", prosodicF0History)
+                loadDoubleHistory(obj, "prosodic_energy_history", prosodicEnergyHistory)
+                loadDoubleHistory(obj, "prosodic_rate_history", prosodicRateHistory)
 
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers, ${wpsHistory.size} wps samples")
             } catch (e: Exception) {
@@ -160,6 +169,9 @@ class ProfileManager(private val prefs: SharedPreferences) {
             existing.put("correction_counts", JSONObject(correctionCounts as Map<*, *>))
             existing.put("correction_last_used", JSONObject(correctionLastUsed as Map<*, *>))
             existing.put("wps_history", JSONArray(wpsHistory))
+            existing.put("prosodic_f0_history", JSONArray(prosodicF0History))
+            existing.put("prosodic_energy_history", JSONArray(prosodicEnergyHistory))
+            existing.put("prosodic_rate_history", JSONArray(prosodicRateHistory))
             // trigger_words / onset_weights / covert_profile passed through
             // untouched (already in `existing` from prefs read).
             prefs.edit().putString(PREF_KEY, existing.toString()).apply()
@@ -188,6 +200,58 @@ class ProfileManager(private val prefs: SharedPreferences) {
         val sorted = wpsHistory.sorted()
         val mid = sorted.size / 2
         return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2.0 else sorted[mid]
+    }
+
+    /** Add one recording's acoustic summary to the rolling personal baseline. */
+    fun recordProsodic(summary: ProsodicAnalyzer.SessionSummary) {
+        if (summary.f0Mean > 0.0 && summary.f0Mean.isFinite()) prosodicF0History.add(summary.f0Mean)
+        if (summary.energyMean > 0.0 && summary.energyMean.isFinite()) prosodicEnergyHistory.add(summary.energyMean)
+        if (summary.rateMean > 0.0 && summary.rateMean.isFinite()) prosodicRateHistory.add(summary.rateMean)
+        trimHistory(prosodicF0History, PROSODIC_HISTORY_SIZE)
+        trimHistory(prosodicEnergyHistory, PROSODIC_HISTORY_SIZE)
+        trimHistory(prosodicRateHistory, PROSODIC_HISTORY_SIZE)
+        saveProfile()
+    }
+
+    /** Null during calibration; five recordings are enough to stop using generic thresholds. */
+    fun prosodicBaseline(): ProsodicAnalyzer.Baseline? {
+        val samples = minOf(prosodicEnergyHistory.size, prosodicRateHistory.size)
+        if (samples < MIN_PROSODIC_SAMPLES) return null
+        return ProsodicAnalyzer.Baseline(
+            f0Mean = median(prosodicF0History),
+            energyMean = median(prosodicEnergyHistory),
+            rateMean = median(prosodicRateHistory),
+            samples = samples
+        )
+    }
+
+    fun prosodicSampleCount(): Int = minOf(prosodicEnergyHistory.size, prosodicRateHistory.size)
+
+    data class LearnedSummary(
+        val vocabulary: Int,
+        val corrections: Int,
+        val triggerWords: Int,
+        val speechSamples: Int,
+        val difficultOnsets: List<Pair<String, Double>>
+    )
+
+    fun learnedSummary(): LearnedSummary = LearnedSummary(
+        vocabulary = vocabulary.size,
+        corrections = corrections.size,
+        triggerWords = getTriggerWords().size,
+        speechSamples = maxOf(wpsHistory.size, prosodicSampleCount()),
+        difficultOnsets = getOnsetWeights().entries
+            .sortedByDescending { it.value }
+            .take(8)
+            .map { it.key to it.value }
+    )
+
+    fun clearPersonalSpeechBaseline() {
+        wpsHistory.clear()
+        prosodicF0History.clear()
+        prosodicEnergyHistory.clear()
+        prosodicRateHistory.clear()
+        saveProfile()
     }
 
     /**
@@ -493,8 +557,38 @@ class ProfileManager(private val prefs: SharedPreferences) {
     private fun resetToDefaults() {
         vocabulary.clear()
         corrections.clear()
+        correctionCounts.clear()
+        correctionLastUsed.clear()
         fillerWords.clear()
         fillerWords.addAll(DEFAULT_FILLERS)
+        wpsHistory.clear()
+        prosodicF0History.clear()
+        prosodicEnergyHistory.clear()
+        prosodicRateHistory.clear()
         saveProfile()
+    }
+
+    private fun loadDoubleHistory(
+        obj: JSONObject,
+        key: String,
+        destination: CopyOnWriteArrayList<Double>
+    ) {
+        destination.clear()
+        val arr = obj.optJSONArray(key) ?: JSONArray()
+        for (i in 0 until arr.length()) {
+            val value = arr.optDouble(i, Double.NaN)
+            if (value.isFinite() && value > 0.0) destination.add(value)
+        }
+    }
+
+    private fun trimHistory(values: CopyOnWriteArrayList<Double>, max: Int) {
+        while (values.size > max) values.removeAt(0)
+    }
+
+    private fun median(values: List<Double>): Double {
+        if (values.isEmpty()) return 0.0
+        val sorted = values.sorted()
+        val mid = sorted.size / 2
+        return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2.0 else sorted[mid]
     }
 }

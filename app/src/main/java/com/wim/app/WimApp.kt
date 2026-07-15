@@ -31,31 +31,10 @@ class WimApp : Application() {
         // Session sync listener — MainActivity registers to refresh UI after Firestore sync
         var onSessionsSynced: (() -> Unit)? = null
 
-        // Lazy-cached bundled keys (read once from APK assets on first use).
-        // Built-in defaults so a fresh download works without user setup; the
-        // user can still override either via Settings (the prefs path wins).
-        private var _bundledOpenAiKey: String? = null
-        private var _bundledAnthropicKey: String? = null
-
-        private fun bundledKey(filename: String): String {
-            if (!BuildConfig.DEBUG) return ""
-            return try {
-                instance.assets.open(filename).bufferedReader().use { it.readText().trim() }
-            } catch (e: Exception) {
-                // Empty return collapses with "asset missing" + "user didn't
-                // set one in prefs" — without this log a DEBUG build silently
-                // degrades to "L2/L3 paste raw text + generic failure toast"
-                // and looks like reconstruction is broken.
-                Log.w("WiM", "bundledKey($filename) missing: ${e.message}")
-                ""
-            }
-        }
-
+        /** Developer-supplied direct key. Release builds are backend-only. */
         fun apiKey(): String {
-            val user = prefs.getString("api_key", "") ?: ""
-            if (user.isNotBlank()) return user
-            if (_bundledOpenAiKey == null) _bundledOpenAiKey = bundledKey("api_key.txt")
-            return _bundledOpenAiKey ?: ""
+            if (!BuildConfig.DEBUG) return ""
+            return prefs.getString("api_key", "") ?: ""
         }
 
         /**
@@ -65,10 +44,8 @@ class WimApp : Application() {
          * L4 falls back to GPT-4o.
          */
         fun anthropicApiKey(): String {
-            val user = prefs.getString("anthropic_api_key", "") ?: ""
-            if (user.isNotBlank()) return user
-            if (_bundledAnthropicKey == null) _bundledAnthropicKey = bundledKey("anthropic_key.txt")
-            return _bundledAnthropicKey ?: ""
+            if (!BuildConfig.DEBUG) return ""
+            return prefs.getString("anthropic_api_key", "") ?: ""
         }
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
         /**
@@ -78,6 +55,23 @@ class WimApp : Application() {
          * or settings.
          */
         fun layer(): Int = prefs.getInt("layer", 1)
+        /** A cached UI hint only; the backend independently enforces access. */
+        fun cloudUnlocked(): Boolean {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
+            return prefs.getBoolean("cloud_unlocked", false) &&
+                prefs.getString("cloud_unlock_uid", null) == uid
+        }
+
+        fun setCloudUnlocked(uid: String, unlocked: Boolean) {
+            prefs.edit()
+                .putBoolean("cloud_unlocked", unlocked)
+                .putString("cloud_unlock_uid", uid)
+                .apply()
+        }
+
+        fun clearCloudUnlock() {
+            prefs.edit().remove("cloud_unlocked").remove("cloud_unlock_uid").apply()
+        }
         fun situation(): String = prefs.getString("situation", "default") ?: "default"
         fun dafEnabled(): Boolean = prefs.getBoolean("daf_enabled", false)
         fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
@@ -164,7 +158,9 @@ class WimApp : Application() {
          * each individual send. Per-app whitelist lives in
          * WimAccessibilityService.SUPPORTED_AUTOSEND_APPS.
          */
-        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
+        // Destructive follow-up action: opt-in only. A fresh install must never
+        // press another app's Send button without the user enabling it.
+        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", false)
 
         fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", false)
 

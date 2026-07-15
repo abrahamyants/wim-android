@@ -43,6 +43,14 @@ object ProsodicAnalyzer {
         val hnr: Double
     )
 
+    data class SessionSummary(val f0Mean: Double, val energyMean: Double, val rateMean: Double)
+    data class Baseline(
+        val f0Mean: Double,
+        val energyMean: Double,
+        val rateMean: Double,
+        val samples: Int
+    )
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     fun extractFromWav(
@@ -61,15 +69,32 @@ object ProsodicAnalyzer {
         }
     }
 
-    fun buildProsodicContext(features: List<SegmentFeatures>): String {
+    fun summarize(features: List<SegmentFeatures>): SessionSummary? {
+        if (features.isEmpty()) return null
+        val f0 = features.map { it.f0Mean }.filter { it > 0.0 }
+        val energy = features.map { it.energy }.filter { it > 0.0 }
+        val rate = features.map { it.rateSps }.filter { it > 0.0 }
+        if (energy.isEmpty() || rate.isEmpty()) return null
+        return SessionSummary(
+            f0Mean = if (f0.isEmpty()) 0.0 else f0.average(),
+            energyMean = energy.average(),
+            rateMean = rate.average()
+        )
+    }
+
+    fun buildProsodicContext(features: List<SegmentFeatures>, baseline: Baseline? = null): String {
         if (features.isEmpty()) return ""
 
-        val speakerState = inferSpeakerState(features)
+        val speakerState = inferSpeakerState(features, baseline)
         val lines = mutableListOf("PROSODIC CONTEXT (acoustic features Whisper cannot transcribe):")
 
         for (feat in features) {
             val f0Str = if (feat.f0Mean > 0) "pitch:${feat.pitchDirection}" else "pitch:none"
-            val energyLabel = when {
+            val energyLabel = if (baseline != null && baseline.energyMean > 0.0) when {
+                feat.energy > baseline.energyMean * 1.45 -> "above-personal-baseline"
+                feat.energy < baseline.energyMean * 0.60 -> "below-personal-baseline"
+                else -> "near-personal-baseline"
+            } else when {
                 feat.energy > 0.1 -> "high"
                 feat.energy < 0.02 -> "low"
                 else -> "moderate"
@@ -78,6 +103,9 @@ object ProsodicAnalyzer {
             lines.add("  [${feat.startS.fmt1()}-${feat.endS.fmt1()}s] $f0Str energy:$energyLabel $rateStr")
         }
 
+        if (baseline != null) {
+            lines.add("PERSONAL BASELINE: ${baseline.samples} sessions; pitch ${baseline.f0Mean.round1()}Hz, energy ${baseline.energyMean.round4()}, rate ${baseline.rateMean.round1()}syl/s")
+        }
         if (speakerState.isNotEmpty()) lines.add("SPEAKER STATE: $speakerState")
 
         lines.add(
@@ -203,11 +231,19 @@ object ProsodicAnalyzer {
         return r
     }
 
-    private fun inferSpeakerState(features: List<SegmentFeatures>): String {
+    private fun inferSpeakerState(features: List<SegmentFeatures>, baseline: Baseline?): String {
         val avgEnergy = features.map { it.energy }.average()
+        val avgF0 = features.map { it.f0Mean }.filter { it > 0 }.let { if (it.isEmpty()) 0.0 else it.average() }
+        val avgRate = features.map { it.rateSps }.filter { it > 0 }.let { if (it.isEmpty()) 0.0 else it.average() }
         val risingCount = features.count { it.pitchDirection == "rising" }
         val erraticCount = features.count { it.pitchDirection == "erratic" }
         return when {
+            baseline != null && baseline.f0Mean > 0 && avgF0 > baseline.f0Mean * 1.25 ->
+                "pitch notably above this speaker's baseline — possible elevated load"
+            baseline != null && baseline.energyMean > 0 && avgEnergy < baseline.energyMean * 0.55 ->
+                "energy notably below this speaker's baseline — possible fatigue or shutdown"
+            baseline != null && baseline.rateMean > 0 && avgRate > 0 && avgRate < baseline.rateMean * 0.60 ->
+                "rate notably below this speaker's baseline — possible blocking or deliberate pacing"
             erraticCount > features.size / 3 -> "elevated stress — pitch erratic"
             risingCount > features.size / 2 -> "high cognitive load — rising pitch pattern"
             avgEnergy < 0.015 -> "low energy — fatigue or low affect"

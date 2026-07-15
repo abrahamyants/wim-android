@@ -33,6 +33,12 @@ android {
         }
     }
 
+    // Defense in depth: even zero-byte debug placeholders must never appear
+    // in a distributable APK/AAB.
+    androidResources {
+        ignoreAssetsPattern = "api_key.txt:anthropic_key.txt"
+    }
+
     // Release signing secrets come from ~/.gradle/gradle.properties (never the
     // repo): WIM_STORE_PASSWORD / WIM_KEY_PASSWORD. If absent (e.g. CI without
     // the secret) the release variant builds UNSIGNED instead of failing.
@@ -138,6 +144,12 @@ dependencies {
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
 
+    // One-time, non-consumable WiM Cloud Unlock. The backend verifies and
+    // acknowledges every completed purchase before the app grants access.
+    // Core artifact is Java API and stays compatible with this app's Kotlin
+    // 2.0 toolchain; billing-ktx 9.1 is compiled with newer Kotlin metadata.
+    implementation("com.android.billingclient:billing:9.1.0")
+
     // Credential Manager for Google Sign-In
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
@@ -171,6 +183,28 @@ dependencies {
     // Robolectric shadow can't reproduce apply()/disk-marshal threading.
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
+}
+
+// A developer may keep direct-call credentials locally for debug work, but a
+// release must stop before Android's asset merger can package either file.
+val verifyNoProviderKeysInRelease by tasks.registering {
+    group = "verification"
+    doLast {
+        val forbidden = listOf(
+            file("src/main/assets/api_key.txt"),
+            file("src/main/assets/anthropic_key.txt"),
+        ).filter { it.exists() }
+        check(forbidden.isEmpty()) {
+            "Release build blocked: remove local provider-key assets: " +
+                forbidden.joinToString { it.name }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "mergeReleaseAssets") {
+        dependsOn(verifyNoProviderKeysInRelease)
+    }
 }
 
 // assembleRelease auto-wires uploadCrashlyticsSymbolFileRelease, but bundleRelease

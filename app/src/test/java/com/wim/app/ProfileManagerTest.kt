@@ -288,4 +288,24 @@ class ProfileManagerTest {
         assertEquals("Synced onset_weights wiped under concurrency", 0.9, onset["p"]!!, 1e-9)
         assertEquals(0.8, onset["b"]!!, 1e-9)
     }
+
+    @Test fun prosodicBaseline_calibratesPersistsAndClears() {
+        repeat(4) { i ->
+            profile.recordProsodic(ProsodicAnalyzer.SessionSummary(180.0 + i, 0.04 + i * 0.001, 3.0 + i * 0.1))
+        }
+        assertNull("Baseline must not activate on noisy first samples", profile.prosodicBaseline())
+
+        profile.recordProsodic(ProsodicAnalyzer.SessionSummary(184.0, 0.044, 3.4))
+        val baseline = profile.prosodicBaseline()
+        assertNotNull(baseline)
+        assertEquals(5, baseline!!.samples)
+        assertEquals(182.0, baseline.f0Mean, 0.01)
+        assertEquals(0.042, baseline.energyMean, 0.0001)
+
+        val reloaded = ProfileManager(prefs)
+        assertEquals(5, reloaded.prosodicBaseline()!!.samples)
+        reloaded.clearPersonalSpeechBaseline()
+        assertNull(reloaded.prosodicBaseline())
+        assertEquals(0, reloaded.prosodicSampleCount())
+    }
 }

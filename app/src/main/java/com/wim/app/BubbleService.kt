@@ -409,12 +409,12 @@ class BubbleService : Service() {
                     wavFile,
                     patienceMode = WimApp.layer() >= 4,
                     model = whisperModel,
-                    // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
-                    // late May 2026) rejects `verbose_json` with HTTP 400.
-                    // Only whisper-1 accepts verbose_json; everything else
-                    // must use plain `json` (loses per-segment confidence,
-                    // which is fine for L1-cloud + L2/L3 — only L4's
-                    // MultiPassDecoder consumes the per-segment signal).
+                        // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
+                        // late May 2026) rejects `verbose_json` with HTTP 400.
+                        // Only whisper-1 accepts verbose_json; everything else
+                        // must use plain `json` (loses per-segment confidence,
+                        // which is fine for L1-cloud + L2/L3 — only L4's
+                        // MultiPassDecoder consumes the per-segment signal).
                     verboseSegments = (whisperModel == "whisper-1"),
                     language = WimApp.appLanguage(),
                 )
@@ -485,7 +485,7 @@ class BubbleService : Service() {
             } else {
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             }
-            startForeground(NOTIFICATION_ID, initialNotif, fgsType)
+            startForegroundCompat(initialNotif, fgsType)
         }
 
         // Restore session start from prefs if present, else start fresh now.
@@ -654,7 +654,7 @@ class BubbleService : Service() {
         } else {
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         }
-        startForeground(NOTIFICATION_ID, buildNotification(), fgsType)
+        startForegroundCompat(buildNotification(), fgsType)
         shakeDetector = BubbleShakeDetector(this, WimApp.prefs) {
             timerHandler.post {
                 try {
@@ -716,6 +716,14 @@ class BubbleService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    private fun startForegroundCompat(notification: Notification, serviceType: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, serviceType)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     // Onboarding dim overlay extracted to BubbleOnboardingOverlay
@@ -1271,7 +1279,7 @@ class BubbleService : Service() {
         }
 
         // Prime the pre-roll audio buffer so first words aren't lost on tap
-        if (WimApp.apiKey().isNotBlank() && WimApp.layer() >= 2) {
+        if ((WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn) && WimApp.layer() >= 2) {
             if (audioRecorder == null) audioRecorder = AudioRecorder(this)
             audioRecorder?.primeBuffer()
         }
@@ -1358,8 +1366,10 @@ class BubbleService : Service() {
     private fun classifyFailure(e: Throwable): FailureInfo {
         val msg = e.message ?: ""
         return when {
-            e is IllegalStateException && msg.contains("API key", ignoreCase = true) ->
-                FailureInfo(FailReason.CONFIG, "No API key configured — sign in or set a key in Settings")
+            e is IllegalStateException &&
+                (msg.contains("API key", ignoreCase = true) ||
+                    msg.contains("Sign in", ignoreCase = true)) ->
+                FailureInfo(FailReason.CONFIG, "Sign in and unlock cloud speech in Settings")
             e is SecurityException ->
                 FailureInfo(FailReason.CONFIG, "Microphone permission missing — enable it in Settings")
             e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ||
@@ -1645,8 +1655,7 @@ class BubbleService : Service() {
         val hasMicNow = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasMicNow) {
             try {
-                startForeground(
-                    NOTIFICATION_ID,
+                startForegroundCompat(
                     buildNotification(),
                     android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
                         android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
@@ -1654,6 +1663,10 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.w(TAG, "FGS type re-assert failed: ${e.message}")
             }
+        } else {
+            Toast.makeText(this, "Microphone permission is required", Toast.LENGTH_LONG).show()
+            Log.w(TAG, "startListening blocked: RECORD_AUDIO not granted")
+            return
         }
 
         // Cancel any in-flight reconstruction from a prior utterance. Without
@@ -1763,7 +1776,8 @@ class BubbleService : Service() {
         val l1Cloud = WimApp.l1CloudAsr()
         val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
         val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
-        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && WimApp.apiKey().isNotBlank()) {
+        val cloudAvailable = WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn
+        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && cloudAvailable) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
@@ -1795,7 +1809,7 @@ class BubbleService : Service() {
 
         // Start DAF playback if enabled
         if (WimApp.dafEnabled()) {
-            dafPlayer = DafPlayer()
+            dafPlayer = DafPlayer(this)
             dafPlayer?.start()
         }
 
@@ -1893,7 +1907,7 @@ class BubbleService : Service() {
 
         if (isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
-            updateLiveTranscript("Recording for clinical reconstruction…")
+            updateLiveTranscript("Recording for deep reconstruction…")
         } else if (l1NeedsCloud) {
             Log.i(TAG, "L1 cloud mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording (cloud ASR)…")
@@ -2070,19 +2084,19 @@ class BubbleService : Service() {
                         else -> "whisper-1"
                     }
                     val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
-                val whisperResult = WhisperClient.transcribe(
-                    wavFile,
-                    patienceMode = WimApp.layer() >= 4,
-                    model = whisperModel,
+                    val whisperResult = WhisperClient.transcribe(
+                        wavFile,
+                        patienceMode = WimApp.layer() >= 4,
+                        model = whisperModel,
                     // OpenAI's gpt-4o-transcribe-api-ev3 rev (rolled out
                     // late May 2026) rejects `verbose_json` with HTTP 400.
                     // Only whisper-1 accepts verbose_json; everything else
                     // must use plain `json` (loses per-segment confidence,
                     // which is fine for L1-cloud + L2/L3 — only L4's
                     // MultiPassDecoder consumes the per-segment signal).
-                    verboseSegments = (whisperModel == "whisper-1"),
-                    language = WimApp.appLanguage(),
-                )
+                        verboseSegments = (whisperModel == "whisper-1"),
+                        language = WimApp.appLanguage(),
+                    )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     lastWhisperSegments = whisperResult.timedSegments

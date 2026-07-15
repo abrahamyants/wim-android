@@ -926,7 +926,7 @@
         <div class="pipe-mark">02</div>
         <div class="pipe-body">
           <h4>Speech-to-text <span class="pipe-tag">layer-dependent</span></h4>
-          <p>Layers I–III use a small on-device Whisper model (tiny.en, English) — instant, offline, private. Layer IV swaps to cloud Whisper-1 because the clinical reasoner needs the richer confidence signal that only the cloud model returns.</p>
+          <p>Layer I uses a small on-device Whisper model (tiny.en, English) — instant, offline, private. Layers II–III use cloud transcription and reconstruction. Layer IV uses cloud Whisper-1 because its richer confidence signals help with heavier speech disfluency.</p>
         </div>
       </div>
       <div class="pipe-stage">
@@ -971,7 +971,7 @@
       <div><span class="ex-tag">L1 out</span><span class="ex-out">"I want to call mom about the thing"</span></div>
       <div><span class="ex-tag">L2 out</span><span class="ex-out">"I want to call mom about the thing."</span></div>
       <div><span class="ex-tag">L3 out</span><span class="ex-out">"I want to call mom about the order."</span> <span class="ex-orange">← your vocabulary swapped "thing" → "order"</span></div>
-      <div><span class="ex-tag">L4 out</span><span class="ex-out">"I want to call mom about the order."</span> <span class="ex-orange">← same, but the clinical reasoner won't hallucinate when speech is heavier</span></div>
+      <div><span class="ex-tag">L4 out</span><span class="ex-out">"I want to call mom about the order."</span> <span class="ex-orange">← same, with deeper reconstruction when speech is heavier</span></div>
     </div>
   </section>
 
@@ -1008,9 +1008,9 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Layer IV — Clinical</div>
+      <div class="card-title">Layer IV — Speech Disfluency</div>
       <div class="card-sub">cloud · 6–12s · for heavy speech disfluency</div>
-      <p>Cloud Whisper-1 with verbose word timings, plus Claude Sonnet 4.6 with extended thinking. The reasoner is given a clinical brief — phoneme difficulty, avoidance patterns, anticipatory blocks — and rebuilds intent through that lens. Slowest, but the most accurate when the speech is heavily disfluent.</p>
+      <p>Cloud Whisper-1 with detailed timing and confidence signals, plus deeper reconstruction. It considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest, but designed for speech that the lighter layers garble.</p>
     </div>
 
     <div class="callout">
@@ -1021,6 +1021,8 @@
       the recordings that other layers garble.
     </div>
   </section>
+
+  <p><strong>Important:</strong> WiM is an assistive dictation tool, not a medical device. It does not diagnose, treat, cure, or prevent any medical condition. Consult a qualified healthcare professional for medical advice.</p>
 
   <!-- ===== § 06 TONE ===== -->
   <section id="tone">

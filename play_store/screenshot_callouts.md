@@ -6,7 +6,7 @@
 
 ## Screenshot 2: Layer selector in the bubble menu
 **Headline:** Pick Your Layer.
-**Subheadline:** Local + offline, or cloud reconstruction with grammar, profile, and clinical disfluency cleanup. You decide every time.
+**Subheadline:** Local + offline, or cloud reconstruction with grammar, profile, and deep disfluency cleanup. You decide every time.
 
 ## Screenshot 3: Mid-recording with live transcript
 **Headline:** See Your Words As You Speak.

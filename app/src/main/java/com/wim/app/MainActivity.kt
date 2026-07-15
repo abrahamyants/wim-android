@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var consoleUnsub: (() -> Unit)? = null
     private var showingConsole = false
     private var tts: android.speech.tts.TextToSpeech? = null
+    private var billingManager: PlayBillingManager? = null
 
     // Session timer (relocated from bubble — shown next to the "Today" header
     // in the Sessions list, with a reset button beside it).
@@ -139,11 +140,15 @@ class MainActivity : AppCompatActivity() {
                 signedOutSection.visibility = View.GONE
                 signedInSection.visibility = View.VISIBLE
                 userEmail.text = user.email ?: user.uid.take(12)
-                userTier.text = "Invite"
+                userTier.text = if (WimApp.cloudUnlocked()) "Cloud unlocked" else "Local / Free"
+                findViewById<TextView>(R.id.settingsUserEmail)?.text = user.email ?: user.uid.take(12)
+                findViewById<TextView>(R.id.settingsUserTier)?.text = userTier.text
                 // Hide API key section — consumer doesn't need it
             } else {
                 signedOutSection.visibility = View.VISIBLE
                 signedInSection.visibility = View.GONE
+                findViewById<TextView>(R.id.settingsUserEmail)?.text = "Not signed in"
+                findViewById<TextView>(R.id.settingsUserTier)?.text = "Local / Free"
             }
         }
 
@@ -192,6 +197,7 @@ class MainActivity : AppCompatActivity() {
                     is SignInResult.Success -> {
                         Toast.makeText(this@MainActivity, "Signed in as ${result.user.email}", Toast.LENGTH_SHORT).show()
                         updateAuthUI()
+                        billingManager?.refresh()
                     }
                     is SignInResult.Failed -> {
                         Toast.makeText(this@MainActivity, result.reason, Toast.LENGTH_LONG).show()
@@ -202,9 +208,13 @@ class MainActivity : AppCompatActivity() {
 
         signOutBtn.setOnClickListener {
             AuthManager.signOut()
+            WimApp.clearCloudUnlock()
             updateAuthUI()
+            billingManager?.refresh()
             Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show()
         }
+
+        setupCloudBilling()
 
         // ── Sessions (collapsible) ───────────────────────
         // Sessions panel must be expanded on every app start — operator
@@ -213,6 +223,8 @@ class MainActivity : AppCompatActivity() {
         // "section_" prefix to match what setupCollapsible actually reads.
         WimApp.prefs.edit().putBoolean("section_sessions_section", true).apply()
         setupCollapsible(R.id.headerSessions, R.id.contentSessions, "sessions_section", defaultExpanded = true)
+        setupCollapsible(R.id.headerScriptPrep, R.id.contentScriptPrep, "script_prep_section", defaultExpanded = false)
+        setupScriptPrep()
         // Apply maroon background + grille mesh overlay
         val sessionsPanel = findViewById<FrameLayout>(R.id.sessionsPanel)
         val panelBg = getDrawable(R.drawable.sessions_panel_bg)!!
@@ -351,6 +363,10 @@ class MainActivity : AppCompatActivity() {
             paintL1Source()
         }
         l1CloudBtn?.setOnClickListener {
+            if (!WimApp.cloudUnlocked()) {
+                requestCloudUnlock()
+                return@setOnClickListener
+            }
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
             paintL1Source()
         }
@@ -521,7 +537,8 @@ class MainActivity : AppCompatActivity() {
             R.id.headerDaf,
             R.id.headerPermissions,
             R.id.headerSettings,
-            R.id.headerGuide
+            R.id.headerGuide,
+            R.id.headerScriptPrep
         ).forEach { applyHeaderShimmer(it) }
 
         // Layer tile labels
@@ -587,6 +604,11 @@ class MainActivity : AppCompatActivity() {
                 .setTitle(R.string.lang_picker_dialog_title)
                 .setSingleChoiceItems(labels, current) { dialog, which ->
                     val picked = codes[which]
+                    if (picked != "en" && !WimApp.cloudUnlocked()) {
+                        dialog.dismiss()
+                        requestCloudUnlock()
+                        return@setSingleChoiceItems
+                    }
                     if (picked != WimApp.appLanguage()) {
                         WimApp.setAppLanguage(picked)
                         // Force cloud ASR when locale leaves English
@@ -833,8 +855,50 @@ class MainActivity : AppCompatActivity() {
 
         // ── Privacy Policy ────────────────────────────────
         findViewById<TextView>(R.id.privacyLink).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/gugosf114/wim-android/blob/main/play_store/privacy_policy.md")))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://mybakingcreations.com/wim-privacy-policy")))
         }
+
+        if (intent.getBooleanExtra("open_cloud_unlock", false)) {
+            window.decorView.post { requestCloudUnlock() }
+        }
+    }
+
+    private fun setupCloudBilling() {
+        val statusView = findViewById<TextView>(R.id.cloudUnlockStatus)
+        val priceView = findViewById<TextView>(R.id.cloudUnlockPrice)
+        val actionView = findViewById<TextView>(R.id.cloudUnlockAction)
+        billingManager = PlayBillingManager(this, lifecycleScope) { state ->
+            statusView?.text = state.message
+            priceView?.text = if (state.unlocked) "PERMANENT ACCESS"
+                else state.price ?: "Price unavailable"
+            actionView?.text = if (state.unlocked) "UNLOCKED" else "UNLOCK"
+            actionView?.isEnabled = !state.unlocked
+            actionView?.alpha = if (state.unlocked) 0.55f else 1f
+            findViewById<TextView>(R.id.userTier)?.text =
+                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+            findViewById<TextView>(R.id.settingsUserTier)?.text =
+                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+        }
+        actionView?.setOnClickListener { billingManager?.launchPurchase() }
+        billingManager?.start()
+    }
+
+    private fun requestCloudUnlock() {
+        if (!AuthManager.isSignedIn) {
+            Toast.makeText(this, "Sign in first, then unlock cloud speech", Toast.LENGTH_LONG).show()
+            return
+        }
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.cloud_unlock_title)
+            .setMessage(R.string.cloud_unlock_dialog)
+            .setPositiveButton(R.string.cloud_unlock_action) { _, _ ->
+                billingManager?.launchPurchase()
+            }
+            .setNeutralButton(R.string.cloud_unlock_restore) { _, _ ->
+                billingManager?.refresh()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     override fun onResume() {
@@ -886,6 +950,7 @@ class MainActivity : AppCompatActivity() {
         // every second). Stops in onPause.
         sessionTimerHandler.removeCallbacks(sessionTimerTick)
         sessionTimerHandler.post(sessionTimerTick)
+        billingManager?.refresh()
     }
 
     override fun onPause() {
@@ -908,7 +973,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        billingManager?.close()
+        billingManager = null
         tts?.stop()
         tts?.shutdown()
         tts = null
@@ -928,6 +994,7 @@ class MainActivity : AppCompatActivity() {
         // because FirebaseAuth holds a strong reference to the listener
         // that fires the callback.
         WimApp.onSessionsSynced = null
+        super.onDestroy()
     }
 
     private fun loadConsole() {
@@ -1357,6 +1424,10 @@ class MainActivity : AppCompatActivity() {
         }
         ids.forEachIndexed { i, id ->
             findViewById<LinearLayout>(id).setOnClickListener {
+                if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
+                    requestCloudUnlock()
+                    return@setOnClickListener
+                }
                 triggerShimmerForPrefKey(prefKey)
                 ids.forEachIndexed { j, otherId ->
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
@@ -1569,6 +1640,47 @@ class MainActivity : AppCompatActivity() {
             updateCollapseArrow(header, !isVisible)
             WimApp.prefs.edit().putBoolean("section_$prefKey", !isVisible).apply()
         }
+    }
+
+    private fun setupScriptPrep() {
+        val input = findViewById<EditText>(R.id.scriptPrepText)
+        val enabled = findViewById<MaterialSwitch>(R.id.scriptPrepEnabled)
+        val status = findViewById<TextView>(R.id.scriptPrepStatus)
+        input.setText(ScriptPrepStore.text())
+        enabled.isChecked = ScriptPrepStore.isEnabled()
+
+        fun refresh() {
+            val chars = ScriptPrepStore.text().length
+            val active = ScriptPrepStore.isEnabled()
+            status.text = if (active) "ACTIVE — $chars characters sent as private context" else "OFF — no prepared context is being used"
+            status.setTextColor(getColor(if (active) R.color.green_active else R.color.text_dim))
+            enabled.isChecked = active
+        }
+
+        findViewById<Button>(R.id.scriptPrepSave).setOnClickListener {
+            val text = input.text.toString().trim()
+            if (text.isBlank()) {
+                Toast.makeText(this, "Paste or type context first", Toast.LENGTH_SHORT).show()
+            } else {
+                ScriptPrepStore.save(text, enabled = true)
+                refresh()
+                Toast.makeText(this, "Script Prep is active", Toast.LENGTH_SHORT).show()
+            }
+        }
+        findViewById<Button>(R.id.scriptPrepClear).setOnClickListener {
+            ScriptPrepStore.clear()
+            input.setText("")
+            refresh()
+        }
+        enabled.setOnCheckedChangeListener { _, checked ->
+            if (checked && input.text.toString().trim() != ScriptPrepStore.text()) {
+                ScriptPrepStore.save(input.text.toString(), enabled = true)
+            } else {
+                ScriptPrepStore.setEnabled(checked)
+            }
+            refresh()
+        }
+        refresh()
     }
 
     private fun findScrollView(view: android.view.View?): ScrollView? {
@@ -1787,7 +1899,7 @@ class MainActivity : AppCompatActivity() {
 <b>2. Speech-to-text.</b><br>
 &#8226; <b>Layer I</b> &#8212; whisper-tiny runs on your phone (free, no internet, no chirp).<br>
 &#8226; <b>Layer II / III</b> &#8212; gpt-4o-transcribe in the cloud (your audio goes up so the model can hear inflection and disfluency before reconstruction).<br>
-&#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes per-segment confidence the clinical prompt needs).<br><br>
+&#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes confidence signals used by deep reconstruction).<br><br>
 <b>3. Rule cleanup (no AI).</b><br>
 &#8226; "p-p-pop" &#8594; "pop"<br>
 &#8226; "I I I want" &#8594; "I want" (but "bye bye", "had had" are kept)<br>
@@ -1862,7 +1974,7 @@ class MainActivity : AppCompatActivity() {
                 """<b>I. Transcribe</b> &#8212; whisper-tiny on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
-<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
+<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Deeper reconstruction considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest layer, built for speech the lighter layers garble.<br><br><b>WiM is an assistive dictation tool, not a medical device.</b> It does not diagnose, treat, cure, or prevent any condition."""
             ),
 
             GuideSection(
@@ -2097,7 +2209,7 @@ The bubble shows your current layer (L1-L4) and tone (CAS/PRO/FRI/FOR). During r
 <b>I. Transcribe</b> &#8212; On-device speech-to-text + disfluency filter. Free, instant, no internet after setup.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT cleans grammar, strips fillers, applies your tone. ~1-2s.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and corrections. The app learns which words you prefer over time.<br><br>
-<b>IV. Speech Disfluency</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
+<b>IV. Speech Disfluency</b> &#8212; Deep reconstruction. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
 
             Triple("Smart Tone", "Automatic context detection", """
 WiM detects which app you're in and adjusts the tone automatically:<br><br>
@@ -2834,6 +2946,37 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val profile = WimApp.profile()
         val pillDp = resources.displayMetrics.density
 
+        fun renderLearned() {
+            val summary = profile.learnedSummary()
+            overlay.findViewById<TextView>(R.id.learnedCounts)?.text =
+                "${summary.vocabulary} words  ·  ${summary.corrections} corrections  ·  ${summary.triggerWords} triggers"
+            overlay.findViewById<TextView>(R.id.learnedOnsets)?.text =
+                if (summary.difficultOnsets.isEmpty()) "Still learning — no reliable pattern yet"
+                else summary.difficultOnsets.joinToString("   ") { (sound, weight) -> "$sound ${"%.1f".format(weight)}" }
+            val acoustic = profile.prosodicBaseline()
+            val wps = profile.baselineWps()
+            overlay.findViewById<TextView>(R.id.learnedBaseline)?.text = when {
+                acoustic != null -> buildString {
+                    append("${acoustic.samples} recordings · ${"%.1f".format(acoustic.rateMean)} syllables/sec")
+                    if (wps != null) append(" · ${"%.1f".format(wps)} words/sec")
+                }
+                else -> "Calibrating: ${profile.prosodicSampleCount()}/5 L4 recordings"
+            }
+        }
+
+        overlay.findViewById<TextView>(R.id.clearSpeechBaselineBtn)?.setOnClickListener {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Reset personal baseline?")
+                .setMessage("WiM will forget your learned speaking rate, pitch, and energy. Your vocabulary and corrections will stay.")
+                .setPositiveButton("Reset") { _, _ ->
+                    profile.clearPersonalSpeechBaseline()
+                    renderLearned()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        renderLearned()
+
         fun makePill(label: String, onTap: () -> Unit): View {
             return TextView(this).apply {
                 text = "$label  ✕"
@@ -2858,6 +3001,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 vocabChips?.addView(makePill(word) {
                     profile.removeVocabulary(word)
                     renderVocab()
+                    renderLearned()
                 })
             }
         }
@@ -2868,6 +3012,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 profile.addVocabulary(w)
                 vocabAddInput?.setText("")
                 renderVocab()
+                renderLearned()
             }
         }
         vocabAddBtn?.setOnClickListener { addVocab() }
@@ -2884,6 +3029,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 corrChips?.addView(makePill("$from → $to") {
                     profile.removeCorrection(from)
                     renderCorr()
+                    renderLearned()
                 })
             }
         }
@@ -2896,6 +3042,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 corrAddFrom?.setText("")
                 corrAddTo?.setText("")
                 renderCorr()
+                renderLearned()
             }
         }
         corrAddBtn?.setOnClickListener { addCorr() }
@@ -2911,6 +3058,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 triggerChips?.addView(makePill(word) {
                     profile.removeTriggerWord(word)
                     renderTriggers()
+                    renderLearned()
                 })
             }
         }
@@ -2921,6 +3069,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 profile.addTriggerWord(w)
                 triggerAddInput?.setText("")
                 renderTriggers()
+                renderLearned()
             }
         }
         triggerAddBtn?.setOnClickListener { addTrigger() }

@@ -51,8 +51,7 @@ class BubbleCommandMode(
 ) {
     private companion object {
         private const val TAG = "WiM"
-        private const val CMD_BACKEND_URL =
-            "https://us-central1-bakers-agent.cloudfunctions.net/wim-reconstruct"
+        private const val CMD_BACKEND_URL = BackendConfig.URL
 
         // Shared client — was being created per-call in callBackendCommandTransform
         // + callOpenAiTransform, leaking thread pools + sockets on every command.

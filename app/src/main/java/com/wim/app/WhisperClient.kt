@@ -1,5 +1,6 @@
 package com.wim.app
 
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -7,6 +8,7 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -144,38 +146,48 @@ object WhisperClient {
         // wire payload, which materially reduces round-trip on longer
         // recordings. L4 + reconstruction layers default to verbose_json.
         verboseSegments: Boolean = true,
+        prompt: String = ScriptPrepStore.activeContext(),
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
-            if (apiKey.isBlank()) throw IllegalStateException("No API key for Whisper")
-
             val t0 = System.currentTimeMillis()
-
-            val body = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("model", model)
-                .addFormDataPart("language", language)
-                .addFormDataPart("temperature", temperature.toString())
-                .addFormDataPart("response_format", if (verboseSegments) "verbose_json" else "json")
-                .addFormDataPart(
-                    "file", audioFile.name,
-                    audioFile.asRequestBody("audio/wav".toMediaType())
-                )
-                .build()
-
-            val request = Request.Builder()
-                .url("https://api.openai.com/v1/audio/transcriptions")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .post(body)
-                .build()
-
-            val responseBody = http.newCall(request).execute().use { response ->
-                val body = response.body?.string()
-                    ?: throw RuntimeException("Empty response from Whisper API")
-                if (!response.isSuccessful) {
-                    throw RuntimeException("Whisper API error ${response.code}: $body")
+            val (responseBody, engine) = if (apiKey.isNotBlank()) {
+                val bodyBuilder = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("model", model)
+                    .addFormDataPart("language", language)
+                    .addFormDataPart("temperature", temperature.toString())
+                    .addFormDataPart("response_format", if (verboseSegments) "verbose_json" else "json")
+                    .addFormDataPart(
+                        "file", audioFile.name,
+                        audioFile.asRequestBody("audio/wav".toMediaType())
+                    )
+                if (prompt.isNotBlank()) bodyBuilder.addFormDataPart("prompt", prompt.take(4000))
+                val request = Request.Builder()
+                    .url("https://api.openai.com/v1/audio/transcriptions")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .post(bodyBuilder.build())
+                    .build()
+                executeJson(request, "Whisper API") to "direct"
+            } else {
+                val idToken = AuthManager.getIdToken()
+                    ?: throw IllegalStateException("Sign in to use cloud transcription")
+                val body = JSONObject().apply {
+                    put("action", "transcribe_audio")
+                    put("audio_base64", Base64.encodeToString(audioFile.readBytes(), Base64.NO_WRAP))
+                    put("language", language)
+                    put("model", model)
+                    put("temperature", temperature)
+                    put("verbose_segments", verboseSegments)
+                    if (prompt.isNotBlank()) put("prompt", prompt.take(4000))
                 }
-                body
+                val request = Request.Builder()
+                    .url(BackendConfig.URL)
+                    .addHeader("Authorization", "Bearer $idToken")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                executeJson(request, "WiM transcription backend") to "backend"
             }
 
             val json = JSONObject(responseBody)
@@ -228,9 +240,22 @@ object WhisperClient {
                 asrMs = asrMs,
                 lowConfidenceSegments = lowConfidenceSegments,
                 timedSegments = timedSegments,
-                wasFullyHallucinated = wasFullyHallucinated
+                wasFullyHallucinated = wasFullyHallucinated,
+                engine = engine
             )
         }
+
+    private fun executeJson(request: Request, service: String): String =
+        http.newCall(request).execute().use { response ->
+            val body = response.body?.string()
+                ?: throw RuntimeException("Empty response from $service")
+            if (!response.isSuccessful) {
+                throw RuntimeException("$service error ${response.code}: $body")
+            }
+            body
+        }
+
+    internal fun stripHallucinationsForTest(text: String): String = stripHallucinations(text)
 
     data class LowConfidenceSegment(
         val text: String,
@@ -246,6 +271,7 @@ object WhisperClient {
         val asrMs: Long,
         val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList(),
         val timedSegments: List<TimedSegment> = emptyList(),
-        val wasFullyHallucinated: Boolean = false
+        val wasFullyHallucinated: Boolean = false,
+        val engine: String = "unknown"
     )
 }

@@ -1,11 +1,15 @@
 package com.wim.app
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Bluetooth SCO bring-up + state tracking. When a BT headset is connected,
@@ -57,6 +61,14 @@ class BubbleBluetoothSco(
         }
         receiver?.let { context.registerReceiver(it, IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)) }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.i(TAG, "Bluetooth routing skipped: BLUETOOTH_CONNECT not granted")
+            return
+        }
+
         // If a Bluetooth headset is already connected, start SCO so the
         // mic-capture path picks up the headset rather than the phone's
         // built-in mic. See class-level migration note for the deprecation
@@ -84,6 +96,13 @@ class BubbleBluetoothSco(
         // for the whole device — unpin it here, otherwise it stays bound to
         // WiM's now-dead process and breaks call / media / mic routing for
         // every other app until the user reboots.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            scoActive = false
+            return
+        }
         try {
             @Suppress("DEPRECATION")
             audioManager.stopBluetoothSco()

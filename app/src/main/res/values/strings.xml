@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tile_script_prep">Script Prep</string>
+    <string name="script_prep_help">Paste notes, names, jargon, or the sentence you plan to say. WiM uses it only as context and never inserts it by itself.</string>
+    <string name="script_prep_hint">Example: Dr. Nwosu, quarterly EBITDA, Project Heirloom…</string>
+    <string name="script_prep_use">Use context</string>
+    <string name="script_prep_save">Save + activate</string>
+    <string name="script_prep_clear">Clear</string>
+    <string name="profile_what_learned">What WiM Learned</string>
+    <string name="profile_learned_help">This is the memory WiM actually uses. You can inspect or remove words below; speech baselines stay only on this device.</string>
+    <string name="profile_difficult_sounds">Difficult sounds</string>
+    <string name="profile_speech_baseline">Personal speech baseline</string>
+    <string name="profile_clear_baseline">Reset speech baseline</string>
 
     <!-- ═══ App identity ═══ -->
     <string name="app_name">What I Meant</string>
@@ -29,7 +40,7 @@
     <string name="layer_1_desc">Local — instant, free, no internet needed</string>
     <string name="layer_2_desc">Smart — AI rewrites your speech clearly</string>
     <string name="layer_3_desc">Personal — learns your vocabulary and corrections</string>
-    <string name="layer_4_desc">Clinical — deep speech disfluency reconstruction</string>
+    <string name="layer_4_desc">Deep — built for heavier speech disfluency</string>
 
     <!-- ═══ Tone section ═══ -->
     <string name="tone_casual">Casual</string>
@@ -309,5 +320,13 @@
     <string name="lang_french">Français</string>
     <string name="lang_picker_dialog_title">Choose language</string>
     <string name="lang_picker_restart_note">App will restart to apply</string>
+
+    <!-- Google Play one-time purchase -->
+    <string name="cloud_unlock_title">WiM Cloud Unlock</string>
+    <string name="cloud_unlock_status">Checking access…</string>
+    <string name="cloud_unlock_price">Price shown by Google Play</string>
+    <string name="cloud_unlock_action">UNLOCK</string>
+    <string name="cloud_unlock_restore">RESTORE</string>
+    <string name="cloud_unlock_dialog">Cloud speech, Layers II–IV, and non-English dictation need the one-time Cloud Unlock.</string>
 
 </resources>
