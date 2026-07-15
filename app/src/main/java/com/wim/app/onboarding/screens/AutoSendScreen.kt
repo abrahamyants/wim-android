@@ -34,7 +34,7 @@ import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
- * Auto-Send teaching — Calm-dark. Teaches the crown jewel statically (no motion):
+ * Tap-to-send teaching — Calm-dark. Teaches the crown jewel statically (no motion):
  * the bubble's RED → AMBER → GREEN-SEND sequence, and that it sends ON YOUR BEHALF so you
  * never reach for the host app's own send button. State dots reuse the approved tokens
  * (red_hot / orange_amber / green_active). Sits right before the final "close the app"
@@ -102,7 +102,7 @@ fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "You never reach for the app's own send button. It's your call — flip it on in settings.",
+                text = "Sending always requires that separate green-bubble tap. The feature is off by default; turn it on in settings.",
                 fontFamily = PlusJakartaFamily,
                 fontSize = 12.sp,
                 lineHeight = 18.sp,

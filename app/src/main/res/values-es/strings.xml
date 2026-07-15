@@ -57,8 +57,8 @@
     <string name="settings_voice_shortcuts_hint">mi correo=george@example.com\nmi teléfono=555-1234</string>
     <string name="settings_bubble_color">Color de la burbuja</string>
     <string name="settings_cloud_backup">Respaldo en la nube</string>
-    <string name="settings_auto_send">Envío automático (toca burbuja verde)</string>
-    <string name="settings_auto_send_apps">Mensajes, Gmail, WhatsApp, Telegram, Signal. Toca la burbuja en 3.5s para enviar.</string>
+    <string name="settings_auto_send">Ayuda para enviar</string>
+    <string name="settings_auto_send_apps">Después de pegar el texto, toca la burbuja verde en 5 s para enviarlo. Si no haces nada, se cancela.</string>
     <string name="settings_accent">Acento</string>
     <string name="settings_accent_subtitle">no autocorregir</string>
     <string name="settings_shake">Agitar para mostrar/ocultar</string>
@@ -207,7 +207,7 @@
     <string name="bouncer_recon_after">¿Podrías enviarme el reporte? Lo necesito para la reunión de mañana.</string>
     <string name="bouncer_recon_caption">Disfluencias reconstruidas. Tono aplicado. El texto llega a la app donde estás escribiendo.</string>
     <string name="bouncer_send_title">Envía directo desde la burbuja</string>
-    <string name="bouncer_send_body">Cuando llega tu texto, la burbuja se vuelve verde por 3 segundos. Tócala para enviar. Espera o toca afuera para cancelar.\n\nWiM nunca envía sin tu toque. El texto pasa por la app abierta — Mensajes, Gmail, WhatsApp, etc. — usando tu sesión iniciada.</string>
+    <string name="bouncer_send_body">Cuando llega tu texto, la burbuja se vuelve verde por 5 segundos. Tócala para enviar. Espera o toca afuera para cancelar.\n\nWiM nunca envía sin ese toque separado. El texto pasa por la app abierta — Mensajes, Gmail, WhatsApp, etc. — usando tu sesión iniciada.</string>
     <string name="bouncer_send_ack">Entiendo. Tocar la burbuja verde envía mi texto.</string>
     <string name="bouncer_next">Siguiente</string>
     <string name="bouncer_all_set">Todo listo.</string>
@@ -274,7 +274,7 @@
     <string name="layer_2_desc">Inteligente — la IA reescribe tu voz con claridad</string>
     <string name="layer_3_desc">Personal — aprende tu vocabulario y correcciones</string>
     <string name="layer_4_desc">Profundo — diseñado para habla con más disfluencias</string>
-    <string name="settings_facehugger_send">Envío Facehugger (la burbuja salta al botón Enviar)</string>
+    <string name="settings_facehugger_send">Mover la burbuja al botón Enviar</string>
     <string name="profile_l1_hindi">Hindi</string>
     <string name="profile_l1_arabic">Árabe</string>
     <string name="profile_l1_farsi">Persa</string>

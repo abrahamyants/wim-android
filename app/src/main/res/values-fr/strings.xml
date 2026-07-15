@@ -57,8 +57,8 @@
     <string name="settings_voice_shortcuts_hint">mon email=george@example.com\nmon tél=555-1234</string>
     <string name="settings_bubble_color">Couleur de la bulle</string>
     <string name="settings_cloud_backup">Sauvegarde cloud des sessions</string>
-    <string name="settings_auto_send">Envoi auto (touchez la bulle verte)</string>
-    <string name="settings_auto_send_apps">Messages, Gmail, WhatsApp, Telegram, Signal. Touchez la bulle dans 3,5s pour envoyer.</string>
+    <string name="settings_auto_send">Aide à l’envoi</string>
+    <string name="settings_auto_send_apps">Après le collage, touchez la bulle verte dans les 5 s pour envoyer. Sans action, l’envoi est annulé.</string>
     <string name="settings_accent">Accent</string>
     <string name="settings_accent_subtitle">ne pas corriger automatiquement</string>
     <string name="settings_shake">Secouer pour afficher/masquer</string>
@@ -207,7 +207,7 @@
     <string name="bouncer_recon_after">Pourriez-vous m\'envoyer le rapport ? J\'en ai besoin pour la réunion de demain.</string>
     <string name="bouncer_recon_caption">Dysfluences reconstruites. Ton appliqué. Le texte arrive dans l\'app où vous tapez.</string>
     <string name="bouncer_send_title">Envoyez directement depuis la bulle</string>
-    <string name="bouncer_send_body">Quand votre texte arrive, la bulle devient verte pendant 3 secondes. Touchez pour envoyer. Attendez ou touchez à l\'extérieur pour annuler.\n\nWiM n\'envoie jamais sans votre toucher. Le texte passe par l\'app ouverte — Messages, Gmail, WhatsApp, etc. — en utilisant votre session existante.</string>
+    <string name="bouncer_send_body">Quand votre texte arrive, la bulle devient verte pendant 5 secondes. Touchez pour envoyer. Attendez ou touchez à l\'extérieur pour annuler.\n\nWiM n\'envoie jamais sans ce toucher séparé. Le texte passe par l\'app ouverte — Messages, Gmail, WhatsApp, etc. — en utilisant votre session existante.</string>
     <string name="bouncer_send_ack">Compris. Toucher la bulle verte envoie mon texte.</string>
     <string name="bouncer_next">Suivant</string>
     <string name="bouncer_all_set">Tout est prêt.</string>
@@ -274,7 +274,7 @@
     <string name="layer_2_desc">Intelligent — l’IA reformule clairement votre parole</string>
     <string name="layer_3_desc">Personnel — apprend votre vocabulaire et vos corrections</string>
     <string name="layer_4_desc">Profond — conçu pour une parole plus disfluente</string>
-    <string name="settings_facehugger_send">Envoi Facehugger (la bulle rejoint le bouton Envoyer)</string>
+    <string name="settings_facehugger_send">Déplacer la bulle vers le bouton Envoyer</string>
     <string name="profile_l1_hindi">Hindi</string>
     <string name="profile_l1_arabic">Arabe</string>
     <string name="profile_l1_farsi">Persan</string>

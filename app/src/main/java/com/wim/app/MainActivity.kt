@@ -105,13 +105,6 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
-        // Request notification permission (Android 13+) — keeps foreground service alive
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 200)
-            }
-        }
-
         // Ambient parallax orbs handle their own rendering + sensor — no setup here.
         // See app/src/main/java/com/wim/app/AmbientOrbsView.kt.
 
@@ -846,9 +839,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Notifications already granted", Toast.LENGTH_SHORT).show()
             }
         }
-
-        // Request battery optimization exemption so Samsung/OEMs don't kill the bubble
-        requestBatteryExemption()
 
         // Check notification channel is enabled — needed for bubble recall
         checkNotificationChannel()
@@ -1939,7 +1929,7 @@ class MainActivity : AppCompatActivity() {
 <b>Drag</b> &#8212; Move it anywhere.<br><br>
 <b>Drag to bottom</b> &#8212; Hide the bubble.<br><br>
 <b>Double shake the phone</b> &#8212; Show or hide the bubble.<br><br>
-<b>States:</b> IDLE (resting) &#8226; REC (recording) &#8226; PROC (processing) &#8226; SEND (auto-send ready, green).""",
+<b>States:</b> IDLE (resting) &#8226; REC (recording) &#8226; PROC (processing) &#8226; SEND (tap-to-send ready, green).""",
                 visual = {
                     val theme = WimApp.bubbleTheme()
                     bubbleRow(
@@ -1987,15 +1977,15 @@ You can override anywhere: <b>Settings &#8594; Tone</b>. Two tones: Casual and P
             ),
 
             GuideSection(
-                "Auto-send",
-                "Tap green to send",
-                """When auto-send is on (you opted in during onboarding):<br><br>
+                "Tap-to-send assist",
+                "A separate tap always sends",
+                """When tap-to-send assist is on:<br><br>
 &#8226; Speak. The text lands in the compose field.<br>
-&#8226; The bubble turns <b>green</b> for 3 seconds, label says SEND.<br>
+&#8226; The bubble turns <b>green</b> for 5 seconds, label says SEND.<br>
 &#8226; Tap the green bubble &#8212; WiM clicks the app's Send button for you.<br>
-&#8226; Don't tap, or wait 3 seconds, or tap outside &#8212; auto-send cancels and you can edit the text first.<br><br>
+&#8226; Don't tap, wait 5 seconds, or tap outside &#8212; the send assist cancels and you can edit the text first.<br><br>
 Works in Google Messages, Samsung Messages, Gmail, WhatsApp, Telegram, Signal, and more.<br><br>
-Turn off in <b>Settings &#8594; Auto-send</b>.""",
+Turn off in <b>Settings &#8594; Tap-to-send assist</b>. WiM never sends without that separate tap.""",
                 visual = {
                     val theme = WimApp.bubbleTheme()
                     bubbleRow(
@@ -2388,20 +2378,6 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, "wim_bubble")
             }
             try { startActivity(intent) } catch (_: Exception) {}
-        }
-    }
-
-    private fun requestBatteryExemption() {
-        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
-        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-            try {
-                startActivity(Intent(
-                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.parse("package:$packageName")
-                ))
-            } catch (e: Exception) {
-                Log.e("WiM", "Battery exemption request failed: ${e.message}")
-            }
         }
     }
 
@@ -3323,12 +3299,11 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         BubbleService.dockSlotRects = if (rects.isNotEmpty()) rects else null
     }
 
-    // ── Auto-send toggle ──
+    // ── Tap-to-send assist toggle ──
     // User flips this on → after any successful injectText into a supported
     // app (Messages, Gmail, WhatsApp, Telegram, Signal), bubble goes green
     // with "SEND" label. Tap the green bubble → accessibility ACTION_CLICK
-    // fires the app's Send button. First three taps show a disclaimer
-    // overlay explaining the mechanism.
+    // fires the app's Send button. Sending always requires this second tap.
     private fun setupAutoSendToggle() {
         val toggle = findViewById<MaterialSwitch>(R.id.autoSendToggle) ?: return
         toggle.isChecked = WimApp.autoSendEnabled()

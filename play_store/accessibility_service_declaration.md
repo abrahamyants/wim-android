@@ -3,37 +3,49 @@
 ## Classification
 
 - Is the app an accessibility tool? **Yes.**
-- Primary purpose: voice typing for people whose speech includes stuttering, blocks, repetitions, prolongations, false starts, and other disfluencies.
+- Disability type: **Other — speech and communication disabilities.**
+- Target users: people whose speech includes stuttering, silent blocks, repetitions, prolongations, false starts, or other disfluencies.
 - Manifest configuration: `android:isAccessibilityTool="true"`.
+
+## Core accessibility need
+
+A person managing a speech block may already be holding alternate words, sentence repairs, and intended meaning in working memory. Leaving the conversation, finding the text field again, or visually hunting for a Send button that moves when the keyboard appears adds cognitive load at exactly that moment.
+
+WiM keeps a user-invoked voice-typing control available across apps. The Accessibility Service lets WiM return the user's reconstructed words to the field they chose without making them switch apps or reacquire changing controls.
 
 ## What the service does
 
-WiM uses AccessibilityService only while providing its user-invoked dictation workflow:
-
-1. Detect the currently focused editable text field.
-2. Insert the transcript the user created by tapping WiM's floating microphone bubble.
-3. If the user separately enables Auto-Send, locate and tap the host app's Send button after showing the user the completed text.
-4. Refuse to capture or insert text when the focused field is a password field.
+1. Receives window-change and view-focus events so it can identify the foreground app and currently focused editable field.
+2. Rejects password fields.
+3. When the user invokes dictation, reads up to 200 characters immediately before the cursor to preserve sentence continuity. Local Layer 1 keeps this context on the device. If the user deliberately selects a cloud layer, the short context is encrypted in transit and included in that reconstruction request.
+4. Inserts or replaces only the dictated text in the focused field. If the write fails, it preserves the user's words on the clipboard instead of losing them.
+5. If the user enables tap-to-send assist, locates the visible Send control. WiM may move its bubble to that control, but it clicks Send only after a separate user tap on the green bubble. The five-second window expires without sending.
 
 ## What it does not do
 
-- No continuous monitoring of screen contents.
-- No collection of passwords, private messages, browsing behavior, or unrelated interactions.
-- No autonomous decisions or actions unrelated to dictation.
-- No advertising, profiling, or sale of accessibility data.
-- Auto-Send is off by default and requires an explicit user opt-in.
+- Does not subscribe to text-change, click, scroll, or key events.
+- Does not read or act on password fields.
+- Does not send messages automatically or when a countdown expires.
+- Does not make autonomous decisions or perform unrelated actions.
+- Does not use Accessibility data for advertising, sale, or cross-app profiling.
 
-## Prominent disclosure text
+## In-app disclosure shown before Android Settings
 
-> WiM uses Accessibility Service to find the text box you are currently typing in and paste your dictated words into it. If you turn on Auto-Send, WiM can also tap that app's Send button after showing your completed text. WiM does not read password fields or monitor unrelated activity. Accessibility access stays off until you enable it in Android Settings, and you can turn it off at any time.
+> Speech blocks already use attention. WiM's Accessibility Service finds the text field you chose, reads up to 200 characters before the cursor to keep your sentence coherent, and inserts your dictated text. Local Layer 1 keeps this on your phone; cloud layers send the short context with your dictation. If you enable tap-to-send assist, WiM finds Send but presses it only after your separate green-bubble tap. Password fields are blocked, and unrelated content is not read.
 
-## Review video script (roughly 45–60 seconds)
+The screen provides **OPEN ACCESSIBILITY SETTINGS** and **NOT YET** actions. Accessibility access remains off unless the user enables WiM in Android Settings and can be disabled there at any time.
 
-1. Open WiM onboarding and show the Accessibility explanation before the system settings link.
-2. Open Android Accessibility settings and enable WiM.
-3. Open a messaging or notes app and focus a normal text field.
-4. Tap the WiM bubble, dictate one sentence, stop, and show WiM inserting the result.
-5. Focus a password field and show that WiM blocks dictation.
-6. Return to WiM Settings, show Auto-Send off by default, then show the Accessibility permission can be disabled.
+## Review video script (roughly 60–75 seconds)
 
-Upload this unlisted video in the Play Console declaration and use the exact same explanation in the reviewer notes.
+1. Open WiM from a clean install and navigate to the Accessibility explanation.
+2. Keep the full disclosure visible long enough to read, including the local-versus-cloud context sentence.
+3. Tap **NOT YET** to show that denial is respected, then return and reopen the explanation.
+4. Tap **OPEN ACCESSIBILITY SETTINGS**, enable WiM, and return to the app.
+5. Open a messaging or notes app and focus a normal text field.
+6. Tap the WiM bubble, dictate one sentence, stop, and show WiM inserting the result.
+7. Enable tap-to-send assist, dictate again, show the green five-second SEND state, and let it expire without sending.
+8. Repeat and tap the green bubble to demonstrate that the separate tap is the final authorization.
+9. Focus a password field and show that WiM blocks dictation.
+10. Return to Android Settings and show that the Accessibility Service can be disabled.
+
+Upload the unlisted video in the Play Console declaration and use this same explanation in reviewer notes.

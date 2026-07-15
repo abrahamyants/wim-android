@@ -53,7 +53,7 @@ class BubbleSendDisclaimer(
         }
         val body = TextView(context).apply {
             text = "Tapping the green bubble sends the text in the compose field through the app that's open — Google Messages, Gmail, WhatsApp, etc. — using your existing signed-in session. " +
-                "WiM never sends without a deliberate tap. If the text is wrong, tap outside or wait 3 seconds to cancel and edit."
+                "WiM never sends without a deliberate tap. If the text is wrong, tap outside or wait 5 seconds to cancel and edit."
             setTextColor(0xFFB8B8B0.toInt())
             textSize = 13f
             setLineSpacing(4f, 1f)

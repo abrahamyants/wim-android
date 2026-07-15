@@ -1570,7 +1570,7 @@ class BubbleService : Service() {
         // Auto-send consent is handled once at onboarding (BouncerActivity's
         // pageAutoSend acknowledgment row sets auto_send_disclaimer_count to
         // 99). No runtime popup — tapping the green bubble is itself the
-        // deliberate action. The 3.5 s green-bubble timeout is the cancel path.
+        // deliberate action. The 5 s green-bubble timeout is the cancel path.
         actuallySend()
     }
 

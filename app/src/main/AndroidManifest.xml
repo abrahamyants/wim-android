@@ -26,7 +26,8 @@
     <!-- Haptic feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Notifications (required Android 13+, keeps foreground service alive) -->
+    <!-- Optional Android 13+ notification permission for showing the
+         ongoing bubble status and recall shortcut in the notification drawer. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Bluetooth mic routing for wireless headsets -->

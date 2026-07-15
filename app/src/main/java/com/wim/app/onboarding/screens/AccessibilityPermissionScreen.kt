@@ -31,10 +31,13 @@ fun AccessibilityPermissionScreen(
 
     PermissionCard(
         onBack = onBack,
-        heading = "LET WiM LISTEN",
-        body = "WiM rewrites what you meant to say in the field you're typing into. " +
-            "To do that, it needs to read the field's contents — which is what " +
-            "Android's accessibility service is for.",
+        heading = "KEEP YOUR PLACE",
+        body = "Speech blocks already use attention. WiM's Accessibility Service finds the " +
+            "text field you chose, reads up to 200 characters before the cursor to keep your " +
+            "sentence coherent, and inserts your dictated text. Local Layer 1 keeps this on " +
+            "your phone; cloud layers send the short context with your dictation. If you " +
+            "enable tap-to-send assist, WiM finds Send but presses it only after your separate " +
+            "green-bubble tap. Password fields are blocked, and unrelated content is not read.",
         caveat = if (PermissionStatus.isSamsung())
             "Samsung: tap \"Installed apps\" → What I Meant → On → Allow. WiM snaps you back here automatically."
         else
