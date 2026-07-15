@@ -104,7 +104,7 @@ A working reference implementation is published in the WiM Android application s
 **Repository:** `github.com/gugosf114/wim-android`
 **Files:**
 - `app/src/main/java/com/wim/app/WimAccessibilityService.kt` — `clickSendButton()`, `findSendNodeForApp()`, `findByResourceIdExact()`, host-window selection precedence
-- `app/src/main/java/com/wim/app/BubbleService.kt` — send-ready state machine, bubble color transition, 3.5-second countdown, tap-to-send gesture handler
+- `app/src/main/java/com/wim/app/BubbleService.kt` — send-ready state machine, bubble color transition, 5-second availability window, tap-to-send gesture handler
 - `app/src/main/AndroidManifest.xml` — accessibility service declaration with `canPerformGestures="true"`
 
 ---
@@ -179,7 +179,7 @@ The author further discloses that any combination of the six core elements of se
 
 ## Authorship and AI-Assistance Note
 
-In accordance with USPTO guidance on AI-assisted inventions (Federal Register, February 13, 2024), the author affirms significant human contribution to the disclosed combination. Specifically: the architectural decision to route send commit via accessibility framework rather than IME or Intent dispatch; the per-application send-control matchers; the host-window selection precedence chain (developed in response to an observed `com.android.systemui`-misselection failure mode); the SEND_READY two-stage commit UX rationale; the time-window duration (3.5s) tuning; and the CC0 / no-patent-reservation publication strategy were all originated by the author. AI coding assistants contributed implementation drafting and code transcription under the author's direction.
+In accordance with USPTO guidance on AI-assisted inventions (Federal Register, February 13, 2024), the author affirms significant human contribution to the disclosed combination. Specifically: the architectural decision to route send commit via accessibility framework rather than IME or Intent dispatch; the per-application send-control matchers; the host-window selection precedence chain (developed in response to an observed `com.android.systemui`-misselection failure mode); the SEND_READY two-stage commit UX rationale; the five-second availability-window tuning; and the CC0 / no-patent-reservation publication strategy were all originated by the author. AI coding assistants contributed implementation drafting and code transcription under the author's direction.
 
 ---
 

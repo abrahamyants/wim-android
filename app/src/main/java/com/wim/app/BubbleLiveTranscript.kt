@@ -244,7 +244,7 @@ class BubbleLiveTranscript(
     }
 
     /** Show a pipeline-stage update (Transcribing → Cleaning → Reconstructing
-     *  → Falcon → Inject). L1 cloud (whisper-1) path is silenced unless a
+     *  → integrity checks → Inject). L1 cloud (whisper-1) path is silenced unless a
      *  demo script is active — the bubble's own PROC color + bezel arc are
      *  enough feedback on the fast path. */
     fun showStage(stage: String, detail: String) {

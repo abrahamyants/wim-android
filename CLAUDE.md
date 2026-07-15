@@ -12,7 +12,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
   - `BouncerActivity` — first-run permission gate (the active onboarding entry per Session 9).
   - `OnboardingActivity` — legacy WebView 6-tile flow (`app/src/main/assets/onboarding.html`). Possibly dead path; `MEMO-R3` flagged dual onboarding entries — audit pending.
   - `BubbleService` — foreground service, `foregroundServiceType="specialUse|microphone"`, hosts the floating bubble overlay (`TYPE_APPLICATION_OVERLAY`). **The bubble IS the app** — `MainActivity` is backgrounded during real use.
-  - `WimAccessibilityService` — `BIND_ACCESSIBILITY_SERVICE`. Reads pre-cursor context, injects text via `ACTION_SET_TEXT`, performs auto-send `ACTION_CLICK` on host-app Send buttons.
+  - `WimAccessibilityService` — `BIND_ACCESSIBILITY_SERVICE`. Reads pre-cursor context, injects text via `ACTION_SET_TEXT`, and performs tap-to-send `ACTION_CLICK` only after the user's separate green-bubble tap.
   - `WimTileService` — Quick Settings tile; tap = summon bubble (NOT toggle recording).
   - `WimWidgetProvider` — 1×1 home-screen widget, tap-to-record.
   - `WimTestReceiver` — `com.wimlabs.wim.TEST` broadcast receiver; ADB/LLM agent control surface (`exported="true"`). 16+ actions (`inject_raw`, `trigger_clarifier`, `set_pref`, `click_send`, `live_show`, `toggle_recording`, `test_chirp`, `reset_auto_send_disclaimer_count`, etc.).
@@ -37,7 +37,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 - L1 ASR via **WhisperLocalEngine** (sherpa-onnx + whisper-tiny.en) on-device by default. Cloud path: `WhisperClient` (whisper-1 / gpt-4o-transcribe) toggled by `l1_cloud_asr` pref. Offline local path: ~0.6–1 s warm. MoonshineEngine on disk but dormant.
 - L2/L3 reconstruction via cloud GPT-4o. ~2–4.5 s. (Falcon retired 2026-05-10.)
 - L4 clinical reconstruction via cloud Whisper-1 (verbose_json) + Sonnet 4.6 with extended thinking. ~6–12 s. (Falcon skip: ET self-validates.)
-- Auto-send via accessibility `ACTION_CLICK` on host-app Send button — verified in Gmail, WhatsApp, Google Messages, Samsung Messages, Telegram, Signal. Three-tier strategy in `WimAccessibilityService.clickSendButton`: `ACTION_CLICK` → synthetic `dispatchGesture` tap → tree dump.
+- Tap-to-send assist via accessibility `ACTION_CLICK` on the host-app Send button — verified in Gmail, WhatsApp, Google Messages, Samsung Messages, Telegram, Signal. Sending always requires the user's separate green-bubble tap. Three-tier strategy in `WimAccessibilityService.clickSendButton`: `ACTION_CLICK` → synthetic `dispatchGesture` tap → tree dump.
 - Bubble Unified Build Phases 0–7 substantively shipped — pipeline parade (`BubblePersona` + `TranscriptBarController`), per-word clarifier (`Clarifier` + `ClarifierController` + `swapWordInLastInjection`), affect catalog (`BubbleAffect` — RESTING / LEANING_FORWARD / TA_DA / HEAD_TILT / THINKING_SWAY / COMMISERATE), `MultiPassDecoder` (triggered at L2+, not just L4 per Session 18 #107), `PredictionEngine` (cold-start + adaptive trigram history per host-app package), word highlight via overlay `WordHighlightView`, onboarding clarifier preview (Act 11 of `BubbleDemoScript`).
 - Google Sign-In on fresh devices (real fix was `GetSignInWithGoogleOption` fallback on `NoCredentialException` — SHA-1 hypothesis was wrong, hashes match exactly).
 - Bottom sheets for Layer / Tone / Permissions tiles (Settings stays full overlay). User Profile overlay redesigned with Settings-treatment.
@@ -73,7 +73,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 - Aesthetic: warm vintage paper (light) / warm dark (`#1A1A1E` family) (dark). Cream `#C8B48A` for headers. Copper `#C49A6C` for sub-labels. Orange `#EE5A24` reserved for active data only. Maroon `#B55050` for chip values.
 - Approved hex set is enforced by the brand-guard hook — see DO/DON'T below.
 
-**Layer architecture**: `L1` deterministic local (Moonshine ASR + DisfluencyFilter + PhoneticMatcher + Repunctuate, no LLM). `L2/L3` cloud GPT-4o + Haiku 4.5 Falcon. `L4` cloud Whisper-1 verbose_json + Sonnet 4.6 ET (no Falcon — ET self-validates). Cross-app field name for L1 transfer: `profile_l1` (NOT bare `l1`); the codify session learned this the hard way (Lavrentiy was reading `l1`, fixed in Lav commit `0394c0c`).
+**Layer architecture**: `L1` defaults to local `WhisperLocalEngine` + deterministic cleanup, with optional authenticated cloud ASR. `L2/L3` use GPT-4o through the authenticated backend. `L4` uses Sonnet 4.6 extended thinking through the backend. Falcon validation is retired; client integrity checks preserve critical tokens and restore raw text when needed. Cross-app field name for L1 transfer: `profile_l1` (NOT bare `l1`).
 
 **The bubble IS the app** — `MainActivity` is backgrounded during real use. Recording-reactive UI belongs on the bubble overlay. New visual flourishes that only show on `MainActivity` are mostly invisible to actual users.
 

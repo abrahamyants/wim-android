@@ -258,10 +258,10 @@ class BouncerActivity : AppCompatActivity() {
             showPage(R.id.pageAutoSend)
         }
 
-        // Auto-send acknowledgment row — checkbox = single consent gate. If
-        // the user ticks it, auto-send is enabled and the runtime popup
+        // Tap-to-send acknowledgment row — checkbox = single consent gate. If
+        // the user ticks it, tap-to-send assist is enabled and the runtime popup
         // disclaimer is permanently dismissed. Skipping (Next without tick)
-        // leaves auto-send off — they can still turn it on later in Settings.
+        // leaves tap-to-send assist off — they can still turn it on later in Settings.
         // Next is always enabled; the checkbox is optional, not a gate.
         val ackRow = findViewById<LinearLayout>(R.id.autoSendAck)
         val ackBox = findViewById<TextView>(R.id.autoSendCheck)
@@ -277,7 +277,7 @@ class BouncerActivity : AppCompatActivity() {
                     info.isCheckable = true
                     info.isChecked = autoSendAcked
                     info.className = "android.widget.CheckBox"
-                    info.text = "Enable auto-send"
+                    info.text = getString(R.string.bouncer_send_ack_cd)
                 }
             })
         ackRow.setOnClickListener {
@@ -293,16 +293,16 @@ class BouncerActivity : AppCompatActivity() {
         }
         nextBtn.setOnClickListener {
             if (autoSendAcked) {
-                // Single act of consent: enable auto-send + dismiss the runtime
+                // Single act of consent: enable tap-to-send assist + dismiss the runtime
                 // disclaimer counter for life. User can still flip it off in
-                // Settings → Auto-send.
+                // Settings → Tap-to-send assist.
                 WimApp.prefs.edit()
                     .putBoolean("auto_send_enabled", true)
                     .putInt("auto_send_disclaimer_count", 99)
                     .apply()
             }
             // Samsung devices get an extra deep-sleep permission page between
-            // auto-send ack and the final launch screen.
+            // tap-to-send acknowledgment and the final launch screen.
             if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) {
                 showPage(R.id.pageSamsungSleep)
             } else {

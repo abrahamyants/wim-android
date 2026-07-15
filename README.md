@@ -2,7 +2,7 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
-WiM captures your voice, transcribes it on-device, and optionally reconstructs it through GPT to produce clean, polished text — injected directly into whatever text field you're typing in.
+WiM captures your voice, transcribes it locally or through the authenticated WiM cloud, and optionally reconstructs it to produce clean, polished text — injected directly into the text field you selected.
 
 ## How It Works
 
@@ -10,42 +10,42 @@ WiM captures your voice, transcribes it on-device, and optionally reconstructs i
 2. A floating bubble appears over all apps
 3. Tap the bubble to start recording, tap again to stop
 4. Your speech is transcribed, cleaned, and pasted into the active text field
+5. If tap-to-send assist is enabled, the bubble turns green for five seconds; only a separate tap sends
 
 ## Architecture
 
 - **On-device ASR** — local whisper-tiny.en for the default L1 path
 - **Authenticated cloud speech** — signed-in audio goes through the WiM backend; release builds hold no provider secrets
 - **Reconstruction** — GPT-4o at L2/L3 and Sonnet extended thinking at L4
-- **Falcon validation** — Meaning-preservation check after reconstruction
-- **Accessibility injection** — Clipboard + ACTION_PASTE into any text field
-- **Floating bubble** — TYPE_APPLICATION_OVERLAY foreground service with pulse ring animations
+- **Integrity checks** — Critical-token retention, length, and reconstruction-risk checks
+- **Accessibility injection** — `ACTION_SET_TEXT` into the focused editable, with clipboard preservation on failure
+- **Floating bubble** — Persistent `TYPE_APPLICATION_OVERLAY` control surface for capture, processing, clarification, settings, tap-to-send, and dismissal
 
 ## Layers
 
 | Layer | Name | What It Does | Cost |
 |-------|------|-------------|------|
-| I | Transcribe | On-device ASR + disfluency filter | Free |
-| II | Reconstruct | GPT cleans grammar, applies tone | API |
-| III | Profile | + personal vocabulary and corrections | API |
-| IV | Stutter | + clinical stutter reconstruction | API |
+| I | Transcribe | Local ASR + deterministic cleanup, or optional cloud ASR | Local free / cloud subscription |
+| II | Reconstruct | GPT cleans grammar and applies tone | WiM Cloud |
+| III | Profile | + personal vocabulary and corrections | WiM Cloud |
+| IV | Speech Disfluency | + deeper disfluency-aware reconstruction | WiM Cloud |
 
 ## Features
 
-- **4 tone settings** — Casual, Professional, Friend, Formal
+- **2 tone settings** — Casual and Professional
 - **3 situation modes** — Default, High Stress, Reading
 - **DAF** — Delayed Auditory Feedback (30-300ms configurable)
 - **Profile learning** — Auto-learns corrections from usage, persists across sessions
 - **Script Prep** — Prepared names, jargon, and topic notes guide transcription without being inserted into output
 - **Visible learning** — Profile shows learned words, corrections, difficult sounds, and personal speech calibration
 - **Personal baseline** — L4 compares pitch, energy, and speaking rate with the user's own rolling baseline
-- **Disfluency filtering** — Stutter fragments, word/phrase repetitions, prolongations, fillers, false starts
-- **Falcon validation** — GPT meaning-check rejects bad reconstructions
+- **Disfluency filtering** — Speech fragments, word/phrase repetitions, prolongations, fillers, and false starts
 - **Risk flags** — Critical token retention, length delta, short output detection
 - **OCD redo detection** — Warns on 3+ consecutive similar recordings
 - **Session history** — SQLite storage of all recordings with metrics
 - **Firebase Auth** — Google Sign-In with backend proxy (no API key needed for consumers)
 - **Twist mode** — Voice-triggered knob rotation gesture to adjust size/opacity
-- **Command mode** — Drag bubble over highlighted text, speak a transform command, GPT rewrites selection
+- **Command mode** — Drag the bubble over highlighted text in an editable field, speak a transform command, and replace that selection
 - **Sound-wave logo bars** — 14 animated bars (7 per side) flank the WiM logo, react to recording state
 - **Bubble theme variants** — 3 metal palettes (bronze/aluminum/gunmetal) available as drawable sets
 - **Timer cap** — Session timer caps at 99:59 to prevent 3-digit overflow; resets on session reset
@@ -67,10 +67,11 @@ Speak these as the **first words** into the bubble. They're detected by strict p
 
 Twist commands are self-contained on the bubble — no text field or target app required. Works from home screen.
 
-## Two API Paths
+## Local and Cloud Paths
 
-1. **Signed in with Google** — Audio transcription and reconstruction go through the Cloud Function backend at `bakers-agent.cloudfunctions.net`. Server holds the provider keys.
-2. **Local API key** — Direct OpenAI calls. Enter your `sk-proj-...` key in the app settings.
+1. **Local Layer I** — On-device transcription needs no account, subscription, or internet connection.
+2. **Signed-in WiM Cloud** — Optional cloud transcription and Layers II-IV go through the authenticated backend. Release builds contain no provider keys.
+3. **Developer debug fallback** — Direct provider calls are available only in debug builds with locally supplied credentials.
 
 ## Build & Deploy
 
@@ -85,7 +86,7 @@ Builds and installs directly to a connected phone via USB debugging.
 
 ## Relationship to Lavrentiy
 
-WiM is the consumer mobile face of the [Lavrentiy voice reconstruction engine](https://github.com/gugosf114/lavrentiy). Same reconstruction philosophy, simplified for phone use. WiM implements ~20% of Lavrentiy's feature surface — the core pipeline (record, transcribe, reconstruct, inject) plus Android-specific features (floating bubble, on-device ASR, Firebase auth). Lavrentiy's clinical/analytics stack (paralinguistic detection, prosodic analysis, covert avoidance, exposure scoring, etc.) is not in WiM.
+WiM is the consumer mobile face of the [Lavrentiy voice reconstruction engine](https://github.com/gugosf114/lavrentiy). They share the reconstruction philosophy and authenticated backend, while WiM adds the Android overlay, accessibility injection, local ASR, Script Prep, profile learning, and a rolling personal prosodic baseline. Lavrentiy retains the broader desktop analytics and workflow surface.
 
 ## Tech Stack
 

@@ -13,7 +13,7 @@ import android.view.View
  *
  *   stage 0 — Transcribing (12 → 3 o'clock)
  *   stage 1 — Reconstructing (3 → 6 o'clock)
- *   stage 2 — Verifying / Falcon (6 → 9 o'clock)
+ *   stage 2 — Integrity verification (6 → 9 o'clock)
  *   stage 3 — Injecting (9 → 12 o'clock)
  *
  * Idle / Listening / SendReady → all four arcs at dim alpha.

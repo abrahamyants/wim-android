@@ -10,7 +10,7 @@ import android.widget.Toast
  *   - The cycle index (which flagged word the user is reviewing)
  *   - The 3s auto-dismiss timer (keyed in [IdleTimer])
  *   - approve / reject / next dispatches into [WimAccessibilityService]
- *   - Exit transitions back into the FSM (`SendReady` if auto-send eligible,
+ *   - Exit transitions back into the FSM (`SendReady` if tap-to-send eligible,
  *     else `Idle`)
  *
  * Invariants:
@@ -35,7 +35,7 @@ object ClarifierController {
     /** Active cycle's flagged words. Empty when no cycle is running. */
     private var flagged: List<FlaggedWord> = emptyList()
     private var cycleIndex: Int = 0
-    /** Whether auto-send was eligible for this cycle's host app. */
+    /** Whether tap-to-send assist was eligible for this cycle's host app. */
     private var autoSendEligible: Boolean = false
     /** Records of (originalWord, replacement-or-empty-on-reject) for the
      *  recent-swaps memory used by [Clarifier.evaluate]'s feedback loop. */

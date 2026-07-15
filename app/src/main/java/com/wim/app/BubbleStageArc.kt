@@ -19,7 +19,7 @@ class BubbleStageArc(
 ) {
     /**
      * Drive the bezel's stage arc — 0=Transcribing, 1=Reconstructing,
-     * 2=Verifying (Falcon), 3=Injecting. -1 resets to all dim.
+     * 2=Verifying integrity, 3=Injecting. -1 resets to all dim.
      * Theme color follows the current bubble theme so the arcs harmonize
      * with bronze / aluminum / gunmetal palettes.
      */

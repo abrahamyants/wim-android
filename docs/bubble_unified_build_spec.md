@@ -19,14 +19,14 @@ sealed class BubbleState {
     data class Stripping(val startMs: Long) : BubbleState()                // disfluency filter
     data class ReadingContext(val startMs: Long) : BubbleState()           // pre-cursor audience read (L2+)
     data class Reconstructing(val startMs: Long, val layer: Int) : BubbleState() // L1/L2/L3/L4 model call
-    data class Verified(val startMs: Long) : BubbleState()                 // Falcon/leak passed, pre-inject
+    data class Verified(val startMs: Long) : BubbleState()                 // integrity/leak checks passed, pre-inject
     data class Injected(val startMs: Long, val cue: SuccessCue) : BubbleState()  // text in field
     data class Clarifying(                                   // [SPEC B] per-word clarifier active
         val flagged: List<FlaggedWord>,
         val cycleIndex: Int,
         val enteredAtMs: Long,
     ) : BubbleState()
-    object SendReady : BubbleState()                         // green, auto-send armed
+    object SendReady : BubbleState()                         // green, tap-to-send armed
     data class Failed(val reason: FailReason) : BubbleState()              // network / falcon-reject / hallucination
 }
 
@@ -69,9 +69,9 @@ object BubbleStateBus {
         │     timeout/cleanup └────────┘  ┌──────────────┐       │
         │                                 │   Injected   │       │
         │                                 └──┬─────┬─────┘       │
-        │     auto-send-off                  │     │             │
+        │     tap-to-send-off                │     │             │
         ├────────────────────────────────────┘     │             │
-        │     auto-send-on                         ▼             │
+        │     tap-to-send-on                       ▼             │
         │  ┌─────────┐                      ┌──────────────┐     │
         ◄──│SendReady│◄────────────────────►│  Clarifying  │─────┘
            └─────────┘    complete/dismiss  └──────────────┘
@@ -91,16 +91,16 @@ object BubbleStateBus {
 | `Stripping → ReadingContext` | YES (L2+) | skip-direct-to-`Reconstructing` for L1 |
 | `Stripping → Reconstructing` | YES (L1) | context read skipped |
 | `ReadingContext → Reconstructing` | YES | always |
-| `Reconstructing → Verified` | YES | Falcon + leak filter passed |
-| `Reconstructing → Failed(*)` | YES | network or falcon-reject |
+| `Reconstructing → Verified` | YES | integrity + leak filters passed |
+| `Reconstructing → Failed(*)` | YES | network or integrity rejection |
 | `Verified → Injected` | YES | always |
-| `Injected → SendReady` | YES | auto-send eligible AND clarifier returned 0 flags |
-| `Injected → Clarifying` | YES | clarifier returned ≥1 flag (BLOCKS auto-send) |
-| `Injected → Idle` | YES | no auto-send AND 0 flags |
-| `Clarifying → SendReady` | YES | exit + auto-send was eligible (600ms hold first) |
-| `Clarifying → Idle` | YES | exit + no auto-send |
+| `Injected → SendReady` | YES | tap-to-send eligible AND clarifier returned 0 flags |
+| `Injected → Clarifying` | YES | clarifier returned ≥1 flag (BLOCKS tap-to-send) |
+| `Injected → Idle` | YES | no tap-to-send AND 0 flags |
+| `Clarifying → SendReady` | YES | exit + tap-to-send was eligible (600ms hold first) |
+| `Clarifying → Idle` | YES | exit + no tap-to-send |
 | `Clarifying → Listening` | YES | user starts new recording mid-clarify (clarifier exits as REJECT-all) |
-| `SendReady → Idle` | YES | auto-send timer expired or user cancelled |
+| `SendReady → Idle` | YES | send-ready timer expired or user cancelled; no send occurs |
 | `Failed → Idle` | YES | after COMMISERATE affect completes |
 | `* → Listening` | YES from Idle/SendReady/Failed/Clarifying | user always wins; recording is never blocked |
 | `Reconstructing → Listening` | FORBIDDEN | in-flight ASR cannot be interrupted by record |
@@ -273,7 +273,7 @@ The reconciled order interleaves both specs around shared substrate first, then 
 4. `VoiceCommandRouter.kt` priority dispatch chain (RECONCILED)
 5. `SpeechRecognizerL1` interface + extract existing concrete into impl (RECONCILED — engine-agnostic boundary)
 
-**Acceptance**: existing functionality preserved (recording → reconstruct → inject still works in Gmail). State machine drives existing behavior with no UX change. NO regressions on auto-Send chain.
+**Acceptance**: existing functionality preserved (recording → reconstruct → inject still works in Gmail). State machine drives existing behavior with no UX change. NO regressions on the tap-to-send chain.
 
 ### Phase 1 — Pipeline parade (Spec A Direction 1, ~2 days)
 
@@ -322,7 +322,7 @@ This is the version George should test against the 4 reference stutter scripts. 
 27. Word-position mapping after L4 reconstruction (B Risk #2 mitigation — augment L4 prompt to return `{final_index: raw_index}` map)
 28. Clarifier-sensitivity segmented control in MainActivity Profile section (B)
 29. Per-app no-flag list (B)
-30. Compat-test sweep across 6 auto-send apps (B)
+30. Compat-test sweep across 6 tap-to-send apps (B)
 
 ### Phase 5 — Anticipatory prediction (Spec A Direction 2, ~2 days)
 
@@ -431,15 +431,15 @@ Both Clarifier (Spec B) and PipelinePersona (Spec A) consume only the interface.
 
 ## 9. Reconciled-architecture risks
 
-These are NEW risks introduced by integration. Spec A's risks (battery cost of breathe, contact-name extraction, dwell calibration, prediction false-positive cost, onboarding length, glyph design, claim 6 prior art, HERO_BUBBLE recovery, auto-Send preservation, label-color conflict) and Spec B's risks (logprob approximation, word-position mapping after L4, Compose field opacity, 3s timer reading-time, voice command false positives, multi-pass cost, sensitivity default) all REMAIN.
+These are NEW risks introduced by integration. Spec A's risks (battery cost of breathe, contact-name extraction, dwell calibration, prediction false-positive cost, onboarding length, glyph design, claim 6 prior art, HERO_BUBBLE recovery, tap-to-send preservation, label-color conflict) and Spec B's risks (logprob approximation, word-position mapping after L4, Compose field opacity, 3s timer reading-time, voice command false positives, multi-pass cost, sensitivity default) all REMAIN.
 
 **Net-new reconciliation risks:**
 
-1. **State-machine deadlock if `Clarifying` exit fails to fire `SendReady` correctly.** Auto-Send ordering requires that `Clarifying → SendReady` triggers the same `setBubbleSendReady()` call that `Injected → SendReady` would have triggered. Add explicit unit test: clarifier completes (all approved), auto-send eligible app → `setBubbleSendReady()` was called exactly once. **Test before shipping Phase 2.**
+1. **State-machine deadlock if `Clarifying` exit fails to fire `SendReady` correctly.** Tap-to-send ordering requires that `Clarifying → SendReady` triggers the same `setBubbleSendReady()` call that `Injected → SendReady` would have triggered. Add explicit unit test: clarifier completes (all approved), tap-to-send eligible app → `setBubbleSendReady()` was called exactly once. **Test before shipping Phase 2.**
 
 2. **TA_DA → HEAD_TILT sequencing race.** TA_DA is a 380ms animation; if `Clarifying` state advances before TA_DA completes, the HEAD_TILT may fire on top of an in-progress TA_DA scale animation. Both are on the inner knob (TA_DA scales it; HEAD_TILT rotates it). Solution: state advance to `Clarifying` is gated on a 380ms minimum-hold post-`Injected`. Affects subscribe to `BubbleStateBus.state` and observe ordered transitions, not simultaneous ones.
 
-3. **Bezel pulse priority arbitration may visibly stutter if Failed fires during clarifier.** If Falcon rejects post-clarifier (impossible by design — clarifier runs after inject which runs after Falcon — but if architecture changes), the priority order says clarifier wins. Document this invariant in `BubbleStateBus.advance` as an assertion: `state is Failed` from `state is Clarifying` is FORBIDDEN.
+3. **Bezel pulse priority arbitration may visibly stutter if Failed fires during clarifier.** If an integrity check rejects post-clarifier (impossible by design — clarification follows injection, which follows integrity checks — but if architecture changes), the priority order says clarifier wins. Document this invariant in `BubbleStateBus.advance` as an assertion: `state is Failed` from `state is Clarifying` is FORBIDDEN.
 
 4. **TranscriptBarController preemption visible flicker.** Clarifier preempts transcript bar instantly on entry. If a stage label was mid-typewriter-render, the cut-to-clarifier-message is visually abrupt. Mitigation: clarifier preempt animates a 120ms cross-fade rather than a hard cut. Test on slow device — Pixel 4a or older — where animations clip more visibly.
 

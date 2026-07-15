@@ -870,7 +870,7 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
 
     /**
      * Whether an editable field is currently focused in any non-WiM app.
-     * No per-app whitelist — every app gets auto-send. If the Send-node
+     * No per-app whitelist — every app is eligible for tap-to-send assist. If the Send-node
      * finder misses, the green SEND just reverts to IDLE on its timer;
      * worst case is no worse than the pre-feature baseline.
      */

@@ -147,7 +147,7 @@ class BubbleStatusUI(
 
     /** True if WiM's accessibility service is enabled. Reinstalling the APK
      *  silently revokes accessibility on Samsung — without this check the
-     *  bubble appears normally but inject and auto-send fail invisibly. */
+     *  bubble appears normally but inject and tap-to-send fail invisibly. */
     fun isAccessibilityEnabled(): Boolean {
         val flat = Settings.Secure.getString(
             service.contentResolver,

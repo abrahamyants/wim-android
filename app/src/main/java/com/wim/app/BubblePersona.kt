@@ -81,7 +81,7 @@ class BubblePersona {
         is BubbleState.Stripping -> "⛬ Cleaning up" to "Removing disfluencies"
         is BubbleState.ReadingContext -> "⌕ Reading context" to "Detecting recipient + tone"
         is BubbleState.Reconstructing -> "✧ Reconstructing" to "L${state.layer} model running"
-        is BubbleState.Verified -> "✓ Meaning verified" to "Falcon passed"
+        is BubbleState.Verified -> "✓ Meaning verified" to "Integrity check passed"
         is BubbleState.Injected -> "↪ Injected" to cueDetail(state.cue)
         is BubbleState.Clarifying -> "? Clarifying" to "${state.flagged.size} word${if (state.flagged.size == 1) "" else "s"}"
         else -> null

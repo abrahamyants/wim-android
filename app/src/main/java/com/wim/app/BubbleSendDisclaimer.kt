@@ -13,7 +13,7 @@ import android.widget.TextView
 
 /**
  * "About to send" confirmation overlay shown before WiM taps the host app's
- * Send button on the user's behalf (auto-send flow). Three-button shape:
+ * Send button after the user's separate tap (tap-to-send flow). Three-button shape:
  * CANCEL (gold) and SEND IT (vibrant green), with explanatory body copy.
  *
  * Extracted from BubbleService 2026-05-25 as the fifth BubbleWindow slice.

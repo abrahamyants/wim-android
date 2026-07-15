@@ -374,7 +374,7 @@ class BubbleService : Service() {
     /**
      * Feed raw text directly into the pipeline, bypassing mic/ASR.
      * Runs the full chain: voice shortcuts → block hallucination strip →
-     * disfluency filter → reconstruction → Falcon → inject → session record.
+     * disfluency filter → reconstruction → integrity checks → inject → session record.
      *
      * Result written to WimTestReceiver.lastResult when complete.
      */
@@ -1320,10 +1320,10 @@ class BubbleService : Service() {
     /** True iff the floating bubble view is currently attached to the window manager. */
     fun isBubbleVisible(): Boolean = bubbleView != null
 
-    // ── Auto-send state ─────────────────────────────────────────────────
-    // Flipped true after a successful injectText when auto-send is enabled
-    // and the focused app is whitelisted. Tap the bubble in this state to
-    // fire ACTION_CLICK on the app's Send button. Auto-reverts to IDLE
+    // ── Tap-to-send state ────────────────────────────────────────────────
+    // Flipped true after a successful injectText when tap-to-send assist is
+    // enabled and a non-WiM editable is focused. Tap the bubble in this state
+    // to fire ACTION_CLICK on the app's Send button. Reverts to IDLE
     // after SEND_READY_TIMEOUT_MS.
     private var isSendReady = false
     private val SEND_READY_TIMEOUT_MS = 5000L
@@ -1345,15 +1345,15 @@ class BubbleService : Service() {
         }
     }
     // Send disclaimer overlay extracted to BubbleSendDisclaimer 2026-05-25
-    // — fifth BubbleWindow slice. Show path is dormant (auto-send confirm
+    // — fifth BubbleWindow slice. Show path is dormant (tap-to-send confirm
     // flow is not currently wired) but the dismiss path is called
     // defensively from hideBubble.
     private var sendDisclaimer: BubbleSendDisclaimer? = null
 
     /**
      * Called after a successful injectText. Decides whether to rest at IDLE
-     * or flip to SEND_READY (green label, tap to auto-send). SEND_READY is
-     * gated on user opt-in + per-app whitelist so unsupported apps still
+     * or flip to SEND_READY (green label, separate tap to send). SEND_READY is
+     * gated on user opt-in + a focused non-WiM editable so unsupported states
      * behave exactly as today.
      */
     // H8: the bubble reaches the host app's text field ONLY through this port,
@@ -1577,7 +1577,7 @@ class BubbleService : Service() {
     }
 
     private fun handleSendConfirmTap() {
-        // Auto-send consent is handled once at onboarding (BouncerActivity's
+        // Tap-to-send consent is handled once at onboarding (BouncerActivity's
         // pageAutoSend acknowledgment row sets auto_send_disclaimer_count to
         // 99). No runtime popup — tapping the green bubble is itself the
         // deliberate action. The 5 s green-bubble timeout is the cancel path.
@@ -1587,10 +1587,10 @@ class BubbleService : Service() {
     private fun actuallySend() {
         val ok = injectionPort?.clickSendButton() == true
         if (ok) {
-            ConsoleLog.log("Auto-send dispatched", "info")
+            ConsoleLog.log("Tap-to-send dispatched", "info")
             Toast.makeText(this, "Sent", Toast.LENGTH_SHORT).show()
         } else {
-            ConsoleLog.log("Auto-send failed — no Send node", "warn")
+            ConsoleLog.log("Tap-to-send failed — no Send node", "warn")
             Toast.makeText(this, "Couldn't find Send button", Toast.LENGTH_SHORT).show()
         }
         snapBackFromFacehugger()
@@ -2079,7 +2079,7 @@ class BubbleService : Service() {
         scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
 
         // Force the bar to appear during pipeline work so the user sees what's
-        // happening (transcribe → reconstruct → falcon → inject) even when
+        // happening (transcribe → reconstruct → integrity checks → inject) even when
         // LIVE toggle is off. Subsequent stages overwrite this.
         showPipelineStage("⏳ Transcribing", "Sending audio to Whisper")
 
@@ -2587,7 +2587,7 @@ class BubbleService : Service() {
                 }
             }
             // onInjectComplete() is the post-inject gate that decides between
-            // SEND_READY (auto-send enabled + focused on a real editable in a
+            // SEND_READY (tap-to-send enabled + focused on a real editable in a
             // non-WiM app → bubble turns green, facehugger jumps to the Send
             // button) and plain Idle. Earlier I was bypassing it with a
             // setBubbleIdle() call, which is why L1 Local raw never reached
@@ -2624,7 +2624,7 @@ class BubbleService : Service() {
         }
 
         // Pre-clean: strip disfluencies from raw ASR text before GPT sees it.
-        // L4 stutter-aware path needs to SEE the disfluencies to reason about them,
+        // L4 disfluency-aware path needs to SEE the disfluencies to reason about them,
         // so we skip the pre-filter at L4 and let the clinical prompt handle it.
         val rawWordCount = deHallucinated.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         // Merge user profile fillers with language-pack fillers (empty for English).
@@ -2665,7 +2665,7 @@ class BubbleService : Service() {
                 log = { msg -> Log.i(TAG, msg) }
             )
             val l1Text = l1Result.text
-            // FSM: L1 has no Falcon — the deterministic pass is "trusted by
+            // FSM: L1 has no model reconstruction — the deterministic pass is "trusted by
             // construction." Verified → Injected before the actual paste so
             // observers see the right transition order.
             BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
@@ -2772,7 +2772,7 @@ class BubbleService : Service() {
                 val layerLabel = when (layer) {
                     2 -> "generic cleanup"
                     3 -> "+ your vocabulary"
-                    4 -> "stutter-aware"
+                    4 -> "disfluency-aware"
                     else -> "processing"
                 }
                 showPipelineStage("\u29BB Reconstructing intent...", "$tone tone \u00B7 L$layer $layerLabel")
@@ -2903,7 +2903,7 @@ class BubbleService : Service() {
                     }
                 }
                 Log.i(TAG, "Reconstruction (${reconResult.reconMs}ms): ${reconResult.cleanText}")
-                ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Falcon: ${if (reconResult.falconApproved) "OK" else "REJECTED"}", "info")
+                ConsoleLog.log("Recon: ${reconResult.reconMs}ms | Integrity: ${if (reconResult.falconApproved) "OK" else "RAW RESTORED"}", "info")
 
                 // Post-reconstruction guards (LLM leak + length explosion).
                 // Logic extracted to ReconstructionGuard 2026-05-25 — first
@@ -2921,10 +2921,10 @@ class BubbleService : Service() {
                 }
 
                 val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                val falconLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
+                val integrityLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
                 BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
                 setStageArc(2)
-                showPipelineStage(falconLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
+                showPipelineStage(integrityLabel, "${rawWordCount}w \u2192 ${finalWordCount}w \u00B7 ${reconResult.reconMs}ms")
 
                 // Brief pause so user can see the final stage
                 kotlinx.coroutines.delay(800)

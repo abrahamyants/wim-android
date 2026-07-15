@@ -56,6 +56,6 @@ Both belong as **dependent claims** under the bubble-as-app architecture indepen
 
 ## Origin note
 
-Concept articulated by George Abrahamyants on 2026-05-01 during the auto-send disclosure conversation. Trigger: George observed his own thumb instinctively reaching for the Gboard mic icon instead of the WiM floating bubble — even as the app's creator and primary daily user. The friction is universal; the auto-positioning hijacks the muscle memory.
+Concept articulated by George Abrahamyants on 2026-05-01 during the tap-to-send disclosure conversation. Trigger: George observed his own thumb instinctively reaching for the Gboard mic icon instead of the WiM floating bubble — even as the app's creator and primary daily user. The friction is universal; the auto-positioning hijacks the muscle memory.
 
 Facehugger metaphor (Alien) credited to George — the bubble parasitically attaches to the host app's send control, becomes the send affordance, and the user interacts with the bubble instead of the host's UI.

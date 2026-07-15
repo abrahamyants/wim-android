@@ -100,7 +100,7 @@ class WimTestReceiver : BroadcastReceiver() {
                     }
                 }
                 "click_send"        -> {
-                    // Test-only entry to fire the auto-send click directly,
+                    // Test-only entry to fire the tap-to-send click directly,
                     // bypassing the bubble. Returns status so we can verify
                     // without device-side interaction.
                     val ok = WimAccessibilityService.instance?.clickSendButton() == true

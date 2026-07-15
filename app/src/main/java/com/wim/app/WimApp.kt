@@ -152,11 +152,10 @@ class WimApp : Application() {
         fun predictionsEnabled(): Boolean = prefs.getBoolean("predictions_enabled", true)
 
         /**
-         * Auto-send lets the bubble click the app's Send button after a
-         * successful inject. Off by default — the user opts in explicitly
-         * in settings, and still has to tap the green bubble once to fire
-         * each individual send. Per-app whitelist lives in
-         * WimAccessibilityService.SUPPORTED_AUTOSEND_APPS.
+         * Tap-to-send assist lets the bubble click the app's Send button after
+         * a successful inject. Off by default — the user opts in explicitly
+         * in settings and still has to tap the green bubble once for every
+         * individual send. No countdown or timeout sends anything.
          */
         // Destructive follow-up action: opt-in only. A fresh install must never
         // press another app's Send button without the user enabling it.

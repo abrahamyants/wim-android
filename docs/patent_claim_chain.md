@@ -119,7 +119,7 @@ This file is the canonical pre-filing claim record. Operator (George Abrahamyant
 
 - **No § 102 anticipation** — none of the prior art (Wispr Flow, AssistiveTouch, Messenger chat heads, Apple Dictation, Google Voice Typing, US9465833B2, US8370147B2, WO2017143338A1) implements the application-context invariance wherein-clause. Voice-assistant prior art changes at least one host-app state variable (focus, scroll, cursor, IME).
 - **§ 103 obviousness** is the real fight — KSR teaching-away defense is solid because IMEs are the OS-mandated input path; choosing accessibility introduces real complexity an examiner can't dismiss as "obvious to try."
-- **Wispr Flow comparison** at commercial-feature level: Wispr Command Mode = IME-resident, NOT accessibility-mediated. Wispr does NOT have auto-Send-via-accessibility nor bidirectional clarification UI. Substrate model + claim 1 wherein-clause distinguish.
+- **Wispr Flow comparison** at commercial-feature level: Wispr Command Mode = IME-resident, NOT accessibility-mediated. Wispr does not disclose WiM's temporary tap-to-send overlay proxy, send-control relocation, or bidirectional clarification UI. Substrate model + claim 1 wherein-clause distinguish.
 
 ---
 

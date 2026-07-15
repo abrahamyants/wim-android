@@ -757,7 +757,7 @@ object ReconstructClient {
             val riskFlags = computeRiskFlags(rawText, cleanText)
             val fastMode = com.wim.app.WimApp.prefs.getBoolean("fast_mode", false)
             val falconOk = if (fastMode) {
-                true // FAST mode: skip Falcon validation
+                true // FAST mode: skip integrity rollback
             } else if (riskFlags.contains("critical_token_lost")) {
                 false
             } else {
@@ -768,7 +768,7 @@ object ReconstructClient {
             val finalText = if (falconOk) cleanText else rawText
 
             if (!falconOk) {
-                Log.w("WiM", "Falcon rejected reconstruction, using raw text. Flags: $riskFlags")
+                Log.w("WiM", "Integrity check rejected reconstruction, using raw text. Flags: $riskFlags")
             }
 
             ReconstructResult(

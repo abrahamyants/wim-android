@@ -412,7 +412,7 @@ class MainActivity : AppCompatActivity() {
         // Keep a strong reference so it isn't GC'd.
         layerSubRowPrefListener = layerPrefListener
 
-        // ── ACCENT — single MaterialSwitch matching Auto-send pattern. ──
+        // ── ACCENT — single MaterialSwitch matching tap-to-send pattern. ──
         // ON  = accent_mode=keep (preserve speaker's voice verbatim).
         // OFF = accent_mode=polish (default normalize toward Standard English).
         // Same L1 packs are used both ways at L2/L3; the LLM directive flips.
@@ -706,7 +706,7 @@ class MainActivity : AppCompatActivity() {
         setupBubbleDock()
         // ── WiM logo in brand plate = summon — replaces the old SUMMON chip bar ──
         setupLogoSummon()
-        // ── Auto-send toggle (green SEND bubble after inject) ──
+        // ── Tap-to-send assist toggle (green SEND bubble after inject) ──
         setupAutoSendToggle()
         // ── Facehugger Send (bubble jumps to host Send button on SEND_READY) ──
         setupFacehuggerToggle()

@@ -1771,7 +1771,7 @@
                         android:theme="@style/WimSwitchTheme"/>
                 </LinearLayout>
 
-                <!-- Auto-send -->
+                <!-- Tap-to-send assist -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="36dp"
