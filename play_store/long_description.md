@@ -48,7 +48,7 @@ WiM ships in English. Spanish, Russian, Portuguese, and French are supported for
 
 ## Pricing
 
-WiM is free to download and use indefinitely on Layer 1 (local, offline, fully featured for transcription). Layers 2 – 4 (cloud reconstruction, profile learning, and deep disfluency reconstruction) are part of a one-time $3.99 unlock — no subscription or recurring charge.
+WiM is free to download and use indefinitely on Layer 1 (local and offline). WiM Cloud is an auto-renewing $5.99 monthly subscription with 300 cloud dictations, including up to 20 Layer IV dictations, each month. You can cancel anytime in Google Play; access continues through the paid period.
 
 WiM is an assistive dictation tool, not a medical device. It does not diagnose, treat, cure, or prevent any medical condition. Consult a qualified healthcare professional for medical advice, diagnosis, or treatment.
 

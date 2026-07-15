@@ -1,6 +1,8 @@
 package com.wim.app
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -30,6 +32,7 @@ class PlayBillingManager(
 ) : PurchasesUpdatedListener {
 
     private var productDetails: ProductDetails? = null
+    private var offerToken: String? = null
     private var state = CloudUnlockState(unlocked = WimApp.cloudUnlocked())
 
     private val billingClient = BillingClient.newBuilder(activity)
@@ -69,10 +72,15 @@ class PlayBillingManager(
     }
 
     fun launchPurchase() {
-        if (state.unlocked) return
+        if (state.unlocked) {
+            val url = "https://play.google.com/store/account/subscriptions" +
+                "?sku=${BillingBackendClient.PRODUCT_ID}&package=${activity.packageName}"
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            return
+        }
         val user = AuthManager.currentUser
         if (user == null) {
-            publish(message = "Sign in first, then unlock", canBuy = productDetails != null)
+            publish(message = "Sign in first, then subscribe", canBuy = productDetails != null)
             return
         }
         val details = productDetails
@@ -81,8 +89,14 @@ class PlayBillingManager(
             start()
             return
         }
+        val selectedOffer = offerToken
+        if (selectedOffer == null) {
+            publish(message = "Cloud plan is not configured in Google Play", canBuy = false)
+            return
+        }
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
+            .setOfferToken(selectedOffer)
             .build()
         val flowParams = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
@@ -90,16 +104,16 @@ class PlayBillingManager(
             .build()
         val result = billingClient.launchBillingFlow(activity, flowParams)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
-            publish(message = result.debugMessage.ifBlank { "Could not open purchase" })
+            publish(message = result.debugMessage.ifBlank { "Could not open subscription" })
         }
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: MutableList<Purchase>?) {
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> purchases.orEmpty().forEach(::processPurchase)
-            BillingClient.BillingResponseCode.USER_CANCELED -> publish(message = "Purchase canceled")
+            BillingClient.BillingResponseCode.USER_CANCELED -> publish(message = "Subscription not started")
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> restorePurchases()
-            else -> publish(message = result.debugMessage.ifBlank { "Purchase did not complete" })
+            else -> publish(message = result.debugMessage.ifBlank { "Subscription did not complete" })
         }
     }
 
@@ -110,7 +124,7 @@ class PlayBillingManager(
     private fun queryProduct() {
         val product = QueryProductDetailsParams.Product.newBuilder()
             .setProductId(BillingBackendClient.PRODUCT_ID)
-            .setProductType(BillingClient.ProductType.INAPP)
+            .setProductType(BillingClient.ProductType.SUBS)
             .build()
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(listOf(product))
@@ -121,20 +135,29 @@ class PlayBillingManager(
                 return@queryProductDetailsAsync
             }
             productDetails = detailsResult.productDetailsList.firstOrNull()
-            val price = productDetails?.oneTimePurchaseOfferDetails?.formattedPrice
+            val selected = productDetails?.subscriptionOfferDetails
+                ?.firstOrNull {
+                    it.basePlanId == BillingBackendClient.BASE_PLAN_ID && it.offerId == null
+                }
+                ?: productDetails?.subscriptionOfferDetails
+                    ?.firstOrNull { it.basePlanId == BillingBackendClient.BASE_PLAN_ID }
+            offerToken = selected?.offerToken
+            val price = selected?.pricingPhases?.pricingPhaseList?.lastOrNull()
+                ?.formattedPrice?.let { activity.getString(R.string.cloud_unlock_monthly_price, it) }
             publish(
                 price = price,
-                message = if (state.unlocked) "Permanent cloud access is active"
-                    else if (productDetails == null) "Cloud Unlock is not configured in Play Console"
-                    else "One purchase. Permanent cloud access.",
-                canBuy = productDetails != null && !state.unlocked,
+                message = if (state.unlocked) "WiM Cloud is active"
+                    else if (productDetails == null || offerToken == null)
+                        "WiM Cloud is not configured in Play Console"
+                    else "300 cloud dictations/month · up to 20 L4",
+                canBuy = productDetails != null && offerToken != null && !state.unlocked,
             )
         }
     }
 
     private fun restorePurchases() {
         val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
+            .setProductType(BillingClient.ProductType.SUBS)
             .build()
         billingClient.queryPurchasesAsync(params) { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -146,7 +169,7 @@ class PlayBillingManager(
 
     private fun processPurchase(purchase: Purchase) {
         when (purchase.purchaseState) {
-            Purchase.PurchaseState.PENDING -> publish(message = "Purchase pending — access starts after payment completes")
+            Purchase.PurchaseState.PENDING -> publish(message = "Subscription pending — access starts after payment completes")
             Purchase.PurchaseState.PURCHASED -> verifyOnServer(purchase.purchaseToken)
             else -> Unit
         }
@@ -154,14 +177,14 @@ class PlayBillingManager(
 
     private fun verifyOnServer(token: String) {
         val uid = AuthManager.currentUser?.uid ?: return
-        publish(message = "Verifying purchase…", canBuy = false)
+        publish(message = "Verifying subscription…", canBuy = false)
         scope.launch {
             val entitlement = BillingBackendClient.verify(token)
             if (entitlement?.unlocked == true) {
                 WimApp.setCloudUnlocked(uid, true)
-                publish(unlocked = true, message = "Permanent cloud access is active", canBuy = false)
+                publish(unlocked = true, message = "WiM Cloud is active", canBuy = false)
             } else {
-                publish(message = "Could not verify purchase — try Restore", canBuy = productDetails != null)
+                publish(message = "Could not verify subscription — try Restore", canBuy = productDetails != null)
             }
         }
     }
@@ -170,7 +193,7 @@ class PlayBillingManager(
         val uid = AuthManager.currentUser?.uid
         if (uid == null) {
             WimApp.clearCloudUnlock()
-            publish(unlocked = false, message = "Sign in to unlock cloud speech", canBuy = productDetails != null)
+            publish(unlocked = false, message = "Sign in to use WiM Cloud", canBuy = productDetails != null)
             return
         }
         scope.launch {
@@ -179,8 +202,8 @@ class PlayBillingManager(
                 WimApp.setCloudUnlocked(uid, entitlement.unlocked)
                 publish(
                     unlocked = entitlement.unlocked,
-                    message = if (entitlement.unlocked) "Permanent cloud access is active"
-                        else "One purchase. Permanent cloud access.",
+                    message = if (entitlement.unlocked) "WiM Cloud is active"
+                        else "300 cloud dictations/month · up to 20 L4",
                     canBuy = !entitlement.unlocked && productDetails != null,
                 )
             }

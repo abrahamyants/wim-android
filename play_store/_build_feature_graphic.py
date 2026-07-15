@@ -149,7 +149,7 @@ draw.text((68, 362), "speech disfluencies.", font=body_font, fill=TEXT_BRIGHT)
 # Footer line
 draw.text(
     (68, 432),
-    "Offline-first  -  Bubble across every app  -  $3.99 one-time",
+    "Offline-first  -  Bubble across every app  -  Local by default",
     font=small_font, fill=COPPER
 )
 

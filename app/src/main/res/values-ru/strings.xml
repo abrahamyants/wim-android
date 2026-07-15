@@ -242,7 +242,7 @@
     <string name="toast_invite">Пригласить</string>
 
     <string name="dialog_delete_cloud_title">Удалить все данные в облаке?</string>
-    <string name="dialog_delete_cloud_message">Это навсегда удалит ваш синхронизированный профиль с наших серверов. Это нельзя отменить. Локальные данные останутся на устройстве до удаления приложения. Вы выйдете из аккаунта.</string>
+    <string name="dialog_delete_cloud_message">Это навсегда удалит ваш синхронизированный профиль с наших серверов. Это не отменяет WiM Cloud; отмените подписку отдельно в Google Play. Локальные данные останутся на устройстве до удаления приложения. Вы выйдете из аккаунта.</string>
     <string name="dialog_delete">Удалить</string>
     <string name="dialog_cancel">Отмена</string>
 
@@ -298,10 +298,11 @@
     <string name="l1_contribute_title">УЛУЧШИТЬ ПАКЕТ L1</string>
     <string name="l1_contribute_subtitle">После исправления реконструкции анонимно поделитесь ею, чтобы улучшить пакет для всех</string>
     <string name="l1_detected_prompt">Обнаружен английский типа %s. Сделать его первым языком?</string>
-    <string name="cloud_unlock_title">Разблокировка WiM Cloud</string>
+    <string name="cloud_unlock_title">WiM Cloud</string>
     <string name="cloud_unlock_status">Проверка доступа…</string>
     <string name="cloud_unlock_price">Цена из Google Play</string>
-    <string name="cloud_unlock_action">РАЗБЛОКИРОВАТЬ</string>
+    <string name="cloud_unlock_monthly_price">%1$s в месяц</string>
+    <string name="cloud_unlock_action">ПОДПИСАТЬСЯ</string>
     <string name="cloud_unlock_restore">ВОССТАНОВИТЬ</string>
-    <string name="cloud_unlock_dialog">Облачная речь, уровни II–IV и диктовка не на английском требуют разовой разблокировки облака.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud включает 300 облачных диктовок и до 20 диктовок уровня IV в месяц. Подписка продлевается ежемесячно, пока вы не отмените её в Google Play.</string>
 </resources>

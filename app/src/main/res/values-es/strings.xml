@@ -242,7 +242,7 @@
     <string name="toast_invite">Invitar</string>
 
     <string name="dialog_delete_cloud_title">¿Borrar todos los datos en la nube?</string>
-    <string name="dialog_delete_cloud_message">Esto borra permanentemente tu perfil sincronizado en nuestros servidores. No se puede deshacer. Tus datos locales permanecen en este dispositivo hasta que desinstales. Cerrarás sesión.</string>
+    <string name="dialog_delete_cloud_message">Esto borra permanentemente tu perfil sincronizado de nuestros servidores. No cancela WiM Cloud; cancela la suscripción por separado en Google Play. Tus datos locales permanecen en este dispositivo hasta que desinstales. Cerrarás sesión.</string>
     <string name="dialog_delete">Borrar</string>
     <string name="dialog_cancel">Cancelar</string>
 
@@ -298,10 +298,11 @@
     <string name="l1_contribute_title">MEJORA TU PAQUETE L1</string>
     <string name="l1_contribute_subtitle">Cuando corrijas una reconstrucción, compártela de forma anónima para mejorar el paquete para todos</string>
     <string name="l1_detected_prompt">Se detectó inglés con patrón %s. ¿Establecerlo como primer idioma?</string>
-    <string name="cloud_unlock_title">Desbloqueo de WiM Cloud</string>
+    <string name="cloud_unlock_title">WiM Cloud</string>
     <string name="cloud_unlock_status">Comprobando acceso…</string>
     <string name="cloud_unlock_price">Precio mostrado por Google Play</string>
-    <string name="cloud_unlock_action">DESBLOQUEAR</string>
+    <string name="cloud_unlock_monthly_price">%1$s al mes</string>
+    <string name="cloud_unlock_action">SUSCRIBIRSE</string>
     <string name="cloud_unlock_restore">RESTAURAR</string>
-    <string name="cloud_unlock_dialog">La voz en la nube, las capas II–IV y el dictado en otros idiomas necesitan el desbloqueo único de la nube.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud incluye 300 dictados en la nube y hasta 20 dictados de la capa IV al mes. Se renueva mensualmente hasta que lo canceles en Google Play.</string>
 </resources>

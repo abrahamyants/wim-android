@@ -242,7 +242,7 @@
     <string name="toast_invite">Convidar</string>
 
     <string name="dialog_delete_cloud_title">Apagar todos os dados da nuvem?</string>
-    <string name="dialog_delete_cloud_message">Isso apaga permanentemente seu perfil sincronizado dos nossos servidores. Não pode ser desfeito. Seus dados locais ficam no aparelho até você desinstalar. Você será desconectado.</string>
+    <string name="dialog_delete_cloud_message">Isso apaga permanentemente seu perfil sincronizado dos nossos servidores. Não cancela o WiM Cloud; cancele a assinatura separadamente no Google Play. Seus dados locais ficam no aparelho até você desinstalar. Você será desconectado.</string>
     <string name="dialog_delete">Apagar</string>
     <string name="dialog_cancel">Cancelar</string>
 
@@ -298,10 +298,11 @@
     <string name="l1_contribute_title">MELHORE SEU PACOTE L1</string>
     <string name="l1_contribute_subtitle">Ao corrigir uma reconstrução, compartilhe-a anonimamente para melhorar o pacote para todos</string>
     <string name="l1_detected_prompt">Inglês com padrão %s detectado. Definir como primeiro idioma?</string>
-    <string name="cloud_unlock_title">Desbloqueio do WiM Cloud</string>
+    <string name="cloud_unlock_title">WiM Cloud</string>
     <string name="cloud_unlock_status">Verificando acesso…</string>
     <string name="cloud_unlock_price">Preço exibido pelo Google Play</string>
-    <string name="cloud_unlock_action">DESBLOQUEAR</string>
+    <string name="cloud_unlock_monthly_price">%1$s por mês</string>
+    <string name="cloud_unlock_action">ASSINAR</string>
     <string name="cloud_unlock_restore">RESTAURAR</string>
-    <string name="cloud_unlock_dialog">A voz na nuvem, as camadas II–IV e o ditado em outros idiomas precisam do desbloqueio único da nuvem.</string>
+    <string name="cloud_unlock_dialog">O WiM Cloud inclui 300 ditados na nuvem e até 20 ditados da camada IV por mês. A assinatura é renovada mensalmente até ser cancelada no Google Play.</string>
 </resources>

@@ -23,7 +23,7 @@
 - Does the app share the user's current physical location with other users? **No**
 
 ### Miscellaneous
-- Does the app allow users to purchase digital goods? **Yes** (One-time IAP unlock).
+- Does the app allow users to purchase digital goods? **Yes** (Auto-renewing WiM Cloud subscription).
 - Does the app contain any swastikas or other Nazi symbols? **No**
 - Is the app a web browser or a search engine? **No**
 

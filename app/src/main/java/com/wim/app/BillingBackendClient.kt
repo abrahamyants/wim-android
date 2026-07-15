@@ -14,7 +14,8 @@ data class CloudEntitlement(val unlocked: Boolean, val tier: String)
 
 /** Authenticated entitlement reads and Google Play purchase verification. */
 object BillingBackendClient {
-    const val PRODUCT_ID = "wim_cloud_unlock"
+    const val PRODUCT_ID = "wim_cloud_monthly"
+    const val BASE_PLAN_ID = "monthly"
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

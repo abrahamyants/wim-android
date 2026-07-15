@@ -292,7 +292,7 @@
 
     <!-- ═══ Confirm dialogs ═══ -->
     <string name="dialog_delete_cloud_title">Delete all cloud data?</string>
-    <string name="dialog_delete_cloud_message">This permanently deletes your synced profile from our servers. It cannot be undone. Your local data stays on this device until you uninstall. You will be signed out.</string>
+    <string name="dialog_delete_cloud_message">This permanently deletes your synced profile from our servers. It does not cancel WiM Cloud; cancel the subscription separately in Google Play. Your local data stays on this device until you uninstall. You will be signed out.</string>
     <string name="dialog_delete">Delete</string>
     <string name="dialog_cancel">Cancel</string>
 
@@ -321,12 +321,13 @@
     <string name="lang_picker_dialog_title">Choose language</string>
     <string name="lang_picker_restart_note">App will restart to apply</string>
 
-    <!-- Google Play one-time purchase -->
-    <string name="cloud_unlock_title">WiM Cloud Unlock</string>
+    <!-- Google Play subscription -->
+    <string name="cloud_unlock_title">WiM Cloud</string>
     <string name="cloud_unlock_status">Checking access…</string>
     <string name="cloud_unlock_price">Price shown by Google Play</string>
-    <string name="cloud_unlock_action">UNLOCK</string>
+    <string name="cloud_unlock_monthly_price">%1$s / month</string>
+    <string name="cloud_unlock_action">SUBSCRIBE</string>
     <string name="cloud_unlock_restore">RESTORE</string>
-    <string name="cloud_unlock_dialog">Cloud speech, Layers II–IV, and non-English dictation need the one-time Cloud Unlock.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud includes 300 cloud dictations and up to 20 Layer IV dictations each month. It renews monthly until canceled in Google Play.</string>
 
 </resources>

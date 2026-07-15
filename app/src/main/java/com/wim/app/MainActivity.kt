@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                 signedOutSection.visibility = View.GONE
                 signedInSection.visibility = View.VISIBLE
                 userEmail.text = user.email ?: user.uid.take(12)
-                userTier.text = if (WimApp.cloudUnlocked()) "Cloud unlocked" else "Local / Free"
+                userTier.text = if (WimApp.cloudUnlocked()) "WiM Cloud" else "Local / Free"
                 findViewById<TextView>(R.id.settingsUserEmail)?.text = user.email ?: user.uid.take(12)
                 findViewById<TextView>(R.id.settingsUserTier)?.text = userTier.text
                 // Hide API key section — consumer doesn't need it
@@ -869,15 +869,15 @@ class MainActivity : AppCompatActivity() {
         val actionView = findViewById<TextView>(R.id.cloudUnlockAction)
         billingManager = PlayBillingManager(this, lifecycleScope) { state ->
             statusView?.text = state.message
-            priceView?.text = if (state.unlocked) "PERMANENT ACCESS"
+            priceView?.text = if (state.unlocked) "ACTIVE SUBSCRIPTION"
                 else state.price ?: "Price unavailable"
-            actionView?.text = if (state.unlocked) "UNLOCKED" else "UNLOCK"
-            actionView?.isEnabled = !state.unlocked
-            actionView?.alpha = if (state.unlocked) 0.55f else 1f
+            actionView?.text = if (state.unlocked) "MANAGE" else "SUBSCRIBE"
+            actionView?.isEnabled = state.unlocked || state.canBuy
+            actionView?.alpha = if (actionView?.isEnabled == true) 1f else 0.55f
             findViewById<TextView>(R.id.userTier)?.text =
-                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+                if (state.unlocked) "WiM Cloud" else "Local / Free"
             findViewById<TextView>(R.id.settingsUserTier)?.text =
-                if (state.unlocked) "Cloud unlocked" else "Local / Free"
+                if (state.unlocked) "WiM Cloud" else "Local / Free"
         }
         actionView?.setOnClickListener { billingManager?.launchPurchase() }
         billingManager?.start()
@@ -885,7 +885,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestCloudUnlock() {
         if (!AuthManager.isSignedIn) {
-            Toast.makeText(this, "Sign in first, then unlock cloud speech", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Sign in first, then subscribe to WiM Cloud", Toast.LENGTH_LONG).show()
             return
         }
         androidx.appcompat.app.AlertDialog.Builder(this)
@@ -2824,9 +2824,9 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
 
         overlay.findViewById<TextView>(R.id.deleteDataBtn)?.setOnClickListener {
             android.app.AlertDialog.Builder(this@MainActivity)
-                .setTitle("Delete all cloud data?")
-                .setMessage("This permanently deletes your synced profile from our servers. It cannot be undone. Your local data stays on this device until you uninstall. You will be signed out.")
-                .setPositiveButton("Delete") { _, _ ->
+                .setTitle(R.string.dialog_delete_cloud_title)
+                .setMessage(R.string.dialog_delete_cloud_message)
+                .setPositiveButton(R.string.dialog_delete) { _, _ ->
                     lifecycleScope.launch {
                         val ok = UserDataClient.deleteData()
                         if (ok) {
@@ -2839,7 +2839,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                         }
                     }
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.dialog_cancel, null)
                 .show()
         }
     }
