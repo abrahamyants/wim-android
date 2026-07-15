@@ -21,8 +21,8 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 - The third-party API key is held server-side, not on your device. A developer who explicitly enters a personal OpenAI key can instead use the direct API path.
 - We do not store your audio. The Cloud Function keeps short-lived request logs (uid, latency, layer, model) for reliability; logs do not include the contents of your audio or transcripts.
 
-### Layer 4 — clinical reconstruction (opt-in)
-- L4 uploads audio through the same authenticated Cloud Function. The backend sends it to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript and derived acoustic context to Anthropic's Claude Sonnet model for clinical reconstruction.
+### Layer 4 — deep speech-disfluency reconstruction (opt-in)
+- L4 uploads audio through the same authenticated Cloud Function. The backend sends it to OpenAI's Whisper API (verbose mode) for confidence-aware transcription, then sends the transcript and derived acoustic context to Anthropic's Claude Sonnet model for deeper reconstruction.
 - OpenAI and Anthropic credentials remain on the server and are not bundled into the release app.
 
 ### Script Prep and personal learning

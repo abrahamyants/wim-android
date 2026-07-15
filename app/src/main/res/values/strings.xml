@@ -40,7 +40,7 @@
     <string name="layer_1_desc">Local — instant, free, no internet needed</string>
     <string name="layer_2_desc">Smart — AI rewrites your speech clearly</string>
     <string name="layer_3_desc">Personal — learns your vocabulary and corrections</string>
-    <string name="layer_4_desc">Clinical — deep speech disfluency reconstruction</string>
+    <string name="layer_4_desc">Deep — built for heavier speech disfluency</string>
 
     <!-- ═══ Tone section ═══ -->
     <string name="tone_casual">Casual</string>

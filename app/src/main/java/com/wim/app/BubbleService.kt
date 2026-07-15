@@ -1896,7 +1896,7 @@ class BubbleService : Service() {
 
         if (isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
-            updateLiveTranscript("Recording for clinical reconstruction…")
+            updateLiveTranscript("Recording for deep reconstruction…")
         } else if (l1NeedsCloud) {
             Log.i(TAG, "L1 cloud mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording (cloud ASR)…")

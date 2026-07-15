@@ -184,7 +184,7 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
 
         t += 4000
         step(t) {
-            bubble.showPipelineStage("④  DISFLUENCY", "Full clinical mode. Built for non-fluent speech.")
+            bubble.showPipelineStage("④  DISFLUENCY", "Deep reconstruction. Built for harder speech.")
         }
 
         // ── Act 7: Hide and summon ──

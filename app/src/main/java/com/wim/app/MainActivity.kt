@@ -1899,7 +1899,7 @@ class MainActivity : AppCompatActivity() {
 <b>2. Speech-to-text.</b><br>
 &#8226; <b>Layer I</b> &#8212; whisper-tiny runs on your phone (free, no internet, no chirp).<br>
 &#8226; <b>Layer II / III</b> &#8212; gpt-4o-transcribe in the cloud (your audio goes up so the model can hear inflection and disfluency before reconstruction).<br>
-&#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes per-segment confidence the clinical prompt needs).<br><br>
+&#8226; <b>Layer IV</b> &#8212; Whisper-1 in the cloud (older Whisper preserves more disfluencies and exposes confidence signals used by deep reconstruction).<br><br>
 <b>3. Rule cleanup (no AI).</b><br>
 &#8226; "p-p-pop" &#8594; "pop"<br>
 &#8226; "I I I want" &#8594; "I want" (but "bye bye", "had had" are kept)<br>
@@ -1974,7 +1974,7 @@ class MainActivity : AppCompatActivity() {
                 """<b>I. Transcribe</b> &#8212; whisper-tiny on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
-<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Claude Sonnet 4.6 with extended thinking reconstructs through clinical reasoning &#8212; phoneme difficulty map, avoidance pattern recognition, anticipatory-block detection. Slowest layer but the most accurate for disfluent speech."""
+<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Deeper reconstruction considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest layer, built for speech the lighter layers garble.<br><br><b>WiM is an assistive dictation tool, not a medical device.</b> It does not diagnose, treat, cure, or prevent any condition."""
             ),
 
             GuideSection(
@@ -2209,7 +2209,7 @@ The bubble shows your current layer (L1-L4) and tone (CAS/PRO/FRI/FOR). During r
 <b>I. Transcribe</b> &#8212; On-device speech-to-text + disfluency filter. Free, instant, no internet after setup.<br><br>
 <b>II. Reconstruct</b> &#8212; GPT cleans grammar, strips fillers, applies your tone. ~1-2s.<br><br>
 <b>III. Profile</b> &#8212; Same as II + your personal vocabulary and corrections. The app learns which words you prefer over time.<br><br>
-<b>IV. Speech Disfluency</b> &#8212; Full clinical mode. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
+<b>IV. Speech Disfluency</b> &#8212; Deep reconstruction. Stronger AI model, disfluency-aware prompts, phoneme difficulty map, avoidance detection.""".trimIndent()),
 
             Triple("Smart Tone", "Automatic context detection", """
 WiM detects which app you're in and adjusts the tone automatically:<br><br>
