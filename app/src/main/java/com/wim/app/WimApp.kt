@@ -31,31 +31,10 @@ class WimApp : Application() {
         // Session sync listener — MainActivity registers to refresh UI after Firestore sync
         var onSessionsSynced: (() -> Unit)? = null
 
-        // Lazy-cached bundled keys (read once from APK assets on first use).
-        // Built-in defaults so a fresh download works without user setup; the
-        // user can still override either via Settings (the prefs path wins).
-        private var _bundledOpenAiKey: String? = null
-        private var _bundledAnthropicKey: String? = null
-
-        private fun bundledKey(filename: String): String {
-            if (!BuildConfig.DEBUG) return ""
-            return try {
-                instance.assets.open(filename).bufferedReader().use { it.readText().trim() }
-            } catch (e: Exception) {
-                // Empty return collapses with "asset missing" + "user didn't
-                // set one in prefs" — without this log a DEBUG build silently
-                // degrades to "L2/L3 paste raw text + generic failure toast"
-                // and looks like reconstruction is broken.
-                Log.w("WiM", "bundledKey($filename) missing: ${e.message}")
-                ""
-            }
-        }
-
+        /** Developer-supplied direct key. Release builds are backend-only. */
         fun apiKey(): String {
-            val user = prefs.getString("api_key", "") ?: ""
-            if (user.isNotBlank()) return user
-            if (_bundledOpenAiKey == null) _bundledOpenAiKey = bundledKey("api_key.txt")
-            return _bundledOpenAiKey ?: ""
+            if (!BuildConfig.DEBUG) return ""
+            return prefs.getString("api_key", "") ?: ""
         }
 
         /**
@@ -65,10 +44,8 @@ class WimApp : Application() {
          * L4 falls back to GPT-4o.
          */
         fun anthropicApiKey(): String {
-            val user = prefs.getString("anthropic_api_key", "") ?: ""
-            if (user.isNotBlank()) return user
-            if (_bundledAnthropicKey == null) _bundledAnthropicKey = bundledKey("anthropic_key.txt")
-            return _bundledAnthropicKey ?: ""
+            if (!BuildConfig.DEBUG) return ""
+            return prefs.getString("anthropic_api_key", "") ?: ""
         }
         fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
         /**

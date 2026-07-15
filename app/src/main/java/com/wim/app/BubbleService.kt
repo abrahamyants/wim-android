@@ -1369,7 +1369,7 @@ class BubbleService : Service() {
             e is IllegalStateException &&
                 (msg.contains("API key", ignoreCase = true) ||
                     msg.contains("Sign in", ignoreCase = true)) ->
-                FailureInfo(FailReason.CONFIG, "Sign in to use cloud speech, or add your own API key in Settings")
+                FailureInfo(FailReason.CONFIG, "Sign in and unlock cloud speech in Settings")
             e is SecurityException ->
                 FailureInfo(FailReason.CONFIG, "Microphone permission missing — enable it in Settings")
             e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ||

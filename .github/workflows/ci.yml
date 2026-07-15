@@ -56,6 +56,13 @@ jobs:
       - name: Build signed release bundle
         run: gradle bundleRelease -x uploadCrashlyticsSymbolFileRelease
 
+      - name: Reject bundled provider keys
+        run: |
+          if unzip -Z1 app/build/outputs/bundle/release/app-release.aab | rg -q '(^|/)(api_key|anthropic_key)\.txt$'; then
+            echo 'Release bundle contains a forbidden provider-key asset.'
+            exit 1
+          fi
+
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:

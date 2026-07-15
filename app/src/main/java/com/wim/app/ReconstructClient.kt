@@ -117,9 +117,8 @@ object ReconstructClient {
         val result = if (idToken != null) {
             reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext)
         } else {
-            // Device-direct: bundled or user-supplied OpenAI key for L2/L3, plus
-            // bundled or user-supplied Anthropic key for L4 Sonnet ET. Falls
-            // back to GPT-4o at L4 when the Anthropic key is blank.
+            // Developer-only direct fallback. Release builds return blank keys
+            // and require the authenticated backend for every cloud layer.
             if (idToken == null) {
                 // M9: surface the reroute. A signed-in user whose token refresh
                 // failed silently drops off the backend onto the device path —
@@ -171,7 +170,7 @@ object ReconstructClient {
             }
         }
 
-        // Device-direct fallback (bundled/user OpenAI key).
+        // Developer-only direct fallback; releases require sign-in/backend.
         val apiKey = WimApp.apiKey()
         if (apiKey.isBlank()) return@withContext emptyList()
         return@withContext try {

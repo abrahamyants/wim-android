@@ -33,6 +33,15 @@ android {
         }
     }
 
+    // Never package provider-key files, even when a developer keeps local
+    // debug credentials under main/assets. Production cloud calls go through
+    // the authenticated backend; an APK/AAB must not contain those secrets.
+    sourceSets {
+        getByName("main") {
+            assets.exclude("api_key.txt", "anthropic_key.txt")
+        }
+    }
+
     // Release signing secrets come from ~/.gradle/gradle.properties (never the
     // repo): WIM_STORE_PASSWORD / WIM_KEY_PASSWORD. If absent (e.g. CI without
     // the secret) the release variant builds UNSIGNED instead of failing.
