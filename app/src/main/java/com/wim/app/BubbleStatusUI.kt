@@ -87,6 +87,16 @@ class BubbleStatusUI(
             "MENU",
             menuPending,
         ).build()
+        val stopIntent = Intent(service, BubbleService::class.java).apply { action = "STOP" }
+        val stopPending = PendingIntent.getService(
+            service, 2, stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val stopAction = Notification.Action.Builder(
+            Icon.createWithResource(service, android.R.drawable.ic_menu_close_clear_cancel),
+            "STOP WiM",
+            stopPending,
+        ).build()
         return Notification.Builder(service, channelId)
             .setContentTitle("What I Meant")
             .setContentText(text)
@@ -95,6 +105,7 @@ class BubbleStatusUI(
             .setBadgeIconType(Notification.BADGE_ICON_NONE)
             .setNumber(0)
             .addAction(menuAction)
+            .addAction(stopAction)
             .build()
     }
 

@@ -647,14 +647,10 @@ class BubbleService : Service() {
         audioManager?.let {
             bluetoothSco = BubbleBluetoothSco(this, it).also { sco -> sco.start() }
         }
-        val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        val fgsType = if (hasMic) {
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-        } else {
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-        }
-        startForegroundCompat(buildNotification(), fgsType)
+        // The persistent bubble needs only SPECIAL_USE while idle. Add the
+        // MICROPHONE type strictly while capture is active, then downgrade
+        // again as soon as recording stops.
+        setForegroundMicActive(false)
         shakeDetector = BubbleShakeDetector(this, WimApp.prefs) {
             timerHandler.post {
                 try {
@@ -672,6 +668,12 @@ class BubbleService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "BubbleService onStartCommand: ${intent?.action}")
         when (intent?.action) {
+            "STOP" -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
+                stopSelf()
+                return START_NOT_STICKY
+            }
             "SHOW" -> {
                 val cx = intent.getIntExtra("spawn_cx", Int.MIN_VALUE)
                 val cy = intent.getIntExtra("spawn_cy", Int.MIN_VALUE)
@@ -724,6 +726,12 @@ class BubbleService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    private fun setForegroundMicActive(active: Boolean) {
+        val type = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+            if (active) android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        startForegroundCompat(buildNotification(), type)
     }
 
     // Onboarding dim overlay extracted to BubbleOnboardingOverlay
@@ -1289,7 +1297,7 @@ class BubbleService : Service() {
         onBubbleVisibilityChanged?.invoke()
     }
 
-    private fun hideBubble() {
+    private fun hideBubble(notifyRecall: Boolean = true) {
         // Drop any in-flight send-ready timer + disclaimer so they don't
         // survive the bubble's lifetime.
         isSendReady = false
@@ -1301,8 +1309,10 @@ class BubbleService : Service() {
             bubbleView = null
         }
         // Re-post notification so it stays visible as the recall button
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.notify(NOTIFICATION_ID, buildNotification("Bubble hidden — tap to show"))
+        if (notifyRecall) {
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.notify(NOTIFICATION_ID, buildNotification("Bubble hidden — tap to show"))
+        }
         // Coat-rack signal: bubble is back on the hanger. Dock un-ghosts.
         onBubbleVisibilityChanged?.invoke()
     }
@@ -1655,11 +1665,7 @@ class BubbleService : Service() {
         val hasMicNow = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasMicNow) {
             try {
-                startForegroundCompat(
-                    buildNotification(),
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
-                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                )
+                setForegroundMicActive(true)
             } catch (e: Exception) {
                 Log.w(TAG, "FGS type re-assert failed: ${e.message}")
             }
@@ -1968,6 +1974,7 @@ class BubbleService : Service() {
             processed = true
             isRecording = false
             val wavFile = audioRecorder?.stop()
+            setForegroundMicActive(false)
             audioRecorder = null
             onDeviceRecognizer?.stop()
             scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
@@ -2011,6 +2018,7 @@ class BubbleService : Service() {
             processed = true
             isRecording = false
             audioRecorder?.stop(); audioRecorder = null
+            setForegroundMicActive(false)
             onDeviceRecognizer?.stop()
             // WhisperLocalEngine.stop() does a captureThread?.join(500) +
             // an ONNX decode of the buffered audio — heavy work that froze
@@ -2038,6 +2046,7 @@ class BubbleService : Service() {
 
         // Stop audio recorder immediately (captures full audio)
         val wavFile = audioRecorder?.stop()
+        setForegroundMicActive(false)
         // Auto Quiet Mode: when the user hasn't forced Quiet Mode on, boost the
         // whole take before Whisper ONLY if it was whisper-soft. Amber confirms
         // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -22 dBFS is
@@ -3260,7 +3269,7 @@ class BubbleService : Service() {
         dafPlayer = null
         audioRecorder?.release()
         audioRecorder = null
-        hideBubble()
+        hideBubble(notifyRecall = false)
         onDeviceRecognizer?.destroy()
         onDeviceRecognizer = null
         whisperLocalEngine?.destroy()
