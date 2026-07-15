@@ -51,6 +51,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "787543109204-0jl366lmhhmcvslo18mldmr2ee3f1cu2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wimlabs.wim",
+            "certificate_hash": "c7e807f90ee4dde23ac33b7dd7925c223e900515"
+          }
+        },
+        {
           "client_id": "787543109204-8v1qvjkgvlohfnhpt3fcm2947s7hrau6.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
