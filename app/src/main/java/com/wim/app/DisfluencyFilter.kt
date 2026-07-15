@@ -85,6 +85,17 @@ object DisfluencyFilter {
     // Multi-space collapse
     private val MULTI_SPACE = Regex("""\s{2,}""")
 
+    // Whisper-family engines sometimes return caption/system markers instead
+    // of speech. Local L1 does not always provide confidence segments, so these
+    // exact markers must be removed independently of confidence metadata.
+    // The second branch accepts a missing closing bracket only at end-of-text;
+    // this catches observed output such as "[BLANK_AUDIO" without damaging
+    // legitimate bracketed prose such as "[Music Hall]".
+    private val SYSTEM_MARKER = Regex(
+        """(?i)\[(?:blank[_ ]audio|inaudible|music|applause|silence|no[_ ]audio|laughter)\]|""" +
+            """\[(?:blank[_ ]audio|inaudible|music|applause|silence|no[_ ]audio|laughter)\s*$"""
+    )
+
     /**
      * Strip short hallucinated filler phrases from segments Whisper flagged
      * as block suspects (high no_speech_prob). These are usually words like
@@ -98,8 +109,8 @@ object DisfluencyFilter {
      * @return text with block-suspect hallucinated phrases removed
      */
     fun stripBlockHallucinations(text: String, lowConfSegments: List<WhisperClient.LowConfidenceSegment>): String {
-        if (text.isBlank() || lowConfSegments.isEmpty()) return text
-        var result = text
+        if (text.isBlank()) return text
+        var result = SYSTEM_MARKER.replace(text, "")
         for (seg in lowConfSegments) {
             if (!seg.blockSuspect) continue
             val segText = seg.text.trim()

@@ -8,11 +8,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.wim.app.WimAccessibilityService
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 
 /**
  * Canonical permission status checks + launchers for the five WiM onboarding cards.
@@ -57,6 +62,12 @@ object PermissionStatus {
 
 object PermissionLauncher {
 
+    private const val TAG = "WiM.Onboarding"
+    private const val RETURN_POLL_MS = 500L
+    private const val RETURN_POLL_ATTEMPTS = 120
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val returnPolls = WeakHashMap<Activity, Runnable>()
+
     fun openOverlaySettings(activity: Activity) {
         runCatching {
             activity.startActivity(
@@ -65,7 +76,9 @@ object PermissionLauncher {
                     Uri.parse("package:${activity.packageName}")
                 )
             )
-        }
+        }.onSuccess {
+            returnToOnboardingWhenGranted(activity) { PermissionStatus.overlay(it) }
+        }.onFailure { Log.w(TAG, "Unable to open overlay settings", it) }
     }
 
     fun openAccessibilitySettings(activity: Activity) {
@@ -78,7 +91,12 @@ object PermissionLauncher {
         }
         runCatching { activity.startActivity(deepLink) }.recoverCatching {
             activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
+        }.onSuccess {
+            // Samsung may ignore the best-effort deep-link extras and open the
+            // accessibility root. Whichever Settings page it chooses, return
+            // the user to WiM as soon as the service is actually enabled.
+            returnToOnboardingWhenGranted(activity) { PermissionStatus.accessibility(it) }
+        }.onFailure { Log.w(TAG, "Unable to open accessibility settings", it) }
     }
 
     fun requestMicrophone(activity: Activity) {
@@ -97,7 +115,9 @@ object PermissionLauncher {
                     Uri.parse("package:${activity.packageName}")
                 )
             )
-        }
+        }.onSuccess {
+            returnToOnboardingWhenGranted(activity) { PermissionStatus.batteryOptimization(it) }
+        }.onFailure { Log.w(TAG, "Unable to open battery settings", it) }
     }
 
     fun openSamsungDeepSleepSettings(activity: Activity) {
@@ -139,6 +159,49 @@ object PermissionLauncher {
                 REQ_NOTIFICATIONS
             )
         }
+    }
+
+    /**
+     * Settings-backed grants do not provide a reliable activity result. Poll
+     * the real permission state, then reorder the existing onboarding Activity
+     * to the front so users do not have to unwind Settings' nested back stack.
+     *
+     * The Activity is weakly referenced and the poll expires after one minute,
+     * so leaving onboarding cannot retain it indefinitely.
+     */
+    private fun returnToOnboardingWhenGranted(
+        activity: Activity,
+        check: (Activity) -> Boolean
+    ) {
+        returnPolls.remove(activity)?.let(mainHandler::removeCallbacks)
+
+        val activityRef = WeakReference(activity)
+        var attempts = 0
+        val poll = object : Runnable {
+            override fun run() {
+                val host = activityRef.get() ?: return
+                attempts++
+                if (check(host)) {
+                    returnPolls.remove(host)
+                    val back = Intent(host, OnboardingActivity::class.java).apply {
+                        addFlags(
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        )
+                    }
+                    runCatching { host.startActivity(back) }
+                        .onFailure { Log.w(TAG, "Unable to return to onboarding", it) }
+                    return
+                }
+                if (attempts < RETURN_POLL_ATTEMPTS) {
+                    mainHandler.postDelayed(this, RETURN_POLL_MS)
+                } else {
+                    returnPolls.remove(host)
+                }
+            }
+        }
+        returnPolls[activity] = poll
+        mainHandler.postDelayed(poll, RETURN_POLL_MS)
     }
 
     const val REQ_MIC = 100

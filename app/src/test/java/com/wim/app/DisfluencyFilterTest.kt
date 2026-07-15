@@ -136,6 +136,32 @@ class DisfluencyFilterTest {
             filter("I went to the store and bought groceries"))
     }
 
+    // ── ASR system markers ────────────────────────────
+
+    @Test fun systemMarker_music_strippedWithoutConfidenceMetadata() {
+        assertEquals(
+            "hello world",
+            DisfluencyFilter.stripBlockHallucinations("hello [Music] world", emptyList())
+        )
+    }
+
+    @Test fun systemMarker_unterminatedBlankAudio_strippedWithoutConfidenceMetadata() {
+        assertEquals(
+            "",
+            DisfluencyFilter.stripBlockHallucinations("[BLANK_AUDIO", emptyList())
+        )
+    }
+
+    @Test fun systemMarker_legitimateBracketedPhrase_preserved() {
+        assertEquals(
+            "Meet me at [Music Hall] tonight",
+            DisfluencyFilter.stripBlockHallucinations(
+                "Meet me at [Music Hall] tonight",
+                emptyList()
+            )
+        )
+    }
+
     // ── Helper ─────────────────────────────────────────
 
     private fun filter(text: String, fillers: List<String> = defaultFillers): String {
