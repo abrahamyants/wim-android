@@ -33,15 +33,6 @@ android {
         }
     }
 
-    // Never package provider-key files, even when a developer keeps local
-    // debug credentials under main/assets. Production cloud calls go through
-    // the authenticated backend; an APK/AAB must not contain those secrets.
-    sourceSets {
-        getByName("main") {
-            assets.exclude("api_key.txt", "anthropic_key.txt")
-        }
-    }
-
     // Release signing secrets come from ~/.gradle/gradle.properties (never the
     // repo): WIM_STORE_PASSWORD / WIM_KEY_PASSWORD. If absent (e.g. CI without
     // the secret) the release variant builds UNSIGNED instead of failing.
@@ -186,6 +177,28 @@ dependencies {
     // Robolectric shadow can't reproduce apply()/disk-marshal threading.
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
+}
+
+// A developer may keep direct-call credentials locally for debug work, but a
+// release must stop before Android's asset merger can package either file.
+val verifyNoProviderKeysInRelease by tasks.registering {
+    group = "verification"
+    doLast {
+        val forbidden = listOf(
+            file("src/main/assets/api_key.txt"),
+            file("src/main/assets/anthropic_key.txt"),
+        ).filter { it.exists() }
+        check(forbidden.isEmpty()) {
+            "Release build blocked: remove local provider-key assets: " +
+                forbidden.joinToString { it.name }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "mergeReleaseAssets") {
+        dependsOn(verifyNoProviderKeysInRelease)
+    }
 }
 
 // assembleRelease auto-wires uploadCrashlyticsSymbolFileRelease, but bundleRelease

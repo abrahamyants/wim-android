@@ -54,7 +54,7 @@ jobs:
           }
 
       - name: Build signed release bundle
-        run: gradle bundleRelease -x uploadCrashlyticsSymbolFileRelease
+        run: gradle bundleRelease -x uploadCrashlyticsSymbolFileRelease --no-build-cache
 
       - name: Reject bundled provider keys
         run: |
