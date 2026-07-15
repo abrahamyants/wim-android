@@ -153,6 +153,13 @@ class DafPlayer(private val context: Context) {
      * SpeechRecognizer on most devices), then UNPROCESSED, then DEFAULT.
      */
     private fun createAudioRecord(bufferSize: Int): AudioRecord? {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "AudioRecord not created: microphone permission missing")
+            return null
+        }
         val sources = intArrayOf(
             MediaRecorder.AudioSource.VOICE_COMMUNICATION,
             MediaRecorder.AudioSource.UNPROCESSED,
@@ -166,6 +173,9 @@ class DafPlayer(private val context: Context) {
                     return rec
                 }
                 rec.release()
+            } catch (e: SecurityException) {
+                Log.w(TAG, "AudioRecord permission rejected: ${e.message}")
+                return null
             } catch (e: Exception) {
                 Log.w(TAG, "AudioRecord source=$source failed: ${e.message}")
             }
