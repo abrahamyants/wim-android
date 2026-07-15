@@ -37,7 +37,11 @@ jobs:
         run: gradle testDebugUnitTest
 
       - name: Lint release build
-        run: gradle lintRelease
+        run: |
+          gradle lintRelease || {
+            cat app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
+            exit 1
+          }
 
       # Signing secrets are intentionally absent in CI. build.gradle emits an
       # unsigned bundle, which still catches R8/resource-shrinking and other
