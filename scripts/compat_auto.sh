@@ -109,8 +109,8 @@ print(f'{cx},{cy}')
 
     # Clear logcat, then inject
     "$ADB" logcat -c 2>/dev/null
-    "$ADB" shell am broadcast -a com.wim.app.TEST \
-        -n com.wim.app/.WimTestReceiver \
+    "$ADB" shell am broadcast -a com.wimlabs.wim.TEST \
+        -n com.wimlabs.wim/com.wim.app.WimTestReceiver \
         --es action inject_raw --es raw_text "$PHRASE" >/dev/null 2>&1
     sleep 3
 
@@ -147,9 +147,9 @@ print(f'{cx},{cy}')
 }
 
 # Make sure bubble + a11y are up
-"$ADB" shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver --es action ping >/dev/null
+"$ADB" shell am broadcast -a com.wimlabs.wim.TEST -n com.wimlabs.wim/com.wim.app.WimTestReceiver --es action ping >/dev/null
 sleep 1
-ping_result=$("$ADB" shell "run-as com.wim.app cat files/test_result.json" 2>&1)
+ping_result=$("$ADB" shell "run-as com.wimlabs.wim cat files/test_result.json" 2>&1)
 if ! echo "$ping_result" | grep -q '"bubble_running": true'; then
     echo "Bubble not running — aborting"
     exit 1

@@ -14,7 +14,7 @@ import java.io.File
  * DEBUG BUILDS ONLY. Stripped from release APKs via BuildConfig.DEBUG guard.
  *
  * Usage from ADB:
- *   adb shell am broadcast -a com.wim.app.TEST -n com.wim.app/.WimTestReceiver --es action <action> [extras]
+ *   adb shell am broadcast -a com.wimlabs.wim.TEST -n com.wimlabs.wim/com.wim.app.WimTestReceiver --es action <action> [extras]
  *
  * Actions:
  *   set_tone          --es tone casual|professional|formal|friend
@@ -34,13 +34,13 @@ import java.io.File
  *   ping              (writes {"status":"ok"} — verifies receiver is alive)
  *
  * All results written to: files/test_result.json (readable via run-as)
- *   adb shell run-as com.wim.app cat files/test_result.json
+ *   adb shell run-as com.wimlabs.wim cat files/test_result.json
  */
 class WimTestReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "WiM-Test"
-        const val ACTION = "com.wim.app.TEST"
+        const val ACTION = "com.wimlabs.wim.TEST"
 
         /** Last reconstruction result — set by BubbleService.processTextForTest() */
         @Volatile var lastResult: JSONObject? = null

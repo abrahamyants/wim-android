@@ -77,8 +77,8 @@ cmd_single() {
     "$ADB" pull /sdcard/before.xml "$dump_before" >/dev/null 2>&1
 
     # Inject via WimTestReceiver
-    "$ADB" shell am broadcast -a com.wim.app.TEST \
-        -n com.wim.app/.WimTestReceiver \
+    "$ADB" shell am broadcast -a com.wimlabs.wim.TEST \
+        -n com.wimlabs.wim/com.wim.app.WimTestReceiver \
         --es action inject_raw --es raw_text "$phrase" >/dev/null 2>&1
 
     sleep 3
