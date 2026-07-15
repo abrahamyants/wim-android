@@ -671,7 +671,7 @@
     <a href="#pipeline"><span>04</span>Pipeline</a>
     <a href="#layers"><span>05</span>The Four Layers</a>
     <a href="#tone"><span>06</span>Tone</a>
-    <a href="#autosend"><span>07</span>Auto-send</a>
+    <a href="#autosend"><span>07</span>Tap-to-send assist</a>
     <a href="#clarifier"><span>08</span>Clarifier</a>
     <a href="#themes"><span>09</span>Themes</a>
     <a href="#daf"><span>10</span>DAF</a>
@@ -893,7 +893,7 @@
         <tr><td><span class="chip">IDLE</span></td><td>Waiting. Tap to start.</td></tr>
         <tr><td><span class="chip live">REC</span></td><td>Recording. Pulse rings expand outward; bezel halo glows. Tap to stop, or just stop talking — the bubble notices the silence.</td></tr>
         <tr><td><span class="chip">PROC</span></td><td>Cleaning, reconstructing, verifying. The stage arc walks around the bezel as each step completes.</td></tr>
-        <tr><td><span class="chip go">SEND</span></td><td>Text is in the field. You have 3 seconds to tap the green bubble and auto-send it, or do nothing and edit by hand. (Auto-send only.)</td></tr>
+        <tr><td><span class="chip go">SEND</span></td><td>Text is in the field. You have 5 seconds to tap the green bubble and authorize Send, or do nothing and edit by hand. (Tap-to-send assist only.)</td></tr>
         <tr><td><span class="chip">CHECK?</span></td><td>The clarifier — bubble found a word it isn't sure of. See § 08.</td></tr>
       </tbody>
     </table>
@@ -1065,27 +1065,27 @@
     </div>
   </section>
 
-  <!-- ===== § 07 AUTO-SEND ===== -->
+  <!-- ===== § 07 TAP-TO-SEND ASSIST ===== -->
   <section id="autosend">
     <div class="sec-rule">
       <span><b>§ 07</b> / 13</span>
-      <span>Auto-send</span>
+      <span>Tap-to-send assist</span>
     </div>
-    <h2>Auto-send</h2>
+    <h2>Tap-to-send assist</h2>
     <p class="sec-sub">tap the green bubble, message goes</p>
 
     <p class="lead">
       When the reconstruction lands in a send-capable app, WiM doesn't
-      auto-send it — that would be terrifying. Instead the bubble turns
-      green for three seconds and gives you a one-tap "send for me"
+      send it by itself — that would be terrifying. Instead the bubble turns
+      green for five seconds and gives you a one-tap "send for me"
       affordance.
     </p>
 
     <ol class="steps">
       <li><b>You speak.</b> The text drops into the compose field.</li>
-      <li><b>Bubble turns green</b>, label reads <span class="chip go">SEND</span>, the bezel arc counts down from 3.</li>
+      <li><b>Bubble turns green</b>, label reads <span class="chip go">SEND</span>, the bezel arc counts down from 5.</li>
       <li><b>Tap the green bubble</b> → WiM clicks the app's <em>Send</em> button on your behalf. Done.</li>
-      <li><b>Or do nothing</b> → after 3 seconds the green fades and the text stays in the compose field for you to edit/send manually.</li>
+      <li><b>Or do nothing</b> → after 5 seconds the green fades and the text stays in the compose field for you to edit/send manually.</li>
     </ol>
 
     <p>
@@ -1095,17 +1095,17 @@
     </p>
 
     <p>
-      Turn auto-send off entirely in <span class="key">Settings → Auto-send</span>.
-      Default is on. There's a 3-shot disclaimer the first three times
-      you use it, then it stops nagging.
+      Turn tap-to-send assist on or off in <span class="key">Settings → Tap-to-send assist</span>.
+      It is off by default. WiM never sends unless you first enable the feature
+      and then separately tap the green bubble for that message.
     </p>
 
     <div class="callout">
-      <div class="callout-tag">Facehugger-Send (optional)</div>
-      Settings → Auto-send → Facehugger-Send. Once on, the green bubble
+      <div class="callout-tag">Move bubble to Send button (optional)</div>
+      Settings → Tap-to-send assist → Move bubble to Send button. Once on, the green bubble
       slides over the host app's actual Send button on SEND-ready, so the
       tap target is on the Send icon itself. Off by default; some find it
-      unsettling. (Yes, the name is a joke.)
+      unfamiliar, so this setting is off by default.
     </div>
   </section>
 
@@ -1344,7 +1344,7 @@
       <div class="perm-mark">02</div>
       <div class="perm-body">
         <h5>Accessibility</h5>
-        <p>Lets WiM read the focused text field (so the bubble knows where to paste) and click the Send button on your behalf for auto-send. WiM never reads anything you don't directly interact with.</p>
+        <p>Lets WiM find the focused text field, read up to 200 characters immediately before the cursor for sentence continuity, insert your dictated text, and offer tap-to-send assistance. Password fields are blocked. Local Layer 1 keeps that context on your phone; cloud layers include it in the encrypted reconstruction request. Sending always requires a separate tap on the green bubble.</p>
         <span class="perm-path">Settings → Accessibility → Installed services → WiM</span>
       </div>
     </div>
@@ -1410,9 +1410,9 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Auto-send doesn't fire in app X</div>
+      <div class="card-title">Tap-to-send assist doesn't fire in app X</div>
       <div class="card-sub">app isn't on the supported list yet</div>
-      <p>Auto-send needs to know the app's Send-button structure. Supported list is in § 07. If your app isn't there, the reconstruction still lands in the compose field — you just tap Send yourself. Drop a request and we'll add it.</p>
+      <p>The assist needs to know the app's Send-button structure. Supported targets are in § 07. If WiM cannot identify the button, the reconstruction still lands in the compose field — you just tap Send yourself.</p>
     </div>
 
     <div class="card">

@@ -26,7 +26,8 @@
     <!-- Haptic feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Notifications (required Android 13+, keeps foreground service alive) -->
+    <!-- Optional Android 13+ notification permission for showing the
+         ongoing bubble status and recall shortcut in the notification drawer. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Bluetooth mic routing for wireless headsets -->
@@ -99,7 +100,7 @@
             android:exported="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Persistent floating overlay for voice-to-text dictation that must remain active while the user speaks into other apps" />
+                android:value="User-enabled persistent accessibility overlay for cross-application voice dictation; visible while other apps are foreground and stoppable from its ongoing notification" />
         </service>
 
         <!-- Quick Settings tile: tap to summon the floating bubble.

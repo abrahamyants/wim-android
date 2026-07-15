@@ -35,6 +35,6 @@ Use these answers for the release represented by this repository. Re-check them 
 
 - Local L1 sends no audio off device.
 - Cloud audio is processed and not stored by WiM; mark voice recordings as processed ephemerally.
-- Synced vocabulary, corrections, Script Prep/context, transcripts, and session history belong under other user-generated content.
+- Synced vocabulary, corrections, Script Prep/context, up to 200 characters of pre-cursor context used during an invoked cloud reconstruction, transcripts, and session history belong under other user-generated content.
 - Google Play handles payment credentials. WiM stores only subscription entitlement metadata (product, base plan, order, state, expiry, and verification), quota counters, and a one-way purchase-token hash.
 - Account deletion removes the Firebase Authentication user, synced profile, nested session backups, entitlement binding, and purchase-token hashes. It does not cancel the separate Google Play subscription or erase records Google must retain.

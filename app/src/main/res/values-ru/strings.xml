@@ -57,8 +57,8 @@
     <string name="settings_voice_shortcuts_hint">мой email=george@example.com\nмой телефон=555-1234</string>
     <string name="settings_bubble_color">Цвет пузыря</string>
     <string name="settings_cloud_backup">Резервная копия в облаке</string>
-    <string name="settings_auto_send">Автоотправка (нажмите зелёный пузырь)</string>
-    <string name="settings_auto_send_apps">Сообщения, Gmail, WhatsApp, Telegram, Signal. Нажмите пузырь в течение 3.5 с.</string>
+    <string name="settings_auto_send">Помощь с отправкой</string>
+    <string name="settings_auto_send_apps">После вставки нажмите зелёный пузырь в течение 5 с, чтобы отправить. Без нажатия отправка отменяется.</string>
     <string name="settings_accent">Акцент</string>
     <string name="settings_accent_subtitle">не автокорректировать</string>
     <string name="settings_shake">Встряхнуть для вызова/скрытия</string>
@@ -207,7 +207,7 @@
     <string name="bouncer_recon_after">Не могли бы вы прислать мне отчёт? Он нужен для завтрашней встречи.</string>
     <string name="bouncer_recon_caption">Запинки реконструированы. Тон применён. Текст приходит в то приложение, где вы пишете.</string>
     <string name="bouncer_send_title">Отправляйте прямо из пузыря</string>
-    <string name="bouncer_send_body">После того как ваш текст попадает на экран, пузырь зеленеет на 3 секунды. Нажмите, чтобы отправить. Подождите или нажмите снаружи, чтобы отменить.\n\nWiM никогда не отправляет без вашего нажатия. Текст идёт через открытое приложение — Сообщения, Gmail, WhatsApp и т.д. — используя ваш текущий вход.</string>
+    <string name="bouncer_send_body">После того как ваш текст попадает на экран, пузырь зеленеет на 5 секунд. Нажмите, чтобы отправить. Подождите или нажмите снаружи, чтобы отменить.\n\nWiM никогда не отправляет без отдельного нажатия. Текст идёт через открытое приложение — Сообщения, Gmail, WhatsApp и т.д. — используя ваш текущий вход.</string>
     <string name="bouncer_send_ack">Понятно. Нажатие на зелёный пузырь отправит мой текст.</string>
     <string name="bouncer_next">Далее</string>
     <string name="bouncer_all_set">Всё готово.</string>
@@ -274,7 +274,7 @@
     <string name="layer_2_desc">Умно — ИИ ясно переформулирует вашу речь</string>
     <string name="layer_3_desc">Персонально — учит ваш словарь и исправления</string>
     <string name="layer_4_desc">Глубоко — для речи с более сильными дисфлюенциями</string>
-    <string name="settings_facehugger_send">Facehugger Send (пузырёк прыгает к кнопке отправки)</string>
+    <string name="settings_facehugger_send">Перемещать пузырь к кнопке отправки</string>
     <string name="profile_l1_hindi">Хинди</string>
     <string name="profile_l1_arabic">Арабский</string>
     <string name="profile_l1_farsi">Фарси</string>

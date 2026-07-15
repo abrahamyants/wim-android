@@ -68,7 +68,7 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
 
         t += 3500
         step(t) {
-            bubble.showPipelineStage("④  SEND READY", "I'm green for 3.5 seconds — one more tap and it sends. Otherwise I let go.")
+            bubble.showPipelineStage("④  SEND READY", "I'm green for 5 seconds — one more tap and it sends. Otherwise I let go.")
             // Stay in SEND-ready state for a beat so the user sees the
             // countdown moment they'll actually encounter in real use.
         }

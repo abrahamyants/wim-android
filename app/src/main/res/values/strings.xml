@@ -15,7 +15,7 @@
     <!-- ═══ App identity ═══ -->
     <string name="app_name">What I Meant</string>
     <string name="app_short_name">WiM</string>
-    <string name="accessibility_description">WiM detects text fields to show the voice dictation bubble and pastes transcribed text into the active field.</string>
+    <string name="accessibility_description">WiM helps people with speech disfluencies keep their place across apps by finding the chosen text field, inserting dictated text, and offering a separately tapped send assist.</string>
 
     <!-- ═══ Top-level navigation tiles ═══ -->
     <string name="tile_layer">LAYER</string>
@@ -58,7 +58,7 @@
     <string name="perm_battery">Battery</string>
     <string name="perm_battery_subtitle">  keep alive in background</string>
     <string name="perm_notifications">Notifications</string>
-    <string name="perm_notifications_subtitle">  foreground service</string>
+    <string name="perm_notifications_subtitle">  bubble status + recall shortcut</string>
 
     <!-- ═══ DAF (Delayed Auditory Feedback) ═══ -->
     <string name="daf_label">DAF</string>
@@ -79,9 +79,9 @@
     <string name="settings_voice_shortcuts_hint">my email=george@example.com\nmy phone=555-1234</string>
     <string name="settings_bubble_color">Bubble color</string>
     <string name="settings_cloud_backup">Cloud backup sessions</string>
-    <string name="settings_auto_send">Auto-send (tap green bubble)</string>
-    <string name="settings_facehugger_send">Facehugger Send (bubble jumps to Send button)</string>
-    <string name="settings_auto_send_apps">Messages, Gmail, WhatsApp, Telegram, Signal. Tap bubble within 3.5s to send.</string>
+    <string name="settings_auto_send">Tap-to-send assist</string>
+    <string name="settings_facehugger_send">Move bubble to Send button</string>
+    <string name="settings_auto_send_apps">After pasting, tap the green bubble within 5 seconds to send. Doing nothing cancels.</string>
     <string name="settings_accent">Accent</string>
     <string name="settings_accent_subtitle">don\'t auto-correct</string>
     <string name="settings_shake">Shake to summon/hide</string>
@@ -246,7 +246,7 @@
     <string name="bouncer_recon_after">Could you please send me the report? I need it for tomorrow\'s meeting.</string>
     <string name="bouncer_recon_caption">Speech disfluencies reconstructed. Tone applied. Text lands in whatever app you\'re typing in.</string>
     <string name="bouncer_send_title">Send straight from the bubble</string>
-    <string name="bouncer_send_body">After your text lands, the bubble turns green for 3 seconds. Tap it to send. Wait or tap outside to cancel.\n\nWiM never sends without your tap. The text goes through the app you have open — Messages, Gmail, WhatsApp, etc. — using your existing signed-in session.</string>
+    <string name="bouncer_send_body">After your text lands, the bubble turns green for 5 seconds. Tap it to send. Wait or tap outside to cancel.\n\nWiM never sends without your separate tap. The text goes through the app you have open — Messages, Gmail, WhatsApp, etc. — using your existing signed-in session.</string>
     <string name="bouncer_send_ack">I understand. Tapping the green bubble sends my text.</string>
     <string name="bouncer_send_ack_cd">Checkbox: I understand that tapping the green bubble sends my text</string>
     <string name="bouncer_next">Next</string>

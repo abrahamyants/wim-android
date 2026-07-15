@@ -38,9 +38,11 @@ WiM groups voice processing into four layers (L1 – L4). The layer you pick det
 
 WiM uses Android's Accessibility Service API to detect the text field you are typing into and to paste cleaned text back into that field via the floating bubble.
 
-- The service is used only to find the active text field, inject the dictated text, and (if you enable Auto-Send) tap the Send button in the host app.
-- We do not log or transmit the content of other apps, your password fields, or your interactions outside the moment you dictate.
+- The service receives window-change and view-focus events so it can identify the foreground app and focused editable field. It does not subscribe to text-change, click, scroll, or key events.
+- When you invoke dictation, WiM may read up to 200 characters immediately before the cursor to preserve sentence continuity. Local Layer 1 keeps this context on your phone. If you choose a cloud layer, the short context is encrypted in transit and included in that reconstruction request to the processors listed below.
+- The service inserts or replaces only the dictated text. If you enable tap-to-send assist, it can locate the visible Send button and may move the bubble there, but it clicks Send only after your separate tap on the green bubble. The five-second timer cancels without sending.
 - WiM blocks dictation entirely when the focused field is a password input.
+- Accessibility data is not used for advertising, sale, or unrelated cross-app profiling.
 
 ## 3. Account, sync, and Firebase
 

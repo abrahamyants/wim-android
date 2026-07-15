@@ -125,7 +125,7 @@ fun PermissionsIntroScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDar
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ManifestRow("OVERLAY", "so the bubble can appear", PermissionStatus.overlay(context))
-                ManifestRow("ACCESSIBILITY", "so it can fix your text", PermissionStatus.accessibility(context))
+                ManifestRow("ACCESSIBILITY", "so it can place your words in the right field", PermissionStatus.accessibility(context))
                 ManifestRow("MICROPHONE", "so it can hear you", PermissionStatus.microphone(context))
                 ManifestRow("BATTERY", "so it survives the background", PermissionStatus.batteryOptimization(context))
                 if (samsung) {

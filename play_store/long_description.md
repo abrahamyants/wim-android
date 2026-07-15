@@ -28,7 +28,7 @@ L1 is the default and free. L2 – L4 use cloud providers (OpenAI, Anthropic) fo
 
 - **The microphone never times out on you mid-block.**
 - **The bubble follows you across apps.** You don't have to leave the app you're typing in.
-- **Auto-send taps Send for you.** When enabled, WiM clicks the host app's Send button via the accessibility framework after pasting — no extra tap.
+- **Tap-to-send assist preserves your place.** After pasting, WiM can find the host app's visible Send button and turn the bubble green for five seconds. A separate tap on that green bubble authorizes Send; doing nothing cancels without sending.
 - **A clarifier flags low-confidence words.** When the transcription is uncertain, the bubble offers tap-to-swap alternatives for individual words instead of failing silently.
 - **Three bubble themes.** Bronze, aluminum, gunmetal — swap whichever feels right.
 - **Twist mode.** Voice command turns the bubble into a volume knob for size and opacity.
@@ -56,9 +56,9 @@ WiM is an assistive dictation tool, not a medical device. It does not diagnose, 
 
 - **Microphone** — to record your voice when you tap the bubble.
 - **Display over other apps** — for the floating bubble.
-- **Accessibility Service** — to read which text field you're typing into and to paste cleaned text into that field. Used only for dictation paste and (optional) Auto-Send. Never used to monitor other apps' content.
+- **Accessibility Service** — to find the text field you chose, read up to 200 characters immediately before the cursor for sentence continuity, insert your dictated text, and offer optional tap-to-send assistance. Local Layer 1 keeps that context on the phone; a cloud layer includes it in the encrypted reconstruction request. Password fields are blocked, and WiM never sends without a separate user tap.
 - **Foreground service** — keeps the bubble alive while you dictate.
-- **Notifications** — Android 13+ requirement for foreground services.
+- **Notifications** — optional on Android 13+; keeps WiM's bubble status and recall shortcut visible in the notification drawer.
 
 ## Built by
 

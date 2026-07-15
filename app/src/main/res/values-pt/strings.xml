@@ -57,8 +57,8 @@
     <string name="settings_voice_shortcuts_hint">meu email=george@example.com\nmeu telefone=555-1234</string>
     <string name="settings_bubble_color">Cor da bolha</string>
     <string name="settings_cloud_backup">Backup das sessões na nuvem</string>
-    <string name="settings_auto_send">Envio automático (toque na bolha verde)</string>
-    <string name="settings_auto_send_apps">Mensagens, Gmail, WhatsApp, Telegram, Signal. Toque na bolha em 3,5s para enviar.</string>
+    <string name="settings_auto_send">Ajuda para enviar</string>
+    <string name="settings_auto_send_apps">Depois de colar, toque na bolha verde em até 5 s para enviar. Sem toque, o envio é cancelado.</string>
     <string name="settings_accent">Sotaque</string>
     <string name="settings_accent_subtitle">não corrigir automaticamente</string>
     <string name="settings_shake">Sacudir para abrir/ocultar</string>
@@ -207,7 +207,7 @@
     <string name="bouncer_recon_after">Você poderia me mandar o relatório? Preciso para a reunião de amanhã.</string>
     <string name="bouncer_recon_caption">Disfluências reconstruídas. Tom aplicado. O texto chega no app onde você está digitando.</string>
     <string name="bouncer_send_title">Envie direto da bolha</string>
-    <string name="bouncer_send_body">Quando seu texto chega, a bolha fica verde por 3 segundos. Toque para enviar. Espere ou toque fora para cancelar.\n\nO WiM nunca envia sem seu toque. O texto passa pelo app aberto — Mensagens, Gmail, WhatsApp etc. — usando sua sessão atual.</string>
+    <string name="bouncer_send_body">Quando seu texto chega, a bolha fica verde por 5 segundos. Toque para enviar. Espere ou toque fora para cancelar.\n\nO WiM nunca envia sem esse toque separado. O texto passa pelo app aberto — Mensagens, Gmail, WhatsApp etc. — usando sua sessão atual.</string>
     <string name="bouncer_send_ack">Entendi. Tocar na bolha verde envia meu texto.</string>
     <string name="bouncer_next">Próximo</string>
     <string name="bouncer_all_set">Tudo pronto.</string>
@@ -274,7 +274,7 @@
     <string name="layer_2_desc">Inteligente — a IA reescreve sua fala com clareza</string>
     <string name="layer_3_desc">Pessoal — aprende seu vocabulário e correções</string>
     <string name="layer_4_desc">Profundo — feito para fala com mais disfluência</string>
-    <string name="settings_facehugger_send">Envio Facehugger (a bolha salta para o botão Enviar)</string>
+    <string name="settings_facehugger_send">Mover a bolha para o botão Enviar</string>
     <string name="profile_l1_hindi">Hindi</string>
     <string name="profile_l1_arabic">Árabe</string>
     <string name="profile_l1_farsi">Persa</string>

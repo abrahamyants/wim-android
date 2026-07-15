@@ -20,9 +20,9 @@
 **Headline:** Tap-To-Swap When We're Not Sure.
 **Subheadline:** Low-confidence words light up — pick the alternative or keep the original. Patent-pending.
 
-## Screenshot 6: Auto-Send confirmation
+## Screenshot 6: Tap-to-send confirmation
 **Headline:** Bubble Hits Send For You.
-**Subheadline:** When enabled, WiM clicks the host app's Send button after pasting. One tap, message gone.
+**Subheadline:** After pasting, the bubble turns green. A separate tap authorizes Send; waiting cancels.
 
 ## Screenshot 7: Default Layer 1 — local + offline indicator
 **Headline:** Default Is Local. Default Is Yours.
