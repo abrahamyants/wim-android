@@ -143,7 +143,7 @@
     <string name="profile_your_data">SEUS DADOS</string>
     <string name="profile_data_synced">Tudo acima é sincronizado com sua conta quando logado.</string>
     <string name="profile_export_data">Exportar meus dados</string>
-    <string name="profile_delete_data">Apagar todos os dados na nuvem</string>
+    <string name="profile_delete_data">Excluir minha conta e dados na nuvem</string>
 
     <string name="sign_in_google">Entrar com Google</string>
     <string name="sign_out">Sair</string>
@@ -241,8 +241,8 @@
     <string name="toast_bubble_color">Cor da bolha: %1$s</string>
     <string name="toast_invite">Convidar</string>
 
-    <string name="dialog_delete_cloud_title">Apagar todos os dados da nuvem?</string>
-    <string name="dialog_delete_cloud_message">Isso apaga permanentemente seu perfil sincronizado dos nossos servidores. Não cancela o WiM Cloud; cancele a assinatura separadamente no Google Play. Seus dados locais ficam no aparelho até você desinstalar. Você será desconectado.</string>
+    <string name="dialog_delete_cloud_title">Excluir a conta e os dados na nuvem?</string>
+    <string name="dialog_delete_cloud_message">Isso exclui permanentemente sua conta do Firebase, perfil sincronizado, backups de sessões e vínculo de compra do WiM. Não cancela o WiM Cloud; cancele a assinatura separadamente no Google Play. Os dados locais permanecem até você limpar os dados do app ou desinstalá-lo.</string>
     <string name="dialog_delete">Apagar</string>
     <string name="dialog_cancel">Cancelar</string>
 

@@ -60,8 +60,9 @@ object UserDataClient {
     }
 
     /**
-     * Delete user's Firestore data. Hard delete, immediate.
-     * Removes wim_users/{uid} entirely — affects both WiM and Лаврентий desktop.
+     * Delete the Firebase account and all WiM cloud data. Hard delete, immediate.
+     * Removes nested sessions, purchase bindings, and wim_users/{uid} before
+     * deleting Firebase Authentication. This affects linked Lavrentiy data too.
      *
      * @return true if deletion succeeded
      */

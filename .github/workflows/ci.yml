@@ -65,6 +65,18 @@ jobs:
             exit 1
           fi
 
+      - name: Reject advertising identifier permissions
+        run: |
+          forbidden="$(unzip -p app/build/outputs/bundle/release/app-release.aab base/manifest/AndroidManifest.xml \
+            | strings \
+            | rg 'com\.google\.android\.gms\.permission\.AD_ID|android\.permission\.ACCESS_ADSERVICES_(AD_ID|ATTRIBUTION)' \
+            || true)"
+          if test -n "$forbidden"; then
+            echo 'Release bundle requests advertising identifiers even though WiM has no ads.'
+            printf '%s\n' "$forbidden"
+            exit 1
+          fi
+
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:

@@ -1287,8 +1287,8 @@
 
     <div class="two-col">
       <div>
-        <h5>Always stays local</h5>
-        <p><strong>The audio itself.</strong> Always. WiM never uploads raw audio. Even at Layer IV the upload is a brief WAV-to-Whisper call that returns text; the audio buffer is discarded after.</p>
+        <h5>Local by default</h5>
+        <p><strong>Layer I Local</strong> keeps dictation audio and text on your phone. L1 Cloud and Layers II–IV upload a temporary WAV through WiM's authenticated backend for transcription. WiM deletes the temporary phone recording after processing and does not store raw audio in Firestore.</p>
       </div>
       <div>
         <h5>On the phone</h5>
@@ -1303,15 +1303,17 @@
       </div>
       <div>
         <h5>Cloud — for reconstruction</h5>
-        <p>Layer II/III sends your cleaned text + tone + (L3 only) profile to OpenAI's GPT-4o. Layer IV sends the WAV to OpenAI's Whisper-1 and the transcript to Anthropic's Sonnet for reasoning. Both are stateless — neither stores your content.</p>
+        <p>L1 Cloud and Layers II–IV send audio to OpenAI for transcription. Layers II/III send the transcript and selected context to OpenAI for reconstruction; Layer IV sends them to Anthropic. Those providers process the request under their API privacy terms. WiM does not use dictation content for advertising or sell it.</p>
       </div>
     </div>
 
     <p>
       Toggle session backup off in <span class="key">Settings → Backup sessions</span>.
-      Delete everything — local and cloud — in <span class="key">Profile → Delete data</span>.
-      That's a hard delete: cloud records, profile, sessions, all gone immediately,
-      and you're signed out.
+      Delete your cloud account and data in <span class="key">Profile → Delete account and data</span>.
+      That permanently removes the Firebase account, cloud profile, synced sessions,
+      and purchase binding. Local data remains until you clear app storage or uninstall.
+      Deleting the account does not cancel a Google Play subscription; manage that
+      separately in Google Play.
     </p>
   </section>
 
