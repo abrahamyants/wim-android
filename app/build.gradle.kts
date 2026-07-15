@@ -15,7 +15,7 @@ android {
         applicationId = "com.wim.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -144,8 +144,8 @@ dependencies {
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
 
-    // One-time, non-consumable WiM Cloud Unlock. The backend verifies and
-    // acknowledges every completed purchase before the app grants access.
+    // Monthly WiM Cloud subscription. The backend verifies and acknowledges
+    // every completed purchase before the app grants time-bounded access.
     // Core artifact is Java API and stays compatible with this app's Kotlin
     // 2.0 toolchain; billing-ktx 9.1 is compiled with newer Kotlin metadata.
     implementation("com.android.billingclient:billing:9.1.0")

@@ -4,7 +4,7 @@
 
 This Privacy Policy describes how WiM ("we," "us," or "our") handles your information when you use the WiM mobile application ("the app"). Read it together with the Google Play store listing.
 
-WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in, require Google sign-in, and require the one-time WiM Cloud Unlock purchase.
+WiM is designed for people whose speech includes disfluencies (repetitions, prolongations, blocks, false starts, fillers) and for anyone who finds standard dictation tools rushed or inaccurate. The default behavior of the app is private and on-device. Cloud features are opt-in, require Google sign-in, and require an active WiM Cloud subscription.
 
 ## 1. What WiM does with your voice
 
@@ -53,13 +53,14 @@ If you sign in with Google, WiM creates an account in Google Firebase Authentica
 
 ## 4. Purchase information
 
-WiM Cloud Unlock is a one-time, non-consumable purchase handled by Google Play Billing.
+WiM Cloud is an auto-renewing monthly subscription handled by Google Play Billing. The current US price is $5.99/month; Google Play displays the price that applies in your country before purchase. Each subscription billing period includes 300 cloud dictations, including up to 20 Layer IV dictations.
 
 - Google Play processes your payment; WiM never receives or stores your card or bank details.
 - The app sends the Play product ID, purchase token, and a one-way hash of your Firebase user ID to our authenticated backend.
-- Our backend asks the Google Play Developer API to verify and acknowledge the purchase, then stores the product ID, Google Play order ID, verification time, and entitlement under your Firebase user ID.
-- Purchase tokens are stored only as one-way hashes. Purchase records are used for access control, restoration, fraud prevention, and customer support.
-- Deleting your cloud data removes the entitlement record from our database. Your Google Play order remains in your Google account and in records Google must retain.
+- Our backend asks the Google Play Developer API to verify and acknowledge the subscription, then stores the product ID, base plan, Google Play order ID, subscription state, expiration time, verification time, and entitlement under your Firebase user ID.
+- Purchase tokens are stored only as one-way hashes. Purchase records are used for access control, restoration, quota enforcement, fraud prevention, and customer support.
+- You can cancel or manage the subscription in Google Play. Canceling stops future renewal; cloud access continues through the paid period unless Google Play reports a payment hold or other ineligible state.
+- Deleting your cloud data removes the entitlement record from our database, but it does **not** cancel the Google Play subscription. Cancel it separately in Google Play. Your Google Play order remains in your Google account and in records Google must retain.
 
 ## 5. Crashes and product telemetry
 
@@ -76,7 +77,7 @@ These can be limited at the OS level via Google Play Services privacy controls.
 | Provider | Used for | Triggered when |
 |---|---|---|
 | Google Play Services | App distribution and sign-in | Always |
-| Google Play Billing / Developer API | Purchase processing, verification, and restoration | When you buy or restore Cloud Unlock |
+| Google Play Billing / Developer API | Subscription processing, verification, renewal status, and restoration | When you subscribe, restore, or use WiM Cloud |
 | Google Firebase Authentication | Account creation | Only after you sign in with Google |
 | Google Firestore | Profile + history sync | Only after sign-in, only if sync enabled |
 | Google Firebase Crashlytics / Performance / Analytics | Reliability + telemetry | Always (can be limited via OS controls) |
@@ -98,6 +99,7 @@ You can:
 - Delete the data we hold about you (Settings → User Profile → Delete account and cloud data).
 - Limit Crashlytics, Performance, and Analytics via Google Play Services system settings.
 - Stop all cloud transmission by selecting Layer 1 and disabling the L1 Cloud toggle.
+- Cancel or manage WiM Cloud through Google Play subscriptions.
 
 For users in jurisdictions with GDPR-style rights (EEA, UK, California, etc.), the export and delete tools above satisfy access and deletion requests.
 

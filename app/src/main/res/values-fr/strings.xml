@@ -242,7 +242,7 @@
     <string name="toast_invite">Inviter</string>
 
     <string name="dialog_delete_cloud_title">Supprimer toutes les données cloud ?</string>
-    <string name="dialog_delete_cloud_message">Ceci supprime définitivement votre profil synchronisé de nos serveurs. Cela ne peut pas être annulé. Vos données locales restent sur cet appareil jusqu\'à la désinstallation. Vous serez déconnecté.</string>
+    <string name="dialog_delete_cloud_message">Ceci supprime définitivement votre profil synchronisé de nos serveurs. Cela n’annule pas WiM Cloud ; annulez l’abonnement séparément dans Google Play. Vos données locales restent sur cet appareil jusqu\'à la désinstallation. Vous serez déconnecté.</string>
     <string name="dialog_delete">Supprimer</string>
     <string name="dialog_cancel">Annuler</string>
 
@@ -298,10 +298,11 @@
     <string name="l1_contribute_title">AMÉLIOREZ VOTRE PACK L1</string>
     <string name="l1_contribute_subtitle">Lorsque vous corrigez une reconstruction, partagez-la anonymement pour améliorer le pack pour tous</string>
     <string name="l1_detected_prompt">Anglais de type %s détecté. Le définir comme première langue ?</string>
-    <string name="cloud_unlock_title">Déverrouillage WiM Cloud</string>
+    <string name="cloud_unlock_title">WiM Cloud</string>
     <string name="cloud_unlock_status">Vérification de l’accès…</string>
     <string name="cloud_unlock_price">Prix affiché par Google Play</string>
-    <string name="cloud_unlock_action">DÉVERROUILLER</string>
+    <string name="cloud_unlock_monthly_price">%1$s par mois</string>
+    <string name="cloud_unlock_action">S’ABONNER</string>
     <string name="cloud_unlock_restore">RESTAURER</string>
-    <string name="cloud_unlock_dialog">La voix dans le cloud, les couches II–IV et la dictée non anglophone nécessitent le déverrouillage unique du cloud.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud inclut 300 dictées dans le cloud et jusqu’à 20 dictées de couche IV par mois. L’abonnement se renouvelle chaque mois jusqu’à son annulation dans Google Play.</string>
 </resources>

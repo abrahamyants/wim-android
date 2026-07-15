@@ -13,7 +13,7 @@ For the millions of individuals globally with speech disfluencies, modern voice 
 
 Beyond accessibility, WiM is a step forward for digital privacy. The default Layer 1 transcription runs fully on-device — audio and transcripts never leave the phone. Users who want cloud-based reconstruction (Layer 2 and above) opt in explicitly via the in-app layer selector; selecting cloud layers sends audio to OpenAI for transcription and to OpenAI or Anthropic for reconstruction. This makes WiM useful for people with speech disfluencies, professionals handling sensitive information, privacy-conscious users, and users in areas with poor internet connectivity. The app features a floating bubble that lets users dictate directly into their favorite messaging, email, or notes applications.
 
-WiM launches in English with additional input languages on the roadmap. The app is available on the Google Play Store. It is free to download for offline Layer 1 transcription, with a one-time $3.99 unlock for the cloud reconstruction layers — no subscriptions.
+WiM launches in English with additional input languages on the roadmap. The app is available on the Google Play Store. It is free to download for offline Layer 1 transcription; WiM Cloud costs $5.99/month and includes 300 cloud dictations, including up to 20 Layer IV dictations.
 
 **About WiM**
 WiM is an independent software project dedicated to creating accessible, privacy-first communication tools. Focused on empowering users through on-device processing and thoughtful design, WiM aims to make technology adapt to the human voice, not the other way around. 

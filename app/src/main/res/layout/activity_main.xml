@@ -1369,7 +1369,7 @@
                     android:fontFamily="@font/plus_jakarta_sans" />
             </LinearLayout>
 
-            <!-- Google Play non-consumable. Price is populated from ProductDetails;
+            <!-- Google Play subscription. Price is populated from ProductDetails;
                  never hard-code currency or amount in the installed app. -->
             <LinearLayout
                 android:id="@+id/cloudUnlockCard"

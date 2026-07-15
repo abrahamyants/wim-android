@@ -35,4 +35,4 @@ Use these answers for the release represented by this repository. Re-check them 
 - Local L1 sends no audio off device.
 - Cloud audio is processed and not stored by WiM; mark voice recordings as processed ephemerally.
 - Synced vocabulary, corrections, Script Prep/context, transcripts, and session history belong under other user-generated content.
-- Google Play handles payment credentials. WiM stores only entitlement metadata (product/order/verification) and a one-way purchase-token hash.
+- Google Play handles payment credentials. WiM stores only subscription entitlement metadata (product, base plan, order, state, expiry, and verification), quota counters, and a one-way purchase-token hash.
