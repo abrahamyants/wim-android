@@ -6,7 +6,7 @@ WiM ("What I Meant") — a voice-to-intent Android app. Captures voice → ASR �
 ## Architecture
 
 - **Language / SDK**: Kotlin 2.0.21, AGP 8.7.0, `compileSdk = 35`, `minSdk = 26`, `targetSdk = 35`. View-based UI with `viewBinding` enabled (no Compose yet — the `brand.local.md` migration target is Compose under `app/src/main/java/com/wim/app/onboarding/`).
-- **Package**: Play application ID `com.wimlabs.wim`; Kotlin namespace `com.wim.app` (`versionCode = 8`, `versionName = 1.0.0`).
+- **Package**: Play application ID `com.wimlabs.wim`; Kotlin namespace `com.wim.app` (`versionCode = 9`, `versionName = 1.0.0`).
 - **Entry points** (see `app/src/main/AndroidManifest.xml`):
   - `MainActivity` — launcher, dashboard (frozen-top + scrolling-middle + frozen-bottom layout). `singleTask`.
   - `BouncerActivity` — first-run permission gate (the active onboarding entry per Session 9).

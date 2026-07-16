@@ -294,41 +294,23 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
     }
 
     private fun simulateRecordingPulse(bubble: BubbleService) {
-        // Preserve the user's bezel theme (bronze/aluminum/gunmetal) — only
-        // the inner knob and label change in real recording, so the demo
-        // must match. Setting bubble_bg_recording on the bezel was leaking
-        // a generic silver state regardless of the user's chosen color.
-        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_active)
-        bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "REC"
-            setTextColor(0xFFFFD580.toInt())
-        }
+        BubbleLiveStateVisuals.apply(
+            bubble.bubbleView,
+            BubbleLiveStateVisuals.State.RECORDING,
+        )
     }
 
     private fun simulateProcessingPulse(bubble: BubbleService) {
-        // Theme bezel preserved; inner knob switches to processing drawable.
-        // Mirrors what setBubbleProcessing() does for real cloud round-trips.
-        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
-        bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "PROC"
-            setTextColor(0xFFFFD580.toInt())
-        }
+        BubbleLiveStateVisuals.apply(
+            bubble.bubbleView,
+            BubbleLiveStateVisuals.State.PROCESSING,
+        )
     }
 
     private fun simulateSendReadyPulse(bubble: BubbleService) {
-        // Send-ready: green knob, gold label. Visually distinct so the user
-        // recognizes "the bubble has just paid me a question — tap to send."
-        // Green via tinted active drawable; falls back to active if tint
-        // isn't honored on older Android versions.
-        bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
-            setBackgroundResource(R.drawable.bubble_inner_active)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF40A065.toInt())
-        }
-        bubble.bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "SEND"
-            setTextColor(0xFFFFD580.toInt())
-        }
+        BubbleLiveStateVisuals.apply(
+            bubble.bubbleView,
+            BubbleLiveStateVisuals.State.SEND_READY,
+        )
     }
 }

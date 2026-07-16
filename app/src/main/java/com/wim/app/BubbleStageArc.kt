@@ -1,8 +1,6 @@
 package com.wim.app
 
 import android.view.View
-import android.widget.FrameLayout
-import android.widget.TextView
 
 /**
  * Bezel's 4-quadrant stage arc + the PROC processing-state label paint.
@@ -45,18 +43,11 @@ class BubbleStageArc(
         arc.setActiveStage(stage)
     }
 
-    /** Bezel stays in theme color. Knob and label both stay in copper_gold
-     *  — the bubble's brand color across recording AND processing — so the
-     *  visual reads as one continuous "bubble is busy" affordance. The
-     *  REC → PROC label change carries the state distinction; color
-     *  doesn't need to do double duty. */
+    /** Apply the shared amber processing state used by production and demo. */
     fun setProcessing() {
-        val view = getBubbleView() ?: return
-        view.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
-        view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "PROC"
-            setTextColor(0xFFFFD580.toInt())  // cream-gold — bright enough to read on red/green knob
-        }
+        BubbleLiveStateVisuals.apply(
+            getBubbleView(),
+            BubbleLiveStateVisuals.State.PROCESSING,
+        )
     }
 }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inner well while tap-to-send is armed — glowing GREEN confirmation.
+     Text still reads SEND, so color reinforces the state without carrying
+     meaning by itself. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/green_deep" />
+            <stroke android:width="1dp" android:color="@color/border_subtle" />
+            <size android:width="44dp" android:height="44dp" />
+        </shape>
+    </item>
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="22dp"
+                android:startColor="@color/green_bright"
+                android:centerColor="@color/green_active"
+                android:endColor="@color/green_deep" />
+            <size android:width="40dp" android:height="40dp" />
+        </shape>
+    </item>
+</layer-list>

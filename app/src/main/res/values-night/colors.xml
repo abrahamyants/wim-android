@@ -19,7 +19,9 @@
     <color name="orange_amber">#FFFFA500</color>
 
     <color name="yellow_gold">#FFCA8A04</color>
+    <color name="green_bright">#FF5AD15F</color>
     <color name="green_active">#FF16a34a</color>
+    <color name="green_deep">#FF0E7A36</color>
 
     <!-- Text hierarchy — warm -->
     <color name="text_primary">#FFD4D0C8</color>

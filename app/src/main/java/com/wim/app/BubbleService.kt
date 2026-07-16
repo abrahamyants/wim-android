@@ -1535,16 +1535,13 @@ class BubbleService : Service() {
         pulseRings?.stop()
         hideLiveTranscript()
         view.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
-        view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "SEND"
-            setTextColor(0xFF5AD15F.toInt())
-        }
+        BubbleLiveStateVisuals.apply(view, BubbleLiveStateVisuals.State.SEND_READY)
         // Live countdown under the SEND label — ticks every 250ms, shows "Ns"
         // remaining before auto-cancel.
         view.findViewById<TextView>(R.id.bubbleTime)?.apply {
             visibility = View.VISIBLE
             text = "${SEND_READY_TIMEOUT_MS / 1000}s"
-            setTextColor(0xFF5AD15F.toInt())
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.green_bright))
         }
         sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
         timerHandler.removeCallbacks(sendReadyTickRunnable)
@@ -1749,19 +1746,12 @@ class BubbleService : Service() {
         showLiveTranscript()
         Toast.makeText(this, getString(R.string.toast_listening), Toast.LENGTH_SHORT).show()
 
-        // Visual: recording state — the inner knob warms to a glowing RED ember
-        // (bubble_inner_active) to match the "REC" label. The "alive" motion
+        // Visual: recording state — the inner knob warms to a glowing RED ember.
+        // The "alive" motion
         // (lean-in + a slow breathe) is driven by BubbleAffect off the Listening
-        // FSM state. "REC" label in brand red restored per George 2026-06-20, so
-        // the three live states read RED "REC" → AMBER "PROC" → GREEN "SEND".
-        // (REC + PROC knobs now recolor to match; SEND knob is label-only
-        // pending a green token family.)
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_active)
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "REC"
-            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.red_hot))
-        }
+        // FSM state. The shared renderer locks the three live states to:
+        // RED "REC" → AMBER "PROC" → GREEN "SEND".
+        BubbleLiveStateVisuals.apply(bubbleView, BubbleLiveStateVisuals.State.RECORDING)
         bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             // The idle prediction chip ("→ CAS") otherwise persists into recording —
             // setBubbleIdle writes it and nothing cleared it here.
@@ -2441,17 +2431,7 @@ class BubbleService : Service() {
 
     private fun setBubbleProcessing() {
         stageArc?.setProcessing()
-        // AMBER "PROC" knob + label per George 2026-06-20 — the middle beat
-        // between RED "REC" and GREEN "SEND". The inner knob now matches the
-        // label (amber ember, bubble_inner_processing); REC is the red-hot
-        // ember (bubble_inner_active). SEND knob stays label-only for now —
-        // a green token family still needs adding before its drawable.
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
-            ?.setBackgroundResource(R.drawable.bubble_inner_processing)
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
-            text = "PROC"
-            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.orange_amber))
-        }
+        BubbleLiveStateVisuals.apply(bubbleView, BubbleLiveStateVisuals.State.PROCESSING)
     }
 
     private fun checkRedo(text: String) {
