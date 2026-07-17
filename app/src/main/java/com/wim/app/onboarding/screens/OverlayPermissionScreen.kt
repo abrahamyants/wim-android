@@ -322,7 +322,9 @@ private fun StatusBadge(granted: Boolean) {
         )
         Spacer(Modifier.size(10.dp))
         Text(
-            text = if (granted) "READY" else "TAP TO ENABLE",
+            // This pill reports status; OPEN SETTINGS is the only action.
+            // Action wording here previously made the non-clickable pill look broken.
+            text = if (granted) "READY" else "PERMISSION NEEDED",
             fontFamily = PlusJakartaFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
