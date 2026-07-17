@@ -5,7 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.graphics.Path
 import android.graphics.PixelFormat
+import android.graphics.Region
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -14,6 +16,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
@@ -93,6 +96,7 @@ class BubbleService : Service() {
     private var windowManager: WindowManager? = null
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
+    private var bubbleTouchInsetsListener: ViewTreeObserver.OnComputeInternalInsetsListener? = null
     private var preJumpX = 0
     private var preJumpY = 0
     private var facehuggerActive = false
@@ -827,6 +831,11 @@ class BubbleService : Service() {
                 return@setOnTouchListener twistController?.handleTouch(event, v) ?: false
             }
 
+            // Hit-test against the same circle installed as the WindowManager
+            // touchable region below. The overlay surface remains 180dp for
+            // animation headroom, but transparent space outside this circle
+            // passes through to the app underneath instead of eating taps.
+            //
             // Hit-test the touch against the ACTUAL visible bronze surface
             // of the bezel, not the FrameLayout bounds. bubble_bg_idle.xml
             // layer 1 is the outer ring at 72dp container size, but layer 2
@@ -839,15 +848,13 @@ class BubbleService : Service() {
             // 38dp solid knob face — you have to mean the tap. Scales with the
             // bubble-size pref. Dial: lower = tighter (harder to hit by accident).
             if (event.action == MotionEvent.ACTION_DOWN) {
-                val cx = v.width / 2f
-                val cy = v.height / 2f
-                val tx = event.x - cx
-                val ty = event.y - cy
-                val density = resources.displayMetrics.density
-                val bezelBaseDp = 36f
-                val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
-                val r = (bezelBaseDp * density * scale) / 2f
-                if (tx * tx + ty * ty > r * r) return@setOnTouchListener false
+                val target = BubbleTouchTarget.circle(
+                    viewWidthPx = v.width,
+                    viewHeightPx = v.height,
+                    density = resources.displayMetrics.density,
+                    sizePercent = WimApp.bubbleSize(),
+                )
+                if (!target.contains(event.x, event.y)) return@setOnTouchListener false
             }
 
             when (event.action) {
@@ -1286,6 +1293,8 @@ class BubbleService : Service() {
             return
         }
 
+        bubbleView?.let { installBubbleTouchableRegion(it) }
+
         // Prime the pre-roll audio buffer so first words aren't lost on tap
         if ((WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn) && WimApp.layer() >= 2) {
             if (audioRecorder == null) audioRecorder = AudioRecorder(this)
@@ -1305,6 +1314,7 @@ class BubbleService : Service() {
         dismissSendDisclaimer()
         hideWordHighlight()
         bubbleView?.let {
+            removeBubbleTouchableRegion(it)
             try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             bubbleView = null
         }
@@ -2347,6 +2357,49 @@ class BubbleService : Service() {
 
     fun updateBubbleAppearance() {
         bubbleAppearance?.updateAppearance()
+        // OnComputeInternalInsets runs during traversal. Requesting layout
+        // immediately applies the new size preference to the OS-level
+        // touchable circle as the visible bubble grows or shrinks.
+        bubbleView?.requestLayout()
+    }
+
+    private fun installBubbleTouchableRegion(view: View) {
+        removeBubbleTouchableRegion(view)
+        val circlePath = Path()
+        val clipRegion = Region()
+        val listener = ViewTreeObserver.OnComputeInternalInsetsListener { insets ->
+            if (view.width <= 0 || view.height <= 0) return@OnComputeInternalInsetsListener
+            val target = BubbleTouchTarget.circle(
+                viewWidthPx = view.width,
+                viewHeightPx = view.height,
+                density = resources.displayMetrics.density,
+                sizePercent = WimApp.bubbleSize(),
+            )
+            circlePath.reset()
+            circlePath.addCircle(
+                target.centerX,
+                target.centerY,
+                target.radius,
+                Path.Direction.CW,
+            )
+            clipRegion.set(0, 0, view.width, view.height)
+            insets.setTouchableInsets(
+                ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_REGION
+            )
+            insets.touchableRegion.setPath(circlePath, clipRegion)
+        }
+        view.viewTreeObserver.addOnComputeInternalInsetsListener(listener)
+        bubbleTouchInsetsListener = listener
+        view.requestLayout()
+    }
+
+    private fun removeBubbleTouchableRegion(view: View) {
+        val listener = bubbleTouchInsetsListener ?: return
+        val observer = view.viewTreeObserver
+        if (observer.isAlive) {
+            observer.removeOnComputeInternalInsetsListener(listener)
+        }
+        bubbleTouchInsetsListener = null
     }
 
     // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
