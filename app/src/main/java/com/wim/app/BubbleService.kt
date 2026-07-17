@@ -5,9 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.graphics.Path
 import android.graphics.PixelFormat
-import android.graphics.Region
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -16,7 +14,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
@@ -96,7 +93,8 @@ class BubbleService : Service() {
     private var windowManager: WindowManager? = null
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
-    private var bubbleTouchInsetsListener: ViewTreeObserver.OnComputeInternalInsetsListener? = null
+    private var bubbleTouchView: View? = null
+    private var bubbleTouchParams: WindowManager.LayoutParams? = null
     private var preJumpX = 0
     private var preJumpY = 0
     private var facehuggerActive = false
@@ -554,7 +552,10 @@ class BubbleService : Service() {
             getSlotRects = { dockSlotRects },
             getVibrator = { vibrator },
             onApplyTheme = { applyBubbleTheme() },
-            onMenuRepositioned = { bubbleMenu?.updatePositionFromBubble() },
+            onMenuRepositioned = {
+                syncBubbleTouchWindow()
+                bubbleMenu?.updatePositionFromBubble()
+            },
             onHideBubble = { hideBubble() },
             onNotificationText = { msg -> updateNotification(msg) },
         )
@@ -752,7 +753,7 @@ class BubbleService : Service() {
                     val view = bubbleView ?: return@let
                     p.x = spawnCx - view.width / 2
                     p.y = spawnCy - view.height / 2
-                    try { windowManager?.updateViewLayout(view, p) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+                    updateBubbleWindowLayout(view, p)
                 }
             }
             return
@@ -775,6 +776,10 @@ class BubbleService : Service() {
         timerHandler.postDelayed({ alertOnMissingPermissions() }, 600)
         val inflater = LayoutInflater.from(this)
         bubbleView = inflater.inflate(R.layout.bubble, null)
+        bubbleTouchView = View(this).apply {
+            isSoundEffectsEnabled = false
+            isHapticFeedbackEnabled = false
+        }
         // Kill touch sounds on every view in the bubble hierarchy
         fun disableSounds(v: View) {
             v.isSoundEffectsEnabled = false
@@ -796,11 +801,15 @@ class BubbleService : Service() {
             // the actual screen edges.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+            // Android 12+ passes touches through a non-touchable application
+            // overlay only when its obscuring alpha is at or below 0.8.
+            alpha = 0.8f
             // Default spawn: horizontally centered, ~40% from the top.
             // Window is 180dp = ~540px on density 3; computing it here
             // off the live display metrics so it works on any device.
@@ -825,36 +834,10 @@ class BubbleService : Service() {
         isWorkMode = WimApp.prefs.getBoolean("work_mode", false)
         updateBezelLabels()
 
-        bubbleView?.setOnTouchListener { v, event ->
+        bubbleTouchView?.setOnTouchListener { v, event ->
             // TWIST mode — route all touch events to twist handler, bypass normal gestures
             if (twistController?.isActive() == true) {
                 return@setOnTouchListener twistController?.handleTouch(event, v) ?: false
-            }
-
-            // Hit-test against the same circle installed as the WindowManager
-            // touchable region below. The overlay surface remains 180dp for
-            // animation headroom, but transparent space outside this circle
-            // passes through to the app underneath instead of eating taps.
-            //
-            // Hit-test the touch against the ACTUAL visible bronze surface
-            // of the bezel, not the FrameLayout bounds. bubble_bg_idle.xml
-            // layer 1 is the outer ring at 72dp container size, but layer 2
-            // (the inner bronze face) is inset 5dp on each side and sized
-            // 50dp — that's what the operator perceives as the "tappable"
-            // metal surface. Operator 2026-06-06 (second pass): even the
-            // Tuned tight to stop accidental toggles at the SMALLEST bubble
-            // size (users tuck it in a corner to keep it out of the way, so a
-            // loose target there is frustrating). 36dp sits just inside the
-            // 38dp solid knob face — you have to mean the tap. Scales with the
-            // bubble-size pref. Dial: lower = tighter (harder to hit by accident).
-            if (event.action == MotionEvent.ACTION_DOWN) {
-                val target = BubbleTouchTarget.circle(
-                    viewWidthPx = v.width,
-                    viewHeightPx = v.height,
-                    density = resources.displayMetrics.density,
-                    sizePercent = WimApp.bubbleSize(),
-                )
-                if (!target.contains(event.x, event.y)) return@setOnTouchListener false
             }
 
             when (event.action) {
@@ -985,7 +968,7 @@ class BubbleService : Service() {
                             screenHClamp - windowClampPx + insetClampPx
                         )
 
-                        windowManager?.updateViewLayout(bubbleView, params)
+                        bubbleView?.let { updateBubbleWindowLayout(it, params) }
                         bubbleMenu?.updatePositionFromBubble()
                         liveTranscript?.repositionToBubble()
 
@@ -1293,7 +1276,43 @@ class BubbleService : Service() {
             return
         }
 
-        bubbleView?.let { installBubbleTouchableRegion(it) }
+        val touchView = bubbleTouchView ?: return
+        val target = BubbleTouchTarget.bounds(
+            visualX = params.x,
+            visualY = params.y,
+            visualWidthPx = newWindowPx,
+            visualHeightPx = newWindowPx,
+            density = density,
+            sizePercent = WimApp.bubbleSize(),
+        )
+        val touchParams = WindowManager.LayoutParams(
+            target.width,
+            target.height,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = target.x
+            y = target.y
+        }
+        bubbleTouchParams = touchParams
+        try {
+            windowManager?.addView(touchView, touchParams)
+        } catch (e: Exception) {
+            Log.e(TAG, "add touch window failed: ${e.message}")
+            bubbleView?.let {
+                try { windowManager?.removeView(it) } catch (_: Exception) {}
+            }
+            bubbleView = null
+            bubbleTouchView = null
+            bubbleTouchParams = null
+            Toast.makeText(this, "Bubble touch layer could not start", Toast.LENGTH_LONG).show()
+            return
+        }
 
         // Prime the pre-roll audio buffer so first words aren't lost on tap
         if ((WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn) && WimApp.layer() >= 2) {
@@ -1313,8 +1332,12 @@ class BubbleService : Service() {
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         dismissSendDisclaimer()
         hideWordHighlight()
+        bubbleTouchView?.let {
+            try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm touch remove failed: ${e.javaClass.simpleName}") }
+            bubbleTouchView = null
+            bubbleTouchParams = null
+        }
         bubbleView?.let {
-            removeBubbleTouchableRegion(it)
             try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             bubbleView = null
         }
@@ -1629,7 +1652,7 @@ class BubbleService : Service() {
         val params = bubbleParams ?: return
         params.x = cx - view.width / 2
         params.y = cy - view.height / 2
-        try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+        updateBubbleWindowLayout(view, params)
         bubbleMenu?.updatePositionFromBubble()
         liveTranscript?.repositionToBubble()
     }
@@ -1646,7 +1669,7 @@ class BubbleService : Service() {
                 val t = anim.animatedFraction
                 params.x = (fromCx + (toCx - fromCx) * t).toInt() - view.width / 2
                 params.y = (fromCy + (toCy - fromCy) * t).toInt() - view.height / 2
-                try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+                updateBubbleWindowLayout(view, params)
                 bubbleMenu?.updatePositionFromBubble()
                 liveTranscript?.repositionToBubble()
             }
@@ -2357,50 +2380,50 @@ class BubbleService : Service() {
 
     fun updateBubbleAppearance() {
         bubbleAppearance?.updateAppearance()
-        // OnComputeInternalInsets runs during traversal. Requesting layout
-        // immediately applies the new size preference to the OS-level
-        // touchable circle as the visible bubble grows or shrinks.
-        bubbleView?.requestLayout()
+        syncBubbleTouchWindow()
     }
 
-    private fun installBubbleTouchableRegion(view: View) {
-        removeBubbleTouchableRegion(view)
-        val circlePath = Path()
-        val clipRegion = Region()
-        val listener = ViewTreeObserver.OnComputeInternalInsetsListener { insets ->
-            if (view.width <= 0 || view.height <= 0) return@OnComputeInternalInsetsListener
-            val target = BubbleTouchTarget.circle(
-                viewWidthPx = view.width,
-                viewHeightPx = view.height,
-                density = resources.displayMetrics.density,
-                sizePercent = WimApp.bubbleSize(),
-            )
-            circlePath.reset()
-            circlePath.addCircle(
-                target.centerX,
-                target.centerY,
-                target.radius,
-                Path.Direction.CW,
-            )
-            clipRegion.set(0, 0, view.width, view.height)
-            insets.setTouchableInsets(
-                ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_REGION
-            )
-            insets.touchableRegion.setPath(circlePath, clipRegion)
+    /**
+     * Keep the small, transparent touch window centered over the large visual
+     * window. Android routes touches by window bounds, so this public-API split
+     * is what lets nearby taps reach the app underneath while the 180dp visual
+     * surface still has room for pulse and drag animations.
+     */
+    private fun syncBubbleTouchWindow() {
+        val visualView = bubbleView ?: return
+        val visualParams = bubbleParams ?: return
+        val touchView = bubbleTouchView ?: return
+        val touchParams = bubbleTouchParams ?: return
+        val visualWidth = visualView.width.takeIf { it > 0 } ?: visualParams.width
+        val visualHeight = visualView.height.takeIf { it > 0 } ?: visualParams.height
+        val target = BubbleTouchTarget.bounds(
+            visualX = visualParams.x,
+            visualY = visualParams.y,
+            visualWidthPx = visualWidth,
+            visualHeightPx = visualHeight,
+            density = resources.displayMetrics.density,
+            sizePercent = WimApp.bubbleSize(),
+        )
+        touchParams.width = target.width
+        touchParams.height = target.height
+        touchParams.x = target.x
+        touchParams.y = target.y
+        if (touchView.isAttachedToWindow) {
+            try {
+                windowManager?.updateViewLayout(touchView, touchParams)
+            } catch (e: Exception) {
+                Log.v(TAG, "wm touch update failed: ${e.javaClass.simpleName}")
+            }
         }
-        view.viewTreeObserver.addOnComputeInternalInsetsListener(listener)
-        bubbleTouchInsetsListener = listener
-        view.requestLayout()
     }
 
-    private fun removeBubbleTouchableRegion(view: View) {
-        if (bubbleTouchInsetsListener == null) return
-        // The compile SDK exposes addOnComputeInternalInsetsListener() but not
-        // its framework removal counterpart. The listener belongs to this
-        // bubble root's ViewTreeObserver, which dies when WindowManager removes
-        // the root below, so clearing our reference is the correct lifecycle
-        // cleanup and does not leave a live service/window reference behind.
-        bubbleTouchInsetsListener = null
+    private fun updateBubbleWindowLayout(view: View, params: WindowManager.LayoutParams) {
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (e: Exception) {
+            Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}")
+        }
+        syncBubbleTouchWindow()
     }
 
     // Trigger thresholds for drag-to-top (open menu) and drag-to-bottom
@@ -2435,7 +2458,7 @@ class BubbleService : Service() {
                 val t = a.animatedValue as Float
                 params.x = (startX + (targetX - startX) * t).toInt()
                 params.y = (startY + (targetY - startY) * t).toInt()
-                try { windowManager?.updateViewLayout(view, params) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+                updateBubbleWindowLayout(view, params)
                 bubbleMenu?.updatePositionFromBubble()
             }
         }
