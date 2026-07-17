@@ -2,6 +2,8 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
+**[Download the latest WiM APK](https://github.com/gugosf114/wim-android/releases/latest/download/wim.apk)**
+
 WiM captures your voice, transcribes it locally or through the authenticated WiM cloud, and optionally reconstructs it to produce clean, polished text — injected directly into the text field you selected.
 
 ## How It Works
