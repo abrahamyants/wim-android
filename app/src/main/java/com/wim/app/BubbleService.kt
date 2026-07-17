@@ -2394,11 +2394,12 @@ class BubbleService : Service() {
     }
 
     private fun removeBubbleTouchableRegion(view: View) {
-        val listener = bubbleTouchInsetsListener ?: return
-        val observer = view.viewTreeObserver
-        if (observer.isAlive) {
-            observer.removeOnComputeInternalInsetsListener(listener)
-        }
+        if (bubbleTouchInsetsListener == null) return
+        // The compile SDK exposes addOnComputeInternalInsetsListener() but not
+        // its framework removal counterpart. The listener belongs to this
+        // bubble root's ViewTreeObserver, which dies when WindowManager removes
+        // the root below, so clearing our reference is the correct lifecycle
+        // cleanup and does not leave a live service/window reference behind.
         bubbleTouchInsetsListener = null
     }
 
