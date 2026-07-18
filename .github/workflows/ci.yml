@@ -53,8 +53,14 @@ jobs:
             exit 1
           }
 
-      - name: Build signed release bundle
-        run: gradle bundleRelease -x uploadCrashlyticsSymbolFileRelease --no-build-cache
+      - name: Build signed release APK and bundle
+        run: gradle assembleRelease bundleRelease -x uploadCrashlyticsSymbolFileRelease --no-build-cache
+
+      - name: Verify installable APK signature
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -n "$apksigner"
+          "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
 
       - name: Reject bundled provider keys
         run: |
@@ -84,9 +90,14 @@ jobs:
           path: app/build/outputs/bundle/release/app-release.aab
           retention-days: 14
 
-      - name: Upload APK
+      # Publish the stable release-signed APK for real-phone testing. Never
+      # distribute app-debug.apk: GitHub's ephemeral debug keystore changes
+      # its signer every run, which forces an uninstall and resets Android's
+      # AccessibilityService approval.
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push'
         with:
-          name: wim-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: wim-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
