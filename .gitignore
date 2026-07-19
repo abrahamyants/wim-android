@@ -32,5 +32,9 @@ app/src/main/assets/anthropic_key.txt
 # Release signing keystore
 wim-release.jks
 
+# Generated CI/release downloads and Firebase CLI logs
+/artifacts/
+/firebase-debug.log
+
 # R8 dedup workaround — sherpa wrappers live in the AAR, hand-copies were duplicates
 .r8-displaced-sherpa-wrappers/

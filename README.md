@@ -3673,3 +3673,65 @@ Verified a 6-audit roll-up against the live code (not the audit's word) and fixe
 ### Failure Log — 2026-06-26
 - **Nothing was built.** All 23 fixes + the concurrent session's 3 commits are code-review quality only — the Termux/PRoot box can't run `assembleDebug` (aapt2 is x86_64-only on this ARM phone; ~3 GB free RAM). **Run `gradlew.bat assembleDebug` + `testDebugUnitTest` on Windows before any device use;** the new `RiskFlagsTest` self-correction/reformatting cases are the real check on the H2 logic.
 - **Shared-checkout push hazard.** Two Claude sessions edited this one working tree at once; the other session's pushes carried this session's local commits to origin (M3 reached origin that way *before* this session pushed). "Don't push" cannot be honored in a shared checkout — run the sessions on **separate branches** if commits must be gated.
+
+### Session Log — 2026-07-18 (full multi-day session, July 14–18)
+
+This session moved WiM from a strong Android prototype to a signed Play-testing
+candidate with a real cloud path and documented store obligations.
+
+- Added the authenticated backend audio-transcription path used by signed-in
+  L2/L3/L4, non-English dictation, silent-block completion, and cloud fallback.
+- Added the heavy-speech corpus, Script Prep/context, the learning summary, and
+  personal prosodic baseline/calibration support.
+- Replaced the promised one-time unlock with the configured monthly Play
+  subscription flow, backend purchase verification, Pub/Sub event handling,
+  and quota enforcement.
+- Migrated the Play identity to `com.wimlabs.wim`; aligned Firebase, manifests,
+  tests, privacy/account-deletion behavior, and reviewer access with that
+  permanent package.
+- Wrote the Data Safety, AccessibilityService, foreground-service, content
+  rating, health, privacy, and release-console material directly in the repo.
+  Store copy and four production listing screenshots were added.
+- Corrected onboarding permission return behavior and misleading overlay status.
+  Accessibility/auto-send explanations now describe the assistive workflow
+  before sending the user to Android settings.
+- Corrected the live bubble contract to red while recording, amber while
+  processing, and green while sending; added deterministic visual tests.
+- Fixed the scaled touch region that made part of the bubble difficult to drag
+  or tap on a real device.
+- Changed CI delivery from an ephemeral debug signer to the stable release
+  signer so normal test updates preserve Android grants. Build 8.2 is the
+  current GitHub release; the final Build & Test run is green.
+- Restored the owner-scoped `/wim_users/{uid}` Firestore rules in the shared
+  Bakers Firebase project and added a regression test there so profile/session
+  sync cannot silently disappear again.
+
+Play Console setup, merchant profile, and reviewer credentials were completed.
+Production submission still requires 12 opted-in testers for 14 continuous
+days, the reviewer video, the final signed AAB/upload-key pass, and real-device
+coverage of the cloud and assistive flows.
+
+### Failure Log — 2026-07-18 (full multi-day session, July 14–18)
+
+- A July 14 rewrite of the shared Bakers Agent Firestore rules dropped the WiM
+  user block under a default-deny policy. Direct profile/session writes could
+  fail silently. The rule was restored, deployed, and protected by contract
+  coverage.
+- The test-install story was stated incorrectly more than once. A newly
+  downloaded APK could still look old or force an uninstall when signatures
+  differed. Uninstalling re-armed Android 13+ Restricted Settings for the
+  sideloaded AccessibilityService. Stable release signing fixes ordinary
+  updates; a deliberate clean install still requires Android's one-time Allow
+  restricted settings action.
+- Onboarding temporarily reported overlay permission as complete before Android
+  had actually granted it. The return-state check was corrected.
+- Bubble colors and touch bounds were treated as cosmetic until real-device
+  behavior showed otherwise. Both are now explicit state contracts with tests.
+- The Play accessibility argument was initially allowed to drift toward broad
+  stuttering/accent claims. The defensible claim is narrower: WiM reduces the
+  interaction burden of dictation, correction, and sending for people who may
+  already be spending attention managing speech. Store declarations must show
+  the actual service workflow and user control.
+- A release build and a Play submission were repeatedly spoken about as though
+  they were the same milestone. They are not. A working signed APK exists; the
+  closed-test and reviewer gates remain external Play requirements.
