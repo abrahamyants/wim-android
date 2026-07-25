@@ -299,6 +299,57 @@ class BubbleService : Service() {
 
     fun isCurrentlyRecording(): Boolean = isRecording
 
+    /** Packages we've already put the work/casual question to in this service
+     *  lifetime. Guards against re-asking on every window-state event for an
+     *  app the user declined to answer — a timeout means "not now", and
+     *  re-prompting on the next screen transition would be unusable. */
+    private val toneAskedThisSession = mutableSetOf<String>()
+
+    /**
+     * "Quick question — is this for work or casual?"
+     *
+     * Called from the accessibility side when the foreground app matches
+     * neither tone list and the user has never answered for it. The answer is
+     * persisted per package, so any given app is asked about exactly once.
+     *
+     * Every guard here exists so the question can only appear at a moment
+     * where it is not in the way: the bubble must be visible and genuinely
+     * idle — not recording, not mid-pipeline, not already asking something
+     * else. If any guard fails we return WITHOUT marking the package asked,
+     * so the question surfaces on a later, calmer visit to the same app.
+     */
+    fun askToneForApp(pkg: String) {
+        if (pkg.isBlank()) return
+        if (!WimApp.prefs.getBoolean("auto_tone", true)) return
+        if (WimApp.prefs.contains(ToneRouting.learnedKey(pkg))) return
+        if (pkg in toneAskedThisSession) return
+        if (bubbleView == null || isRecording) return
+        if (clarifierUI?.isActive == true) return
+        if (BubbleStateBus.current() !is BubbleState.Idle) return
+
+        toneAskedThisSession.add(pkg)
+        clarifierUI?.show("WORK?", "Is this for work or casual?") { answer ->
+            // null = the 10s timeout fired after its one retry. Don't guess and
+            // don't record anything; the app stays in toneAskedThisSession so
+            // this session stops bothering them about it.
+            if (answer == null) return@show
+            val tone = if (answer) ToneRouting.PROFESSIONAL else ToneRouting.CASUAL
+            isWorkMode = answer
+            WimApp.prefs.edit()
+                .putString(ToneRouting.learnedKey(pkg), tone)
+                .putString("tone", tone)
+                .putBoolean("work_mode", answer)
+                // Same lockout the bezel tap takes: this WAS a deliberate user
+                // choice, so autoSwitchTone must not second-guess it on the very
+                // next accessibility event.
+                .putLong("manual_tone_set_ms", System.currentTimeMillis())
+                .apply()
+            Log.i(TAG, "Tone learned for $pkg → $tone")
+            updateBezelLabels()
+            updateIdleDisplay()
+        }
+    }
+
     // Public wrappers for onboarding demo script
     fun setBubbleIdlePublic() = setBubbleIdle()
     fun showMenuPublic() { bubbleMenu?.show() }
@@ -1129,13 +1180,24 @@ class BubbleService : Service() {
                             // autoSwitchTone observer doesn't ping-pong the user's
                             // explicit choice on the very next host-app event.
                             val nowMs = System.currentTimeMillis()
-                            if (tx < 0) {
-                                isWorkMode = true
-                                WimApp.prefs.edit().putBoolean("work_mode", true).putString("tone", "professional").putLong("manual_tone_set_ms", nowMs).apply()
-                            } else {
-                                isWorkMode = false
-                                WimApp.prefs.edit().putBoolean("work_mode", false).putString("tone", "casual").putLong("manual_tone_set_ms", nowMs).apply()
-                            }
+                            val work = tx < 0
+                            isWorkMode = work
+                            val tappedTone =
+                                if (work) ToneRouting.PROFESSIONAL else ToneRouting.CASUAL
+                            val edit = WimApp.prefs.edit()
+                                .putBoolean("work_mode", work)
+                                .putString("tone", tappedTone)
+                                .putLong("manual_tone_set_ms", nowMs)
+                            // Teach the router. Without this the 30s lockout just
+                            // delays the argument: once it lapses, the whitelist (or
+                            // a previously learned answer) flips the tone straight
+                            // back and the user has to keep re-tapping in the same
+                            // app forever. A correction here IS the answer for this
+                            // app, and outranks the shipped lists from now on.
+                            WimAccessibilityService.currentForegroundPackage
+                                ?.takeIf { it.isNotBlank() && it != packageName }
+                                ?.let { edit.putString(ToneRouting.learnedKey(it), tappedTone) }
+                            edit.apply()
                             updateBezelLabels()
                         }
                         return@setOnTouchListener true

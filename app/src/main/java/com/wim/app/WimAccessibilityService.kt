@@ -118,18 +118,7 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         }
     }
 
-    // App category → tone mapping
-    private val workApps = setOf(
-        "com.google.android.gm", "com.microsoft.office.outlook",
-        "com.slack", "com.microsoft.teams", "com.linkedin.android",
-        "com.google.android.apps.docs", "com.google.android.apps.docs.editors.sheets",
-        "com.asana.app", "com.trello", "com.atlassian.android.jira.core"
-    )
-    private val personalApps = setOf(
-        "com.whatsapp", "org.telegram.messenger", "com.facebook.orca",
-        "com.instagram.android", "com.snapchat.android",
-        "com.google.android.apps.messaging", "com.samsung.android.messaging"
-    )
+    // App category → tone mapping lives in ToneRouting (pure Kotlin, unit-tested).
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
@@ -201,11 +190,17 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         if (System.currentTimeMillis() - manualSetMs < 30_000L) return
 
         val currentTone = prefs.getString("tone", "casual") ?: "casual"
-        val newTone = when {
-            workApps.contains(packageName) -> "professional"
-            personalApps.contains(packageName) -> "casual"
-            packageName.contains("mail") || packageName.contains("email") -> "professional"
-            else -> return // unknown app, don't change
+        val learned = prefs.getString(ToneRouting.learnedKey(packageName), null)
+        val newTone = when (val decision = ToneRouting.decide(packageName, learned)) {
+            is ToneRouting.Decision.Use -> decision.tone
+            // Unknown app, never asked about. Leaving the previous app's tone in
+            // place is a silent wrong answer — the user dictates into an unlisted
+            // app and gets whatever formality the last listed app set. Ask instead.
+            // BubbleService owns the prompt and every guard on when it's welcome.
+            is ToneRouting.Decision.Ask -> {
+                mainHandler.post { BubbleService.instance?.askToneForApp(packageName) }
+                return
+            }
         }
         if (newTone != currentTone) {
             prefs.edit().putString("tone", newTone).apply()
