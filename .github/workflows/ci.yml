@@ -53,8 +53,12 @@ jobs:
             exit 1
           }
 
+      # uploadCrashlyticsSymbolFileRelease is NOT excluded. build.gradle.kts wires
+      # it into bundleRelease on purpose: without it, sherpa-onnx native crashes
+      # arrive in Crashlytics as bare memory addresses. Skipping it here silently
+      # defeated that — the symbols were never uploaded for any shipped build.
       - name: Build signed release APK and bundle
-        run: gradle assembleRelease bundleRelease -x uploadCrashlyticsSymbolFileRelease --no-build-cache
+        run: gradle assembleRelease bundleRelease --no-build-cache
 
       - name: Verify installable APK signature
         run: |
