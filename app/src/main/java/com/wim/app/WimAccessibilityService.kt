@@ -303,6 +303,30 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
                 return if (clipped) InjectResult.CLIPBOARD else InjectResult.LOST
             }
         }
+        // Password guard at the WRITE boundary, not just at the record boundary.
+        // BubbleService.startListening refuses to record while a password field
+        // is focused, but reconstruction takes 1-15s and focus can move inside
+        // that window — so the field we are about to write into is not
+        // necessarily the one that was checked. Re-check the node we actually
+        // resolved. The Play AccessibilityService declaration states WiM does
+        // not act on password fields; this is what makes that true.
+        // The user's words go to the clipboard rather than being dropped.
+        if (detectPasswordField(node)) {
+            var clipped = false
+            try {
+                val cb = getSystemService(android.content.ClipboardManager::class.java)
+                cb?.setPrimaryClip(android.content.ClipData.newPlainText("WiM reconstruction", text))
+                clipped = cb != null
+            } catch (_: Exception) {}
+            Log.i("WiM", "injectText: password field focused — refusing to write, text kept on clipboard")
+            android.widget.Toast.makeText(
+                this,
+                "Password field — nothing typed. Your text is on the clipboard.",
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            return if (clipped) InjectResult.CLIPBOARD else InjectResult.LOST
+        }
+
         // Treat node.text as empty when it equals the hint/placeholder. Samsung
         // Messages 2024+ (and some Material 3 compose TextFields) return the
         // hint string ("Text message", "Type a message", etc.) via .text when
