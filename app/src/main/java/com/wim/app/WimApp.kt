@@ -152,16 +152,28 @@ class WimApp : Application() {
         fun predictionsEnabled(): Boolean = prefs.getBoolean("predictions_enabled", true)
 
         /**
-         * Tap-to-send assist lets the bubble click the app's Send button after
-         * a successful inject. Off by default — the user opts in explicitly
-         * in settings and still has to tap the green bubble once for every
-         * individual send. No countdown or timeout sends anything.
+         * Tap-to-send assist lets the bubble offer to click the app's Send
+         * button after a successful inject. ON by default as of 2026-07-25 —
+         * it was the app's headline behaviour sitting behind a switch nobody
+         * found, so the default install did not do the thing the app is for.
+         *
+         * Enabling it by default does NOT make anything send by itself. All it
+         * does is let the bubble go green and offer. Every individual send
+         * still needs a separate deliberate tap on the green bubble, and the
+         * five-second window expiring sends nothing. That distinction is what
+         * keeps the Play accessibility declaration accurate — the declaration
+         * text was updated alongside this, since it previously described the
+         * assist as something the user switches on.
          */
-        // Destructive follow-up action: opt-in only. A fresh install must never
-        // press another app's Send button without the user enabling it.
-        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", false)
+        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
 
-        fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", false)
+        /**
+         * Facehugger: on send-ready, the bubble relocates onto the host app's
+         * Send control so the thing you tap is where you are already looking.
+         * ON by default as of 2026-07-25 — same reasoning. It moves the bubble;
+         * it does not send. The tap still does.
+         */
+        fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", true)
 
         /**
          * How many times the disclaimer has been shown + confirmed. Three

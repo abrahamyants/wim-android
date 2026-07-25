@@ -19,7 +19,7 @@ WiM keeps a user-invoked voice-typing control available across apps. The Accessi
 2. Rejects password fields.
 3. When the user invokes dictation, reads up to 200 characters immediately before the cursor to preserve sentence continuity. Local Layer 1 keeps this context on the device. If the user deliberately selects a cloud layer, the short context is encrypted in transit and included in that reconstruction request.
 4. Inserts or replaces only the dictated text in the focused field. If the write fails, it preserves the user's words on the clipboard instead of losing them.
-5. If the user enables tap-to-send assist, locates the visible Send control. WiM may move its bubble to that control, but it clicks Send only after a separate user tap on the green bubble. The five-second window expires without sending.
+5. With tap-to-send assist active, locates the visible Send control. WiM may move its bubble to that control, but it clicks Send only after a separate user tap on the green bubble. The five-second window expires without sending. The assist is enabled by default and can be switched off in Settings; enabling it does not send anything on its own, it only lets the bubble offer.
 
 ## What it does not do
 
@@ -31,7 +31,7 @@ WiM keeps a user-invoked voice-typing control available across apps. The Accessi
 
 ## In-app disclosure shown before Android Settings
 
-> Speech blocks already use attention. WiM's Accessibility Service finds the text field you chose, reads up to 200 characters before the cursor to keep your sentence coherent, and inserts your dictated text. Local Layer 1 keeps this on your phone; cloud layers send the short context with your dictation. If you enable tap-to-send assist, WiM finds Send but presses it only after your separate green-bubble tap. Password fields are blocked, and unrelated content is not read.
+> Speech blocks already use attention. WiM's Accessibility Service finds the text field you chose, reads up to 200 characters before the cursor to keep your sentence coherent, and inserts your dictated text. Local Layer 1 keeps this on your phone; cloud layers send the short context with your dictation. Tap-to-send assist is on by default: WiM finds Send but presses it only after your separate green-bubble tap, and you can switch the assist off in Settings. Password fields are blocked, and unrelated content is not read.
 
 The screen provides **OPEN ACCESSIBILITY SETTINGS** and **NOT YET** actions. Accessibility access remains off unless the user enables WiM in Android Settings and can be disabled there at any time.
 
@@ -43,7 +43,7 @@ The screen provides **OPEN ACCESSIBILITY SETTINGS** and **NOT YET** actions. Acc
 4. Tap **OPEN ACCESSIBILITY SETTINGS**, enable WiM, and return to the app.
 5. Open a messaging or notes app and focus a normal text field.
 6. Tap the WiM bubble, dictate one sentence, stop, and show WiM inserting the result.
-7. Enable tap-to-send assist, dictate again, show the green five-second SEND state, and let it expire without sending.
+7. Dictate again with tap-to-send assist (on by default), show the green five-second SEND state, and let it expire without sending. Then show the Settings switch that turns the assist off.
 8. Repeat and tap the green bubble to demonstrate that the separate tap is the final authorization.
 9. Focus a password field and show that WiM blocks dictation.
 10. Return to Android Settings and show that the Accessibility Service can be disabled.
