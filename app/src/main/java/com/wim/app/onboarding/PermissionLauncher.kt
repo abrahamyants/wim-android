@@ -107,14 +107,18 @@ object PermissionLauncher {
         )
     }
 
+    /**
+     * Opens Android's battery-optimization list rather than the one-tap
+     * ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS dialog. The dialog requires
+     * the REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission, which Google Play
+     * reviews case by case and which is a recurring rejection trigger for
+     * overlay apps. The list intent needs no permission and reaches the same
+     * setting; `PowerManager.isIgnoringBatteryOptimizations` still reports the
+     * result, so grant detection is unchanged. Costs the user two extra taps.
+     */
     fun openBatteryOptimizationSettings(activity: Activity) {
         runCatching {
-            activity.startActivity(
-                Intent(
-                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.parse("package:${activity.packageName}")
-                )
-            )
+            activity.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }.onSuccess {
             returnToOnboardingWhenGranted(activity) { PermissionStatus.batteryOptimization(it) }
         }.onFailure { Log.w(TAG, "Unable to open battery settings", it) }

@@ -38,8 +38,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
-    <!-- Prevent battery optimizer from killing the service -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Battery-optimization exemption is requested by sending the user to
+         Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, which needs no
+         permission. The one-tap ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+         dialog would require REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which Google
+         Play reviews case by case and commonly rejects for overlay apps. -->
 
     <!-- Restart bubble after device reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />

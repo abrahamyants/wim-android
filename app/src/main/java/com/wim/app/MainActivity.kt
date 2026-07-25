@@ -817,12 +817,10 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.batteryPermBtn)?.setOnClickListener {
             try {
-                startActivity(
-                    Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                        Uri.parse("package:$packageName")
-                    )
-                )
+                // Battery-optimization LIST, not the one-tap dialog — the dialog
+                // needs REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which WiM no longer
+                // declares (Play reviews it case by case). See PermissionLauncher.
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             } catch (_: Exception) {
                 Toast.makeText(this, "Open battery settings manually", Toast.LENGTH_SHORT).show()
             }

@@ -9,8 +9,12 @@ import com.wim.app.onboarding.PermissionStatus
 /**
  * Permission card #4: Battery optimization exemption.
  *
- * ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS shows a system dialog directly —
- * no Settings detour on most OEMs. Grant detection via permissionGrantState.
+ * Opens Android's battery-optimization list (see
+ * PermissionLauncher.openBatteryOptimizationSettings for why the one-tap
+ * dialog was dropped). The user picks WiM from the list and chooses "Don't
+ * optimize", so the copy has to say that. Grant detection is unchanged —
+ * permissionGrantState polls isIgnoringBatteryOptimizations and advances
+ * automatically once the exemption lands.
  */
 @Composable
 fun BatteryPermissionScreen(
@@ -30,9 +34,10 @@ fun BatteryPermissionScreen(
         onBack = onBack,
         heading = "KEEP WiM AWAKE",
         body = "Android tries to put bubbles to sleep after a few minutes. WiM needs " +
-            "to be exempt — otherwise it disappears mid-conversation.",
+            "to be exempt — otherwise it disappears mid-conversation.\n\n" +
+            "Tap below, find What I Meant in the list, and choose \"Don't optimize\".",
         granted = granted,
-        primaryCta = "EXEMPT WiM",
+        primaryCta = "OPEN BATTERY SETTINGS",
         secondaryCta = "NOT YET",
         onPrimary = { activity?.let { PermissionLauncher.openBatteryOptimizationSettings(it) } },
         onSecondary = {

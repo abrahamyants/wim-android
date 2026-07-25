@@ -20,35 +20,28 @@ import com.wim.app.onboarding.screens.SettingsMenuScreen
 import com.wim.app.onboarding.screens.WelcomeScreen
 
 /**
- * Onboarding destinations. Live flow as wired (2026-06-10):
+ * Onboarding destinations. Every route below is implemented and reachable —
+ * the graph is the flow, with no parked or placeholder branches:
  *
- *   welcome → permissions-intro
+ *   welcome → reconstruction → permissions-intro
  *     → overlay → accessibility → mic → battery → samsung (if Samsung)
- *     → interactive-demo → final
+ *     → profile → autosend → settings-menu → final
  *
- * The four explainer tiles (any-app → layers → tones → learns) are parked as an
- * orphaned chain. brand.local.md's original order put them between welcome and
- * permissions-intro, but Welcome's typewriter console already carries the value
- * pitch, so the working recommendation is to cut them. George decides: wire
- * WELCOME → ANY_APP to restore them, or delete the four routes to commit.
- *
- * Screens not yet implemented render the StubScreen with a "[TODO] <route>" label
- * so the nav graph is complete and George can adb-launch the activity to test the
- * scaffolding without crashing on missing routes.
+ * Deleted 2026-07-24: the four parked explainer tiles (any-app → layers →
+ * tones → learns) and interactive-demo. All five were orphaned — unreachable
+ * from WELCOME — but still compiled into the release bundle, where they
+ * rendered a "[TODO] <route>" placeholder if anything ever navigated to them.
+ * Welcome's typewriter console already carries the value pitch. Restore from
+ * git history if the explainer chain is ever wanted back.
  */
 object OnboardingRoutes {
     const val WELCOME            = "welcome"
-    const val ANY_APP            = "any-app"
-    const val LAYERS             = "layers"
-    const val TONES              = "tones"
-    const val LEARNS             = "learns"
     const val PERMISSIONS_INTRO  = "permissions-intro"
     const val OVERLAY            = "overlay"
     const val ACCESSIBILITY      = "accessibility"
     const val MIC                = "mic"
     const val BATTERY            = "battery"
     const val SAMSUNG_SLEEP      = "samsung-sleep"
-    const val INTERACTIVE_DEMO   = "interactive-demo"
     const val FINAL              = "final"
     const val RECONSTRUCTION     = "reconstruction"
     const val PROFILE            = "profile"
@@ -91,10 +84,6 @@ fun OnboardingNavHost(
                 onSkip = { navController.navigate(OnboardingRoutes.ACCESSIBILITY) }
             )
         }
-        composable(OnboardingRoutes.ANY_APP)            { StubScreen("any-app")           { navController.navigate(OnboardingRoutes.LAYERS) } }
-        composable(OnboardingRoutes.LAYERS)             { StubScreen("layers")            { navController.navigate(OnboardingRoutes.TONES) } }
-        composable(OnboardingRoutes.TONES)              { StubScreen("tones")             { navController.navigate(OnboardingRoutes.LEARNS) } }
-        composable(OnboardingRoutes.LEARNS)             { StubScreen("learns")            { navController.navigate(OnboardingRoutes.PERMISSIONS_INTRO) } }
         composable(OnboardingRoutes.ACCESSIBILITY) {
             AccessibilityPermissionScreen(
                 onBack = { navController.popBackStack() },
@@ -140,8 +129,6 @@ fun OnboardingNavHost(
                 onContinue = { navController.navigate(OnboardingRoutes.FINAL) }
             )
         }
-        // interactive-demo: orphaned (the live bubble show is pinned); kept defined for later.
-        composable(OnboardingRoutes.INTERACTIVE_DEMO)   { StubScreen("interactive-demo")  { navController.navigate(OnboardingRoutes.FINAL) } }
         composable(OnboardingRoutes.FINAL)              { FinalScreen(onBack = { navController.popBackStack() }, onDone = { onComplete() }) }
     }
 }
