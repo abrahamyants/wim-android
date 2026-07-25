@@ -191,8 +191,10 @@ class BubbleService : Service() {
     // overlay view, container, params, typewriter/cursor animations, and
     // TranscriptBarController bind/unbind.
     private var liveTranscript: BubbleLiveTranscript? = null
-    private var lastTapTime = 0L
-    private val DOUBLE_TAP_TIMEOUT = 300L
+    // Double-tap-to-open-menu was removed 2026-07-25: it cost 300ms of dead
+    // air on the front of every recording and never fired reliably in the
+    // operator's hand. The menu opens by dragging the bubble to the top of the
+    // screen, or from the ongoing notification's MENU action.
     // Press-and-hold threshold — 500ms is well above normal tap durations
     // (100-300ms) so accidental brushes never trigger record. Anything
     // shorter races with toggle-tap. Hold past this threshold = enter
@@ -201,16 +203,6 @@ class BubbleService : Service() {
     private var holdModeActive = false
     private var holdStartRunnable: Runnable? = null
     private var singleTapRunnable: Runnable? = null
-    // Deferred single-tap → start recording, with the DOUBLE_TAP_TIMEOUT
-    // window allowing a second tap to pre-empt and run the double-tap
-    // action (open menu). Re-checks isRecording / isDragging so a stale
-    // tap that should have been canceled still no-ops cleanly.
-    private val deferredSingleTapAction = Runnable {
-        if (!isRecording) {
-            pulseRings?.start()
-            startListening()
-        }
-    }
     private val recentTexts = mutableListOf<String>()
     private var redoCount = 0
     private var isWorkMode = false  // false=personal, true=work
@@ -923,8 +915,6 @@ class BubbleService : Service() {
                             } catch (_: Exception) {}
                             // Suppress the deferred single-tap so release
                             // doesn't double-toggle.
-                            timerHandler.removeCallbacks(deferredSingleTapAction)
-                            lastTapTime = 0L
                             pulseRings?.start()
                             startListening()
                         }
@@ -941,14 +931,11 @@ class BubbleService : Service() {
                             // Drag pre-empts a queued single-tap action so a
                             // drag-from-rest doesn't fire start-recording on
                             // release. (Recording is now started only via
-                            // the deferredSingleTapAction timer in ACTION_UP.)
-                            timerHandler.removeCallbacks(deferredSingleTapAction)
                             // Cancel pending hold-mode trigger — user is
                             // moving the bubble, not holding to record.
                             holdStartRunnable?.let { timerHandler.removeCallbacks(it) }
                             holdStartRunnable = null
                             // Reset the double-tap window — a drag is not a tap.
-                            lastTapTime = 0L
                         }
                         params.x = initialX + dx
                         params.y = initialY + dy
@@ -1233,50 +1220,20 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
 
-                    // Tap routing:
-                    //   • If recording is in flight (regardless of how it
-                    //     started), tap stops it.
-                    //   • Otherwise the tap is the first half of a possible
-                    //     double-tap. We DEFER the start-recording action
-                    //     by DOUBLE_TAP_TIMEOUT (300 ms) so a second tap
-                    //     can pre-empt and run the double-tap action
-                    //     instead. The 300 ms latency is the cost of
-                    //     supporting double-tap-to-open-menu.
+                    // Tap routing: recording in flight → stop. Otherwise → start.
                     if (isRecording) {
-                        lastTapTime = 0L
-                        timerHandler.removeCallbacks(deferredSingleTapAction)
                         stopAndProcess()
                     } else {
-                        val now = System.currentTimeMillis()
-                        if (now - lastTapTime < DOUBLE_TAP_TIMEOUT) {
-                            // Second tap inside the double-tap window.
-                            lastTapTime = 0L
-                            timerHandler.removeCallbacks(deferredSingleTapAction)
-                            try {
-                                vibrator?.vibrate(
-                                    android.os.VibrationEffect.createOneShot(
-                                        70, android.os.VibrationEffect.DEFAULT_AMPLITUDE
-                                    )
-                                )
-                            } catch (_: Exception) {}
-                            // Double-tap action: toggle the bubble menu.
-                            // Same canonical snap as the drag-to-top path
-                            // so menu/tail orientation is identical on both
-                            // open paths.
-                            if (bubbleMenu?.isVisible() == true) {
-                                bubbleMenu?.dismiss()
-                            } else {
-                                snapBubbleForMenuOpen()
-                                bubbleMenu?.show()
-                            }
-                        } else {
-                            // First tap — schedule single-tap action with
-                            // a 300 ms deferred runnable. A second tap
-                            // arriving inside that window cancels this.
-                            lastTapTime = now
-                            timerHandler.removeCallbacks(deferredSingleTapAction)
-                            timerHandler.postDelayed(deferredSingleTapAction, DOUBLE_TAP_TIMEOUT)
-                        }
+                        // Start immediately. This used to be deferred by
+                        // DOUBLE_TAP_TIMEOUT so a second tap could open the menu
+                        // instead — which put 300ms of dead air on the front of
+                        // every single recording, for a gesture the operator
+                        // reports never actually fires. The menu already has two
+                        // working ways in: drag the bubble to the top of the
+                        // screen, and the MENU action on the ongoing
+                        // notification. Neither costs anything per recording.
+                        pulseRings?.start()
+                        startListening()
                     }
                     true
                 }
