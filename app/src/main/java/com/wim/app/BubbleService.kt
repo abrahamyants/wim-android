@@ -1134,8 +1134,12 @@ class BubbleService : Service() {
                     val tx = event.x - cx
                     val ty = event.y - cy
                     val dist = kotlin.math.sqrt(tx * tx + ty * ty)
-                    val innerR = v.width * 0.18f   // inner knob edge
-                    val outerR = v.width * 0.40f    // bezel outer edge
+                    // The touch window IS the visible 72dp bezel (BubbleTouchTarget),
+                    // so half its width is the bubble's own edge — nothing outside
+                    // the bubble can reach this handler at all. 0.40 was leaving the
+                    // outermost fifth of the visible bubble unresponsive on top of
+                    // the knob/ring mismatch below.
+                    val outerR = v.width * 0.50f    // bubble edge
                     val tapDuration = System.currentTimeMillis() - downTime
 
                     // SEND_READY: any tap within the bubble (bezel OR knob) fires
@@ -1160,12 +1164,24 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
 
-                    if (!isRecording && dist > innerR && dist < outerR && tapDuration < 300) {
-                        try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-                        // FSM clarifier (per-word, spec §6 Phase 2) — left = approve,
-                        // right = reject. Wins over the legacy work/life clarifier
-                        // because the FSM is the single source of truth.
+                    // Clarifier answers — left half approves, right half rejects,
+                    // anywhere on the visible bubble. Only claims the tap while a
+                    // clarifier is actually on screen; otherwise the tap falls
+                    // through to the record routing below.
+                    //
+                    // The idle work/casual toggle used to live here, on the bezel
+                    // RING ONLY (dist > innerR), and that is what made recording
+                    // feel like it needed a precise press: `innerR` is 0.18 of the
+                    // bubble's width, but the knob drawn on screen is 0.30 of it.
+                    // The outer ~9dp band of a 44dp knob looked exactly like the
+                    // record button and silently flipped the user's tone instead.
+                    // It was also invisible — updateBezelLabels() is a no-op in the
+                    // idle state, so nothing on screen ever showed which tone was
+                    // active or that a tap had changed it. Removed: tone is set in
+                    // Settings, and ToneRouting now asks and learns per app.
+                    if (!isRecording && dist < outerR && tapDuration < 300) {
                         if (BubbleStateBus.current() is BubbleState.Clarifying) {
+                            try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                             if (tx < 0) {
                                 bubbleAffect?.emitApproveFlash()
                                 ClarifierController.approve()
@@ -1176,43 +1192,10 @@ class BubbleService : Service() {
                             return@setOnTouchListener true
                         }
                         if (clarifierUI?.isActive == true) {
-                            // Clarifier mode — left = ✓ yes, right = ✕ no
+                            try { vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                             clarifierUI?.dismiss(tx < 0)
-                        } else if (isRecording) {
-                            // Cancel. The FSM's transition table has always listed
-                            // Listening → Idle as a legal user cancel, but nothing
-                            // implemented it: once recording started the only way
-                            // out was to finish and let it transcribe whatever it
-                            // heard. Toggling work/casual mid-utterance is
-                            // meaningless, so the bezel is free during recording.
-                            cancelRecording()
-                        } else {
-                            // Normal mode — toggle work/life
-                            // Stamp manual_tone_set_ms so the accessibility-side
-                            // autoSwitchTone observer doesn't ping-pong the user's
-                            // explicit choice on the very next host-app event.
-                            val nowMs = System.currentTimeMillis()
-                            val work = tx < 0
-                            isWorkMode = work
-                            val tappedTone =
-                                if (work) ToneRouting.PROFESSIONAL else ToneRouting.CASUAL
-                            val edit = WimApp.prefs.edit()
-                                .putBoolean("work_mode", work)
-                                .putString("tone", tappedTone)
-                                .putLong("manual_tone_set_ms", nowMs)
-                            // Teach the router. Without this the 30s lockout just
-                            // delays the argument: once it lapses, the whitelist (or
-                            // a previously learned answer) flips the tone straight
-                            // back and the user has to keep re-tapping in the same
-                            // app forever. A correction here IS the answer for this
-                            // app, and outranks the shipped lists from now on.
-                            WimAccessibilityService.currentForegroundPackage
-                                ?.takeIf { it.isNotBlank() && it != packageName }
-                                ?.let { edit.putString(ToneRouting.learnedKey(it), tappedTone) }
-                            edit.apply()
-                            updateBezelLabels()
+                            return@setOnTouchListener true
                         }
-                        return@setOnTouchListener true
                     }
 
                     try { vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
@@ -1225,6 +1208,17 @@ class BubbleService : Service() {
                     // but tap-accessible for users who don't engage the
                     // voice channel for clarifier review).
                     val pressDurationMs = System.currentTimeMillis() - downTime
+
+                    // Press-and-hold while recording = throw the take away.
+                    // A normal tap stops and sends, so cancel needs a gesture the
+                    // user cannot fire by accident mid-sentence. Excluded when the
+                    // recording was STARTED by holding (holdModeActive), because
+                    // there releasing the hold is the normal way to finish.
+                    if (isRecording && !holdModeActive && pressDurationMs >= 500L) {
+                        cancelRecording()
+                        return@setOnTouchListener true
+                    }
+
                     if (pressDurationMs >= 500L &&
                         BubbleStateBus.current() is BubbleState.Clarifying
                     ) {
