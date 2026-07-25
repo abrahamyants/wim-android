@@ -85,6 +85,7 @@
     <string name="bubble_menu_local">LOCAL</string>
     <string name="bubble_menu_cloud">NUVEM</string>
     <string name="bubble_menu_reconstruction">RECONSTRUÇÃO</string>
+    <string name="bubble_menu_profile">PERFIL</string>
     <string name="bubble_menu_disfluency">DISFLUÊNCIA</string>
     <string name="bubble_menu_color">COR</string>
     <string name="bubble_menu_settings">CONFIG</string>

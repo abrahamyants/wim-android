@@ -43,6 +43,25 @@ object ClarifierController {
     private const val RECENT_SWAPS_LIMIT = 12
 
     /**
+     * Host-app state as it was when this cycle opened — patent claim 9.
+     *
+     * Claim 1 stands on a wherein-clause: the host application's window focus,
+     * accessibility focus, IME state, scroll position and cursor position are
+     * unchanged for the whole clarification state. That is the sentence that
+     * separates WiM from every voice assistant in the prior art, and nothing in
+     * the app had ever measured it — the claim was design intent with no
+     * evidence behind it, and an OEM keyboard could have broken it silently.
+     *
+     * Debug builds only (the snapshot itself returns null in release).
+     */
+    private var entryHostState: WimAccessibilityService.HostState? = null
+
+    /** Whether THIS cycle performed an approved swap. `recentSwaps` can't
+     *  answer that — it deliberately survives across cycles for the feedback
+     *  loop, so after the user's first-ever swap it is never empty again. */
+    private var swappedThisCycle = false
+
+    /**
      * Enter the clarifier cycle. Called from `BubbleService.processText`
      * after a successful inject when [Clarifier.evaluate] returned ≥1 flag.
      *
@@ -67,6 +86,8 @@ object ClarifierController {
         this.autoSendEligible = autoSendEligible
         this.onLabelUpdateRef = onLabelUpdate
         this.onExitRef = onExit
+        this.swappedThisCycle = false
+        this.entryHostState = WimAccessibilityService.instance?.snapshotHostState()
 
         BubbleStateBus.advance(
             BubbleState.Clarifying(
@@ -96,6 +117,8 @@ object ClarifierController {
             // Update the in-memory injection text so subsequent ranges still match.
             lastInjectionText = applyEdit(lastInjectionText, current.rangeStart, current.rangeEnd, replacement)
             recordSwap(current.originalWord, replacement)
+            // Claim 9: an approved swap is the one cursor move the claim allows.
+            swappedThisCycle = true
             next()
         } else {
             // Swap couldn't reach the host (focus lost, app changed, field cleared).
@@ -218,7 +241,66 @@ object ClarifierController {
         IdleTimer.arm(IDLE_TIMER_ID, AUTO_DISMISS_MS) { dismissAll() }
     }
 
+    /**
+     * Claim 9's assertion: compare the host state at cycle exit against entry
+     * and report any drift. Runs before the exit callback, while the host app
+     * is still the one the cycle ran against.
+     *
+     * Logs each differing field by name rather than a bare boolean, because
+     * WHICH one moved is the whole diagnostic — a changed IME state and a
+     * changed scroll position have completely different causes.
+     */
+    private fun assertHostStateUnchanged() {
+        val before = entryHostState ?: return
+        entryHostState = null
+        val after = WimAccessibilityService.instance?.snapshotHostState()
+        if (after == null) {
+            android.util.Log.i(
+                "WiM.Claim9",
+                "clarify exit: no comparable host state (field gone) — not asserting",
+            )
+            return
+        }
+        val drift = buildList {
+            if (before.pkg != after.pkg) add("pkg ${before.pkg}→${after.pkg}")
+            if (before.focusedWindowId != after.focusedWindowId) {
+                add("windowFocus ${before.focusedWindowId}→${after.focusedWindowId}")
+            }
+            if (before.a11yFocusedWindowId != after.a11yFocusedWindowId) {
+                add("a11yFocus ${before.a11yFocusedWindowId}→${after.a11yFocusedWindowId}")
+            }
+            if (before.imeVisible != after.imeVisible) {
+                add("ime ${before.imeVisible}→${after.imeVisible}")
+            }
+            // The cursor legitimately moves when the user approves a swap —
+            // that IS the claimed edit. Only an unexplained move matters, and
+            // recentSwaps tells us whether one happened this cycle.
+            if (!swappedThisCycle &&
+                (before.selectionStart != after.selectionStart ||
+                    before.selectionEnd != after.selectionEnd)
+            ) {
+                add(
+                    "cursor ${before.selectionStart}..${before.selectionEnd}" +
+                        "→${after.selectionStart}..${after.selectionEnd}"
+                )
+            }
+            if (before.fieldLeft != after.fieldLeft || before.fieldTop != after.fieldTop) {
+                add(
+                    "fieldPos ${before.fieldLeft},${before.fieldTop}" +
+                        "→${after.fieldLeft},${after.fieldTop}"
+                )
+            }
+        }
+        if (drift.isEmpty()) {
+            android.util.Log.i("WiM.Claim9", "clarify exit: host state unchanged ✓")
+        } else {
+            android.util.Log.w("WiM.Claim9", "clarify exit: HOST STATE MOVED — ${drift.joinToString("; ")}")
+            ConsoleLog.log("Claim 9 violated: ${drift.joinToString("; ")}", "error")
+        }
+    }
+
     private fun exit() {
+        assertHostStateUnchanged()
         IdleTimer.cancel(IDLE_TIMER_ID)
         val cb = onExitRef
         val eligible = autoSendEligible

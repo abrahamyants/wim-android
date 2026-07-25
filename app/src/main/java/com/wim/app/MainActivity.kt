@@ -753,7 +753,11 @@ class MainActivity : AppCompatActivity() {
 
         // ── Shake to summon/hide toggle ──
         val shakeToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.shakeToggle)
-        shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", true)
+        // Default MUST match BubbleShakeDetector's own read (false). It didn't:
+        // this switch defaulted to true, so a fresh install showed shake-to-hide
+        // as ON while the detector was never armed. The user had to toggle it
+        // off and on again to get the behaviour the switch already claimed.
+        shakeToggle?.isChecked = WimApp.prefs.getBoolean("shake_enabled", false)
         shakeToggle?.let { styleToggle(it) }
         shakeToggle?.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()

@@ -225,6 +225,67 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         }
     }
 
+    /**
+     * The host-application state that patent claim 1's wherein-clause promises
+     * will not change while the bubble is asking its question, and that claim 9
+     * says the system should record and assert.
+     *
+     * `fieldTop`/`fieldLeft` stand in for scroll position: there is no generic
+     * way to read a host app's scroll offset through the accessibility API, but
+     * if the content behind the focused field scrolls, the field itself moves.
+     */
+    data class HostState(
+        val pkg: String?,
+        val focusedWindowId: Int,
+        val a11yFocusedWindowId: Int,
+        val imeVisible: Boolean,
+        val selectionStart: Int,
+        val selectionEnd: Int,
+        val fieldLeft: Int,
+        val fieldTop: Int,
+    )
+
+    /**
+     * Capture [HostState]. Debug builds only — this is evidence-gathering for
+     * the patent claim and a regression tripwire for us, not something release
+     * users should pay a window enumeration for on every clarifier cycle.
+     *
+     * Returns null when there is nothing meaningful to compare (no focused
+     * field), so the caller skips the assertion rather than reporting a false
+     * difference.
+     */
+    fun snapshotHostState(): HostState? {
+        if (!BuildConfig.DEBUG) return null
+        return try {
+            val node = activeTextField
+            if (node == null || !node.refresh()) return null
+            val bounds = android.graphics.Rect().also { node.getBoundsInScreen(it) }
+            var focusedId = -1
+            var a11yFocusedId = -1
+            var ime = false
+            for (w in windows) {
+                if (w.isFocused) focusedId = w.id
+                if (w.isAccessibilityFocused) a11yFocusedId = w.id
+                if (w.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+                    ime = true
+                }
+            }
+            HostState(
+                pkg = currentForegroundPackage,
+                focusedWindowId = focusedId,
+                a11yFocusedWindowId = a11yFocusedId,
+                imeVisible = ime,
+                selectionStart = node.textSelectionStart,
+                selectionEnd = node.textSelectionEnd,
+                fieldLeft = bounds.left,
+                fieldTop = bounds.top,
+            )
+        } catch (e: Exception) {
+            Log.w("WiM", "snapshotHostState failed: ${e.javaClass.simpleName}")
+            null
+        }
+    }
+
     override fun onInterrupt() {
         activeTextField = null
         isPasswordField = false

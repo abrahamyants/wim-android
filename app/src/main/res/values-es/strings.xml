@@ -85,6 +85,7 @@
     <string name="bubble_menu_local">LOCAL</string>
     <string name="bubble_menu_cloud">NUBE</string>
     <string name="bubble_menu_reconstruction">RECONSTRUCCIÓN</string>
+    <string name="bubble_menu_profile">PERFIL</string>
     <string name="bubble_menu_disfluency">DISFLUENCIA</string>
     <string name="bubble_menu_color">COLOR</string>
     <string name="bubble_menu_settings">AJUSTES</string>

@@ -35,6 +35,42 @@ object PhoneticMatcher {
     )
 
     /**
+     * Words in [vocabulary] that sound like [word] — Double Metaphone match on
+     * either code. Unlike [correct] this swaps nothing; it just reports the
+     * plausible alternatives so the clarifier can offer them.
+     *
+     * Feeds `Clarifier.WordConfidence.phoneticNeighbors`, which is the third
+     * tier of the patent's candidate-priority claim and had never been
+     * populated by anything — MultiPassDecoder hardcoded an empty list, so
+     * that tier silently didn't exist in production.
+     *
+     * No onset-weight filter here on purpose. [correct] uses onset weights to
+     * decide whether to change the user's words behind their back, which
+     * deserves a high bar. This only decides what to OFFER, and the user
+     * approves every swap, so filtering by onset would just hide good
+     * candidates from someone who is already looking at the question.
+     */
+    fun neighbours(word: String, vocabulary: List<String>, max: Int = 3): List<String> {
+        val clean = word.trim().trim('.', ',', '!', '?', ';', ':', '"', '\'')
+        if (clean.length < MIN_WORD_LENGTH || vocabulary.isEmpty()) return emptyList()
+        val primary = dm.doubleMetaphone(clean).orEmpty()
+        if (primary.isBlank()) return emptyList()
+        val alternate = dm.doubleMetaphone(clean, true).orEmpty()
+        return vocabulary.asSequence()
+            .map { it.trim() }
+            .filter { it.length >= MIN_WORD_LENGTH && !it.equals(clean, ignoreCase = true) }
+            .filter { v ->
+                val vp = dm.doubleMetaphone(v).orEmpty()
+                if (vp.isBlank()) return@filter false
+                val va = dm.doubleMetaphone(v, true).orEmpty()
+                vp == primary || vp == alternate || (va.isNotBlank() && va == primary)
+            }
+            .distinct()
+            .take(max)
+            .toList()
+    }
+
+    /**
      * For each word in [text], swap it with a phonetically-similar vocabulary
      * word IF the word's onset is on the user's high-risk list AND Double
      * Metaphone codes match. Returns text with swaps applied; untouched

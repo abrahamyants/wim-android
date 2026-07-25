@@ -67,7 +67,18 @@ object Clarifier {
         val rejected = recentSwaps.filter { it.second.isBlank() }.map { it.first.lowercase() }.toSet()
         val priorWordsByPosition = finalText.split(Regex("\\s+"))
 
-        val candidates = wordConfidences.mapIndexedNotNull { idx, wc ->
+        // Fill in the phonetic tier. MultiPassDecoder — the only producer of
+        // WordConfidence in production — hardcodes an empty neighbour list, so
+        // until now the third source in the candidate-priority claim never
+        // existed at runtime: it was consumed here and by uncertaintyScore, and
+        // was always empty. The vocabulary needed to compute it is already a
+        // parameter of this function, so this is where it belongs.
+        val enriched = if (vocabulary.isEmpty()) wordConfidences else wordConfidences.map { wc ->
+            if (wc.phoneticNeighbors.isNotEmpty()) wc
+            else wc.copy(phoneticNeighbors = PhoneticMatcher.neighbours(wc.word, vocabulary))
+        }
+
+        val candidates = enriched.mapIndexedNotNull { idx, wc ->
             val score = uncertaintyScore(wc, vocabulary, onsetWeights)
             if (score < threshold) return@mapIndexedNotNull null
             val candidates = buildCandidates(

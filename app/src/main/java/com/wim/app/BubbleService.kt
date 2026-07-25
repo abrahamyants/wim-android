@@ -687,7 +687,11 @@ class BubbleService : Service() {
             if (BubbleStateBus.current() !is BubbleState.Clarifying) return@register false
             val token = utterance.trim().lowercase().split(Regex("\\s+")).firstOrNull().orEmpty()
             when (token) {
-                "yes", "approve", "ok", "confirm" -> {
+                // "swap" is in the patent's claim-8 evidence and in the build
+                // spec's command list, and was the one word from that list
+                // never wired up. It reads as approve — the user is asking for
+                // the substitution the bubble just offered.
+                "yes", "approve", "ok", "confirm", "swap", "change" -> {
                     ClarifierController.approve(); true
                 }
                 "no", "reject", "cancel", "nope" -> {
@@ -1174,6 +1178,14 @@ class BubbleService : Service() {
                         if (clarifierUI?.isActive == true) {
                             // Clarifier mode — left = ✓ yes, right = ✕ no
                             clarifierUI?.dismiss(tx < 0)
+                        } else if (isRecording) {
+                            // Cancel. The FSM's transition table has always listed
+                            // Listening → Idle as a legal user cancel, but nothing
+                            // implemented it: once recording started the only way
+                            // out was to finish and let it transcribe whatever it
+                            // heard. Toggling work/casual mid-utterance is
+                            // meaningless, so the bezel is free during recording.
+                            cancelRecording()
                         } else {
                             // Normal mode — toggle work/life
                             // Stamp manual_tone_set_ms so the accessibility-side
@@ -2048,6 +2060,45 @@ class BubbleService : Service() {
      * !isRecording (see the bezel tap handler). Best-effort — any failure
      * quietly leaves the bubble idle.
      */
+    /**
+     * Abandon the in-flight recording and throw the audio away.
+     *
+     * Bezel tap while recording. `BubbleState`'s transition table has listed
+     * `Listening → Idle` as a legal user cancel since the FSM was written, but
+     * nothing ever implemented it — once you started talking the only exit was
+     * to stop and let WiM transcribe, reconstruct and paste whatever it heard.
+     * For someone who started a sentence and then thought better of it, "wait
+     * for it to finish, then delete the text out of the field" is a bad answer.
+     *
+     * Mirrors the stop teardown exactly, minus the pipeline: nothing is sent
+     * anywhere and the wav is deleted rather than left in cacheDir for the next
+     * recording to overwrite.
+     */
+    private fun cancelRecording() {
+        if (!isRecording) return
+        Log.i(TAG, "Recording cancelled by user — discarding audio")
+        processed = true
+        isRecording = false
+        val wav = audioRecorder?.stop()
+        setForegroundMicActive(false)
+        audioRecorder = null
+        onDeviceRecognizer?.stop()
+        scope.launch(Dispatchers.IO) {
+            whisperLocalEngine?.stop()
+            try { wav?.delete() } catch (_: Exception) {}
+        }
+        dafPlayer?.stop(); dafPlayer = null
+        // The post-stop ASR recovery timer would otherwise fire on an utterance
+        // the user explicitly abandoned and paste it a beat later.
+        timerHandler.removeCallbacks(postStopAsrOuterTimeout)
+        awaitingPostStopAsr = false
+        try {
+            vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (_: Exception) {}
+        Toast.makeText(this, "Recording cancelled", Toast.LENGTH_SHORT).show()
+        setBubbleIdle()
+    }
+
     private fun onSilentBlockBridge() {
         // Callback fires from AudioRecorder's capture thread. scope is
         // Dispatchers.Main, so this marshals onto Main; the suspend

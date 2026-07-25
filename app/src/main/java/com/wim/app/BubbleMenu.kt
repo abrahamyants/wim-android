@@ -195,6 +195,7 @@ class BubbleMenu(
         val layerEntries = listOf(
             R.id.menuLayer1 to 1,
             R.id.menuLayer2 to 2,
+            R.id.menuLayer3 to 3,
             R.id.menuLayer4 to 4
         ).map { (id, layerVal) -> v.findViewById<TextView>(id) to layerVal }
         val currentLayer = WimApp.layer()

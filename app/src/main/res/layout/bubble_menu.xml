@@ -159,6 +159,21 @@
                 android:background="@drawable/nameplate_bg"
                 android:layout_marginBottom="3dp" />
 
+            <!-- Layer III. Was missing entirely: the menu offered I, II and IV,
+                 so the profile layer was unreachable from the bubble. -->
+            <TextView
+                android:id="@+id/menuLayer3"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:text="@string/bubble_menu_profile"
+                android:textSize="10sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.18"
+                android:background="@drawable/nameplate_bg"
+                android:layout_marginBottom="3dp" />
+
             <TextView
                 android:id="@+id/menuLayer4"
                 android:layout_width="match_parent"

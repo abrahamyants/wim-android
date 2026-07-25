@@ -85,6 +85,7 @@
     <string name="bubble_menu_local">ЛОК</string>
     <string name="bubble_menu_cloud">ОБЛАКО</string>
     <string name="bubble_menu_reconstruction">РЕКОНСТРУКЦИЯ</string>
+    <string name="bubble_menu_profile">ПРОФИЛЬ</string>
     <string name="bubble_menu_disfluency">ЗАПИНКИ</string>
     <string name="bubble_menu_color">ЦВЕТ</string>
     <string name="bubble_menu_settings">НАСТРОЙКИ</string>
