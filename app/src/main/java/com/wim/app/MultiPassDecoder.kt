@@ -19,9 +19,10 @@ import java.io.File
  * only consumes the [SpeechRecognizerL1] interface.
  *
  * Cost note (cloud whisper-1 specifically): 3× the whisper-1 cost when
- * invoked. Now called at L2+ per Session 18 #107 (was L4-only until then)
- * so the Clarifier has cross-pass disagreement signal across all
- * reconstruction layers, not just clinical.
+ * invoked. Invoked from `BubbleService.processText` behind a `layer >= 4`
+ * gate — L4 only. (An earlier revision of this comment claimed L2+; the
+ * call site never matched it. L2/L3 request plain `json` from Whisper and
+ * have no per-segment confidence for this decoder to consume.)
  */
 class MultiPassDecoder(
     private val recognizer: SpeechRecognizerL1,
@@ -149,6 +150,14 @@ class MultiPassDecoder(
             val start = pos
             while (pos < text.length && !text[pos].isWhitespace()) pos++
             val word = text.substring(start, pos)
+            // Skip pure-punctuation tokens ("—", "...", "?!"). The cross-pass
+            // tokenizer above drops them from `tokenLists`, so counting them
+            // here advanced `idx` past every disagreement position that followed:
+            // the flag landed on the NEXT word along, and an approved swap taught
+            // ProfileManager a correction the user never made. ClarifierAlignment
+            // applies the same filter on the target side (:42) — the two token
+            // streams must agree or the offsets drift again.
+            if (!word.any(Char::isLetterOrDigit)) continue
             val trimmedEnd = run {
                 var e = pos
                 while (e > start && !text[e - 1].isLetterOrDigit()) e--

@@ -233,9 +233,9 @@ class MultiPassDecoderTest {
     // ── Off-by-one: punctuation token vs word position ─
 
     @Test fun punctuationToken_doesNotShiftDisagreementPosition() = runBlocking {
-        // Primary has a comma after "hello" — the tokenizer strips punctuation,
-        // so "hello," maps to word idx 0 and "world" maps to idx 1.
-        // The disagreement walker also strips punctuation per spec, so positions align.
+        // ATTACHED punctuation only ("hello,"). Both tokenizers see two tokens
+        // here, so this case was always aligned — see the standalone-token tests
+        // below for the case that actually drifted.
         val decoder = MultiPassDecoder(
             multiRecognizer(mapOf(
                 0.0 to "hello, world",
@@ -250,6 +250,70 @@ class MultiPassDecoderTest {
         assertTrue(
             "Punctuation token should not break position alignment",
             second.multiPassDisagreements > 0
+        )
+    }
+
+    // ── Regression: STANDALONE punctuation token drift ──
+    //
+    // Whisper emits free-standing punctuation tokens ("hello — world",
+    // "wait ... no"). The cross-pass tokenizer drops them; the per-word walker
+    // used to count them. From the first such token onward every disagreement
+    // position was off by one, so the clarifier flagged the word AFTER the
+    // uncertain one — and an approved swap trained ProfileManager on a
+    // correction the user never made. L4 only, but silent and cumulative.
+
+    @Test fun standalonePunctuation_disagreementLandsOnCorrectWord() = runBlocking {
+        val decoder = MultiPassDecoder(
+            multiRecognizer(mapOf(
+                0.0 to "hello — world",
+                0.4 to "hello — earth",
+                0.8 to "hello — earth",
+            ))
+        )
+        val result = decoder.run(dummyFile)
+        val world = result.wordConfidences.first { it.word == "world" }
+        assertTrue(
+            "Disagreement must land on 'world', not on the token after the dash",
+            world.multiPassDisagreements > 0,
+        )
+        assertEquals(
+            "'hello' agreed across every pass and must stay unflagged",
+            0, result.wordConfidences.first { it.word == "hello" }.multiPassDisagreements,
+        )
+    }
+
+    @Test fun standalonePunctuation_emitsNoPunctuationOnlyEntry() = runBlocking {
+        val decoder = MultiPassDecoder(fixedRecognizer("hello — world ... ok"))
+        val result = decoder.run(dummyFile)
+        assertTrue(
+            "WordConfidence is one-per-WORD; punctuation-only tokens must not appear",
+            result.wordConfidences.none { wc -> wc.word.none(Char::isLetterOrDigit) },
+        )
+        assertEquals(3, result.wordConfidences.size)
+    }
+
+    @Test fun standalonePunctuation_rangesStillIndexPrimaryText() = runBlocking {
+        // "hello — world": w starts at 8, token ends at 13. A wrong range here
+        // is what corrupts the injected text on an approved swap.
+        val decoder = MultiPassDecoder(fixedRecognizer("hello — world"))
+        val result = decoder.run(dummyFile)
+        val world = result.wordConfidences.first { it.word == "world" }
+        assertEquals(8, world.rangeStart)
+        assertEquals(13, world.rangeEnd)
+    }
+
+    @Test fun standalonePunctuation_alternatesAttachToCorrectWord() = runBlocking {
+        val decoder = MultiPassDecoder(
+            multiRecognizer(mapOf(
+                0.0 to "wait ... world",
+                0.4 to "wait ... earth",
+                0.8 to "wait ... earth",
+            ))
+        )
+        val result = decoder.run(dummyFile)
+        assertTrue(
+            "'earth' must be offered as an alternate for 'world'",
+            result.wordConfidences.first { it.word == "world" }.nBestAlternates.contains("earth"),
         )
     }
 
