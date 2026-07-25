@@ -66,6 +66,13 @@ class BubbleMenu(
             displayMetrics = context.resources.displayMetrics,
             backgroundStyle = CommentBubbleDrawable.backgroundStyleFor(WimApp.bubbleTheme())
         )
+        // The bubble's opacity slider never governed this panel. It sets alpha on
+        // the bezel VIEW; the menu's surface is a drawable whose palette fill
+        // carries its own hardcoded 0xC0 (75%) alpha, so at OP 100 the user could
+        // still read the app underneath through the menu and had no control that
+        // did anything about it. Drive the drawable from the same pref: 100 is
+        // genuinely solid, lower values are as see-through as asked for.
+        applyMenuOpacity(v)
 
         // On-FILL text color (section labels, slider labels/values, Reset,
         // Settings) adapts per theme so it stays readable against the menu
@@ -150,6 +157,10 @@ class BubbleMenu(
                 val pct = progress.coerceIn(20, 100)
                 opacityValue.text = "$pct"
                 WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
+                // Repaint the panel itself as the slider moves, not just the
+                // bubble — otherwise the control appears to do nothing to the
+                // very surface the user is looking at while dragging it.
+                applyMenuOpacity(v)
                 onAppearanceChanged()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -347,6 +358,20 @@ class BubbleMenu(
         mParams.x = bubbleCenterX - mWidth / 2
         mParams.y = bubbleTop - mHeight + bezelTopOffset + tailOverlap
         try { windowManager.updateViewLayout(mView, mParams) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
+    }
+
+    /**
+     * Push the user's bubble-opacity preference into the menu panel's own
+     * background drawable.
+     *
+     * [CommentBubbleDrawable.setAlpha] overwrites the paint alpha rather than
+     * multiplying it, so 255 fully cancels the palette fill's baked-in 0xC0 and
+     * the panel becomes genuinely opaque at OP 100.
+     */
+    private fun applyMenuOpacity(root: View) {
+        val pct = WimApp.bubbleOpacity().coerceIn(20, 100)
+        root.background?.alpha = pct * 255 / 100
+        root.invalidate()
     }
 
     private fun openCloudUnlock() {
