@@ -3735,3 +3735,102 @@ coverage of the cloud and assistive flows.
 - A release build and a Play submission were repeatedly spoken about as though
   they were the same milestone. They are not. A working signed APK exists; the
   closed-test and reviewer gates remain external Play requirements.
+
+### Session Log — 2026-07-24 — Play-surface cold review + 4 fixes
+
+Read-only cold review scoped deliberately narrow: what gets the app rejected, and
+what silently hurts a real user. Six general audits already covered the whole
+codebase and their hit rate was mediocre, so this pass verified every claim
+against current source rather than against the audit memos. Nothing was compiled
+or run on a device here — CI was the only verifier. Commits `91ec055..9a9676e`,
+Build & Test green.
+
+**Verified clean** (recorded because prior audits called several of these wrong):
+`AgentSocketServer` returns before `instance` is ever assigned when
+`!BuildConfig.DEBUG`, so the accessibility event bridge is a null no-op in
+release. `relayToTermux` is gated the same way. Play purchase acknowledgement is
+handled server-side in `wim/api/billing_backend.py` and correctly acknowledges
+*before* granting entitlement. Provider keys have four independent guards: the
+`src/release/assets` overrides are 0 bytes, `androidResources.ignoreAssetsPattern`
+strips both filenames from every variant, a gradle task fails the build if either
+lands in `src/main/assets`, and CI greps the built AAB. The foreground-service
+MICROPHONE type is added in `startListening` and downgraded on all three stop
+paths plus at `onCreate`, matching the Play declaration. The notification carries
+the **STOP WiM** action the FGS declaration promises. Password fields do block
+recording. The live onboarding flow is fully implemented — all eleven reachable
+routes.
+
+**Fixed:**
+
+1. **Clarifier confidence landed on the wrong word (`91ec055`).**
+   `MultiPassDecoder` filtered punctuation-only tokens out of its cross-pass
+   token lists but counted them in the per-word walker. One standalone `—` or
+   `...` in the transcript shifted every later disagreement position by one, so
+   the clarifier flagged the word *after* the uncertain one — and an approved
+   swap wrote that into `ProfileManager`. The profile got worse the more the app
+   was used. The walker now applies the same alphanumeric filter the tokenizer
+   and `ClarifierAlignment:42` use. L4 only. Four regression tests added; the
+   pre-existing `punctuationToken_doesNotShiftDisagreementPosition` test only
+   covered *attached* punctuation (`"hello,"`), where both tokenizers agree,
+   which is exactly why this survived.
+
+2. **Password guard moved to the write boundary (`1d61961`).**
+   `startListening` refuses to record into a password field, but reconstruction
+   takes 1–15s and focus can move inside that window; `injectText` never
+   re-checked the node it resolved. Dictation could be typed into a password box.
+   Now re-detected at inject time, with the text preserved on the clipboard.
+
+3. **`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` dropped (`93fda0f`).**
+   All three call sites now open `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`,
+   which needs no permission, instead of the one-tap dialog that does. Grant
+   detection via `isIgnoringBatteryOptimizations` is unchanged and still
+   auto-advances onboarding; the user pays two extra taps and the copy now says
+   what to look for. Removes a documented rejection trigger for overlay apps.
+
+4. **Five orphaned onboarding routes and `StubScreen` deleted (`93fda0f`).**
+   `any-app`, `layers`, `tones`, `learns`, `interactive-demo` — unreachable from
+   WELCOME but still compiled into the release bundle rendering `[TODO] <route>`.
+
+5. **CI stopped skipping the Crashlytics native symbol upload (`9a9676e`).**
+   `build.gradle.kts` finalizes `bundleRelease` with
+   `uploadCrashlyticsSymbolFileRelease`; CI passed `-x` for it, so no shipped
+   build has ever had symbols uploaded and sherpa-onnx native crashes would have
+   come back as bare addresses. Verified green with the exclusion removed.
+
+**Still open — unchanged by this session.** Dead bubble on mid-session overlay
+revoke; pre-pipeline regex on Main at the Processing transition; PROLONGATION
+mangling real words on L1 Cloud; `TextToSpeech` never shut down;
+`WhisperLocalModelDownloader` size-sanity but no hash; Auto Quiet cutoff still
+measurement-blocked. Play gates remain external: 12 testers × 14 continuous days,
+the reviewer video, first AAB upload with Play App Signing then re-copying the
+signing SHA into Firebase, and the phone matrix. `release_console_checklist.md`
+says price `wim_cloud_monthly` at $5.99; the 2026-07-16 pricing analysis
+concluded $9.99. Unresolved — the repo and the analysis disagree.
+
+### Failure Log — 2026-07-24
+
+- **Said the Compose onboarding was "11 of 13 stub screens" while summarizing
+  state to the operator.** That was true on 2026-06-06 and I read it out of this
+  README without checking the current nav graph. Every reachable route has been
+  implemented for weeks; the only stubs left were orphans. Correcting a stale
+  README line in front of the operator is not the same as verifying it. **Age a
+  claim before repeating it — a session log is a record of what was true then.**
+- **Reported the release `api_key.txt` / `anthropic_key.txt` assets as making the
+  README's debug-fallback claim false, before checking how keys are actually
+  loaded.** They come from SharedPreferences behind a `BuildConfig.DEBUG` gate;
+  nothing reads those assets at all. Caught it while editing the README and
+  retracted the finding instead of shipping a wrong "fix". The asset guards are
+  vestigial defence-in-depth, not the live path.
+- **Nearly reported `setForegroundMicActive` as dead code.** The grep that
+  "proved" it had no callers used a pattern that did not include the function's
+  own name. A second look found five call sites and the FGS declaration was
+  accurate all along. **A negative result from grep is only as good as the
+  pattern; print the pattern's own hits before concluding absence.**
+- **`git add -A` put four unrelated concerns into one commit** whose message
+  described only the clarifier fix. Reset and split into four before pushing. The
+  Crashlytics CI change in particular needed to be separable — it was the one
+  most likely to redden the build and need a clean revert.
+- **The `-x uploadCrashlyticsSymbolFileRelease` exclusion was assumed to be
+  load-bearing** ("probably added because the task was failing"). It was not —
+  removing it built green first try. The assumption nearly became a reason not to
+  fix it.
