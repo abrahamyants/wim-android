@@ -185,7 +185,13 @@ class BouncerActivity : AppCompatActivity() {
         }
         whereIds.forEach { (id, value) ->
             findViewById<TextView>(id).setOnClickListener {
-                WimApp.prefs.edit().putString("work_setup", value).apply()
+                // `work_location`, NOT `work_setup`. This group asks where the
+                // user works (office/hybrid/remote/mobile); the Compose
+                // onboarding's `work_setup` asks what they use WiM for
+                // (work/life/both) and feeds ToneRouting. They were sharing one
+                // key with incompatible vocabularies, so whichever screen the
+                // user happened to see decided what the other one meant.
+                WimApp.prefs.edit().putString("work_location", value).apply()
                 pickFromGroup(whereIds.keys, id)
             }
         }

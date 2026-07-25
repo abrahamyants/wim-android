@@ -191,7 +191,21 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
 
         val currentTone = prefs.getString("tone", "casual") ?: "casual"
         val learned = prefs.getString(ToneRouting.learnedKey(packageName), null)
-        val newTone = when (val decision = ToneRouting.decide(packageName, learned)) {
+        // The onboarding profile's two tone questions finally get read here.
+        // Clock is taken in the device's own timezone — the whole point of
+        // "YOUR HOURS" is that it's the user's day, not UTC.
+        val now = java.util.Calendar.getInstance()
+        val decision = ToneRouting.decide(
+            packageName = packageName,
+            learnedTone = learned,
+            workSetup = prefs.getString("work_setup", null),
+            workHours = prefs.getString("work_hours", null),
+            hourOfDay = now.get(java.util.Calendar.HOUR_OF_DAY),
+            isWeekend = now.get(java.util.Calendar.DAY_OF_WEEK).let {
+                it == java.util.Calendar.SATURDAY || it == java.util.Calendar.SUNDAY
+            },
+        )
+        val newTone = when (decision) {
             is ToneRouting.Decision.Use -> decision.tone
             // Unknown app, never asked about. Leaving the previous app's tone in
             // place is a silent wrong answer — the user dictates into an unlisted

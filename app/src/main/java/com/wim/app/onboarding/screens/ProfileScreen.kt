@@ -43,9 +43,15 @@ import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
  * Profile seed — Calm-dark. Two single-tap questions that calibrate the tone engine
- * from message one: "mostly for" (work_setup) and "your hours" (work_hours). Writes the
- * SAME prefs the full profile screen + tone inference already read (values match
- * BouncerActivity/MainActivity: work/life/both and morning/nine_to_five/evening/flexible).
+ * from message one: "mostly for" (work_setup) and "your hours" (work_hours). Both are
+ * read by [com.wim.app.ToneRouting], which decides work-vs-casual per app and only
+ * falls back to asking the user when these can't settle it.
+ *
+ * Corrected 2026-07-25: this comment used to claim the values matched
+ * BouncerActivity's. They did not — Bouncer wrote 9to5/night_owl/shifts/off_clock for
+ * hours and office/hybrid/remote/mobile into work_setup, which is a "where do you work"
+ * answer, not a "what do you use this for" one. Bouncer's location group now writes
+ * work_location; ToneRouting normalises both hour vocabularies.
  * Defaults pre-selected + written, so a fast-tapper still seeds something sane. The deeper
  * profile inputs (industry, vocabulary, corrections) stay in the profile screen — onboarding
  * asks only the two that change the very first message. Per George briefing 2026-06-20.
