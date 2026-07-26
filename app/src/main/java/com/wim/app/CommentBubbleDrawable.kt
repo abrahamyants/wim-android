@@ -299,11 +299,19 @@ class CommentBubbleDrawable(
             val sliderTrack: Int,
         )
 
-        // Menu background fill colors at ~50% alpha (0x80) per George 2026-04-30:
+        // Menu background fill is FULLY OPAQUE (0xFF). It was 0x80, then 0xC0 —
+        // a hardcoded translucency the bubble's opacity slider never reached,
+        // because the slider sets alpha on the bezel VIEW and this is a
+        // drawable. At OP 100 the operator could still read the app through
+        // the menu and no setting did anything about it. The slider now drives
+        // this drawable's alpha (see BubbleMenu.applyMenuOpacity), so 100 is
+        // genuinely solid and anything less is see-through on purpose. Baking
+        // the base at 0xFF means that holds even if the runtime call is ever
+        // missed on some path.
         // background only, the floating bubble itself stays opaque (user controls
         // bubble opacity via the OP slider).
         val BRONZE = Palette(
-            fill = 0xC0C4A574.toInt(),       // mid-warm copper @ 50% alpha
+            fill = 0xFFC4A574.toInt(),       // mid-warm copper, opaque
             stroke = 0xFFB55050.toInt(),     // maroon (matches bubble bezel stroke)
             primaryText = 0xFF1F1208.toInt(),
             secondaryText = 0xFF4A2F18.toInt(),
@@ -312,7 +320,7 @@ class CommentBubbleDrawable(
         )
 
         val ALUMINUM = Palette(
-            fill = 0xC0C8C8CE.toInt(),       // brushed silver @ 50% alpha
+            fill = 0xFFC8C8CE.toInt(),       // brushed silver, opaque
             stroke = 0xFFB55050.toInt(),
             primaryText = 0xFF1A1A20.toInt(),
             secondaryText = 0xFF45454F.toInt(),
@@ -321,7 +329,7 @@ class CommentBubbleDrawable(
         )
 
         val GUNMETAL = Palette(
-            fill = 0xC02E2E36.toInt(),       // dark brushed steel @ 50% alpha
+            fill = 0xFF2E2E36.toInt(),       // dark brushed steel, opaque
             stroke = 0xFFB55050.toInt(),
             primaryText = 0xFFF0E8D8.toInt(),
             secondaryText = 0xFFC8B48A.toInt(), // brand cream
