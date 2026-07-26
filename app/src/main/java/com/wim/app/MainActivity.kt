@@ -1402,7 +1402,22 @@ class MainActivity : AppCompatActivity() {
                     setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
                 }
                 setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
-                WimApp.prefs.edit().putString(prefKey, values[i]).apply()
+                val edit = WimApp.prefs.edit().putString(prefKey, values[i])
+                if (prefKey == "tone") {
+                    // Picking a tone here is also a correction of whatever
+                    // ToneRouting learned for the app the user was last in, and
+                    // it has to be, because the bezel tap that used to teach the
+                    // router was removed on 2026-07-25 (it was stealing taps
+                    // meant for record). Without this, a wrong learned answer is
+                    // permanent: the picker sets the global tone, the router
+                    // overwrites it on the next window event, and the user has no
+                    // way to disagree.
+                    edit.putLong("manual_tone_set_ms", System.currentTimeMillis())
+                    WimAccessibilityService.currentForegroundPackage
+                        ?.takeIf { pkg -> pkg.isNotBlank() && pkg != packageName }
+                        ?.let { pkg -> edit.putString(ToneRouting.learnedKey(pkg), values[i]) }
+                }
+                edit.apply()
                 refreshHeaderBadges()
             }
         }

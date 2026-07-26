@@ -1196,15 +1196,12 @@ class BubbleService : Service() {
                     // voice channel for clarifier review).
                     val pressDurationMs = System.currentTimeMillis() - downTime
 
-                    // Press-and-hold while recording = throw the take away.
-                    // A normal tap stops and sends, so cancel needs a gesture the
-                    // user cannot fire by accident mid-sentence. Excluded when the
-                    // recording was STARTED by holding (holdModeActive), because
-                    // there releasing the hold is the normal way to finish.
-                    if (isRecording && !holdModeActive && pressDurationMs >= 500L) {
-                        cancelRecording()
-                        return@setOnTouchListener true
-                    }
+                    // No cancel gesture. Press-and-hold was tried on 2026-07-25
+                    // and reverted the same day: press-and-hold IS how the user
+                    // records a short message, so binding cancel to it makes one
+                    // finger motion mean "send this" or "destroy this" depending
+                    // on invisible state. cancelRecording() is kept for a future
+                    // gesture that isn't already spoken for.
 
                     if (pressDurationMs >= 500L &&
                         BubbleStateBus.current() is BubbleState.Clarifying
