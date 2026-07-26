@@ -245,15 +245,53 @@ object WhisperClient {
             )
         }
 
-    private fun executeJson(request: Request, service: String): String =
-        http.newCall(request).execute().use { response ->
-            val body = response.body?.string()
-                ?: throw RuntimeException("Empty response from $service")
-            if (!response.isSuccessful) {
-                throw RuntimeException("$service error ${response.code}: $body")
+    /**
+     * The single point every cloud transcription goes through — and, until
+     * 2026-07-26, a one-shot. No retry existed anywhere in this client, so a
+     * dropped packet, a carrier handover, or one 503 from OpenAI lost the take
+     * outright. That is the worst possible thing to lose: the audio is already
+     * gone by the time this fails, and the user cannot reproduce a sentence
+     * they had to fight through a block to say once.
+     *
+     * Retries only what can plausibly succeed on a second attempt — transport
+     * failures, 429, and 5xx. A 4xx is the request being wrong and will be
+     * wrong again. Backoff is deliberately short: the user is watching the
+     * bubble, so the ceiling on added latency is about 1.6 seconds.
+     */
+    private fun executeJson(request: Request, service: String): String {
+        var lastError: Exception? = null
+        for (attempt in 0..MAX_TRANSPORT_RETRIES) {
+            try {
+                http.newCall(request).execute().use { response ->
+                    val body = response.body?.string()
+                        ?: throw RuntimeException("Empty response from $service")
+                    if (response.isSuccessful) return body
+                    val retryable = response.code == 429 || response.code >= 500
+                    val error = RuntimeException("$service error ${response.code}: $body")
+                    if (!retryable) throw error
+                    lastError = error
+                }
+            } catch (e: java.io.IOException) {
+                lastError = e
             }
-            body
+            if (attempt < MAX_TRANSPORT_RETRIES) {
+                android.util.Log.w(
+                    "WiM.Whisper",
+                    "$service attempt ${attempt + 1} failed (${lastError?.message?.take(80)}) — retrying",
+                )
+                try {
+                    Thread.sleep(RETRY_BACKOFF_MS[attempt])
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                }
+            }
         }
+        throw lastError ?: RuntimeException("$service failed")
+    }
+
+    private const val MAX_TRANSPORT_RETRIES = 2
+    private val RETRY_BACKOFF_MS = longArrayOf(400L, 1_200L)
 
     internal fun stripHallucinationsForTest(text: String): String = stripHallucinations(text)
 

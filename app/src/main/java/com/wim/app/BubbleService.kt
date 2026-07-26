@@ -2964,8 +2964,14 @@ class BubbleService : Service() {
                 // Includes the actual numbers (wps, baseline, ratio percent)
                 // so the model sees the diagnostic, not just the severity bump.
                 val compressionRatioNote = if (rateGap.gapDetected) {
-                    val wpsStr = "%.2f".format(rateGap.wps)
-                    val baselineStr = rateGap.baselineWps?.let { "%.2f".format(it) } ?: "?"
+                    // Locale.US on purpose: this string goes into the model
+                    // prompt, not onto the screen. On a French or Russian
+                    // device the default locale renders "1,25", and a decimal
+                    // comma inside a machine-facing note is a needless way to
+                    // confuse the thing reading it.
+                    val wpsStr = String.format(java.util.Locale.US, "%.2f", rateGap.wps)
+                    val baselineStr = rateGap.baselineWps
+                        ?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "?"
                     val ratioPct = ((rateGap.ratio ?: 0.0) * 100).toInt()
                     "Speaker produced $wpsStr words/sec vs their baseline of $baselineStr wps " +
                         "($ratioPct% of baseline). Low ratio = ASR likely dropped content during " +
