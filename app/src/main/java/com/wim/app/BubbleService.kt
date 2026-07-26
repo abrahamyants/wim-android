@@ -1987,11 +1987,31 @@ class BubbleService : Service() {
             // background fetch; usually completes within minutes of first
             // launch. Subsequent taps work normally once the model lands.
             Log.w(TAG, "whisper-tiny model not ready — refusing recording (no fallback to native ASR)")
-            android.widget.Toast.makeText(
-                this,
-                "Speech model still downloading — try again in a moment",
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
+            // "Try again in a moment" was a lie whenever the one download
+            // attempt from WimApp.onCreate had already failed: nothing on any
+            // code path ever retried, so the user could tap forever behind that
+            // toast. Kick a retry off the refusal itself, and say which of the
+            // two situations they are actually in.
+            val started = WhisperLocalModelDownloader.ensureDownloading(this, scope) { result ->
+                scope.launch {
+                    val msg = when (result) {
+                        is WhisperLocalModelDownloader.Result.Success ->
+                            "Speech model ready — tap to record"
+                        is WhisperLocalModelDownloader.Result.Failed ->
+                            "Speech model download failed: ${result.reason.take(60)}. " +
+                                "Switch Layer I to Cloud in the menu to dictate now."
+                    }
+                    Toast.makeText(this@BubbleService, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+            val note = when {
+                started -> "Speech model downloading — one moment"
+                WhisperLocalModelDownloader.inProgress -> "Speech model still downloading…"
+                else -> WhisperLocalModelDownloader.lastFailure
+                    ?.let { "Speech model unavailable: ${it.take(60)}" }
+                    ?: "Speech model still downloading — try again in a moment"
+            }
+            Toast.makeText(this, note, Toast.LENGTH_LONG).show()
             setBubbleIdle()
         }
     }

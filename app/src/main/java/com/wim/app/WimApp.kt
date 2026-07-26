@@ -303,6 +303,21 @@ class WimApp : Application() {
                     } else if (progress.stage == "Downloaded") {
                         android.util.Log.i("WiM", "whisper-tiny.en model Downloaded (unpacking…)")
                     }
+                }.let { result ->
+                    // The Result used to be discarded entirely, so a failed
+                    // download was completely silent — the user found out by
+                    // tapping the bubble and being told to try again, forever.
+                    if (result is WhisperLocalModelDownloader.Result.Failed) {
+                        android.util.Log.e("WiM", "whisper-tiny.en download failed: ${result.reason}")
+                        mainHandler.post {
+                            android.widget.Toast.makeText(
+                                this@WimApp,
+                                "Speech model didn't download (${result.reason.take(50)}). " +
+                                    "Layer I Cloud works meanwhile; tapping the bubble retries.",
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    }
                 }
             }
         }

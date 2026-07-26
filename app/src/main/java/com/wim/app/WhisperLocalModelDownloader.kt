@@ -3,6 +3,8 @@ package com.wim.app
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -48,6 +50,45 @@ object WhisperLocalModelDownloader {
     // mid-stream surface to the user as opaque "Download failed".
     private val downloadMutex = Mutex()
 
+    /**
+     * True while a download attempt is running. Lets callers ask "is one
+     * already in flight?" without blocking on [downloadMutex], so the bubble
+     * can kick off a retry when the user taps and the model still isn't there,
+     * without stacking a second attempt on top of a live one.
+     */
+    @Volatile
+    var inProgress: Boolean = false
+        private set
+
+    /** Reason the last attempt failed, or null. Surfaced to the user so a
+     *  failed download stops looking like a slow one. */
+    @Volatile
+    var lastFailure: String? = null
+        private set
+
+    /**
+     * Start a download if the model is missing and nothing is already trying.
+     * Safe to call on every refused recording — that is the point. The
+     * original code fired the download exactly once from `WimApp.onCreate` and
+     * never again, so a single failed attempt left the user permanently stuck
+     * behind a toast reading "try again in a moment" while nothing on any code
+     * path would ever try again.
+     *
+     * @return true if an attempt was started by this call.
+     */
+    fun ensureDownloading(
+        context: Context,
+        scope: kotlinx.coroutines.CoroutineScope,
+        onDone: (Result) -> Unit = {},
+    ): Boolean {
+        if (isInstalled(context) || inProgress) return false
+        scope.launch(Dispatchers.IO) {
+            val r = downloadAndUnpack(context) { }
+            onDone(r)
+        }
+        return true
+    }
+
     data class Progress(val bytesDone: Long, val bytesTotal: Long, val stage: String)
 
     sealed class Result {
@@ -74,7 +115,41 @@ object WhisperLocalModelDownloader {
             tokens.exists() && tokens.length() > 0
     }
 
+    /**
+     * Download with retries. A single transient failure — a WiFi handover, a
+     * slow GitHub, the process being backgrounded mid-stream — used to be
+     * terminal: one attempt, result discarded, user stuck. Three attempts with
+     * backoff covers the overwhelming majority of those without a user ever
+     * seeing it.
+     */
     suspend fun downloadAndUnpack(
+        context: Context,
+        onProgress: (Progress) -> Unit
+    ): Result {
+        if (isInstalled(context)) return Result.Success(modelDir(context))
+        inProgress = true
+        try {
+            var last: Result = Result.Failed("not attempted")
+            for (attempt in 1..MAX_ATTEMPTS) {
+                last = attemptDownload(context, onProgress)
+                if (last is Result.Success) {
+                    lastFailure = null
+                    return last
+                }
+                Log.w(TAG, "attempt $attempt/$MAX_ATTEMPTS failed: ${(last as Result.Failed).reason}")
+                if (attempt < MAX_ATTEMPTS) delay(RETRY_BACKOFF_MS * attempt)
+            }
+            lastFailure = (last as? Result.Failed)?.reason
+            return last
+        } finally {
+            inProgress = false
+        }
+    }
+
+    private const val MAX_ATTEMPTS = 3
+    private const val RETRY_BACKOFF_MS = 3_000L
+
+    private suspend fun attemptDownload(
         context: Context,
         onProgress: (Progress) -> Unit
     ): Result = downloadMutex.withLock { withContext(Dispatchers.IO) {
