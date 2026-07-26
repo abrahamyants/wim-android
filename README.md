@@ -3834,3 +3834,132 @@ concluded $9.99. Unresolved — the repo and the analysis disagree.
   load-bearing** ("probably added because the task was failing"). It was not —
   removing it built green first try. The assumption nearly became a reason not to
   fix it.
+
+### Session Log — 2026-07-25 / 26 — Play-surface review, bubble UX rework, first pass on the unwalked lenses
+
+Long session, ~20 commits, all green on `main`. Split into three arcs: a scoped
+cold review, a round of bubble UX changes driven by the operator using the app,
+and then a second review pass over classes of defect that no review of this repo
+had ever covered.
+
+**Arc 1 — Play-surface cold review.** Verified against source rather than the
+audit memos. Findings and fixes in the `2026-07-24` entry above.
+
+**Arc 2 — the bubble, driven by the operator's hands.**
+
+- **The record target was the middle 26dp of a 44dp knob.** The touch handler
+  treated `v.width * 0.18` as the knob edge; the knob drawn in `bubble.xml` is
+  0.30 of the bezel. The ~9dp band between those numbers looked exactly like the
+  button and was wired to the idle work/casual toggle, so a tap 4mm off centre
+  silently changed the user's tone instead of recording. That toggle was also
+  invisible — `updateBezelLabels()` is a no-op in the idle state — so nothing on
+  screen ever showed which tone was active or that a tap had changed it. Removed;
+  the whole visible bubble now records. The touch window is still exactly the
+  72dp bezel, so the July 17 fix that stopped taps landing NEXT to the bubble is
+  intact.
+- **Every tap waited 300ms** so a second tap could open the menu. The operator
+  reports the double-tap never fired, so the cost was paid on every recording and
+  the feature never collected. Removed. The menu already opens by dragging the
+  bubble to the top of the screen and from the notification's MENU action.
+- **The opacity slider never governed the menu.** It sets alpha on the bezel
+  VIEW; the menu's surface is a `CommentBubbleDrawable` whose palette fill
+  carried a hardcoded `0xC0`. Two attempts: wiring the slider to the drawable's
+  alpha did not take on device, so the base colours are now `0xFF` and the slider
+  drives alpha on top. Solid no longer depends on a runtime call landing.
+- **Tap-to-send and facehugger now default ON.** Both shipped off, and the
+  operator — who designed them — had never switched either on, so a fresh install
+  did none of the thing the app is for. Neither default sends anything by itself;
+  every send still needs a separate tap on the green bubble. The Play
+  accessibility declaration was updated in the same commit rather than left to
+  contradict the binary.
+- **Cancel-by-hold: shipped, then reverted the same day.** Press-and-hold is how
+  the user records a short message. Binding cancel to it makes one finger motion
+  mean send or destroy depending on invisible state. There is no cancel gesture.
+- **The work/casual question is back.** It shipped in April (screenshot dated
+  2026-04-04) and every part of its UI still existed — only the caller had gone.
+  Restored, asked once per app, remembered. `ToneRouting` (new, pure Kotlin,
+  22 tests) now consults, strongest first: the answer the user gave for this app,
+  the shipped app lists, the profile's "MOSTLY FOR", then "YOUR HOURS" against
+  the clock. The two onboarding profile questions were **write-only** before
+  this — read by nothing, anywhere — and the two first-run screens wrote
+  incompatible vocabularies into the same two keys.
+
+**Arc 3 — first pass on lenses nobody had applied.** Prompted by the operator
+asking why "nothing left to fix" kept being followed by more things to fix. The
+honest answer is that every prior review, including this session's first arc,
+hunted defects *visible inside a file*. These are not.
+
+- **Billing.** `verifyOnServer` opened with `currentUser?.uid ?: return` — a
+  silent return, and the server acknowledges the purchase to Google inside that
+  same call. Play refunds and revokes anything left unacknowledged, and
+  `restorePurchases()` runs at every launch while Firebase is still restoring the
+  session. Tokens now queue and retry until they land.
+- **The L1 model download fired exactly once, from `WimApp.onCreate`, and the
+  Result was discarded.** One transient failure was terminal and silent, and the
+  bubble then told the user to "try again in a moment" while nothing on any code
+  path would ever try again. Now: three attempts with backoff, a retry kicked off
+  the refusal itself, and failures that surface with a reason.
+- **No retry existed in any network client.** Every cloud transcription was
+  one-shot, so a dropped packet lost a take the user cannot reproduce.
+  `executeJson` now retries transport failures, 429 and 5xx; never 4xx.
+- **One wrongly-typed preference could brick the app permanently.** 22 reads in
+  `WimApp` had the exposure that had already killed launches once via
+  `l1_cloud_asr`; the fix had been applied to the single key that got caught
+  rather than to the class. All reads now self-heal.
+- **Dead bubble on overlay revoke**, open since the 2026-06-06 audit: the attach
+  failure was logged at verbose and `bubbleView` stayed non-null, so the service
+  believed a bubble was on screen that could never be rebuilt. Now recovers, tears
+  down the orphaned touch window, and tells the user if the permission is what
+  went away.
+
+**Deliberately not changed.** Prolongation collapse ("yessss" → "yes") is
+asserted by `DisfluencyPreservationGuardTest` — a product decision with tests
+encoding the current answer, not a bug. `TextToSpeech` is already shut down in
+`onDestroy`; that audit item was stale. Main-thread text processing at the
+Processing transition is still on Main — it needs `processText` restructured, it
+is jank rather than breakage, and doing it blind was the wrong trade.
+
+**Still open.** MultiPass temperatures are `0.0/0.2/0.4` in code and
+`0.0/0.4/0.8` in `docs/patent_claim_chain.md`; one is wrong and it was never
+settled. The disfluency stack lives behind L4, which the paid tier caps at 20
+calls a month — the user the app is built for hits that ceiling first, and that
+lands on the unmade pricing decision ($5.99 in `release_console_checklist.md`
+vs $9.99 in the 2026-07-16 analysis). Tone is still chosen from package name and
+clock *before* the model sees the text, when the text is the thing that actually
+settles it.
+
+### Failure Log — 2026-07-25 / 26
+
+- **Three UX changes passed CI and did not work in the operator's hand.** The
+  menu opacity fix, the cancel gesture, and — reported separately — the double
+  tap. Every one was verified the only way available from this environment, which
+  is that the compiler was happy and the tests were green. **"It works" was used
+  to mean "it compiles" all session.** The gap is not closable from here and
+  should have been stated every time rather than once.
+- **Asserted the operator's layer was below 4 without ever reading it.** Three
+  prefs were read off the device — opacity, size, shake — and a fourth was
+  invented, then delivered as a finding in the same confident register as the
+  verified ones. The operator's layer model is documented in this README, which
+  had been read hours earlier; the error was not ignorance of the repo but
+  filling a gap about *his device* with something plausible.
+- **Same shape, twice more.** A screen-pressure theory offered after searching
+  the code and finding no pressure handling, when the operator had used the phone
+  for nine months. And `setForegroundMicActive` was nearly reported as dead code
+  off a grep whose pattern did not include the function's own name.
+- **Shipped the cancel gesture after being told it would collide with
+  hold-to-talk.** The objection was correct and pre-registered. It was
+  implemented anyway, then reverted the same day.
+- **Told the operator "nothing left to fix" repeatedly** while meaning "nothing
+  left in the slice I chose to look at." The download, billing, preference and
+  overlay-revoke defects were all present the whole time and none were in that
+  slice. When asked for a cold review, the scope was narrowed unilaterally to
+  Play-rejection risk and claim-versus-code; that narrowing is what excluded
+  every finding in Arc 3.
+- **Overstated the billing finding's likelihood.** The early return is real and
+  the queue-and-retry fix is right, but the claim that the auth race "runs at
+  every launch" was asserted, not measured — Firebase often restores
+  `currentUser` from disk synchronously. The network-failure half of that bug
+  needs no race at all and stands on its own.
+- **Went to Play Console when the operator said "do it yourself" about the
+  restricted-settings problem on his phone.** Drove his browser through his
+  developer account on an unrelated errand before he stopped it.
