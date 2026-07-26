@@ -2501,6 +2501,38 @@ class BubbleService : Service() {
     private fun updateBubbleWindowLayout(view: View, params: WindowManager.LayoutParams) {
         try {
             windowManager?.updateViewLayout(view, params)
+        } catch (e: IllegalArgumentException) {
+            // "View not attached to window manager" — the overlay grant was
+            // revoked, or the window was torn down, while the service kept
+            // running. The old code logged at verbose and carried on, so
+            // `bubbleView` stayed non-null: the service believed a bubble was
+            // on screen that the user could no longer see or touch. Every
+            // subsequent showBubble() returned early because bubbleView != null,
+            // so the bubble could never come back without killing the service.
+            //
+            // Drop the reference so the next show rebuilds it, and say so
+            // rather than leaving the user with a dead app and no explanation.
+            Log.w(TAG, "bubble window is gone (${e.javaClass.simpleName}) — clearing state so it can be rebuilt")
+            bubbleView = null
+            bubbleParams = null
+            // The invisible touch window is a separate overlay and outlives the
+            // visual one. Left behind it would keep swallowing taps in the
+            // bubble's old position with nothing drawn there.
+            bubbleTouchView?.let { tv ->
+                try { windowManager?.removeView(tv) } catch (_: Exception) {}
+            }
+            bubbleTouchView = null
+            bubbleTouchParams = null
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                try {
+                    Toast.makeText(
+                        this,
+                        "WiM lost permission to draw over apps — re-enable it to get the bubble back",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                } catch (_: Exception) {}
+            }
+            return
         } catch (e: Exception) {
             Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}")
         }
