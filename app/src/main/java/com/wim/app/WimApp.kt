@@ -47,18 +47,56 @@ class WimApp : Application() {
             if (!BuildConfig.DEBUG) return ""
             return prefs.getString("anthropic_api_key", "") ?: ""
         }
-        fun tone(): String = prefs.getString("tone", "casual") ?: "casual"
+
+        /**
+         * Type-safe preference reads.
+         *
+         * SharedPreferences throws ClassCastException when a key holds a
+         * different type than the getter asks for, and these are read from
+         * WimApp.onCreate — so ONE wrongly-typed value makes the app
+         * unlaunchable, permanently, with clearing app data (and the user's
+         * whole speech profile) as the only way out.
+         *
+         * That is not hypothetical: it already happened to `l1_cloud_asr`,
+         * which is why that one accessor grew a hand-written try/catch. A test
+         * broadcast wrote a String where a Boolean was expected and the next
+         * launch died. Twenty-two other reads had the same exposure and no
+         * protection. These helpers self-heal instead: drop the bad value,
+         * return the default, start.
+         */
+        private fun prefBool(key: String, def: Boolean): Boolean = try {
+            prefs.getBoolean(key, def)
+        } catch (_: ClassCastException) {
+            android.util.Log.w("WiM", "pref '$key' held a non-boolean — clearing")
+            prefs.edit().remove(key).apply(); def
+        }
+
+        private fun prefInt(key: String, def: Int): Int = try {
+            prefs.getInt(key, def)
+        } catch (_: ClassCastException) {
+            android.util.Log.w("WiM", "pref '$key' held a non-int — clearing")
+            prefs.edit().remove(key).apply(); def
+        }
+
+        private fun prefStr(key: String, def: String): String = try {
+            prefs.getString(key, def) ?: def
+        } catch (_: ClassCastException) {
+            android.util.Log.w("WiM", "pref '$key' held a non-string — clearing")
+            prefs.edit().remove(key).apply(); def
+        }
+
+        fun tone(): String = prefStr("tone", "casual")
         /**
          * Default layer is 1 — users land on the fully-local WhisperLocalEngine
          * + Disfluency filter path on first launch. L2+ opts them into cloud
          * GPT-4o reconstruction; L4 adds Sonnet ET. Flip via the bubble menu
          * or settings.
          */
-        fun layer(): Int = prefs.getInt("layer", 1)
+        fun layer(): Int = prefInt("layer", 1)
         /** A cached UI hint only; the backend independently enforces access. */
         fun cloudUnlocked(): Boolean {
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
-            return prefs.getBoolean("cloud_unlocked", false) &&
+            return prefBool("cloud_unlocked", false) &&
                 prefs.getString("cloud_unlock_uid", null) == uid
         }
 
@@ -72,12 +110,12 @@ class WimApp : Application() {
         fun clearCloudUnlock() {
             prefs.edit().remove("cloud_unlocked").remove("cloud_unlock_uid").apply()
         }
-        fun situation(): String = prefs.getString("situation", "default") ?: "default"
-        fun dafEnabled(): Boolean = prefs.getBoolean("daf_enabled", false)
-        fun dafDelay(): Int = prefs.getInt("daf_delay", 100)
-        fun bubbleOpacity(): Int = prefs.getInt("bubble_opacity", 100)
-        fun bubbleSize(): Int = prefs.getInt("bubble_size", 95)
-        fun bubbleTheme(): String = prefs.getString("bubble_theme", "bronze") ?: "bronze"
+        fun situation(): String = prefStr("situation", "default")
+        fun dafEnabled(): Boolean = prefBool("daf_enabled", false)
+        fun dafDelay(): Int = prefInt("daf_delay", 100)
+        fun bubbleOpacity(): Int = prefInt("bubble_opacity", 100)
+        fun bubbleSize(): Int = prefInt("bubble_size", 95)
+        fun bubbleTheme(): String = prefStr("bubble_theme", "bronze")
 
         /**
          * L1 ASR source toggle. FALSE = local whisper-tiny.en (default,
@@ -87,17 +125,7 @@ class WimApp : Application() {
          * auto-flips to cloud because whisper-tiny.en is English-only;
          * a user-facing toggle is not yet wired into the bubble menu.
          */
-        fun l1CloudAsr(): Boolean = try {
-            prefs.getBoolean("l1_cloud_asr", false)
-        } catch (_: ClassCastException) {
-            // Self-heal if a test broadcast stored the wrong type for this key
-            // (set_pref defaults to type="string", so `--es value "false"`
-            // without `--es type bool` writes a String here and the next read
-            // crashes WimApp.onCreate). Clear the bad value, return the safe
-            // default so the app starts instead of dying on launch.
-            prefs.edit().remove("l1_cloud_asr").apply()
-            false
-        }
+        fun l1CloudAsr(): Boolean = prefBool("l1_cloud_asr", false)
 
         /**
          * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps
@@ -109,7 +137,7 @@ class WimApp : Application() {
          *   high   → 0.40 (catches more, occasional false positive)
          */
         fun clarifierSensitivityThreshold(): Double = when (
-            prefs.getString("clarifier_sensitivity", "medium") ?: "medium"
+            prefStr("clarifier_sensitivity", "medium")
         ) {
             // Word-confidence scores from MultiPassDecoder are in 0..1, so
             // a threshold ≥ 1.0 means nothing ever crosses → Clarifier.evaluate
@@ -131,7 +159,7 @@ class WimApp : Application() {
          * does NOT want a "did you mean" prompt.
          */
         fun clarifierBlacklistedApps(): Set<String> {
-            val raw = prefs.getString("clarifier_blacklist_apps", "") ?: ""
+            val raw = prefStr("clarifier_blacklist_apps", "")
             return raw.split('\n')
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
@@ -149,7 +177,7 @@ class WimApp : Application() {
          * no sentence-boundary candidates feeding the clarifier). Default
          * true — surfaces value early; user can disable in MainActivity.
          */
-        fun predictionsEnabled(): Boolean = prefs.getBoolean("predictions_enabled", true)
+        fun predictionsEnabled(): Boolean = prefBool("predictions_enabled", true)
 
         /**
          * Tap-to-send assist lets the bubble offer to click the app's Send
@@ -165,7 +193,7 @@ class WimApp : Application() {
          * text was updated alongside this, since it previously described the
          * assist as something the user switches on.
          */
-        fun autoSendEnabled(): Boolean = prefs.getBoolean("auto_send_enabled", true)
+        fun autoSendEnabled(): Boolean = prefBool("auto_send_enabled", true)
 
         /**
          * Facehugger: on send-ready, the bubble relocates onto the host app's
@@ -173,14 +201,14 @@ class WimApp : Application() {
          * ON by default as of 2026-07-25 — same reasoning. It moves the bubble;
          * it does not send. The tap still does.
          */
-        fun facehuggerSendEnabled(): Boolean = prefs.getBoolean("facehugger_send", true)
+        fun facehuggerSendEnabled(): Boolean = prefBool("facehugger_send", true)
 
         /**
          * How many times the disclaimer has been shown + confirmed. Three
          * confirmations and we stop showing it. `reset_auto_send_disclaimer`
          * in settings wipes this back to 0.
          */
-        fun autoSendDisclaimerCount(): Int = prefs.getInt("auto_send_disclaimer_count", 0)
+        fun autoSendDisclaimerCount(): Int = prefInt("auto_send_disclaimer_count", 0)
 
         /**
          * UI/spoken-language code: "en", "es", or "ru". Drives both the
@@ -188,7 +216,7 @@ class WimApp : Application() {
          * and the OpenAI Whisper API `language` parameter. Non-English locales
          * force the cloud ASR path because whisper-tiny.en is English-only.
          */
-        fun appLanguage(): String = prefs.getString("app_language", "en") ?: "en"
+        fun appLanguage(): String = prefStr("app_language", "en")
 
         fun setAppLanguage(code: String) {
             // BCP-47 mapping for the Android SpeechRecognizer fallback path.
@@ -259,8 +287,8 @@ class WimApp : Application() {
         // One-time migration: old installs may have clarifier_sensitivity="off"
         // from when that was the default. Default is "medium" now; bring those
         // forward so users don't have a permanently-disabled clarifier.
-        if (!prefs.getBoolean("clarifier_sensitivity_migrated", false)) {
-            if (prefs.getString("clarifier_sensitivity", "medium") == "off") {
+        if (!prefBool("clarifier_sensitivity_migrated", false)) {
+            if (prefStr("clarifier_sensitivity", "medium") == "off") {
                 prefs.edit().putString("clarifier_sensitivity", "medium").apply()
             }
             prefs.edit().putBoolean("clarifier_sensitivity_migrated", true).apply()
@@ -322,7 +350,7 @@ class WimApp : Application() {
             }
         }
         // Restore user's dark mode preference, default to system
-        val nightMode = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        val nightMode = prefInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         AppCompatDelegate.setDefaultNightMode(nightMode)
 
         // Restore user's app language preference (UI + spoken language).
