@@ -45,6 +45,7 @@ class PlayBillingManager(
 
     fun start() {
         refreshBackendStatus()
+        drainPendingVerifications()
         if (billingClient.isReady) {
             queryProduct()
             restorePurchases()
@@ -68,6 +69,7 @@ class PlayBillingManager(
 
     fun refresh() {
         refreshBackendStatus()
+        drainPendingVerifications()
         if (billingClient.isReady) restorePurchases() else start()
     }
 
@@ -176,7 +178,25 @@ class PlayBillingManager(
     }
 
     private fun verifyOnServer(token: String) {
-        val uid = AuthManager.currentUser?.uid ?: return
+        val uid = AuthManager.currentUser?.uid
+        if (uid == null) {
+            // Do NOT drop this on the floor. The server acknowledges the
+            // purchase to Google inside verify(), and Play auto-refunds and
+            // revokes any purchase left unacknowledged past its window. This
+            // path used to `return` silently, and it is reached on a race that
+            // runs at every launch: restorePurchases() fires from start() while
+            // Firebase is still restoring the session, so currentUser is null
+            // for the first moments of the process. A paid subscriber could be
+            // refunded for opening the app at the wrong speed.
+            android.util.Log.w(
+                "WiM-Billing",
+                "verify deferred — purchase seen before sign-in restored; queued for retry",
+            )
+            pendingTokens.add(token)
+            publish(message = "Sign in to activate your subscription", canBuy = false)
+            return
+        }
+        pendingTokens.remove(token)
         publish(message = "Verifying subscription…", canBuy = false)
         scope.launch {
             val entitlement = BillingBackendClient.verify(token)
@@ -184,9 +204,30 @@ class PlayBillingManager(
                 WimApp.setCloudUnlocked(uid, true)
                 publish(unlocked = true, message = "WiM Cloud is active", canBuy = false)
             } else {
+                // Network failure also means Google was never acknowledged, so
+                // keep the token and try again on the next start/refresh rather
+                // than relying on the user reading a toast and tapping Restore
+                // inside the acknowledgement window.
+                pendingTokens.add(token)
+                android.util.Log.w("WiM-Billing", "verify failed — token requeued for retry")
                 publish(message = "Could not verify subscription — try Restore", canBuy = productDetails != null)
             }
         }
+    }
+
+    /**
+     * Purchase tokens seen but not yet confirmed with the backend, because the
+     * user wasn't signed in yet or the call failed. Drained on every start and
+     * refresh. Acknowledgement is time-critical — an unacknowledged purchase is
+     * refunded by Google — so this must not depend on the user noticing a
+     * message and pressing something.
+     */
+    private val pendingTokens = mutableSetOf<String>()
+
+    private fun drainPendingVerifications() {
+        if (pendingTokens.isEmpty() || AuthManager.currentUser == null) return
+        android.util.Log.i("WiM-Billing", "retrying ${pendingTokens.size} deferred verification(s)")
+        pendingTokens.toList().forEach { verifyOnServer(it) }
     }
 
     private fun refreshBackendStatus() {
@@ -197,6 +238,8 @@ class PlayBillingManager(
             return
         }
         scope.launch {
+            // A uid exists now — anything queued while signed out can go.
+            drainPendingVerifications()
             val entitlement = BillingBackendClient.status()
             if (entitlement != null) {
                 WimApp.setCloudUnlocked(uid, entitlement.unlocked)
