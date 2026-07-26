@@ -56,7 +56,13 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            buildConfigField("String", "EMBEDDED_OPENAI_KEY", "\"\"")
+            buildConfigField("String", "EMBEDDED_ANTHROPIC_KEY", "\"\"")
+        }
         release {
+            buildConfigField("String", "EMBEDDED_OPENAI_KEY", "\"\"")
+            buildConfigField("String", "EMBEDDED_ANTHROPIC_KEY", "\"\"")
             if (wimStorePw != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             // Strip unused resources that R8 has proven unreachable. Pairs
@@ -74,6 +80,37 @@ android {
             configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
                 nativeSymbolUploadEnabled = true
             }
+        }
+
+        // Self-contained giveaway build. Ships the operator's own provider keys
+        // inside BuildConfig, so anyone who installs it gets every cloud layer
+        // with no sign-in, no subscription and no quota — billed to him, on
+        // purpose. WhisperClient and ReconstructClient already prefer the
+        // direct-to-provider path whenever a key is present; blank keys in
+        // every other variant are the only thing that has been gating it.
+        //
+        // Deliberately a separate build type rather than a flag on release.
+        // `release` keeps every guard it has — asset stripping,
+        // verifyNoProviderKeysInRelease, the CI bundle grep — and CI only ever
+        // builds debug and release, so none of that is weakened by this
+        // existing. Declared after release so initWith copies the finished
+        // signing, minify, shrink and proguard config.
+        //
+        // Keys are never committed. They are injected at build time:
+        //   gradle assembleGiveaway -PWIM_OPENAI_KEY=... -PWIM_ANTHROPIC_KEY=...
+        create("giveaway") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            buildConfigField(
+                "String",
+                "EMBEDDED_OPENAI_KEY",
+                "\"${project.findProperty("WIM_OPENAI_KEY") as? String ?: ""}\"",
+            )
+            buildConfigField(
+                "String",
+                "EMBEDDED_ANTHROPIC_KEY",
+                "\"${project.findProperty("WIM_ANTHROPIC_KEY") as? String ?: ""}\"",
+            )
         }
     }
 

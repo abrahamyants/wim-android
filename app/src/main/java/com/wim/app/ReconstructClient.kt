@@ -114,7 +114,12 @@ object ReconstructClient {
             android.util.Log.w("WiM", "L4 requested but no Anthropic key — downgrading to GPT-4o (no Sonnet ET)")
             com.wim.app.ConsoleLog.log("L4 → GPT-4o downgrade (no Anthropic key on this device)", "warn")
         }
-        val result = if (idToken != null) {
+        // A build carrying its own keys must never fall into the backend, even
+        // when the user happens to be signed in — the backend enforces
+        // entitlement and quota, which is exactly what this build exists to
+        // bypass. Blank keys everywhere else make this a no-op for the normal
+        // release.
+        val result = if (idToken != null && !WimApp.hasEmbeddedKeys()) {
             reconstructViaBackend(rawText, tone, layer, situation, vocabulary, corrections, fillerWords, triggerWords, onsetWeights, covertProfile, idToken, whisperLowConf, whisperDisagreements, speechSeverityMod, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext)
         } else {
             // Developer-only direct fallback. Release builds return blank keys

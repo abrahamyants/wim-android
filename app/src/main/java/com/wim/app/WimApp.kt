@@ -31,8 +31,20 @@ class WimApp : Application() {
         // Session sync listener — MainActivity registers to refresh UI after Firestore sync
         var onSessionsSynced: (() -> Unit)? = null
 
-        /** Developer-supplied direct key. Release builds are backend-only. */
+        /**
+         * OpenAI key for the device-direct path.
+         *
+         * Order: a key compiled into this build wins, then a developer key in
+         * prefs on debug builds, then nothing.
+         *
+         * `EMBEDDED_OPENAI_KEY` is blank in every variant except `giveaway`,
+         * the self-contained build that ships the operator's own key so a
+         * stranger can install the APK and use every cloud layer with no
+         * sign-in and no subscription, billed to him. `release` is unchanged
+         * and still returns blank, so the normal build remains backend-only.
+         */
         fun apiKey(): String {
+            BuildConfig.EMBEDDED_OPENAI_KEY.takeIf { it.isNotBlank() }?.let { return it }
             if (!BuildConfig.DEBUG) return ""
             return prefs.getString("api_key", "") ?: ""
         }
@@ -44,6 +56,7 @@ class WimApp : Application() {
          * L4 falls back to GPT-4o.
          */
         fun anthropicApiKey(): String {
+            BuildConfig.EMBEDDED_ANTHROPIC_KEY.takeIf { it.isNotBlank() }?.let { return it }
             if (!BuildConfig.DEBUG) return ""
             return prefs.getString("anthropic_api_key", "") ?: ""
         }
@@ -84,6 +97,11 @@ class WimApp : Application() {
             android.util.Log.w("WiM", "pref '$key' held a non-string — clearing")
             prefs.edit().remove(key).apply(); def
         }
+
+        /** True when this build carries its own provider keys and therefore
+         *  never needs the authenticated backend for a cloud layer. */
+        fun hasEmbeddedKeys(): Boolean =
+            BuildConfig.EMBEDDED_OPENAI_KEY.isNotBlank()
 
         fun tone(): String = prefStr("tone", "casual")
         /**
