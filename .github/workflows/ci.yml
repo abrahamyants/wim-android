@@ -94,9 +94,9 @@ jobs:
           printf '%s\n' 'STANDARD APK SIGNATURE' "$standard_report"
           printf '%s\n' 'FULL APK SIGNATURE' "$full_report"
           standard="$(printf '%s\n' "$standard_report" \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+            | sed -n 's/^.*certificate SHA-256 digest: //p' | head -1)"
           full="$(printf '%s\n' "$full_report" \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+            | sed -n 's/^.*certificate SHA-256 digest: //p' | head -1)"
           test -n "$standard"
           test -n "$full"
           test "$standard" = "$full"
