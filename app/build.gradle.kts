@@ -15,7 +15,7 @@ android {
         applicationId = "com.wimlabs.wim"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
+        versionCode = 10
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -44,6 +44,8 @@ android {
     // the secret) the release variant builds UNSIGNED instead of failing.
     val wimStorePw = project.findProperty("WIM_STORE_PASSWORD") as? String
     val wimKeyPw = (project.findProperty("WIM_KEY_PASSWORD") as? String) ?: wimStorePw
+    val wimOpenAiKey = project.findProperty("WIM_OPENAI_KEY") as? String ?: ""
+    val wimAnthropicKey = project.findProperty("WIM_ANTHROPIC_KEY") as? String ?: ""
     signingConfigs {
         if (wimStorePw != null) {
             create("release") {
@@ -104,12 +106,12 @@ android {
             buildConfigField(
                 "String",
                 "EMBEDDED_OPENAI_KEY",
-                "\"${project.findProperty("WIM_OPENAI_KEY") as? String ?: ""}\"",
+                "\"$wimOpenAiKey\"",
             )
             buildConfigField(
                 "String",
                 "EMBEDDED_ANTHROPIC_KEY",
-                "\"${project.findProperty("WIM_ANTHROPIC_KEY") as? String ?: ""}\"",
+                "\"$wimAnthropicKey\"",
             )
         }
     }
@@ -238,9 +240,27 @@ val verifyNoProviderKeysInRelease by tasks.registering {
     }
 }
 
+val verifyGiveawayInputs by tasks.registering {
+    group = "verification"
+    doLast {
+        check((project.findProperty("WIM_STORE_PASSWORD") as? String).isNullOrBlank().not()) {
+            "Giveaway build requires the stable WiM release signing password."
+        }
+        check((project.findProperty("WIM_OPENAI_KEY") as? String).isNullOrBlank().not()) {
+            "Giveaway build requires WIM_OPENAI_KEY."
+        }
+        check((project.findProperty("WIM_ANTHROPIC_KEY") as? String).isNullOrBlank().not()) {
+            "Giveaway build requires WIM_ANTHROPIC_KEY."
+        }
+    }
+}
+
 tasks.configureEach {
     if (name == "mergeReleaseAssets") {
         dependsOn(verifyNoProviderKeysInRelease)
+    }
+    if (name == "generateGiveawayBuildConfig") {
+        dependsOn(verifyGiveawayInputs)
     }
 }
 

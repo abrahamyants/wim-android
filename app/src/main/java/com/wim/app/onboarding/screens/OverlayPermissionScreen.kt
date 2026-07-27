@@ -51,6 +51,7 @@ import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.PermissionLauncher
 import com.wim.app.onboarding.PermissionStatus
+import com.wim.app.onboarding.RestrictedSettingsPolicy
 import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 import kotlinx.coroutines.delay
@@ -77,6 +78,11 @@ fun OverlayPermissionScreen(
     val context = LocalContext.current
     val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
     var granted by remember { mutableStateOf(PermissionStatus.overlay(context)) }
+    val needsRestrictedSettingsGuide = remember {
+        RestrictedSettingsPolicy.needsOverlayUnlock(context)
+    }
+    var overlaySettingsAttempted by remember { mutableStateOf(false) }
+    var reopenOverlayAfterAppInfo by remember { mutableStateOf(false) }
 
     // Lifecycle-driven re-check on RESUME
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -84,6 +90,15 @@ fun OverlayPermissionScreen(
         val obs = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 granted = PermissionStatus.overlay(context)
+                if (reopenOverlayAfterAppInfo && !granted) {
+                    reopenOverlayAfterAppInfo = false
+                    activity?.let { host ->
+                        host.window.decorView.postDelayed(
+                            { PermissionLauncher.openOverlaySettings(host) },
+                            350L
+                        )
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -113,10 +128,32 @@ fun OverlayPermissionScreen(
         heading = "LET WiM DRAW",
         body = "WiM is a bubble. It needs permission to float over your other apps so it can " +
             "sit there when you're texting, emailing, or in any app where you'd rather speak than type.",
+        caveat = when {
+            needsRestrictedSettingsGuide && overlaySettingsAttempted ->
+                "Android 16 blocked this downloaded app once. Tap UNLOCK, then tap ⋮ in App info " +
+                    "and Allow restricted settings. When you return, WiM reopens the overlay switch."
+            needsRestrictedSettingsGuide ->
+                "On Android 16, a downloaded app may show a locked Restricted setting. If it does, " +
+                    "return here and WiM will take you through the one-time unlock."
+            else -> null
+        },
         granted = granted,
-        primaryCta = "OPEN SETTINGS",
+        primaryCta = if (needsRestrictedSettingsGuide && overlaySettingsAttempted)
+            "UNLOCK RESTRICTED SETTINGS"
+        else
+            "OPEN SETTINGS",
         secondaryCta = "NOT YET",
-        onPrimary = { activity?.let { PermissionLauncher.openOverlaySettings(it) } },
+        onPrimary = {
+            activity?.let { host ->
+                if (needsRestrictedSettingsGuide && overlaySettingsAttempted) {
+                    reopenOverlayAfterAppInfo = true
+                    PermissionLauncher.openAppDetails(host)
+                } else {
+                    overlaySettingsAttempted = true
+                    PermissionLauncher.openOverlaySettings(host)
+                }
+            }
+        },
         // Soft skip — "NOT YET" was wired to the same destination as
         // "Granted," letting the user advance past a permission the
         // bubble fundamentally requires. Per audit 2026-06-06: warn

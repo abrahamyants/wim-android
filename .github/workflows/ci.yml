@@ -12,6 +12,8 @@ jobs:
     env:
       ORG_GRADLE_PROJECT_WIM_STORE_PASSWORD: ${{ secrets.WIM_STORE_PASSWORD }}
       ORG_GRADLE_PROJECT_WIM_KEY_PASSWORD: ${{ secrets.WIM_KEY_PASSWORD }}
+      ORG_GRADLE_PROJECT_WIM_OPENAI_KEY: ${{ secrets.WIM_OPENAI_KEY }}
+      ORG_GRADLE_PROJECT_WIM_ANTHROPIC_KEY: ${{ secrets.WIM_ANTHROPIC_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +68,21 @@ jobs:
           test -n "$apksigner"
           "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
 
+      - name: Build full giveaway APK with the stable signer
+        if: github.event_name == 'push'
+        run: gradle assembleGiveaway --no-build-cache
+
+      - name: Verify standard and full APKs use the same certificate
+        if: github.event_name == 'push'
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          standard="$("$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          full="$("$apksigner" verify --print-certs app/build/outputs/apk/giveaway/app-giveaway.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          test -n "$standard"
+          test "$standard" = "$full"
+
       - name: Reject bundled provider keys
         run: |
           forbidden="$(unzip -Z1 app/build/outputs/bundle/release/app-release.aab | rg '(^|/)(api_key|anthropic_key)\.txt$' || true)"
@@ -104,4 +121,12 @@ jobs:
         with:
           name: wim-release-apk
           path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
+
+      - name: Upload stable-signed full APK
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: wim-giveaway-apk
+          path: app/build/outputs/apk/giveaway/app-giveaway.apk
           retention-days: 14
