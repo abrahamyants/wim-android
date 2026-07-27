@@ -1,6 +1,7 @@
 package com.wim.app.onboarding
 
 import android.content.Context
+import android.content.pm.PackageInstaller
 import android.os.Build
 
 /**
@@ -18,27 +19,42 @@ object RestrictedSettingsPolicy {
 
     fun needsOverlayUnlock(
         sdkInt: Int,
+        packageSource: Int,
         installerPackage: String?,
         overlayGranted: Boolean
     ): Boolean =
         sdkInt >= 36 &&
             !overlayGranted &&
-            installerPackage in SIDELOAD_INSTALLERS
+            (
+                packageSource == PackageInstaller.PACKAGE_SOURCE_LOCAL_FILE ||
+                    packageSource == PackageInstaller.PACKAGE_SOURCE_DOWNLOADED_FILE ||
+                    installerPackage in SIDELOAD_INSTALLERS
+            )
 
     fun needsOverlayUnlock(context: Context): Boolean {
-        val installer = runCatching {
+        val installSource = runCatching {
             if (Build.VERSION.SDK_INT >= 30) {
                 context.packageManager
                     .getInstallSourceInfo(context.packageName)
-                    .installingPackageName
             } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getInstallerPackageName(context.packageName)
+                null
             }
         }.getOrNull()
+        val installer = if (Build.VERSION.SDK_INT >= 30) {
+            installSource?.installingPackageName
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getInstallerPackageName(context.packageName)
+        }
+        val packageSource = if (Build.VERSION.SDK_INT >= 33) {
+            installSource?.packageSource ?: PackageInstaller.PACKAGE_SOURCE_UNSPECIFIED
+        } else {
+            PackageInstaller.PACKAGE_SOURCE_UNSPECIFIED
+        }
 
         return needsOverlayUnlock(
             sdkInt = Build.VERSION.SDK_INT,
+            packageSource = packageSource,
             installerPackage = installer,
             overlayGranted = PermissionStatus.overlay(context)
         )

@@ -7,8 +7,8 @@
 Android 16 may lock overlay and accessibility switches for an app downloaded
 outside Google Play. WiM now detects that exact sideload state and walks through
 Android's one-time **App info → ⋮ → Allow restricted settings** approval. Install
-future builds as updates; every published APK uses the same stable certificate,
-so an update does not re-arm the restriction.
+future builds as updates; every Build 11-and-later APK uses the same stable
+certificate, so an update does not re-arm the restriction.
 
 WiM captures your voice, transcribes it locally or through the authenticated WiM cloud, and optionally reconstructs it to produce clean, polished text — injected directly into the text field you selected.
 
