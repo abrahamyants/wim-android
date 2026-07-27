@@ -72,15 +72,33 @@ jobs:
         if: github.event_name == 'push'
         run: gradle assembleGiveaway --no-build-cache
 
+      - name: Preserve both APKs for signer diagnosis
+        uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' && always() }}
+        with:
+          name: wim-signer-diagnostic-apks
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/giveaway/app-giveaway.apk
+          retention-days: 3
+
       - name: Verify standard and full APKs use the same certificate
         if: github.event_name == 'push'
         run: |
+          set -o pipefail
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
-          standard="$("$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          full="$("$apksigner" verify --print-certs app/build/outputs/apk/giveaway/app-giveaway.apk \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          standard_report="$("$apksigner" verify --verbose --print-certs \
+            app/build/outputs/apk/release/app-release.apk 2>&1)"
+          full_report="$("$apksigner" verify --verbose --print-certs \
+            app/build/outputs/apk/giveaway/app-giveaway.apk 2>&1)"
+          printf '%s\n' 'STANDARD APK SIGNATURE' "$standard_report"
+          printf '%s\n' 'FULL APK SIGNATURE' "$full_report"
+          standard="$(printf '%s\n' "$standard_report" \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          full="$(printf '%s\n' "$full_report" \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
           test -n "$standard"
+          test -n "$full"
           test "$standard" = "$full"
 
       - name: Reject bundled provider keys
