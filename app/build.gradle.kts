@@ -103,6 +103,11 @@ android {
         create("giveaway") {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
+            // initWith does not reliably carry a conditional signingConfig
+            // across AGP versions. Assign it explicitly: a differently-signed
+            // sideload forces an uninstall, which re-arms Android 16's
+            // restricted-settings block.
+            if (wimStorePw != null) signingConfig = signingConfigs.getByName("release")
             buildConfigField(
                 "String",
                 "EMBEDDED_OPENAI_KEY",
