@@ -47,6 +47,7 @@ class BubbleDockTest {
     private fun dock(): BubbleDock = BubbleDock(
         windowManager = wm,
         getBubbleView = { stubView },
+        getBezelHost = { stubView },
         getSlotRects = { slotRects },
         getVibrator = { null },
         onApplyTheme = {},
