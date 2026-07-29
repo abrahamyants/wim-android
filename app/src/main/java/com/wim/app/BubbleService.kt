@@ -1252,7 +1252,7 @@ class BubbleService : Service() {
 
         // Apply saved bubble color theme, opacity, and size
         applyBubbleTheme()
-        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100) / 100f
+        val opacity = WimApp.bubbleOpacity().coerceIn(0, 100) / 100f
         bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
 
         val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f

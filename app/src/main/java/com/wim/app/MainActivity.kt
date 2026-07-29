@@ -474,12 +474,12 @@ class MainActivity : AppCompatActivity() {
         // ── Bubble opacity slider ─────────────────────────
         val seekOpacity = findViewById<SeekBar>(R.id.bubbleOpacitySeek)
         val opacityValue = findViewById<TextView>(R.id.bubbleOpacityValue)
-        val savedOpacity = WimApp.bubbleOpacity().coerceIn(20, 100)
+        val savedOpacity = WimApp.bubbleOpacity().coerceIn(0, 100)
         seekOpacity.progress = savedOpacity
         opacityValue.text = "$savedOpacity%"
         seekOpacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val pct = progress.coerceIn(20, 100)
+                val pct = progress.coerceIn(0, 100)
                 opacityValue.text = "$pct%"
                 WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
                 BubbleService.instance?.updateBubbleAppearance()

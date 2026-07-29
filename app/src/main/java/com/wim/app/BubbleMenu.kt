@@ -137,7 +137,7 @@ class BubbleMenu(
         params = mParams
 
         // Load current values
-        val opacity = WimApp.bubbleOpacity().coerceIn(20, 100)
+        val opacity = WimApp.bubbleOpacity().coerceIn(0, 100)
         val size = WimApp.bubbleSize().coerceIn(70, 150)
         val liveEnabled = WimApp.prefs.getBoolean("live_transcript", false)
 
@@ -154,7 +154,7 @@ class BubbleMenu(
 
         opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val pct = progress.coerceIn(20, 100)
+                val pct = progress.coerceIn(0, 100)
                 opacityValue.text = "$pct"
                 WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
                 // Repaint the panel itself as the slider moves, not just the
@@ -369,7 +369,9 @@ class BubbleMenu(
      * the panel becomes genuinely opaque at OP 100.
      */
     private fun applyMenuOpacity(root: View) {
-        val pct = WimApp.bubbleOpacity().coerceIn(20, 100)
+        // The bubble may go to true 0 (invisible), but the menu panel floors at
+        // 25 — an invisible panel would hide the very slider needed to recover.
+        val pct = WimApp.bubbleOpacity().coerceIn(25, 100)
         root.background?.alpha = pct * 255 / 100
         root.invalidate()
     }

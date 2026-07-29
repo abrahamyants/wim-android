@@ -67,7 +67,7 @@ class BubbleAppearance(
             Log.w(TAG, "updateBubbleAppearance skipped — bubble not visible")
             return
         }
-        val opacityPct = WimApp.bubbleOpacity().coerceIn(20, 100)
+        val opacityPct = WimApp.bubbleOpacity().coerceIn(0, 100)
         val sizePct = WimApp.bubbleSize().coerceIn(70, 150)
         val opacity = opacityPct / 100f
         val scale = sizePct / 100f

@@ -98,7 +98,7 @@ class BubbleTwistController(
         // Rotate tick to match the current value so the dial picks up
         // where the user left off instead of snapping to 12 o'clock.
         val currentValue = if (target == Mode.SIZE) preSize else preOpacity
-        val min = if (target == Mode.SIZE) 70 else 20
+        val min = if (target == Mode.SIZE) 70 else 0
         val max = if (target == Mode.SIZE) 150 else 100
         val normalized = (currentValue - min).toFloat() / (max - min).toFloat()
         val angle = -90f + normalized.coerceIn(0f, 1f) * 180f
@@ -187,7 +187,7 @@ class BubbleTwistController(
 
                 // Map angle to value.
                 val normalized = (angleDeg + 90f) / 180f
-                val min = if (mode == Mode.SIZE) 70 else 20
+                val min = if (mode == Mode.SIZE) 70 else 0
                 val max = if (mode == Mode.SIZE) 150 else 100
                 val value = (min + normalized * (max - min)).toInt()
 

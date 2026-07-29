@@ -1489,7 +1489,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:min="20"
+                        android:min="0"
                         android:max="100"
                         android:thumb="@drawable/daf_seekbar_thumb"
                         android:progressDrawable="@drawable/daf_seekbar_track"
