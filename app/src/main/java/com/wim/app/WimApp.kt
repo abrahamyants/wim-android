@@ -249,6 +249,13 @@ class WimApp : Application() {
                 "ru" -> "ru-RU"
                 "pt" -> "pt-BR"
                 "fr" -> "fr-FR"
+                "ar" -> "ar-SA"
+                "de" -> "de-DE"
+                "hi" -> "hi-IN"
+                "it" -> "it-IT"
+                "ja" -> "ja-JP"
+                "ko" -> "ko-KR"
+                "zh" -> "zh-CN"
                 else -> "en-US"
             }
             prefs.edit()

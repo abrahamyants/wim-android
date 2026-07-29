@@ -319,6 +319,16 @@
     <string name="lang_russian">Русский</string>
     <string name="lang_portuguese">Português</string>
     <string name="lang_french">Français</string>
+    <!-- Endonyms — same in every locale, so exempt from translation. These
+         seven have full pipeline support (ASR + reconstruction + lang packs)
+         but no translated dashboard; the UI stays English when picked. -->
+    <string name="lang_arabic" translatable="false">العربية</string>
+    <string name="lang_german" translatable="false">Deutsch</string>
+    <string name="lang_hindi" translatable="false">हिन्दी</string>
+    <string name="lang_italian" translatable="false">Italiano</string>
+    <string name="lang_japanese" translatable="false">日本語</string>
+    <string name="lang_korean" translatable="false">한국어</string>
+    <string name="lang_chinese" translatable="false">中文</string>
     <string name="lang_picker_dialog_title">Choose language</string>
     <string name="lang_picker_restart_note">App will restart to apply</string>
 

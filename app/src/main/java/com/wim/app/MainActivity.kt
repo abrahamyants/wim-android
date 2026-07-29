@@ -580,17 +580,34 @@ class MainActivity : AppCompatActivity() {
             "ru" -> getString(R.string.lang_russian)
             "pt" -> getString(R.string.lang_portuguese)
             "fr" -> getString(R.string.lang_french)
+            "ar" -> getString(R.string.lang_arabic)
+            "de" -> getString(R.string.lang_german)
+            "hi" -> getString(R.string.lang_hindi)
+            "it" -> getString(R.string.lang_italian)
+            "ja" -> getString(R.string.lang_japanese)
+            "ko" -> getString(R.string.lang_korean)
+            "zh" -> getString(R.string.lang_chinese)
             else -> getString(R.string.lang_english)
         }
         appLanguageValue?.text = appLanguageDisplay(WimApp.appLanguage())
         appLanguageRow?.setOnClickListener {
-            val codes = arrayOf("en", "es", "ru", "pt", "fr")
+            // First five have translated dashboards; the rest run the full
+            // pipeline (cloud ASR + reconstruction + lang pack) with the UI
+            // staying English — deliberate, per operator 2026-07-29.
+            val codes = arrayOf("en", "es", "ru", "pt", "fr", "ar", "de", "hi", "it", "ja", "ko", "zh")
             val labels = arrayOf(
                 getString(R.string.lang_english),
                 getString(R.string.lang_spanish),
                 getString(R.string.lang_russian),
                 getString(R.string.lang_portuguese),
                 getString(R.string.lang_french),
+                getString(R.string.lang_arabic),
+                getString(R.string.lang_german),
+                getString(R.string.lang_hindi),
+                getString(R.string.lang_italian),
+                getString(R.string.lang_japanese),
+                getString(R.string.lang_korean),
+                getString(R.string.lang_chinese),
             )
             val current = codes.indexOf(WimApp.appLanguage()).coerceAtLeast(0)
             androidx.appcompat.app.AlertDialog.Builder(this)

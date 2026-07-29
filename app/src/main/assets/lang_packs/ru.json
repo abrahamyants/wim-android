@@ -1,0 +1,77 @@
+{
+  "language_code": "ru",
+  "language_name_en": "Russian",
+  "language_name_native": "Русский",
+  "fillers": [
+    "ну",
+    "это",
+    "это самое",
+    "как бы",
+    "значит",
+    "в общем",
+    "короче",
+    "типа",
+    "вот",
+    "эм",
+    "э-э",
+    "так сказать"
+  ],
+  "natural_repeats": [
+    "да да",
+    "нет нет",
+    "ну ну",
+    "так так",
+    "всё всё",
+    "давай давай"
+  ],
+  "productive_prefixes": [
+    "по-",
+    "пере-",
+    "при-",
+    "про-",
+    "за-",
+    "на-",
+    "вы-",
+    "под-",
+    "от-",
+    "раз-",
+    "рас-",
+    "недо-",
+    "анти-"
+  ],
+  "hard_onsets": {
+    "data": [
+      {
+        "onset": "/p/",
+        "difficulty_weight": 0.85,
+        "source": "Howell et al. 2004, Cross-linguistic comparison of stuttering; plosive onset difficulty generalizes across languages"
+      },
+      {
+        "onset": "/t/",
+        "difficulty_weight": 0.82,
+        "source": "Howell et al. 2004, Cross-linguistic comparison of stuttering; plosive onset difficulty generalizes across languages"
+      },
+      {
+        "onset": "/k/",
+        "difficulty_weight": 0.80,
+        "source": "Howell et al. 2004, Cross-linguistic comparison of stuttering; plosive onset difficulty generalizes across languages"
+      },
+      {
+        "onset": "/str/",
+        "difficulty_weight": 0.78,
+        "source": "Adapted: complex consonant clusters (стр-, вз-, вс-) are frequent Russian word onsets and cluster onsets carry elevated disfluency risk cross-linguistically (Howell et al. 2004)"
+      },
+      {
+        "onset": "/vz/",
+        "difficulty_weight": 0.74,
+        "source": "Adapted: complex consonant clusters (стр-, вз-, вс-) are frequent Russian word onsets and cluster onsets carry elevated disfluency risk cross-linguistically (Howell et al. 2004)"
+      }
+    ],
+    "quality_note": "adapted — cross-linguistic plosive/cluster findings applied to Russian onsets; no Russian-specific published weights located"
+  },
+  "script_unicode_ranges": [
+    [32, 126],
+    [1024, 1279]
+  ],
+  "script_detection_regex": "[\\u0400-\\u04FF]"
+}
