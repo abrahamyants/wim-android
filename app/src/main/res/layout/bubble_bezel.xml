@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid bezel layer. Lives in the bubble's small touch window (window ==
+     visible circle + animation headroom) at window alpha 1.0, so the bubble
+     the user sees is genuinely opaque. The old 180dp window (bubble.xml)
+     keeps only the translucent pulse rings and stays at 0.8 window alpha,
+     which Android 12+ requires before it will deliver taps that pass
+     through an overlay to the app underneath. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/bezelHostRoot"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:soundEffectsEnabled="false"
+    android:contentDescription="@string/bubble_cd_root"
+    android:importantForAccessibility="yes">
+
+    <!-- Outer raised bezel ring -->
+    <FrameLayout
+        android:id="@+id/bubbleBezel"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bubble_bg_idle"
+        android:elevation="8dp">
+
+        <!-- Pipeline-stage arc segments that wrap the bezel. Sized slightly
+             OUTSIDE the bezel ring (negative margins) so the arcs sit flush
+             on the bezel's outer edge, not buried inside the brushed face.
+             BubbleService toggles the arcs via BezelStageArcView.setActiveStage
+             as state advances Transcribing → Reconstructing → Verifying →
+             Injecting. -->
+        <com.wim.app.BezelStageArcView
+            android:id="@+id/bubbleStageArc"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:elevation="9dp"
+            android:importantForAccessibility="no" />
+
+        <!-- Clarifier: split bezel backgrounds (green left, red right) — hidden by default -->
+        <View
+            android:id="@+id/clarifierBgYes"
+            android:layout_width="36dp"
+            android:layout_height="72dp"
+            android:layout_gravity="start"
+            android:background="@drawable/clarifier_half_yes"
+            android:visibility="gone"
+            android:clipChildren="true" />
+
+        <View
+            android:id="@+id/clarifierBgNo"
+            android:layout_width="36dp"
+            android:layout_height="72dp"
+            android:layout_gravity="end"
+            android:background="@drawable/clarifier_half_no"
+            android:visibility="gone"
+            android:clipChildren="true" />
+
+        <!-- Clarifier: checkmark (left) and X (right) — white on colored bg -->
+        <TextView
+            android:id="@+id/bezelYes"
+            android:layout_width="18dp"
+            android:layout_height="24dp"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="1dp"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/plus_jakarta_sans"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false" />
+
+        <TextView
+            android:id="@+id/bezelNo"
+            android:layout_width="18dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="1dp"
+            android:gravity="center"
+            android:text="✕"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/plus_jakarta_sans"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false" />
+
+        <!-- Regenerate icon — 6 o'clock on the bezel ring. Hidden by default;
+             revealed after a successful reconstruction paste so the user can
+             re-roll the phrasing without re-recording.
+             The FrameLayout wrapper brings the touch target up to the 48dp
+             minimum while keeping the visual icon at 14dp. -->
+        <FrameLayout
+            android:id="@+id/bezelRegen"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="-17dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/bubble_cd_regen">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_regen"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+
+        <!-- Inner sunken well -->
+        <FrameLayout
+            android:id="@+id/bubbleInner"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bubble_inner_knob">
+
+            <!-- Tick mark — volume knob indicator, 12 o'clock on inner circle -->
+            <View
+                android:id="@+id/bubbleTick"
+                android:layout_width="3dp"
+                android:layout_height="8dp"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/knob_tick" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp">
+
+                <TextView
+                    android:id="@+id/bubbleLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="IDLE"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:letterSpacing="0.05"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:accessibilityLiveRegion="polite" />
+
+                <TextView
+                    android:id="@+id/bubbleTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textColor="@color/chip_value"
+                    android:textSize="8sp"
+                    android:fontFamily="@font/plus_jakarta_sans"
+                    android:letterSpacing="0.1"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Twist mode confirm checkmark — shown on knob after user releases twist gesture -->
+            <TextView
+                android:id="@+id/twistConfirmCheck"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="✓"
+                android:textColor="@color/green_active"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/plus_jakarta_sans"
+                android:visibility="gone"
+                android:clickable="false"
+                android:focusable="false" />
+        </FrameLayout>
+    </FrameLayout>
+</FrameLayout>

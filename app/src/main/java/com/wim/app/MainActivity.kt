@@ -1745,7 +1745,7 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
         }
         try {
-            val bubble = layoutInflater.inflate(R.layout.bubble, container, false)
+            val bubble = layoutInflater.inflate(R.layout.bubble_bezel, container, false)
             bubble.layoutParams = FrameLayout.LayoutParams(
                 (120 * dp).toInt(), (120 * dp).toInt(),
                 android.view.Gravity.CENTER,

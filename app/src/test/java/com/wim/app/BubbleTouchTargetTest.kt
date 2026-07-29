@@ -29,12 +29,26 @@ class BubbleTouchTargetTest {
             sizePercent = 100,
         )
 
-        assertEquals(262, target.x)
-        assertEquals(332, target.y)
-        assertEquals(216, target.width)
-        assertEquals(216, target.height)
+        // Window = bezel diameter (216) * 1.18 headroom + 4dp*3 pad = 266.
+        val side = BubbleTouchTarget.windowSizePx(density = 3f, sizePercent = 100)
+        assertEquals(266, side)
+        assertEquals(side, target.width)
+        assertEquals(side, target.height)
+        // Center must stay pinned to the visual window's center regardless
+        // of headroom.
         assertEquals(370, target.x + target.width / 2)
         assertEquals(440, target.y + target.height / 2)
+    }
+
+    @Test
+    fun hitRadiusIgnoresTheHeadroomRing() {
+        // The tappable radius stays the visible bezel's radius even though
+        // the window itself is larger.
+        assertEquals(108f, BubbleTouchTarget.hitRadiusPx(density = 3f, sizePercent = 100))
+        assertTrue(
+            BubbleTouchTarget.hitRadiusPx(3f, 100) * 2 <
+                BubbleTouchTarget.windowSizePx(3f, 100)
+        )
     }
 
     @Test

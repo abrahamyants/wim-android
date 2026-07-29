@@ -28,6 +28,7 @@ import android.widget.FrameLayout
 class BubbleDock(
     private val windowManager: WindowManager,
     private val getBubbleView: () -> android.view.View?,
+    private val getBezelHost: () -> android.view.View?,
     private val getSlotRects: () -> Map<String, Rect>?,
     private val getVibrator: () -> Vibrator?,
     private val onApplyTheme: () -> Unit,
@@ -81,7 +82,7 @@ class BubbleDock(
         WimApp.prefs.edit().putString("bubble_theme", theme).apply()
         onApplyTheme()
         val view = getBubbleView() ?: run { onHideBubble(); return }
-        val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run { onHideBubble(); return }
+        val bezel = getBezelHost()?.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run { onHideBubble(); return }
         // Target position: slot center minus bubble half-width/height so the
         // bubble's visual center lands on the slot center.
         val targetX = slotCenter.x - view.width / 2

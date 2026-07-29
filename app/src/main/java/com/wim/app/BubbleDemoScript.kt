@@ -83,7 +83,7 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
         step(t) {
             // Clear the SEND-ready tint we applied via backgroundTintList so
             // the next idle render doesn't keep the green wash baked in.
-            bubble.bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)
+            bubble.bezelHost?.findViewById<FrameLayout>(R.id.bubbleInner)
                 ?.backgroundTintList = null
             bubble.setBubbleIdlePublic()
         }
@@ -295,21 +295,21 @@ class BubbleDemoScript(private val onComplete: () -> Unit) {
 
     private fun simulateRecordingPulse(bubble: BubbleService) {
         BubbleLiveStateVisuals.apply(
-            bubble.bubbleView,
+            bubble.bezelHost,
             BubbleLiveStateVisuals.State.RECORDING,
         )
     }
 
     private fun simulateProcessingPulse(bubble: BubbleService) {
         BubbleLiveStateVisuals.apply(
-            bubble.bubbleView,
+            bubble.bezelHost,
             BubbleLiveStateVisuals.State.PROCESSING,
         )
     }
 
     private fun simulateSendReadyPulse(bubble: BubbleService) {
         BubbleLiveStateVisuals.apply(
-            bubble.bubbleView,
+            bubble.bezelHost,
             BubbleLiveStateVisuals.State.SEND_READY,
         )
     }

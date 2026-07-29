@@ -13,12 +13,28 @@ object BubbleTouchTarget {
     const val MIN_SIZE_PERCENT = 70
     const val MAX_SIZE_PERCENT = 150
 
+    /** The bezel window now DRAWS the bezel (window alpha 1.0 = truly solid),
+     *  so it needs headroom for animations that briefly scale past the bezel:
+     *  taffy drag stretch (1.15x) and the affect nudges. Taps landing in the
+     *  headroom ring miss the [hitRadiusPx] test and are ignored. */
+    const val ANIMATION_HEADROOM = 1.18f
+    const val EDGE_PAD_DP = 4f
+
     data class Bounds(val x: Int, val y: Int, val width: Int, val height: Int)
 
     fun diameterPx(density: Float, sizePercent: Int): Int {
         val scale = sizePercent.coerceIn(MIN_SIZE_PERCENT, MAX_SIZE_PERCENT) / 100f
         return (BASE_DIAMETER_DP * density * scale).toInt().coerceAtLeast(1)
     }
+
+    fun windowSizePx(density: Float, sizePercent: Int): Int =
+        (diameterPx(density, sizePercent) * ANIMATION_HEADROOM + EDGE_PAD_DP * density)
+            .toInt().coerceAtLeast(1)
+
+    /** Taps farther than this from the window center are not on the visible
+     *  bezel — ignore them so the headroom ring never acts like a button. */
+    fun hitRadiusPx(density: Float, sizePercent: Int): Float =
+        diameterPx(density, sizePercent) / 2f
 
     fun bounds(
         visualX: Int,
@@ -28,12 +44,12 @@ object BubbleTouchTarget {
         density: Float,
         sizePercent: Int,
     ): Bounds {
-        val diameter = diameterPx(density, sizePercent)
+        val side = windowSizePx(density, sizePercent)
         return Bounds(
-            x = visualX + (visualWidthPx - diameter) / 2,
-            y = visualY + (visualHeightPx - diameter) / 2,
-            width = diameter,
-            height = diameter,
+            x = visualX + (visualWidthPx - side) / 2,
+            y = visualY + (visualHeightPx - side) / 2,
+            width = side,
+            height = side,
         )
     }
 }

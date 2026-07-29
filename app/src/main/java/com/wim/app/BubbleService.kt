@@ -94,6 +94,8 @@ class BubbleService : Service() {
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var bubbleTouchView: View? = null
+    /** The solid bezel window's view tree — where every visible bubble widget lives. */
+    val bezelHost: View? get() = bubbleTouchView
     private var bubbleTouchParams: WindowManager.LayoutParams? = null
     private var preJumpX = 0
     private var preJumpY = 0
@@ -374,7 +376,7 @@ class BubbleService : Service() {
         // clarification state" — all four bezel arcs flash bright orange
         // for ~320ms, then normal rendering resumes. Strengthens the
         // claim's "entering a bidirectional clarification state" reading.
-        bubbleView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc)
+        bubbleTouchView?.findViewById<BezelStageArcView>(R.id.bubbleStageArc)
             ?.flashAllArcs(durationMs = 320L)
         ClarifierController.enter(
             flaggedWords = flags,
@@ -394,7 +396,7 @@ class BubbleService : Service() {
     /** Spec §2 row 5: clarifier owns bubbleLabel + bubbleTime exclusively
      *  while [BubbleState.Clarifying]. Format: `DUNKEN?` + `1/3`. */
     private fun paintClarifierLabel(flag: FlaggedWord, idx: Int, total: Int) {
-        val view = bubbleView ?: return
+        val view = bubbleTouchView ?: return
         val gold = 0xFFC8B48A.toInt()
         view.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "${flag.originalWord.uppercase().take(8)}?"
@@ -563,14 +565,14 @@ class BubbleService : Service() {
         sendDisclaimer = BubbleSendDisclaimer(this, windowManager!!)
         twistController = BubbleTwistController(
             context = this,
-            getBubbleView = { bubbleView },
+            getBubbleView = { bubbleTouchView },
             timerHandler = timerHandler,
             onAppearanceChanged = { updateBubbleAppearance() },
             onExit = { setBubbleIdle() },
         )
         clarifierUI = BubbleClarifierUI(
             context = this,
-            getBubbleView = { bubbleView },
+            getBubbleView = { bubbleTouchView },
             timerHandler = timerHandler,
             onAppearanceChanged = { updateBubbleAppearance() },
             onPipelineStage = { stage, detail -> showPipelineStage(stage, detail) },
@@ -592,6 +594,7 @@ class BubbleService : Service() {
         bubbleDock = BubbleDock(
             windowManager = windowManager!!,
             getBubbleView = { bubbleView },
+            getBezelHost = { bubbleTouchView },
             getSlotRects = { dockSlotRects },
             getVibrator = { vibrator },
             onApplyTheme = { applyBubbleTheme() },
@@ -602,7 +605,7 @@ class BubbleService : Service() {
             onHideBubble = { hideBubble() },
             onNotificationText = { msg -> updateNotification(msg) },
         )
-        bubbleAppearance = BubbleAppearance(getBubbleView = { bubbleView })
+        bubbleAppearance = BubbleAppearance(getBubbleView = { bubbleTouchView })
         pulseRings = BubblePulseRings(getBubbleView = { bubbleView })
         tipRotator = BubbleTipRotator(
             timerHandler = timerHandler,
@@ -610,11 +613,11 @@ class BubbleService : Service() {
             onHideLiveTranscript = { hideLiveTranscript() },
         )
         regenIcon = BubbleRegenIcon(
-            getBubbleView = { bubbleView },
+            getBubbleView = { bubbleTouchView },
             scope = scope,
         )
-        statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleView })
-        stageArc = BubbleStageArc(getBubbleView = { bubbleView })
+        statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleTouchView })
+        stageArc = BubbleStageArc(getBubbleView = { bubbleTouchView })
         hotword = BubbleHotword(
             context = this,
             getVibrator = { vibrator },
@@ -669,7 +672,7 @@ class BubbleService : Service() {
         // Phase 3 affects: RESTING / LEANING_FORWARD / TA_DA / HEAD_TILT
         // + clarifier trigger pulse + approve/reject flashes.
         bubbleAffect = BubbleAffect(
-            bubbleViewProvider = { bubbleView },
+            bubbleViewProvider = { bubbleTouchView },
             vibrator = vibrator,
         ).also { it.bind(scope) }
 
@@ -823,10 +826,12 @@ class BubbleService : Service() {
         timerHandler.postDelayed({ alertOnMissingPermissions() }, 600)
         val inflater = LayoutInflater.from(this)
         bubbleView = inflater.inflate(R.layout.bubble, null)
-        bubbleTouchView = View(this).apply {
-            isSoundEffectsEnabled = false
-            isHapticFeedbackEnabled = false
-        }
+        // The touch window now also DRAWS the bezel. Its window alpha stays
+        // 1.0, so the visible bubble is genuinely solid — the 0.8 obscuring
+        // alpha Android 12+ demands lives only on the big decor window
+        // (bubbleView), which since this split contains nothing but the
+        // translucent pulse rings, where 0.8 is imperceptible.
+        bubbleTouchView = inflater.inflate(R.layout.bubble_bezel, null)
         // Kill touch sounds on every view in the bubble hierarchy
         fun disableSounds(v: View) {
             v.isSoundEffectsEnabled = false
@@ -836,6 +841,7 @@ class BubbleService : Service() {
             }
         }
         bubbleView?.let { disableSounds(it) }
+        bubbleTouchView?.let { disableSounds(it) }
 
         val params = bubbleParams ?: WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -856,6 +862,9 @@ class BubbleService : Service() {
             gravity = Gravity.TOP or Gravity.START
             // Android 12+ passes touches through a non-touchable application
             // overlay only when its obscuring alpha is at or below 0.8.
+            // Since the bezel moved to the touch window, this window holds
+            // only the pulse rings — 0.8 on translucent rings is invisible,
+            // and the bezel itself no longer pays this tax.
             alpha = 0.8f
             // Default spawn: horizontally centered, ~40% from the top.
             // Window is 180dp = ~540px on density 3; computing it here
@@ -889,6 +898,17 @@ class BubbleService : Service() {
 
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    // The window carries ~18% headroom past the visible bezel
+                    // so taffy stretch and affect nudges don't clip. A tap in
+                    // that invisible margin is not a tap on the bubble.
+                    val hcx = v.width / 2f
+                    val hcy = v.height / 2f
+                    val hdx = event.x - hcx
+                    val hdy = event.y - hcy
+                    val hr = BubbleTouchTarget.hitRadiusPx(
+                        resources.displayMetrics.density, WimApp.bubbleSize()
+                    )
+                    if (hdx * hdx + hdy * hdy > hr * hr) return@setOnTouchListener false
                     initialX = params.x
                     initialY = params.y
                     initialTouchX = event.rawX
@@ -1019,7 +1039,7 @@ class BubbleService : Service() {
                         val baseScale = WimApp.bubbleSize() / 100f
                         val stretch = baseScale * (1f + (speed / 800f).coerceAtMost(0.15f))
                         val squeeze = baseScale * (1f - (speed / 1600f).coerceAtMost(0.08f))
-                        val bezel = bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)
+                        val bezel = bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleBezel)
                         if (kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
                             bezel?.scaleX = stretch
                             bezel?.scaleY = squeeze
@@ -1057,7 +1077,7 @@ class BubbleService : Service() {
                     if (isDragging) {
                         // Snap back to normal
                         val scale = WimApp.bubbleSize() / 100f
-                        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+                        bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
                             it.animate().scaleX(scale).scaleY(scale).setDuration(200).start()
                         }
 
@@ -1253,18 +1273,18 @@ class BubbleService : Service() {
         // Apply saved bubble color theme, opacity, and size
         applyBubbleTheme()
         val opacity = WimApp.bubbleOpacity().coerceIn(0, 100) / 100f
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
+        bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.alpha = opacity
 
         val scale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
         val density = resources.displayMetrics.density
-        // Window held at MAX size (= 120dp * 1.5 = 180dp) so the bezel can scale
-        // up freely without clipping. Empty area outside the bezel is invisible
-        // (transparent overlay). Resizing now happens entirely via bezel scale.
+        // Decor window held at MAX size (= 120dp * 1.5 = 180dp) so the pulse
+        // rings can animate outward freely. The bezel lives in the touch
+        // window (sized by BubbleTouchTarget) and scales there.
         val maxWindowDp = 180
         val newWindowPx = (maxWindowDp * density).toInt()
         params.width = newWindowPx
         params.height = newWindowPx
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
+        bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.let {
             if (it.width > 0) {
                 it.pivotX = it.width / 2f
                 it.pivotY = it.height / 2f
@@ -1388,7 +1408,7 @@ class BubbleService : Service() {
             if (!isSendReady) return
             val remaining = ((sendReadyExpiresAt - System.currentTimeMillis() + 999) / 1000)
                 .coerceAtLeast(0).coerceAtMost(99)
-            bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.text = "${remaining}s"
+            bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.text = "${remaining}s"
             if (remaining > 0) timerHandler.postDelayed(this, 250)
         }
     }
@@ -1584,7 +1604,7 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleSendReady() {
-        val view = bubbleView ?: return
+        val view = bubbleTouchView ?: return
         BubbleStateBus.advance(BubbleState.SendReady)
         isSendReady = true
         pulseRings?.stop()
@@ -1757,9 +1777,10 @@ class BubbleService : Service() {
             Toast.makeText(this, "Password field — dictation blocked", Toast.LENGTH_SHORT).show()
             Log.i(TAG, "Blocked: password field focused")
             // Brief visual flash on bubble
-            bubbleView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.apply {
+            bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleBezel)?.apply {
+                val restore = WimApp.bubbleOpacity().coerceIn(0, 100) / 100f
                 animate().alpha(0.4f).setDuration(100).withEndAction {
-                    animate().alpha(1f).setDuration(200).start()
+                    animate().alpha(restore).setDuration(200).start()
                 }.start()
             }
             return
@@ -1806,8 +1827,8 @@ class BubbleService : Service() {
         // (lean-in + a slow breathe) is driven by BubbleAffect off the Listening
         // FSM state. The shared renderer locks the three live states to:
         // RED "REC" → AMBER "PROC" → GREEN "SEND".
-        BubbleLiveStateVisuals.apply(bubbleView, BubbleLiveStateVisuals.State.RECORDING)
-        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+        BubbleLiveStateVisuals.apply(bubbleTouchView, BubbleLiveStateVisuals.State.RECORDING)
+        bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             // The idle prediction chip ("→ CAS") otherwise persists into recording —
             // setBubbleIdle writes it and nothing cleared it here.
             text = ""
@@ -2320,9 +2341,9 @@ class BubbleService : Service() {
         tipRotator?.maybeShow()
         // Cancel SEND-ready countdown ticker if still running.
         timerHandler.removeCallbacks(sendReadyTickRunnable)
-        bubbleView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
+        bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
         applyBubbleTheme()
-        bubbleView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+        bubbleTouchView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
             // Per-theme IDLE color so the label has real contrast on each
             // bezel: cream-gold on gunmetal, deep espresso on bronze (the
@@ -2338,7 +2359,7 @@ class BubbleService : Service() {
         // on the bubble for 1.5s after a boosted whisper-soft take, then revert.
         if (pendingQuietAutoFlash) {
             pendingQuietAutoFlash = false
-            val lbl = bubbleView?.findViewById<TextView>(R.id.bubbleLabel)
+            val lbl = bubbleTouchView?.findViewById<TextView>(R.id.bubbleLabel)
             val idleColor2 = when (WimApp.bubbleTheme()) {
                 "gunmetal" -> 0xFFC8B48A.toInt()
                 "bronze" -> 0xFF1F1208.toInt()
@@ -2353,7 +2374,7 @@ class BubbleService : Service() {
         // bubbleTime: show anticipatory prediction snippet during Idle if available,
         // otherwise hide. This surfaces the PredictionEngine's context-awareness
         // on the bubble face before the user opens the menu.
-        bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+        bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
             if (WimApp.predictionsEnabled()) {
                 val pkg = WimAccessibilityService.currentForegroundPackage
                 val pred = PredictionEngine.predictForContext(pkg)
@@ -2621,7 +2642,7 @@ class BubbleService : Service() {
 
     private fun setBubbleProcessing() {
         stageArc?.setProcessing()
-        BubbleLiveStateVisuals.apply(bubbleView, BubbleLiveStateVisuals.State.PROCESSING)
+        BubbleLiveStateVisuals.apply(bubbleTouchView, BubbleLiveStateVisuals.State.PROCESSING)
     }
 
     private fun checkRedo(text: String) {

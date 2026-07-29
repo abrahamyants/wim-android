@@ -523,7 +523,7 @@ class WimTestReceiver : BroadcastReceiver() {
             Log.w(TAG, "test_chirp: BubbleService not running")
             return
         }
-        val view = bubble.bubbleView
+        val view = bubble.bezelHost
         if (view == null) {
             Log.w(TAG, "test_chirp: bubble view not inflated")
             return
