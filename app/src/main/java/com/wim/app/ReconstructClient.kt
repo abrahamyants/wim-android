@@ -505,7 +505,7 @@ object ReconstructClient {
                 append("You are a voice transcription post-processor. You receive raw, messy speech-to-text output and return ONLY the cleaned-up version. ")
                 append("You are NOT a chatbot. Do NOT respond to the content. Do NOT ask questions. Do NOT add commentary. ")
                 append("If the input is a fragment or incomplete sentence, return it cleaned up as-is — do NOT say 'your message got cut off'. ")
-                append("Tone: $tone. ")
+                append("Tone: $tone — this is a REQUIREMENT, not a hint. Rewrite the register to match it. ")
                 append(toneRule)
                 append(" Strip filler words (including non-English fillers like \u044d, \u043d\u0443, \u044d\u044d).")
                 append(" Preserve FULL meaning. Do not summarize or add information.")
@@ -625,9 +625,10 @@ object ReconstructClient {
                     append("\n- PRESERVE all numbers, dates, dollar amounts, addresses, names, proper nouns exactly as spoken.")
                     append("\n- PRESERVE the speaker's intent and the substance of every clause.")
                     append("\n- DO NOT add information or invent details not present in the input.")
-                    append("\n- DO NOT soften, sanitize, or change profanity / strong language / slang. Output the words the speaker chose.")
+                    append("\n- DO NOT soften, sanitize, or censor profanity or strong language. If the speaker swore, the swearing stays.")
+                    append("\n- The rule above protects the speaker's CONTENT — what they said and how forcefully. It does NOT override the tone above. Greetings, sign-offs, filler address terms ('hey man', 'dude', 'yo'), and general register ARE yours to change when the tone calls for it. Measured 2026-07-29: this rule was written to stop the model sanitizing profanity, and it was silently blocking every tone change too — 'professional' returned 'Hey man, can you send me that thing' unaltered.")
                     append("\n- DO NOT summarize away content; restate, don't compress.")
-                    append("\n- TREAT unfamiliar, invented-looking, or single-syllable unrecognized words as INTENTIONAL slang, brand names, or in-group vocabulary. Do not substitute them, do not assume transcription error, do not 'fix' them. Examples of what to PRESERVE without modification: 'rizz', 'bussin', 'no cap', 'mid', 'delulu', 'skibidi', 'ick', 'fanum tax', any proper noun the speaker emphasized, any startup or tool name the speaker said clearly.")
+                    append("\n- TREAT unfamiliar, invented-looking, or single-syllable unrecognized words as INTENTIONAL slang, brand names, or in-group vocabulary. Do not substitute them, do not assume transcription error, do not 'fix' them. Examples of what to PRESERVE without modification: 'rizz', 'bussin', 'no cap', 'mid', 'delulu', 'skibidi', 'ick', 'fanum tax', any proper noun the speaker emphasized, any startup or tool name the speaker said clearly. This protects unusual NOUNS the speaker chose deliberately — it does not freeze the sentence's register or its greeting.")
 
                     // SELF-CORRECTION CANONICAL OVERWRITE — when the speaker
                     // says "I mean", "actually", "no wait", etc., what FOLLOWS

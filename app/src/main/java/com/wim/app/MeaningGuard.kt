@@ -49,6 +49,25 @@ object MeaningGuard {
 
     private val PROPER_NOUN_RE = Regex("""\b[A-Z][a-z]+\b""")
 
+    /**
+     * Honorifics and titles. Protected as their own anchor class because the
+     * proper-noun check cannot see them: ASR output is lowercase, so "doctor
+     * williams" contains no capitalised token, and dropping "doctor" leaves a
+     * grammatical sentence that reads fine.
+     *
+     * Measured on-device 2026-07-29: "tell doctor williams about the
+     * appointment" lost the title in 7 of 8 runs across every layer and tone.
+     * In a medical or legal message that is a real change of meaning — who the
+     * message is addressed to, and in what capacity.
+     */
+    private val TITLE_RE = Regex(
+        """\b(?:doctor|dr|professor|prof|nurse|officer|detective|judge|attorney|counsel|""" +
+            """reverend|father|sister|rabbi|imam|senator|governor|mayor|chief|captain|""" +
+            """sergeant|lieutenant|colonel|general|admiral|principal|dean|coach|""" +
+            """mr|mrs|ms|miss|sir|madam|ma'am)\b\.?""",
+        RegexOption.IGNORE_CASE,
+    )
+
     // Sentence-openers and auxiliaries that get capitalised by reconstruction
     // and would otherwise read as invented names. "Okay" is here on purpose —
     // a sentence-opening Okay is not a person (spec 2026-07-29).
@@ -146,6 +165,9 @@ object MeaningGuard {
         critical.addAll(CRITICAL_TOKEN_RE.findAll(rawText).map { it.value })
         critical.addAll(DATE_WORD_RE.findAll(rawText).map { it.value })
         critical.addAll(properNouns(rawText))
+        // Titles: invisible to the proper-noun check on lowercase ASR output,
+        // and dropping one still reads as a valid sentence. See TITLE_RE.
+        critical.addAll(TITLE_RE.findAll(rawText).map { it.value.trimEnd('.') })
 
         for (termRaw in vocabulary) {
             val term = termRaw.trim()
