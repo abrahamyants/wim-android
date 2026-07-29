@@ -115,10 +115,13 @@ fun OverlayPermissionScreen(
         }
     }
 
-    // Auto-advance the moment the toggle flips
+    // Auto-advance the moment the toggle flips. Pre-granted (reinstall,
+    // partial prior run): skip instantly — the ✓ beat is only for a grant
+    // the user just performed and needs to see land.
+    val preGranted = remember { granted }
     LaunchedEffect(granted) {
         if (granted) {
-            delay(900)  // let the badge animate to ✓
+            if (!preGranted) delay(900)  // let the badge animate to ✓
             onContinue()
         }
     }

@@ -83,13 +83,21 @@ object PermissionLauncher {
 
     fun openAccessibilitySettings(activity: Activity) {
         val component = ComponentName(activity, WimAccessibilityService::class.java).flattenToString()
+        // Straight to WiM's own toggle page. ACCESSIBILITY_DETAILS_SETTINGS is
+        // how the system's own UI opens a single service's page; not in the
+        // public Settings constants but honored on Android 12+ including One UI.
+        val detailsPage = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
+            putExtra(Intent.EXTRA_COMPONENT_NAME, component)
+        }
         val deepLink = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
             putExtra(":settings:fragment_args_key", component)
             putExtra(":settings:show_fragment_args", android.os.Bundle().apply {
                 putString(":settings:fragment_args_key", component)
             })
         }
-        runCatching { activity.startActivity(deepLink) }.recoverCatching {
+        runCatching { activity.startActivity(detailsPage) }.recoverCatching {
+            activity.startActivity(deepLink)
+        }.recoverCatching {
             activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }.onSuccess {
             // Samsung may ignore the best-effort deep-link extras and open the

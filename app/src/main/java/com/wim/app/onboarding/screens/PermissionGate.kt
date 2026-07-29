@@ -33,6 +33,10 @@ internal fun permissionGrantState(
     val currentCheck by rememberUpdatedState(check)
     val currentOnGranted by rememberUpdatedState(onGranted)
     var granted by remember { mutableStateOf(currentCheck()) }
+    // Granted before the screen ever appeared (reinstall, partial prior run):
+    // skip through instantly. The 900ms ✓ beat is only for a grant the user
+    // just performed and needs to see land.
+    val preGranted = remember { granted }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -58,7 +62,7 @@ internal fun permissionGrantState(
     // Auto-advance the moment the toggle flips, after the ✓ beat lands.
     LaunchedEffect(granted) {
         if (granted) {
-            delay(900)
+            if (!preGranted) delay(900)
             currentOnGranted()
         }
     }
