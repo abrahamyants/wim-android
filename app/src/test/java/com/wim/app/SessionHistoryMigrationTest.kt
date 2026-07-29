@@ -98,12 +98,17 @@ class SessionHistoryMigrationTest {
         assertEquals(0, SessionStats.wpm(sessions))
     }
 
-    @Test fun upgradeFromV1KeepsEveryRow() {
-        // The v3 block runs before the v2 block in onUpgrade; prove that
-        // ordering doesn't strand a v1 database.
+    @Test fun upgradeFromAPartiallyMigratedDatabaseKeepsEveryRow() {
+        // A v1-labelled database that already carries the v2 columns: a
+        // migration that crashed halfway, or an install killed mid-upgrade.
+        // The v2 step's unguarded ALTER used to throw here, which failed the
+        // whole open — and because every read swallows its own exception, the
+        // user saw "No sessions yet" over a full database. Found by this test
+        // on 2026-07-29, fixed the same hour.
         seedLegacyDatabase(version = 1, rows = 3)
         val history = SessionHistory(context)
         assertEquals(3, history.count())
+        assertEquals(3, history.getRecentSessions(50).size)
     }
 
     @Test fun upgradeIsIdempotentAcrossReopens() {

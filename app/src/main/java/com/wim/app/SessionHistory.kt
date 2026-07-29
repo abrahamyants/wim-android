@@ -112,8 +112,20 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             }
         }
         if (oldVersion < 2) {
-            db.execSQL("ALTER TABLE $TABLE ADD COLUMN asr_ms INTEGER NOT NULL DEFAULT 0")
-            db.execSQL("ALTER TABLE $TABLE ADD COLUMN total_ms INTEGER NOT NULL DEFAULT 0")
+            // Same guard as the v3 step above, and for the same reason. If a
+            // column is already present — a partially-applied migration, a
+            // database that was hand-repaired, an install that crashed
+            // mid-upgrade — an unguarded ALTER throws, the whole open fails,
+            // and every read after it returns an empty list. The user is shown
+            // "No sessions yet" over a full database. Add each column only if
+            // it is genuinely missing.
+            for (column in listOf("asr_ms", "total_ms")) {
+                if (hasColumn(db, column)) {
+                    Log.i(TAG, "$column already present, skipping")
+                    continue
+                }
+                db.execSQL("ALTER TABLE $TABLE ADD COLUMN $column INTEGER NOT NULL DEFAULT 0")
+            }
         }
     }
 
