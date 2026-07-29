@@ -2,12 +2,12 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
-**[Download the full WiM APK — vc12 (2026-07-28)](https://github.com/gugosf114/wim-android/releases/latest/download/wim-full.apk)**
+**[Download the full WiM APK — vc13 (2026-07-28)](https://github.com/gugosf114/wim-android/releases/latest/download/wim-full.apk)**
 
 The version in that link is the `versionCode` the phone reports under
 Settings → Apps → What I Meant. If the phone says a lower number, the install
 did not land. Release asset names carry the same number
-(`WiM-vc12-2026-07-28.apk`) so a file in Downloads can never be mistaken for a
+(`WiM-vc13.apk`) so a file in Downloads can never be mistaken for a
 newer or older one — the old `Build-11/12-Full` names did not match their
 versionCodes and cost a whole debugging session.
 
