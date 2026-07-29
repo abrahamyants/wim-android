@@ -42,6 +42,34 @@ class BubbleLiveTranscript(
     private val getBubbleParams: () -> WindowManager.LayoutParams?,
     private val isDemoActive: () -> Boolean
 ) {
+    companion object {
+        /**
+         * Whether a pipeline-stage callout may open the bar.
+         *
+         * The stage bar and the live transcript are the SAME window above the
+         * bubble, so the LIVE toggle governs both. Before 2026-07-29 it
+         * governed only showLive(), so a user with LIVE off still watched a
+         * panel appear on every dictation. No failure feedback is lost by
+         * silencing this: every error path also toasts.
+         *
+         * Exemptions: `force` (deliberate scripted messages, e.g. the
+         * onboarding sign-off that fires just after the demo script clears
+         * itself) and an active demo script. The L1-cloud fast path stays
+         * silent even with LIVE on unless a demo is running — the bubble's
+         * own PROC color and bezel arc are enough on that path.
+         */
+        fun shouldShowStage(
+            liveOn: Boolean,
+            demoActive: Boolean,
+            l1Cloud: Boolean,
+            force: Boolean,
+        ): Boolean {
+            if (force || demoActive) return true
+            if (!liveOn) return false
+            return !l1Cloud
+        }
+    }
+
     private companion object {
         private const val TAG = "WiM"
         private const val TYPEWRITER_INTERVAL_MS = 22L
@@ -247,9 +275,14 @@ class BubbleLiveTranscript(
      *  → integrity checks → Inject). L1 cloud (whisper-1) path is silenced unless a
      *  demo script is active — the bubble's own PROC color + bezel arc are
      *  enough feedback on the fast path. */
-    fun showStage(stage: String, detail: String) {
-        val isL1Cloud = WimApp.layer() < 2 && WimApp.l1CloudAsr()
-        if (isL1Cloud && !isDemoActive()) return
+    fun showStage(stage: String, detail: String, force: Boolean = false) {
+        val allowed = shouldShowStage(
+            liveOn = WimApp.prefs.getBoolean("live_transcript", false),
+            demoActive = isDemoActive(),
+            l1Cloud = WimApp.layer() < 2 && WimApp.l1CloudAsr(),
+            force = force,
+        )
+        if (!allowed) return
         ensureBar()
         val tv = view ?: return
         tv.minLines = 3

@@ -770,7 +770,7 @@ class BubbleService : Service() {
                         activeDemoScript = null
                         activeDemoFinish = null
                         onboardingOverlay?.remove()
-                        showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
+                        showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.", force = true)
                         timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
                     }
                     activeDemoFinish = finish
@@ -2616,8 +2616,8 @@ class BubbleService : Service() {
         liveTranscript?.updateLive(text)
     }
 
-    fun showPipelineStage(stage: String, detail: String) {
-        liveTranscript?.showStage(stage, detail)
+    fun showPipelineStage(stage: String, detail: String, force: Boolean = false) {
+        liveTranscript?.showStage(stage, detail, force)
     }
 
     private fun hideLiveTranscript() {
@@ -2642,7 +2642,7 @@ class BubbleService : Service() {
             activeDemoScript = null
             activeDemoFinish = null
             onboardingOverlay?.remove()
-            showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.")
+            showPipelineStage("🎤", "Close the app — I'm your app now. Tap me whenever you need to talk.", force = true)
             timerHandler.postDelayed({ hideLiveTranscript() }, 5000)
         }
         activeDemoFinish = finish
