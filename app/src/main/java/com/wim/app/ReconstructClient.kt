@@ -829,11 +829,46 @@ object ReconstructClient {
             var rewriteAttempts = 1
             var loopGuard: MeaningGuard.GuardResult? = null
             val cleanText = if (useSonnet) {
+                // Layer 4 gets the same guard-and-retry loop as 2/3. It had
+                // none until 2026-07-29 — the clinical layer, where the
+                // speaker's disfluency is heaviest and reconstruction is most
+                // aggressive, was the one layer shipping straight to the text
+                // field unchecked. "Smarter model, no checker needed" did not
+                // survive contact: on-device it turned "four thousand two
+                // hundred" into $1,200 and invented a Tuesday, three runs
+                // running.
                 try {
-                    reconstructWithSonnet(finalSystemPrompt, effectiveRaw, anthropicKey)
+                    val messages = JSONArray().apply {
+                        put(JSONObject().put("role", "user").put("content", effectiveRaw))
+                    }
+                    val outcome = MeaningGuard.runRewriteLoop(
+                        rawText = effectiveRaw,
+                        vocabulary = vocabulary,
+                        rewriteOnce = { _ ->
+                            reconstructWithSonnetMessages(finalSystemPrompt, messages, anthropicKey)
+                        },
+                        appendRepair = { candidate, instruction ->
+                            messages.put(JSONObject().put("role", "assistant").put("content", candidate))
+                            messages.put(JSONObject().put("role", "user").put("content", instruction))
+                        },
+                        onRetry = { attempt, _, g ->
+                            Log.w(
+                                "WiM",
+                                "L4 rewrite rejected on attempt $attempt: lost=${g.lost} invented=${g.invented} — retrying"
+                            )
+                            com.wim.app.ConsoleLog.log("L4 rewrite attempt $attempt rejected — retrying", "warn")
+                        },
+                    )
+                    rewriteAttempts = outcome.attempts
+                    loopGuard = outcome.guard
+                    if (rewriteAttempts > 1) {
+                        com.wim.app.ConsoleLog.log("L4 took $rewriteAttempts attempts", "info")
+                    }
+                    outcome.cleanText
                 } catch (e: Exception) {
                     Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
                     sonnetDowngraded = true
+                    loopGuard = null
                     reconstructWithGpt4o(finalSystemPrompt, effectiveRaw, apiKey, temperature)
                 }
             } else if (layer in 2..3) {
@@ -1059,6 +1094,26 @@ object ReconstructClient {
         val messages = JSONArray().apply {
             put(JSONObject().put("role", "user").put("content", rawText))
         }
+        return reconstructWithSonnetMessages(systemPrompt, messages, apiKey)
+    }
+
+    /**
+     * Sonnet call over an explicit message array, so L4 can carry a repair
+     * conversation the same way L2/L3 do.
+     *
+     * Until 2026-07-29 Layer 4 had no guard at all: the retry loop and the
+     * rejection path covered layers 2 and 3 only, and L4 — the clinical layer,
+     * where reconstruction is most aggressive and the speaker's disfluency is
+     * heaviest — went straight from Sonnet to the user's text field with
+     * nothing checking it. Found on-device: "wire four thousand two hundred to
+     * Henderson before monday" came back as "$1,200 ... by Tuesday", three runs
+     * running, unchallenged.
+     */
+    private fun reconstructWithSonnetMessages(
+        systemPrompt: String,
+        messages: JSONArray,
+        apiKey: String,
+    ): String {
         val thinkingConfig = JSONObject().apply {
             put("type", "enabled")
             put("budget_tokens", 8000)

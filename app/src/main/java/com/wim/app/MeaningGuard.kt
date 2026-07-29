@@ -235,6 +235,87 @@ object MeaningGuard {
         return invented
     }
 
+    // ── Numeric value checking ────────────────────────────────────
+    //
+    // checkFabrication only asks whether a figure appeared out of NOTHING: if
+    // the input contained any number at all, in words or digits, every figure
+    // in the output is waved through as reformatting. That rule is inherited
+    // from the backend and it cannot see a number that CHANGED.
+    //
+    // Found on-device 2026-07-29: "wire four thousand two hundred to Henderson"
+    // came back as "$1,200", then "$1,002", from the same input, three runs in
+    // a row, and nothing objected — because the input did contain number words,
+    // so any figure was legal. For a wire transfer that is the worst failure
+    // this app can produce. Compare the VALUES.
+
+    private val UNITS = mapOf(
+        "zero" to 0L, "one" to 1L, "two" to 2L, "three" to 3L, "four" to 4L,
+        "five" to 5L, "six" to 6L, "seven" to 7L, "eight" to 8L, "nine" to 9L,
+        "ten" to 10L, "eleven" to 11L, "twelve" to 12L, "thirteen" to 13L,
+        "fourteen" to 14L, "fifteen" to 15L, "sixteen" to 16L,
+        "seventeen" to 17L, "eighteen" to 18L, "nineteen" to 19L,
+        "twenty" to 20L, "thirty" to 30L, "forty" to 40L, "fifty" to 50L,
+        "sixty" to 60L, "seventy" to 70L, "eighty" to 80L, "ninety" to 90L,
+    )
+    private val SCALES = mapOf("hundred" to 100L, "thousand" to 1_000L, "million" to 1_000_000L)
+
+    /**
+     * Every number the text states, however written: digits, "4,200", "$4,200",
+     * and spelled-out runs like "four thousand two hundred".
+     */
+    fun numericValues(text: String): Set<Long> {
+        val out = mutableSetOf<Long>()
+
+        for (m in CRITICAL_TOKEN_RE.findAll(text)) {
+            m.value.replace(",", "").removePrefix("$").removeSuffix("%")
+                .toDoubleOrNull()?.let { if (it == Math.floor(it)) out.add(it.toLong()) }
+        }
+
+        // Spelled-out runs: accumulate until a word that is neither a unit, a
+        // scale, nor a joining "and" ends the run.
+        var current = 0L
+        var total = 0L
+        var sawAny = false
+        fun flush() {
+            if (sawAny) out.add(total + current)
+            current = 0L; total = 0L; sawAny = false
+        }
+        for (w in Regex("""[a-z]+""", RegexOption.IGNORE_CASE).findAll(text.lowercase()).map { it.value }) {
+            when {
+                UNITS.containsKey(w) -> { current += UNITS.getValue(w); sawAny = true }
+                w == "hundred" && sawAny -> { current *= 100L }
+                SCALES.containsKey(w) && sawAny -> {
+                    total += current * SCALES.getValue(w); current = 0L
+                }
+                w == "and" && sawAny -> { /* "four thousand and two" — keep going */ }
+                else -> flush()
+            }
+        }
+        flush()
+        return out
+    }
+
+    /**
+     * Figures in the output whose VALUE is not stated anywhere in the input.
+     * This is what catches 4200 becoming 1200 — the fabrication check cannot,
+     * because the input did contain numbers.
+     */
+    fun checkNumericDrift(rawText: String, cleanText: String): List<String> {
+        val rawValues = numericValues(rawText)
+        if (rawValues.isEmpty()) return emptyList()
+        val drifted = mutableListOf<String>()
+        for (m in CRITICAL_TOKEN_RE.findAll(cleanText)) {
+            val v = m.value.replace(",", "").removePrefix("$").removeSuffix("%")
+                .toDoubleOrNull() ?: continue
+            if (v != Math.floor(v)) continue
+            val asLong = v.toLong()
+            // Ordinals and small counts legitimately appear from restructuring
+            // ("the 15th"), and a value present in the input is fine.
+            if (asLong !in rawValues) drifted.add(m.value)
+        }
+        return drifted
+    }
+
     /** Full check: ok is false when reconstruction dropped or invented an anchor. */
     fun guard(
         rawText: String,
@@ -242,7 +323,8 @@ object MeaningGuard {
         vocabulary: List<String> = emptyList(),
     ): GuardResult {
         val lost = checkRetention(rawText, cleanText, vocabulary)
-        val invented = checkFabrication(rawText, cleanText)
+        val invented = (checkFabrication(rawText, cleanText) + checkNumericDrift(rawText, cleanText))
+            .distinct()
         return GuardResult(ok = lost.isEmpty() && invented.isEmpty(), lost = lost, invented = invented)
     }
 
