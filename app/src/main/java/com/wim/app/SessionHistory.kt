@@ -60,6 +60,32 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         """)
     }
 
+    /** True when [column] exists on the sessions table. */
+    private fun hasColumn(db: SQLiteDatabase, column: String): Boolean = try {
+        db.rawQuery("PRAGMA table_info($TABLE)", null).use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            generateSequence { if (c.moveToNext()) c.getString(nameIdx) else null }
+                .any { it == column }
+        }
+    } catch (_: Exception) { false }
+
+    /**
+     * Installing an older APK over a newer one would otherwise throw
+     * SQLiteDowngradeFailedException on the first database access — which
+     * means a crash on every launch, and the only user-visible escape is
+     * clearing app data, i.e. destroying exactly the history this class
+     * exists to keep. WiM is distributed as sideloaded APKs, so an older
+     * build landing on a newer database is a real event, not a theoretical
+     * one.
+     *
+     * A newer schema is always a superset here (columns are only ever added,
+     * with defaults), so an old build can read a new database perfectly well:
+     * it simply selects fewer columns. Accept the downgrade and keep the data.
+     */
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        Log.w(TAG, "Database downgrade $oldVersion -> $newVersion; keeping data (schema is additive)")
+    }
+
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 3) {
             // How long the speaker actually spoke. Added 2026-07-29 because
@@ -70,7 +96,20 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             // rather than dragging it down.
             try {
                 db.execSQL("ALTER TABLE $TABLE ADD COLUMN speech_ms INTEGER NOT NULL DEFAULT 0")
-            } catch (_: Exception) { /* column already present */ }
+            } catch (e: Exception) {
+                // Swallowing this blind was a data-loss-looking bug: the
+                // framework bumps the stored version to 3 regardless, every
+                // later SELECT names speech_ms, "no such column" is caught by
+                // the read path, and the user is shown "No sessions yet" —
+                // their history intact on disk and invisible. Confirm the
+                // column actually exists; if it does not, this is fatal and
+                // must surface rather than masquerade as an empty history.
+                if (!hasColumn(db, "speech_ms")) {
+                    Log.e(TAG, "speech_ms migration failed and column is absent", e)
+                    throw e
+                }
+                Log.i(TAG, "speech_ms already present, continuing")
+            }
         }
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE $TABLE ADD COLUMN asr_ms INTEGER NOT NULL DEFAULT 0")
