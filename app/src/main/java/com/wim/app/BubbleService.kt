@@ -1454,34 +1454,16 @@ class BubbleService : Service() {
 
     /**
      * Classify a pipeline exception so the user sees the real cause instead of a
-     * blanket "network" failure (finding H4). The reconstruction / transcription
-     * stack throws config errors (no API key), server errors (backend non-2xx,
-     * broken JSON contract) and genuine network errors — they must not all read
-     * as "check your connection".
+     * blanket "network" failure (finding H4).
+     *
+     * The rules live in [FailureClassifier] — a pure object — so they can be
+     * unit-tested against real exception types. Before 2026-07-29 they sat
+     * inline here, private, and the only coverage this app had for "the cloud
+     * died mid-sentence" was hoping.
      */
     private fun classifyFailure(e: Throwable): FailureInfo {
-        val msg = e.message ?: ""
-        return when {
-            e is IllegalStateException &&
-                (msg.contains("API key", ignoreCase = true) ||
-                    msg.contains("Sign in", ignoreCase = true)) ->
-                FailureInfo(FailReason.CONFIG, "Sign in and subscribe to WiM Cloud in Settings")
-            e is SecurityException ->
-                FailureInfo(FailReason.CONFIG, "Microphone permission missing — enable it in Settings")
-            e is java.net.UnknownHostException || e is java.net.SocketTimeoutException ||
-                e is java.net.ConnectException || e is java.io.InterruptedIOException ->
-                FailureInfo(FailReason.NETWORK, "Network error — check your connection and try again")
-            msg.contains("Backend error", ignoreCase = true) ||
-                msg.contains("missing 'clean'", ignoreCase = true) ||
-                msg.contains("API error", ignoreCase = true) ->
-                FailureInfo(FailReason.SERVER, "Server error — please try again")
-            e is org.json.JSONException ->
-                FailureInfo(FailReason.SERVER, "Unexpected server response — please try again")
-            e is java.io.IOException ->
-                FailureInfo(FailReason.NETWORK, "Connection problem — try again")
-            else ->
-                FailureInfo(FailReason.UNKNOWN, "Something went wrong — tap to try again")
-        }
+        val c = FailureClassifier.classify(e)
+        return FailureInfo(c.reason, c.message)
     }
 
     private fun onInjectComplete() {
