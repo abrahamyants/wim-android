@@ -2703,7 +2703,39 @@ class BubbleService : Service() {
         }
 
         val layer = WimApp.layer()
-        val tone = WimApp.tone()
+        // Tone comes from THIS message, not from the app it's going into and
+        // not from a remembered preference (operator 2026-07-29: Gmail is where
+        // you email your brother; the same coworker gets a deadline at noon and
+        // beers at six). The words decide; the clock only breaks a tie they
+        // left open; the saved pref is the last resort. See ToneFromContent.
+        val tone = if (WimApp.prefs.getBoolean("auto_tone", true)) {
+            when (val v = ToneFromContent.classify(rawText, profile.getVocabulary())) {
+                is ToneFromContent.Verdict.Use -> {
+                    Log.i(TAG, "Tone from content: ${v.tone} (${v.why})")
+                    ConsoleLog.log("Tone: ${v.tone} — ${v.why}", "info")
+                    v.tone
+                }
+                is ToneFromContent.Verdict.Ambiguous -> {
+                    val now = java.util.Calendar.getInstance()
+                    val byClock = ToneFromContent.breakTieByClock(
+                        hourOfDay = now.get(java.util.Calendar.HOUR_OF_DAY),
+                        isWeekend = now.get(java.util.Calendar.DAY_OF_WEEK).let {
+                            it == java.util.Calendar.SATURDAY || it == java.util.Calendar.SUNDAY
+                        },
+                        workHours = WimApp.prefs.getString("work_hours", null),
+                    )
+                    if (byClock != null) {
+                        Log.i(TAG, "Tone from clock (message was ambiguous): $byClock")
+                        ConsoleLog.log("Tone: $byClock — ambiguous wording, went by the clock", "info")
+                        byClock
+                    } else {
+                        Log.i(TAG, "Tone unresolved — using saved ${WimApp.tone()}")
+                        ConsoleLog.log("Tone: ${WimApp.tone()} — couldn't tell from the message", "warn")
+                        WimApp.tone()
+                    }
+                }
+            }
+        } else WimApp.tone()
         val situation = WimApp.situation()
         ConsoleLog.log("Processing... [L$layer ${tone.uppercase()} $situation]", "info")
         // ASR and reconstruction are separate stages with separate routes —

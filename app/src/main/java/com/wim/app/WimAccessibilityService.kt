@@ -179,7 +179,25 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         }
     }
 
+    /**
+     * Retired 2026-07-29. Tone is decided per MESSAGE from its own words in
+     * [BubbleService.processText] via [ToneFromContent] — not per app.
+     *
+     * The app-whitelist guess this used to make was wrong on its face (Gmail
+     * is where you email your brother; people run businesses on WhatsApp) and
+     * it was also what suppressed the work/casual question: the router
+     * "resolved" nearly every package, so the bubble almost never got to ask.
+     *
+     * Kept as a no-op rather than deleted so the call site and its
+     * scroll/focus guards stay intact; the whole file is one behavior change
+     * away from re-enabling something we deliberately turned off.
+     */
+    @Suppress("UNUSED_PARAMETER")
     private fun autoSwitchTone(packageName: String) {
+        return
+    }
+
+    private fun autoSwitchToneLegacy(packageName: String) {
         val prefs = WimApp.prefs
         if (!prefs.getBoolean("auto_tone", true)) return
         // The bezel tap is the user's explicit work/personal toggle. Within
