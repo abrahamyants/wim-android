@@ -1049,20 +1049,16 @@ class MainActivity : AppCompatActivity() {
         val sessions = history.getRecentSessions(50, query)
 
         // Compute stats
-        val totalSessions = sessions.size
-        val totalWords = sessions.sumOf { it.cleanText.split("\\s+".toRegex()).filter { w -> w.isNotBlank() }.size }
-        val totalAsrMs = sessions.sumOf { it.asrMs }
-        val wpm = if (totalAsrMs > 0) (totalWords * 60000.0 / totalAsrMs).toInt() else 0
+        // SESSIONS is the lifetime count, not the size of the 50-row page we
+        // just fetched — the dial's scale runs to 500 and used to pin at 50
+        // forever. While a search is active the count of MATCHES is the
+        // honest number, so it tracks the list on screen.
+        val totalSessions = if (query.isNullOrBlank()) history.count() else sessions.size
+        val totalWords = SessionStats.totalWords(sessions)
+        val wpm = SessionStats.wpm(sessions)
 
         // Average cleanup %: how much disfluency/reconstruction changed across all sessions
-        val avgCleanup = if (sessions.isNotEmpty()) {
-            val total = sessions.sumOf { s ->
-                val rw = s.rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                val cw = s.cleanText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
-                if (rw > 0) ((rw - cw).toFloat() / rw * 100).toInt() else 0
-            }
-            total / sessions.size
-        } else 0
+        val avgCleanup = SessionStats.averageCleanupPercent(sessions)
 
         // VU meter gauges
         findViewById<VuMeterView>(R.id.vuSessions)?.apply {
@@ -1074,7 +1070,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<VuMeterView>(R.id.vuWpm)?.apply {
             maxValue = 200f
             value = wpm.toFloat()
-            displayText = wpm.toString()
+            // Sessions recorded before speaking time was measured (schema v3,
+            // 2026-07-29) can't produce a rate. Show a dash rather than a
+            // zero that reads like "you speak at 0 words per minute".
+            displayText = if (wpm > 0) wpm.toString() else "—"
             label = "WPM"
         }
         val currentLayer = WimApp.layer()

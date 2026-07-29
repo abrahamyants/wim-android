@@ -119,6 +119,11 @@ class BubbleService : Service() {
      *  ASR followed by cloud reconstruction is NOT an entirely local
      *  pipeline, and the console must not read like it is. */
     private var lastAsrRoute: String = "unknown"
+    /** Milliseconds the speaker actually spoke on the last take — stamped when
+     *  recording stops, BEFORE transcription runs. The WPM dial used asrMs,
+     *  which is recording time plus transcription latency, and therefore always
+     *  read lower than the user really speaks. */
+    private var lastSpeechMs: Long = 0L
     private var bubblePersona: BubblePersona? = null
     private var bubbleAffect: BubbleAffect? = null
     /** Active onboarding demo (Phase 7). Tap handler skips it on touch. */
@@ -2166,6 +2171,8 @@ class BubbleService : Service() {
         Log.i(TAG, "Stop requested, processing audio immediately...")
         processed = true
         isRecording = false
+        // Speaking time ends here — everything after this is machine time.
+        lastSpeechMs = (System.currentTimeMillis() - recordingStartTime).coerceAtLeast(0L)
         // Immediate visual feedback — bubble transitions to PROC the instant the
         // stop tap is received, not after transcription finishes. Without this,
         // the bubble stays in "recording" red for the full transcription window
@@ -2866,7 +2873,8 @@ class BubbleService : Service() {
                 reconMs = 0,
                 totalMs = totalMs,
                 falconApproved = true,
-                riskFlags = emptyList()
+                riskFlags = emptyList(),
+                speechMs = lastSpeechMs
             )
             SessionUpdateBus.emit()
             // Test automation: capture result
@@ -3153,6 +3161,7 @@ class BubbleService : Service() {
                         totalMs = totalMs,
                         falconApproved = reconResult.falconApproved,
                         riskFlags = reconResult.riskFlags + "inject_fail",
+                        speechMs = lastSpeechMs,
                     )
                     SessionUpdateBus.emit()
                     setBubbleIdle()
@@ -3243,7 +3252,8 @@ class BubbleService : Service() {
                     reconMs = reconResult.reconMs,
                     totalMs = totalMs,
                     falconApproved = reconResult.falconApproved,
-                    riskFlags = reconResult.riskFlags
+                    riskFlags = reconResult.riskFlags,
+                    speechMs = lastSpeechMs
                 )
                 SessionUpdateBus.emit()
 
@@ -3367,7 +3377,8 @@ class BubbleService : Service() {
                         reconMs = 0,
                         totalMs = totalMs,
                         falconApproved = false,
-                        riskFlags = listOf("reconstruction_failed")
+                        riskFlags = listOf("reconstruction_failed"),
+                        speechMs = lastSpeechMs
                     )
                     SessionUpdateBus.emit()
                     // Test automation: capture error

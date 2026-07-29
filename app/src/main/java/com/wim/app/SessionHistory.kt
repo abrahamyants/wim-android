@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
  * Stores session history in SQLite for analytics and profile learning.
  * Each recording session = one row.
  */
-class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions.db", null, 2) {
+class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions.db", null, 3) {
 
     companion object {
         private const val TAG = "WiM"
@@ -54,12 +54,24 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 recon_ms INTEGER NOT NULL,
                 total_ms INTEGER NOT NULL DEFAULT 0,
                 falcon_approved INTEGER NOT NULL DEFAULT 1,
-                risk_flags TEXT NOT NULL DEFAULT ''
+                risk_flags TEXT NOT NULL DEFAULT '',
+                speech_ms INTEGER NOT NULL DEFAULT 0
             )
         """)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 3) {
+            // How long the speaker actually spoke. Added 2026-07-29 because
+            // the WPM dial was dividing words by asr_ms — which is recording
+            // time PLUS transcription latency — and therefore always read
+            // lower than the user's real speaking rate. Rows written before
+            // this migration keep 0 and are skipped by the WPM average
+            // rather than dragging it down.
+            try {
+                db.execSQL("ALTER TABLE $TABLE ADD COLUMN speech_ms INTEGER NOT NULL DEFAULT 0")
+            } catch (_: Exception) { /* column already present */ }
+        }
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE $TABLE ADD COLUMN asr_ms INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE $TABLE ADD COLUMN total_ms INTEGER NOT NULL DEFAULT 0")
@@ -76,7 +88,9 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         reconMs: Long,
         totalMs: Long,
         falconApproved: Boolean,
-        riskFlags: List<String>
+        riskFlags: List<String>,
+        /** Milliseconds the speaker actually spoke, excluding transcription. */
+        speechMs: Long = 0L
     ) {
         try {
             val values = ContentValues().apply {
@@ -91,6 +105,7 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                 put("total_ms", totalMs)
                 put("falcon_approved", if (falconApproved) 1 else 0)
                 put("risk_flags", riskFlags.joinToString(","))
+                put("speech_ms", speechMs)
             }
             // Lock guards every write on writableDatabase in this class
             // (record + syncFromFirestore insert + pruneIfNeeded delete).
@@ -163,7 +178,9 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
         val reconMs: Long,
         val totalMs: Long,
         val falconApproved: Boolean,
-        val riskFlags: String
+        val riskFlags: String,
+        /** Speaking time in ms; 0 on rows written before schema v3. */
+        val speechMs: Long = 0L
     )
 
     private fun pushToFirestore(values: ContentValues) {
@@ -243,11 +260,11 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
             val sql: String
             val args: Array<String>
             if (!query.isNullOrBlank()) {
-                sql = "SELECT timestamp, raw_text, clean_text, tone, layer, situation, asr_ms, recon_ms, total_ms, falcon_approved, risk_flags FROM $TABLE WHERE clean_text LIKE ? OR raw_text LIKE ? ORDER BY timestamp DESC LIMIT ?"
+                sql = "SELECT timestamp, raw_text, clean_text, tone, layer, situation, asr_ms, recon_ms, total_ms, falcon_approved, risk_flags, speech_ms FROM $TABLE WHERE clean_text LIKE ? OR raw_text LIKE ? ORDER BY timestamp DESC LIMIT ?"
                 val q = "%$query%"
                 args = arrayOf(q, q, limit.toString())
             } else {
-                sql = "SELECT timestamp, raw_text, clean_text, tone, layer, situation, asr_ms, recon_ms, total_ms, falcon_approved, risk_flags FROM $TABLE ORDER BY timestamp DESC LIMIT ?"
+                sql = "SELECT timestamp, raw_text, clean_text, tone, layer, situation, asr_ms, recon_ms, total_ms, falcon_approved, risk_flags, speech_ms FROM $TABLE ORDER BY timestamp DESC LIMIT ?"
                 args = arrayOf(limit.toString())
             }
             val cursor: Cursor = readableDatabase.rawQuery(sql, args)
@@ -263,7 +280,8 @@ class SessionHistory(context: Context) : SQLiteOpenHelper(context, "wim_sessions
                     reconMs = cursor.getLong(7),
                     totalMs = cursor.getLong(8),
                     falconApproved = cursor.getInt(9) == 1,
-                    riskFlags = cursor.getString(10)
+                    riskFlags = cursor.getString(10),
+                    speechMs = cursor.getLong(11)
                 ))
             }
             cursor.close()
