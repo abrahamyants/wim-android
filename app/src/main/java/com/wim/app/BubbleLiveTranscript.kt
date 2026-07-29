@@ -43,6 +43,14 @@ class BubbleLiveTranscript(
     private val isDemoActive: () -> Boolean
 ) {
     companion object {
+        private const val TAG = "WiM"
+        private const val TYPEWRITER_INTERVAL_MS = 22L
+        private const val CURSOR_BLINK_MS = 500L
+        // Stage callouts auto-fade after this window. Without it, any
+        // failed pipeline (or a test broadcast) leaves the bar pinned to
+        // the bubble forever — operator complaint 2026-06-06.
+        private const val STAGE_AUTO_HIDE_MS = 6_000L
+
         /**
          * Whether a pipeline-stage callout may open the bar.
          *
@@ -68,16 +76,6 @@ class BubbleLiveTranscript(
             if (!liveOn) return false
             return !l1Cloud
         }
-    }
-
-    private companion object {
-        private const val TAG = "WiM"
-        private const val TYPEWRITER_INTERVAL_MS = 22L
-        private const val CURSOR_BLINK_MS = 500L
-        // Stage callouts auto-fade after this window. Without it, any
-        // failed pipeline (or a test broadcast) leaves the bar pinned to
-        // the bubble forever — operator complaint 2026-06-06.
-        private const val STAGE_AUTO_HIDE_MS = 6_000L
     }
 
     private var view: TextView? = null
