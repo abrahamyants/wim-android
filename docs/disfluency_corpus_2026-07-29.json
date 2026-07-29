@@ -1,0 +1,539 @@
+{
+ "generated": "2026-07-29",
+ "source": "deployed wim-reconstruct-00032-zit source run verbatim; professional tone; SAFE mode",
+ "cases": [
+  {
+   "id": 1,
+   "kind": "part-word repetition",
+   "raw": "c-c-can you s-s-send me the the report by by friday",
+   "intent": "Can you send me the report by Friday?",
+   "anchors": [
+    "friday"
+   ]
+  },
+  {
+   "id": 2,
+   "kind": "block + whisper hallucination in the silence",
+   "raw": "i need to call thanks for watching about the invoice",
+   "intent": "Speaker blocked on a name; ASR filled the gap with a YouTube artifact. Correct behavior: do NOT invent a name.",
+   "anchors": []
+  },
+  {
+   "id": 3,
+   "kind": "block leaving a hole (no text at all)",
+   "raw": "can you transfer the money to the uh the um account",
+   "intent": "Words are missing where the block was. Correct behavior: do not fabricate a recipient.",
+   "anchors": []
+  },
+  {
+   "id": 4,
+   "kind": "covert revision past a feared word",
+   "raw": "i'm going to the s-s-s the place tomorrow at four",
+   "intent": "I'm going to the place tomorrow at four.",
+   "anchors": [
+    "four"
+   ]
+  },
+  {
+   "id": 5,
+   "kind": "self-correction canonical overwrite",
+   "raw": "the meeting is at three pm i mean four pm on tuesday",
+   "intent": "The meeting is at 4pm on Tuesday.",
+   "anchors": [
+    "tuesday"
+   ]
+  },
+  {
+   "id": 6,
+   "kind": "prolongation + filler stacking",
+   "raw": "ssssorry i um uh i wanted to ask about the mmmmedical bill for two hundred dollars",
+   "intent": "Sorry, I wanted to ask about the medical bill for two hundred dollars.",
+   "anchors": [
+    "hundred"
+   ]
+  },
+  {
+   "id": 7,
+   "kind": "negation must survive",
+   "raw": "i i i do not want to to cancel the appointment",
+   "intent": "I do not want to cancel the appointment.",
+   "anchors": [
+    "not"
+   ]
+  },
+  {
+   "id": 8,
+   "kind": "circumlocution around a feared word",
+   "raw": "i need the the thing you sign when you start a job the the paperwork",
+   "intent": "Talking around a word. Should read naturally without inventing a specific document name.",
+   "anchors": []
+  },
+  {
+   "id": 9,
+   "kind": "numbers and proper nouns under heavy disfluency",
+   "raw": "tell d-d-doctor williams my son m-m-michael has an appointment on the the fifteenth",
+   "intent": "Tell Doctor Williams my son Michael has an appointment on the fifteenth.",
+   "anchors": [
+    "williams",
+    "michael",
+    "fifteenth"
+   ]
+  },
+  {
+   "id": 10,
+   "kind": "emphatic repetition must NOT be stripped",
+   "raw": "no no that's not what i meant at all",
+   "intent": "No no, that's not what I meant at all.",
+   "anchors": [
+    "not"
+   ]
+  },
+  {
+   "id": 11,
+   "kind": "sentence abandonment",
+   "raw": "i was going to um i was wondering if you could could send the address",
+   "intent": "I was wondering if you could send the address.",
+   "anchors": []
+  },
+  {
+   "id": 12,
+   "kind": "already fluent — must still reconstruct, not echo",
+   "raw": "please send me the report tomorrow",
+   "intent": "Fluent input. L2 must still produce written prose, not identity output.",
+   "anchors": [
+    "report"
+   ]
+  },
+  {
+   "id": 13,
+   "kind": "short input",
+   "raw": "c-call him back",
+   "intent": "Call him back.",
+   "anchors": []
+  },
+  {
+   "id": 14,
+   "kind": "interword block with filler postponement",
+   "raw": "the um the uh the deadline is is march third and i i can't move it",
+   "intent": "The deadline is March third and I can't move it.",
+   "anchors": [
+    "march",
+    "third",
+    "can't"
+   ]
+  },
+  {
+   "id": 15,
+   "kind": "money + date + name together",
+   "raw": "wire f-f-four thousand two hundred to h-h-henderson before monday",
+   "intent": "Wire four thousand two hundred to Henderson before Monday.",
+   "anchors": [
+    "henderson",
+    "monday"
+   ]
+  }
+ ],
+ "results_layer2": [
+  {
+   "id": 1,
+   "kind": "part-word repetition",
+   "raw": "c-c-can you s-s-send me the the report by by friday",
+   "clean": "Can you send me the report by Friday?",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 3065
+  },
+  {
+   "id": 2,
+   "kind": "block + whisper hallucination in the silence",
+   "raw": "i need to call thanks for watching about the invoice",
+   "clean": "i need to call thanks for watching about the invoice",
+   "attempts": 3,
+   "falcon_ok": false,
+   "guard_lost": [],
+   "guard_invented": [
+    "contact",
+    "discuss"
+   ],
+   "unchanged": true,
+   "anchors_missing": [],
+   "ms": 1520
+  },
+  {
+   "id": 3,
+   "kind": "block leaving a hole (no text at all)",
+   "raw": "can you transfer the money to the uh the um account",
+   "clean": "Can you transfer the money to the account?",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 527
+  },
+  {
+   "id": 4,
+   "kind": "covert revision past a feared word",
+   "raw": "i'm going to the s-s-s the place tomorrow at four",
+   "clean": "I'm going to the place tomorrow at four.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 454
+  },
+  {
+   "id": 5,
+   "kind": "self-correction canonical overwrite",
+   "raw": "the meeting is at three pm i mean four pm on tuesday",
+   "clean": "The meeting is at 4 PM on Tuesday.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 450
+  },
+  {
+   "id": 6,
+   "kind": "prolongation + filler stacking",
+   "raw": "ssssorry i um uh i wanted to ask about the mmmmedical bill for two hundred dollars",
+   "clean": "Sorry, I wanted to ask about the medical bill for two hundred dollars.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 735
+  },
+  {
+   "id": 7,
+   "kind": "negation must survive",
+   "raw": "i i i do not want to to cancel the appointment",
+   "clean": "I do not want to cancel the appointment.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 522
+  },
+  {
+   "id": 8,
+   "kind": "circumlocution around a feared word",
+   "raw": "i need the the thing you sign when you start a job the the paperwork",
+   "clean": "I need the paperwork you sign when starting a job.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 662
+  },
+  {
+   "id": 9,
+   "kind": "numbers and proper nouns under heavy disfluency",
+   "raw": "tell d-d-doctor williams my son m-m-michael has an appointment on the the fifteenth",
+   "clean": "Tell Doctor Williams my son Michael has an appointment on the fifteenth.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 599
+  },
+  {
+   "id": 10,
+   "kind": "emphatic repetition must NOT be stripped",
+   "raw": "no no that's not what i meant at all",
+   "clean": "That's not what I meant at all.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 323
+  },
+  {
+   "id": 11,
+   "kind": "sentence abandonment",
+   "raw": "i was going to um i was wondering if you could could send the address",
+   "clean": "I was wondering if you could send the address.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 426
+  },
+  {
+   "id": 12,
+   "kind": "already fluent — must still reconstruct, not echo",
+   "raw": "please send me the report tomorrow",
+   "clean": "I need you to send me the report by tomorrow.",
+   "attempts": 2,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 1085
+  },
+  {
+   "id": 13,
+   "kind": "short input",
+   "raw": "c-call him back",
+   "clean": "Call him back.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 351
+  },
+  {
+   "id": 14,
+   "kind": "interword block with filler postponement",
+   "raw": "the um the uh the deadline is is march third and i i can't move it",
+   "clean": "The deadline is March 3rd, and I can't move it.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [
+    "third"
+   ],
+   "ms": 469
+  },
+  {
+   "id": 15,
+   "kind": "money + date + name together",
+   "raw": "wire f-f-four thousand two hundred to h-h-henderson before monday",
+   "clean": "Wire $4,200 to Henderson before Monday.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 425
+  }
+ ],
+ "results_layer4": [
+  {
+   "id": 1,
+   "kind": "part-word repetition",
+   "raw": "c-c-can you s-s-send me the the report by by friday",
+   "clean": "Can you send me the report by Friday?",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 4371
+  },
+  {
+   "id": 2,
+   "kind": "block + whisper hallucination in the silence",
+   "raw": "i need to call thanks for watching about the invoice",
+   "clean": "i need to call thanks for watching about the invoice",
+   "attempts": 1,
+   "falcon_ok": false,
+   "guard_lost": [],
+   "guard_invented": [
+    "regarding"
+   ],
+   "unchanged": true,
+   "anchors_missing": [],
+   "ms": 384
+  },
+  {
+   "id": 3,
+   "kind": "block leaving a hole (no text at all)",
+   "raw": "can you transfer the money to the uh the um account",
+   "clean": "Can you transfer the money to the account?",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 703
+  },
+  {
+   "id": 4,
+   "kind": "covert revision past a feared word",
+   "raw": "i'm going to the s-s-s the place tomorrow at four",
+   "clean": "I'm going to the place tomorrow at four.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 921
+  },
+  {
+   "id": 5,
+   "kind": "self-correction canonical overwrite",
+   "raw": "the meeting is at three pm i mean four pm on tuesday",
+   "clean": "The meeting is at 4 PM on Tuesday.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 513
+  },
+  {
+   "id": 6,
+   "kind": "prolongation + filler stacking",
+   "raw": "ssssorry i um uh i wanted to ask about the mmmmedical bill for two hundred dollars",
+   "clean": "Sorry, I wanted to ask about the medical bill for two hundred dollars.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 642
+  },
+  {
+   "id": 7,
+   "kind": "negation must survive",
+   "raw": "i i i do not want to to cancel the appointment",
+   "clean": "I do not want to cancel the appointment.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 543
+  },
+  {
+   "id": 8,
+   "kind": "circumlocution around a feared word",
+   "raw": "i need the the thing you sign when you start a job the the paperwork",
+   "clean": "I need the paperwork you sign when you start a job.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 440
+  },
+  {
+   "id": 9,
+   "kind": "numbers and proper nouns under heavy disfluency",
+   "raw": "tell d-d-doctor williams my son m-m-michael has an appointment on the the fifteenth",
+   "clean": "Tell Doctor Williams my son Michael has an appointment on the fifteenth.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 586
+  },
+  {
+   "id": 10,
+   "kind": "emphatic repetition must NOT be stripped",
+   "raw": "no no that's not what i meant at all",
+   "clean": "No, that's not what I meant at all.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 445
+  },
+  {
+   "id": 11,
+   "kind": "sentence abandonment",
+   "raw": "i was going to um i was wondering if you could could send the address",
+   "clean": "I was wondering if you could send the address.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 469
+  },
+  {
+   "id": 12,
+   "kind": "already fluent — must still reconstruct, not echo",
+   "raw": "please send me the report tomorrow",
+   "clean": "Please send me the report tomorrow.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": true,
+   "anchors_missing": [],
+   "ms": 509
+  },
+  {
+   "id": 13,
+   "kind": "short input",
+   "raw": "c-call him back",
+   "clean": "Call him back.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 443
+  },
+  {
+   "id": 14,
+   "kind": "interword block with filler postponement",
+   "raw": "the um the uh the deadline is is march third and i i can't move it",
+   "clean": "The deadline is March 3rd, and I can't move it.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [
+    "third"
+   ],
+   "ms": 446
+  },
+  {
+   "id": 15,
+   "kind": "money + date + name together",
+   "raw": "wire f-f-four thousand two hundred to h-h-henderson before monday",
+   "clean": "Wire four thousand two hundred to Henderson before Monday.",
+   "attempts": 1,
+   "falcon_ok": true,
+   "guard_lost": [],
+   "guard_invented": [],
+   "unchanged": false,
+   "anchors_missing": [],
+   "ms": 366
+  }
+ ]
+}
