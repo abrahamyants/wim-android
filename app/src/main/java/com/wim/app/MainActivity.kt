@@ -1390,18 +1390,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupLayoutGroup(ids: List<Int>, labelIds: List<Int>, values: List<String>, prefKey: String, current: String) {
         val idx = values.indexOf(current).coerceAtLeast(0)
-        ids.forEachIndexed { i, id ->
-            val container = findViewById<LinearLayout>(id)
-            val label = findViewById<TextView>(labelIds[i])
-            setLayoutSelected(container, label, i == idx)
+        // Resolve every view ONCE, here. The click handlers below must never
+        // call Activity.findViewById: openBottomSheet reparents this whole
+        // group out of the activity's hierarchy while the sheet is open, so
+        // an at-click lookup returns null and the !! intrinsic kills the app
+        // (Crashlytics issue 1beaa78, first tap on a layer tile in the sheet).
+        // The captured View objects stay valid wherever the subtree lives.
+        val containers = ids.map { findViewById<LinearLayout>(it) }
+        val labels = labelIds.map { findViewById<TextView>(it) }
+        containers.forEachIndexed { i, container ->
+            setLayoutSelected(container, labels[i], i == idx)
         }
-        ids.forEachIndexed { i, id ->
-            findViewById<LinearLayout>(id).setOnClickListener {
+        containers.forEachIndexed { i, container ->
+            container.setOnClickListener {
                 triggerShimmerForPrefKey(prefKey)
-                ids.forEachIndexed { j, otherId ->
-                    setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
+                containers.forEachIndexed { j, other ->
+                    setLayoutSelected(other, labels[j], false)
                 }
-                setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
+                setLayoutSelected(container, labels[i], true)
                 val edit = WimApp.prefs.edit().putString(prefKey, values[i])
                 if (prefKey == "tone") {
                     // Picking a tone here is also a correction of whatever
@@ -1424,22 +1430,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupLayoutGroupInt(ids: List<Int>, labelIds: List<Int>, values: List<Int>, prefKey: String, currentIdx: Int) {
-        ids.forEachIndexed { i, id ->
-            val container = findViewById<LinearLayout>(id)
-            val label = findViewById<TextView>(labelIds[i])
-            setLayoutSelected(container, label, i == currentIdx)
+        // Same rule as setupLayoutGroup: resolve once, never at click time —
+        // this group lives inside a bottom-sheet-reparented subtree.
+        val containers = ids.map { findViewById<LinearLayout>(it) }
+        val labels = labelIds.map { findViewById<TextView>(it) }
+        containers.forEachIndexed { i, container ->
+            setLayoutSelected(container, labels[i], i == currentIdx)
         }
-        ids.forEachIndexed { i, id ->
-            findViewById<LinearLayout>(id).setOnClickListener {
+        containers.forEachIndexed { i, container ->
+            container.setOnClickListener {
                 if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
                     requestCloudUnlock()
                     return@setOnClickListener
                 }
                 triggerShimmerForPrefKey(prefKey)
-                ids.forEachIndexed { j, otherId ->
-                    setLayoutSelected(findViewById(otherId), findViewById(labelIds[j]), false)
+                containers.forEachIndexed { j, other ->
+                    setLayoutSelected(other, labels[j], false)
                 }
-                setLayoutSelected(it as LinearLayout, findViewById(labelIds[i]), true)
+                setLayoutSelected(container, labels[i], true)
                 WimApp.prefs.edit().putInt(prefKey, values[i]).apply()
                 loadSessions() // refresh stats — third cell changes per layer
                 refreshHeaderBadges()
@@ -1588,7 +1596,9 @@ class MainActivity : AppCompatActivity() {
             else -> 0
         }
         if (pillId != 0) {
-            findViewById<TextView>(pillId)?.visibility = if (selected) View.VISIBLE else View.GONE
+            // Search from the container, not the activity — the pill is inside
+            // the card, and the card may currently live in a bottom sheet.
+            container.findViewById<TextView>(pillId)?.visibility = if (selected) View.VISIBLE else View.GONE
         }
     }
 

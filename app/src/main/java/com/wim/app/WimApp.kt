@@ -113,6 +113,12 @@ class WimApp : Application() {
         fun layer(): Int = prefInt("layer", 1)
         /** A cached UI hint only; the backend independently enforces access. */
         fun cloudUnlocked(): Boolean {
+            // The giveaway build carries its own provider keys and never uses
+            // the backend — every cloud layer is open by definition, with no
+            // sign-in and no subscription. Without this, the layer pickers
+            // gate L2+ behind "sign in, then subscribe", which is exactly
+            // what that variant exists to bypass.
+            if (hasEmbeddedKeys()) return true
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
             return prefBool("cloud_unlocked", false) &&
                 prefs.getString("cloud_unlock_uid", null) == uid
