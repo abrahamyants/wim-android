@@ -332,7 +332,12 @@ class BubbleService : Service() {
         if (BubbleStateBus.current() !is BubbleState.Idle) return
 
         toneAskedThisSession.add(pkg)
-        clarifierUI?.show("WORK?", "Is this for work or casual?") { answer ->
+        // The bezel only offers a bare ✓ and ✕. For a word question those read
+        // fine ("did I hear this right?"), but for work-vs-casual neither symbol
+        // maps to an answer, so the operator hit this live on 2026-07-29 and
+        // could not tell what accepting meant. Spell the mapping out in the
+        // subtitle instead of assuming the check reads as "work".
+        clarifierUI?.show("WORK?", "✓ work    ✕ casual") { answer ->
             // null = the 10s timeout fired after its one retry. Don't guess and
             // don't record anything; the app stays in toneAskedThisSession so
             // this session stops bothering them about it.

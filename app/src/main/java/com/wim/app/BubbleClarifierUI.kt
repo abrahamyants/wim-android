@@ -174,6 +174,17 @@ class BubbleClarifierUI(
                 label?.setTextColor(0x88FFFFFF.toInt())
             }, SPARKLE_TO_STAR_MS)
             timerHandler.postDelayed({
+                // The acknowledgment raised the label to 24sp and added a glow
+                // for the ✓/✦/✧ glyphs. dismiss() restored 10sp BEFORE that
+                // block ran, so nothing ever put it back — the bubble then
+                // rendered "IDLE" at 24sp and clipped it to "IDL" until the app
+                // was restarted. Observed on device 2026-07-29 after the
+                // work/casual question. Undo the glyph styling here, at the end
+                // of the sequence that applied it.
+                label?.apply {
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                    setShadowLayer(0f, 0f, 0f, 0)
+                }
                 bubbleView?.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.VISIBLE
                 onAcknowledged()
             }, SPARKLE_TO_IDLE_MS)
