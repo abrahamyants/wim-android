@@ -367,7 +367,7 @@ class BubbleService : Service() {
      * directly with caller-supplied flagged words.
      */
     fun triggerClarifierForTest(flags: List<FlaggedWord>) {
-        if (!BuildConfig.DEBUG) return
+        if (!WimApp.testHooksEnabled()) return
         // advance() rejects Idle→Injected (forbidden). forceTo() bypasses the
         // matrix so the legal Injected→Clarifying transition inside
         // ClarifierController.enter() can proceed.
@@ -436,7 +436,7 @@ class BubbleService : Service() {
      * Result written to WimTestReceiver.lastResult when complete.
      */
     fun processTextForTest(rawText: String) {
-        if (!BuildConfig.DEBUG) return
+        if (!WimApp.testHooksEnabled()) return
         if (isRecording) return
         lastWhisperLowConf = emptyList()
         recordingStartTime = System.currentTimeMillis()
@@ -452,7 +452,7 @@ class BubbleService : Service() {
      * Result written to WimTestReceiver.lastResult when complete.
      */
     fun processAudioForTest(wavFile: java.io.File) {
-        if (!BuildConfig.DEBUG) return
+        if (!WimApp.testHooksEnabled()) return
         recordingStartTime = System.currentTimeMillis()
         scope.launch {
             try {
@@ -2409,9 +2409,18 @@ class BubbleService : Service() {
     private fun stopHotwordListener() { hotword?.stop() }
 
     private fun relayToTermux(text: String) {
-        // M3: dev-only relay to the Termux listener. Never fire in release —
-        // it would POST every reconstruction to localhost on real users' phones.
-        if (!BuildConfig.DEBUG) return
+        // M3: relay each reconstruction to a listener on localhost, which is
+        // how an agent running on the same phone reads the pipeline's output
+        // — the results file lives in app-private storage and nothing else can
+        // open it.
+        //
+        // Debug builds always; giveaway builds only when `termux_relay` is
+        // explicitly switched on, default off. A stranger running the
+        // giveaway APK must never POST their reconstructions anywhere, even to
+        // their own loopback. `release` can never reach this at all.
+        if (!BuildConfig.DEBUG &&
+            !(WimApp.testHooksEnabled() && WimApp.prefs.getBoolean("termux_relay", false))
+        ) return
         WimApp.instance.appScope.launch(Dispatchers.IO) {
             try {
                 val url = java.net.URL("http://localhost:3133/wim")
@@ -2868,7 +2877,7 @@ class BubbleService : Service() {
             )
             SessionUpdateBus.emit()
             // Test automation: capture result
-            if (BuildConfig.DEBUG) {
+            if (WimApp.testHooksEnabled()) {
                 WimTestReceiver.lastResult = org.json.JSONObject().apply {
                     put("status", "ok")
                     put("raw_text", rawText)
@@ -3261,7 +3270,7 @@ class BubbleService : Service() {
                 ConsoleLog.log("[L$layer] paste_clean | ${totalMs}ms (asr:${asrMs} recon:${reconResult.reconMs})$flagStr", "info")
 
                 // Test automation: capture result
-                if (BuildConfig.DEBUG) {
+                if (WimApp.testHooksEnabled()) {
                     WimTestReceiver.lastResult = org.json.JSONObject().apply {
                         put("status", "ok")
                         put("raw_text", rawText)
@@ -3372,7 +3381,7 @@ class BubbleService : Service() {
                     )
                     SessionUpdateBus.emit()
                     // Test automation: capture error
-                    if (BuildConfig.DEBUG) {
+                    if (WimApp.testHooksEnabled()) {
                         WimTestReceiver.lastResult = org.json.JSONObject().apply {
                             put("status", "error")
                             put("error", e.message)

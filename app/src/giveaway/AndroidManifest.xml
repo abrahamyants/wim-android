@@ -11,4 +11,29 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!--
+      Test-automation receiver, giveaway builds only.
+
+      Speaking into the microphone produces text; everything that can go wrong
+      afterwards — disfluency stripping, tone classification, profile-term
+      recovery, reconstruction, the meaning guard — is text in, text out. This
+      receiver injects raw text straight into that pipeline, so the whole thing
+      can be exercised on the real device, against the operator's real profile
+      and real settings, without anyone speaking. It is how the 1248-case
+      matrix was run, and it was compiled out of every build he actually uses.
+
+      Still absent from `release`: it is exported, so anything on the phone can
+      drive it. Fine on the operator's own sideload build; not something to
+      hand to strangers through Play.
+    -->
+    <application>
+        <receiver
+            android:name=".WimTestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="${applicationId}.TEST" />
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

@@ -47,7 +47,11 @@ class WimTestReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (!BuildConfig.DEBUG) {
+        // Debug builds, and giveaway (sideload) builds — which are identified
+        // by carrying their own provider keys. `release` is still blocked:
+        // this receiver is exported, and the Play build must not hand every
+        // app on the phone a remote control for the pipeline.
+        if (!BuildConfig.DEBUG && !WimApp.hasEmbeddedKeys()) {
             Log.w(TAG, "Test receiver blocked in release build")
             return
         }

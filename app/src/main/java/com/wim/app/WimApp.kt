@@ -103,6 +103,19 @@ class WimApp : Application() {
         fun hasEmbeddedKeys(): Boolean =
             BuildConfig.EMBEDDED_OPENAI_KEY.isNotBlank()
 
+        /**
+         * True when the pipeline should expose its test hooks — the
+         * WimTestReceiver control surface and the JSON result it writes back.
+         *
+         * Debug builds, plus giveaway (sideload) builds, which are the ones
+         * the operator actually runs. Speaking produces text, and every
+         * failure mode after that point is text-in/text-out, so being able to
+         * inject raw text and read the result back is what makes the real
+         * device testable without anyone talking into a microphone. `release`
+         * stays closed: the receiver is exported.
+         */
+        fun testHooksEnabled(): Boolean = BuildConfig.DEBUG || hasEmbeddedKeys()
+
         fun tone(): String = prefStr("tone", "casual")
         /**
          * Default layer is 1 — users land on the fully-local WhisperLocalEngine
