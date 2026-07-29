@@ -144,11 +144,14 @@ object ProfileTermRecovery {
         kind: String,
         lowConfTexts: List<String>,
     ): Pair<String, List<Match>> {
+        // Plain List operations only — SortedSet.reversed() is a JDK 21
+        // member that shadows the Kotlin extension and NoSuchMethodErrors
+        // on the JDK 17 CI runner (and is absent from android.jar).
         val wordCounts = ( listOf(target) + probes )
             .filter { it.isNotBlank() }
             .map { WORD_RE.findAll(it).count() }
-            .toSortedSet()
-            .reversed()
+            .distinct()
+            .sortedDescending()
         val tokens = WORD_RE.findAll(text).toList()
         data class Repl(val start: Int, val end: Int, val target: String, val heard: String, val relation: String)
         val replacements = mutableListOf<Repl>()
