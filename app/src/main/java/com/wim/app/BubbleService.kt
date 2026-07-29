@@ -2665,6 +2665,14 @@ class BubbleService : Service() {
     private fun processText(rawText: String) {
         val pipelineStart = System.currentTimeMillis()
         val asrMs = pipelineStart - recordingStartTime
+        // Take a private copy: `lastSpeechMs` is one slot on the service, but
+        // it is READ seconds later, inside the coroutines that record the
+        // session after reconstruction returns. Starting a second dictation
+        // before the first finishes — common, since reconstruction routinely
+        // outlasts the user's reaction time (see onInjectComplete) — would
+        // otherwise stamp the second take's speaking time onto the first take's
+        // row, quietly corrupting the WPM history.
+        val speechMs = lastSpeechMs
         Log.i(TAG, "Processing (asr=${asrMs}ms): $rawText")
         checkRedo(rawText)
         setBubbleProcessing()
@@ -2856,7 +2864,7 @@ class BubbleService : Service() {
                 totalMs = totalMs,
                 falconApproved = true,
                 riskFlags = emptyList(),
-                speechMs = lastSpeechMs
+                speechMs = speechMs
             )
             SessionUpdateBus.emit()
             // Test automation: capture result
@@ -3143,7 +3151,7 @@ class BubbleService : Service() {
                         totalMs = totalMs,
                         falconApproved = reconResult.falconApproved,
                         riskFlags = reconResult.riskFlags + "inject_fail",
-                        speechMs = lastSpeechMs,
+                        speechMs = speechMs,
                     )
                     SessionUpdateBus.emit()
                     setBubbleIdle()
@@ -3235,7 +3243,7 @@ class BubbleService : Service() {
                     totalMs = totalMs,
                     falconApproved = reconResult.falconApproved,
                     riskFlags = reconResult.riskFlags,
-                    speechMs = lastSpeechMs
+                    speechMs = speechMs
                 )
                 SessionUpdateBus.emit()
 
@@ -3360,7 +3368,7 @@ class BubbleService : Service() {
                         totalMs = totalMs,
                         falconApproved = false,
                         riskFlags = listOf("reconstruction_failed"),
-                        speechMs = lastSpeechMs
+                        speechMs = speechMs
                     )
                     SessionUpdateBus.emit()
                     // Test automation: capture error
