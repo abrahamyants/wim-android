@@ -56,7 +56,13 @@ object L1Pipeline {
         for ((wrong, right) in corrections) {
             val pattern = Regex("\\b${Regex.escape(wrong)}\\b", RegexOption.IGNORE_CASE)
             if (pattern.containsMatchIn(l1Text)) {
-                l1Text = pattern.replace(l1Text, right)
+                // Regex.replace treats $1 in the REPLACEMENT as a group reference.
+                // WiM learns corrections from its own reconstructions, so the
+                // moment one is learned whose target contains a dollar amount
+                // ("$1,200"), every later dictation throws
+                // IndexOutOfBoundsException: No group 1 — the pipeline is dead
+                // until that correction is deleted. Crashlytics, 2026-07-29.
+                l1Text = pattern.replace(l1Text, Regex.escapeReplacement(right))
                 profile.markCorrectionUsed(wrong, sessionNum)
                 log("L1 correction: \"$wrong\" → \"$right\"")
                 applied++
