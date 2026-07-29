@@ -131,7 +131,7 @@ object ReconstructClient {
                 android.util.Log.w("WiM", "No auth token — using device-direct reconstruction (signed out or token refresh failed)")
                 com.wim.app.ConsoleLog.log("Auth token unavailable — using device-direct path", "warn")
             }
-            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext)
+            reconstructDirect(rawText, tone, layer, situation, vocabulary, corrections, triggerWords, onsetWeights, precedingContext, languageCode, previousOutputs, compressionRatioNote, audiencePackage, scriptPrepContext, prosodicContext, whisperLowConf)
         }
 
         prosodicSummary?.let { WimApp.profile().recordProsodic(it) }
@@ -384,6 +384,37 @@ object ReconstructClient {
         val cleanText = json.getString("clean")
         val backendFalconOk = json.optBoolean("falcon_ok", true)
 
+        // The backend reports its Layer 3 profile-term work and Layer 2 retry
+        // count (wim-reconstruct-00032-zit). Parse and surface them instead of
+        // dropping them on the floor — the operator reads these in the console.
+        val backendAttempts = json.optInt("rewrite_attempts", 1)
+        val backendMatches = mutableListOf<String>()
+        json.optJSONArray("profile_matches")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                backendMatches.add(
+                    "\"${o.optString("heard")}\" -> \"${o.optString("term")}\" [${o.optString("kind")}]"
+                )
+            }
+        }
+        if (backendMatches.isNotEmpty()) {
+            Log.i("WiM", "Backend L3 profile terms applied: ${backendMatches.joinToString("; ")}")
+            com.wim.app.ConsoleLog.log("Profile terms: ${backendMatches.joinToString("; ")}", "info")
+        }
+        if (backendAttempts > 1) {
+            Log.i("WiM", "Backend reconstruction took $backendAttempts attempts")
+            com.wim.app.ConsoleLog.log("Reconstruction took $backendAttempts attempts", "info")
+        }
+        json.optJSONObject("meaning_guard")?.let { mg ->
+            if (!mg.optBoolean("ok", true)) {
+                Log.w(
+                    "WiM",
+                    "Backend meaning guard flagged: lost=${mg.optJSONArray("lost")} " +
+                        "invented=${mg.optJSONArray("invented")} unchanged=${mg.optBoolean("unchanged", false)}"
+                )
+            }
+        }
+
         // CRITICAL: the backend (wim-reconstruct on bakers-agent) does NOT
         // return riskFlags in its response — verified by reading the server
         // source at lavrentiy/wim/api/main.py / reconstruct.py 2026-05-31.
@@ -404,7 +435,9 @@ object ReconstructClient {
             cleanText = finalText,
             reconMs = reconMs,
             riskFlags = clientRiskFlags,
-            falconApproved = falconOk
+            falconApproved = falconOk,
+            rewriteAttempts = backendAttempts,
+            profileMatches = backendMatches
         )
     }
 
@@ -422,13 +455,36 @@ object ReconstructClient {
         compressionRatioNote: String = "",
         audiencePackage: String? = null,
         scriptPrepContext: String = "",
-        prosodicContext: String = ""
+        prosodicContext: String = "",
+        whisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
     ): ReconstructResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
             if (apiKey.isBlank()) throw IllegalStateException("No API key configured")
 
             val t0 = System.currentTimeMillis()
+
+            // L3 profile-term recovery (parity with the backend's
+            // profile_terms.apply_profile_terms): exact corrections first, then
+            // phonetic recovery of correction pairs inside low-confidence ASR
+            // spans and multiword vocabulary phrases. The corrected text is
+            // what reconstruction sees and what the guard protects.
+            var effectiveRaw = rawText
+            var profileMatches: List<ProfileTermRecovery.Match> = emptyList()
+            if (layer >= 3) {
+                val lowConfTexts = whisperLowConf.mapNotNull { seg -> seg.text.takeIf { it.isNotBlank() } }
+                val (recovered, applied) = ProfileTermRecovery.apply(
+                    rawText, corrections, vocabulary, lowConfTexts
+                )
+                effectiveRaw = recovered
+                profileMatches = applied
+                if (applied.isNotEmpty()) {
+                    Log.i("WiM", "L3 profile terms applied: ${applied.joinToString("; ")}")
+                    com.wim.app.ConsoleLog.log(
+                        "Profile terms: ${applied.joinToString("; ")}", "info"
+                    )
+                }
+            }
             val toneRule = TONE_RULES[tone] ?: TONE_RULES["casual"]!!
             val baseTemperature = TONE_TEMPERATURE[tone] ?: 0.35
             // Regenerate path: bump temperature so the model actually picks
@@ -747,30 +803,81 @@ object ReconstructClient {
             } else systemPrompt
 
             var sonnetDowngraded = false
+            var rewriteAttempts = 1
+            var loopGuard: MeaningGuard.GuardResult? = null
             val cleanText = if (useSonnet) {
                 try {
-                    reconstructWithSonnet(finalSystemPrompt, rawText, anthropicKey)
+                    reconstructWithSonnet(finalSystemPrompt, effectiveRaw, anthropicKey)
                 } catch (e: Exception) {
                     Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
                     sonnetDowngraded = true
-                    reconstructWithGpt4o(finalSystemPrompt, rawText, apiKey, temperature)
+                    reconstructWithGpt4o(finalSystemPrompt, effectiveRaw, apiKey, temperature)
                 }
+            } else if (layer in 2..3) {
+                // L2/L3 must always reconstruct — empty, unchanged, or
+                // guard-rejected output is retried with exact feedback, up to
+                // MAX_REWRITE_ATTEMPTS. Port of the backend's
+                // run_layer2_rewrite (6a0ad9a); short inputs get the same
+                // treatment — there is no length gate on this path.
+                val messages = JSONArray().apply {
+                    put(JSONObject().put("role", "system").put("content", finalSystemPrompt))
+                    put(JSONObject().put("role", "user").put("content", effectiveRaw))
+                }
+                val outcome = MeaningGuard.runRewriteLoop(
+                    rawText = effectiveRaw,
+                    vocabulary = vocabulary,
+                    rewriteOnce = { attemptIndex ->
+                        // Retries drop to near-greedy sampling so the repair
+                        // instruction, not randomness, drives the change.
+                        val attemptTemp = if (attemptIndex == 0) temperature else minOf(temperature, 0.1)
+                        reconstructWithGpt4oMessages(messages, apiKey, attemptTemp)
+                    },
+                    appendRepair = { candidate, instruction ->
+                        messages.put(JSONObject().put("role", "assistant").put("content", candidate))
+                        messages.put(JSONObject().put("role", "user").put("content", instruction))
+                    },
+                    onRetry = { attempt, candidate, g ->
+                        Log.w(
+                            "WiM",
+                            "L$layer rewrite rejected on attempt $attempt: lost=${g.lost} " +
+                                "invented=${g.invented} unchanged=${MeaningGuard.isEffectivelyUnchanged(effectiveRaw, candidate)} — retrying"
+                        )
+                        com.wim.app.ConsoleLog.log("Rewrite attempt $attempt rejected — retrying", "warn")
+                    },
+                )
+                rewriteAttempts = outcome.attempts
+                loopGuard = outcome.guard
+                if (rewriteAttempts > 1) {
+                    com.wim.app.ConsoleLog.log("Reconstruction took $rewriteAttempts attempts", "info")
+                }
+                outcome.cleanText
             } else {
-                reconstructWithGpt4o(finalSystemPrompt, rawText, apiKey, temperature)
+                reconstructWithGpt4o(finalSystemPrompt, effectiveRaw, apiKey, temperature)
             }
 
-            val riskFlags = computeRiskFlags(rawText, cleanText)
+            val riskFlags = computeRiskFlags(effectiveRaw, cleanText).toMutableList()
+            loopGuard?.let { g ->
+                if (g.lost.isNotEmpty()) riskFlags.add("guard_lost")
+                if (g.invented.isNotEmpty()) riskFlags.add("guard_invented")
+                if (g.unchanged) riskFlags.add("guard_unchanged")
+            }
             val fastMode = com.wim.app.WimApp.prefs.getBoolean("fast_mode", false)
             val falconOk = if (fastMode) {
                 true // FAST mode: skip integrity rollback
             } else if (riskFlags.contains("critical_token_lost")) {
                 false
+            } else if (loopGuard != null && !loopGuard.ok && !loopGuard.unchanged) {
+                // Retries exhausted with a guard violation (lost/invented
+                // anchors) — fall back to the (profile-corrected) raw text.
+                // An unchanged-only failure keeps the model output: identical
+                // words are safe words, just not the rewrite we wanted.
+                false
             } else {
-                falconValidate(rawText, cleanText, layer, tone, onsetWeights, languageCode)
+                falconValidate(effectiveRaw, cleanText, layer, tone, onsetWeights, languageCode)
             }
 
             val reconMs = System.currentTimeMillis() - t0
-            val finalText = if (falconOk) cleanText else rawText
+            val finalText = if (falconOk) cleanText else effectiveRaw
 
             if (!falconOk) {
                 Log.w("WiM", "Integrity check rejected reconstruction, using raw text. Flags: $riskFlags")
@@ -781,7 +888,9 @@ object ReconstructClient {
                 reconMs = reconMs,
                 riskFlags = riskFlags,
                 falconApproved = falconOk,
-                downgradedFromL4 = sonnetDowngraded
+                downgradedFromL4 = sonnetDowngraded,
+                rewriteAttempts = rewriteAttempts,
+                profileMatches = profileMatches.map { it.toString() }
             )
         }
 
@@ -857,6 +966,20 @@ object ReconstructClient {
             put(JSONObject().put("role", "system").put("content", systemPrompt))
             put(JSONObject().put("role", "user").put("content", rawText))
         }
+        return reconstructWithGpt4oMessages(messages, apiKey, temperature, maxTokens)
+    }
+
+    /**
+     * GPT-4o call over an explicit message array — the retry loop appends
+     * (assistant candidate, repair instruction) pairs to the same
+     * conversation so the model sees exactly why its last attempt failed.
+     */
+    private fun reconstructWithGpt4oMessages(
+        messages: JSONArray,
+        apiKey: String,
+        temperature: Double,
+        maxTokens: Int = 1024,
+    ): String {
         val body = JSONObject().apply {
             put("model", "gpt-4o-2024-11-20")
             put("messages", messages)
@@ -958,6 +1081,10 @@ object ReconstructClient {
         val reconMs: Long,
         val riskFlags: List<String> = emptyList(),
         val falconApproved: Boolean = true,
-        val downgradedFromL4: Boolean = false
+        val downgradedFromL4: Boolean = false,
+        /** Model calls the reconstruction took (1 = accepted first try). */
+        val rewriteAttempts: Int = 1,
+        /** Human-readable L3 profile-term replacements that were applied. */
+        val profileMatches: List<String> = emptyList()
     )
 }

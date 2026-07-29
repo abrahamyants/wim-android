@@ -114,6 +114,11 @@ class BubbleService : Service() {
     private var vibrator: Vibrator? = null
     private var onDeviceRecognizer: OnDeviceRecognizer? = null
     private var whisperLocalEngine: WhisperLocalEngine? = null
+    /** The ASR route that actually produced the current transcript. Logged
+     *  once per pipeline run, separate from the reconstruction route — local
+     *  ASR followed by cloud reconstruction is NOT an entirely local
+     *  pipeline, and the console must not read like it is. */
+    private var lastAsrRoute: String = "unknown"
     private var bubblePersona: BubblePersona? = null
     private var bubbleAffect: BubbleAffect? = null
     /** Active onboarding demo (Phase 7). Tap handler skips it on touch. */
@@ -465,6 +470,7 @@ class BubbleService : Service() {
                     verboseSegments = (whisperModel == "whisper-1"),
                     language = WimApp.appLanguage(),
                 )
+                lastAsrRoute = "cloud ($whisperModel)"
                 Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
                 if (whisperResult.wasFullyHallucinated) {
@@ -1985,6 +1991,7 @@ class BubbleService : Service() {
             updateLiveTranscript("Recording (cloud ASR)…")
         } else if (l1LocalLiveOverride) {
             Log.i(TAG, "LIVE on — routing L1 to Android SpeechRecognizer for real-time partials")
+            lastAsrRoute = "local (Android SpeechRecognizer)"
             onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
@@ -1993,6 +2000,7 @@ class BubbleService : Service() {
             })
         } else if (whisperLocalEngine?.isReady() == true) {
             Log.i(TAG, "Using whisper-tiny.en engine (local, sherpa-onnx)")
+            lastAsrRoute = "local (whisper-tiny.en on-device)"
             whisperLocalEngine?.start(object : WhisperLocalEngine.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
@@ -2212,6 +2220,7 @@ class BubbleService : Service() {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
                 try {
+                    lastAsrRoute = "cloud"
                     val whisperModel = when {
                         WimApp.layer() >= 4 -> "whisper-1"
                         WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
@@ -2697,6 +2706,11 @@ class BubbleService : Service() {
         val tone = WimApp.tone()
         val situation = WimApp.situation()
         ConsoleLog.log("Processing... [L$layer ${tone.uppercase()} $situation]", "info")
+        // ASR and reconstruction are separate stages with separate routes —
+        // log which ASR actually succeeded so "local ASR + cloud
+        // reconstruction" never reads as an entirely local pipeline.
+        Log.i(TAG, "ASR route: $lastAsrRoute")
+        ConsoleLog.log("ASR route: $lastAsrRoute", "info")
         val profile = WimApp.profile()
 
         // Rate-gap analysis: does the word count match the audio duration vs the
@@ -2712,80 +2726,13 @@ class BubbleService : Service() {
             ConsoleLog.log("Rate-gap: ${((rateGap.ratio ?: 0.0) * 100).toInt()}% of baseline WPS — ASR likely dropped content", "warn")
         }
 
-        // L1 Local raw fast-path. Per operator 2026-06-06: when the user is on
-        // L1 + the local engine (whisper-tiny.en on-device), inject the user's
-        // ASR output untouched. No voice shortcuts, no DisfluencyFilter, no
-        // profile corrections, no Repunctuate. The user hears their own voice
-        // back, raw. ONE exception (added 2026-06-06): strip Whisper system
-        // markers like "[BLANK_AUDIO", "[INAUDIBLE]" etc. — those aren't user
-        // speech, they're the engine's "I heard nothing" tokens, and injecting
-        // them as text would be nonsense.
-        if (layer < 2 && !WimApp.l1CloudAsr()) {
-            val outText = DisfluencyFilter.stripBlockHallucinations(rawText, lastWhisperLowConf)
-            Log.i(TAG, "L1 Local raw — injecting rawText (markers-only filtered): \"$outText\"")
-            BubbleStateBus.advance(BubbleState.Reconstructing(System.currentTimeMillis(), layer = 1))
-            setStageArc(1)
-            BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
-            setStageArc(2)
-            ConsoleLog.log("Raw: \"${rawText.take(80)}${if (rawText.length > 80) "..." else ""}\"", "raw")
-            if (outText.isBlank()) {
-                // Engine returned only system markers (no speech). Don't inject
-                // an empty string — toast and bail.
-                ConsoleLog.log("No speech detected", "warn")
-                Toast.makeText(this@BubbleService, "No speech detected", Toast.LENGTH_SHORT).show()
-                setBubbleIdle()
-                return
-            }
-            ConsoleLog.log("-> \"${outText.take(80)}${if (outText.length > 80) "..." else ""}\" [pure raw, markers stripped]", "out")
-            if (injectionPort == null) {
-                Toast.makeText(this@BubbleService, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
-                setBubbleIdle()
-                return
-            }
-            injectionPort!!.injectText(outText)
-            relayToTermux(outText)
-            BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
-            setStageArc(3)
-            val totalMs = System.currentTimeMillis() - recordingStartTime
-            ConsoleLog.log("[L1 Local raw] inject | ${totalMs}ms (asr:${asrMs})", "info")
-            sessionHistory?.record(
-                rawText = rawText,
-                cleanText = outText,
-                tone = tone,
-                layer = 1,
-                situation = situation,
-                asrMs = asrMs,
-                reconMs = 0,
-                totalMs = totalMs,
-                falconApproved = true,
-                riskFlags = emptyList()
-            )
-            SessionUpdateBus.emit()
-            if (BuildConfig.DEBUG) {
-                WimTestReceiver.lastResult = org.json.JSONObject().apply {
-                    put("status", "ok")
-                    put("raw_text", rawText)
-                    put("clean_text", outText)
-                    put("tone", tone)
-                    put("layer", 1)
-                    put("situation", situation)
-                    put("asr_ms", asrMs)
-                    put("recon_ms", 0)
-                    put("total_ms", totalMs)
-                    put("falcon_approved", true)
-                    put("risk_flags", org.json.JSONArray())
-                    put("wer", 0.0)
-                }
-            }
-            // onInjectComplete() is the post-inject gate that decides between
-            // SEND_READY (tap-to-send enabled + focused on a real editable in a
-            // non-WiM app → bubble turns green, facehugger jumps to the Send
-            // button) and plain Idle. Earlier I was bypassing it with a
-            // setBubbleIdle() call, which is why L1 Local raw never reached
-            // facehugger — bug fixed 2026-06-06.
-            onInjectComplete()
-            return
-        }
+        // L1 route parity (spec 2026-07-29, supersedes the 2026-06-06 raw
+        // fast-path): local and cloud transcription get the SAME deterministic
+        // cleanup — voice shortcuts, block-hallucination strip,
+        // DisfluencyFilter (fillers, repeated words/phrases, stutter
+        // fragments) and L1Pipeline corrections — by falling through to the
+        // shared path below. Cloud ASR only improves transcription accuracy;
+        // neither route adds LLM reconstruction at Layer 1.
 
         // Voice shortcuts — expand triggers before processing
         var expandedText = rawText
