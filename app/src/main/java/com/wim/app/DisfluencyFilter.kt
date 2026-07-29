@@ -97,6 +97,43 @@ object DisfluencyFilter {
     )
 
     /**
+     * Caption boilerplate Whisper emits when it decodes silence — training-data
+     * leakage from subtitled video. For this user, silence usually means a
+     * block, so these phrases appear exactly where a word failed to come out.
+     *
+     * Deliberately narrower than [MeaningGuard]'s detection regex. That one may
+     * flag a bare "subscribe" because a false positive there only triggers a
+     * retry; here a false positive DELETES text the speaker said. So only
+     * multi-word caption formulas are stripped — never a bare "subscribe" or a
+     * bare "thank you", both of which are ordinary speech.
+     */
+    private val CAPTION_ARTIFACT = Regex(
+        """(?i)\b(?:thanks?\s+(?:you\s+)?for\s+watching|""" +
+            """(?:don'?t\s+forget\s+to|please|like\s+and)\s+subscribe|""" +
+            """transcribed\s+by[^.,;!?]*|subtitles?\s+by[^.,;!?]*|""" +
+            """amara\.org|otter\.ai)\b[.,!?]*"""
+    )
+
+    /**
+     * Remove caption boilerplate without needing Whisper confidence metadata.
+     *
+     * Used on the reconstruction-refusal path: when the meaning guard rejects
+     * every candidate because the model kept inventing a replacement for a
+     * blocked word, WiM falls back to the raw transcript — and that transcript
+     * is exactly the one containing "thanks for watching". Pasting it hands the
+     * user garbage in the name of not fabricating. Found 2026-07-29 in the
+     * 15-case disfluency corpus (case 2).
+     *
+     * Returns the original text if stripping would empty it — an incomplete
+     * sentence beats an empty paste.
+     */
+    fun stripCaptionArtifacts(text: String): String {
+        if (text.isBlank()) return text
+        val stripped = MULTI_SPACE.replace(CAPTION_ARTIFACT.replace(text, " "), " ").trim()
+        return if (stripped.isBlank()) text else stripped
+    }
+
+    /**
      * Strip short hallucinated filler phrases from segments Whisper flagged
      * as block suspects (high no_speech_prob). These are usually words like
      * "thank you", "okay", "so" that Whisper fabricates during silent blocks.
@@ -110,7 +147,7 @@ object DisfluencyFilter {
      */
     fun stripBlockHallucinations(text: String, lowConfSegments: List<WhisperClient.LowConfidenceSegment>): String {
         if (text.isBlank()) return text
-        var result = SYSTEM_MARKER.replace(text, "")
+        var result = CAPTION_ARTIFACT.replace(SYSTEM_MARKER.replace(text, ""), " ")
         for (seg in lowConfSegments) {
             if (!seg.blockSuspect) continue
             val segText = seg.text.trim()

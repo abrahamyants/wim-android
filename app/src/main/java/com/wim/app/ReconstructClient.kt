@@ -425,10 +425,17 @@ object ReconstructClient {
         // are in parity.
         val clientRiskFlags = computeRiskFlags(rawText, cleanText)
         val falconOk = if (clientRiskFlags.contains("critical_token_lost")) false else backendFalconOk
-        val finalText = if (falconOk) cleanText else rawText
+        // Same rule as the device-direct path: a refusal falls back to the raw
+        // transcript, so strip the caption boilerplate a block leaves behind
+        // before it reaches the user's text field.
+        val finalText = if (falconOk) cleanText else DisfluencyFilter.stripCaptionArtifacts(rawText)
 
         if (!falconOk) {
             Log.w("WiM", "Backend reconstruction rejected (server falcon=$backendFalconOk, client flags=$clientRiskFlags), using raw text")
+            com.wim.app.ConsoleLog.log(
+                "Reconstruction refused (couldn't rebuild without inventing) — pasting your words as heard",
+                "warn"
+            )
         }
 
         ReconstructResult(
@@ -629,6 +636,22 @@ object ReconstructClient {
                     // behavior — replacing feared words mid-sentence). 'I mean'
                     // was intentionally removed from the discourse-marker drop
                     // list above so this rule wins.
+                    // Emphatic reduplication is meaning, not stuttering: "no no,
+                    // that's not what I meant" loses force — and at worst reads
+                    // as agreement — when flattened to "That's not what I meant."
+                    // Observed at L2 in the 2026-07-29 corpus (case 10); L4 was
+                    // already protected because its prompt injects the language
+                    // pack's natural-repeat list. L2/L3 get the same protection
+                    // here, in-language when a pack exists.
+                    append("\n\nEMPHATIC REPETITION — DO NOT STRIP:")
+                    append("\nA doubled short word used for emphasis or contradiction ('no no', 'yes yes', 'wait wait') is meaningful speech, not a repetition disfluency. Keep it. Strip only repetitions that carry no emphasis.")
+                    val l2NaturalRepeats = LangPackHelper.getLangNaturalRepeats(
+                        LangPackHelper.normalizeLangCode(languageCode)
+                    )
+                    if (l2NaturalRepeats.isNotEmpty()) {
+                        append("\nIn this speaker's language these are emphatic, never disfluency: ${l2NaturalRepeats.joinToString(", ")}")
+                    }
+
                     append("\n\nSELF-CORRECTION — CANONICAL OVERWRITE:")
                     append("\nWhen the speaker uses 'I mean', 'actually', 'no wait', 'scratch that', 'let me rephrase', or similar mid-sentence revision markers, treat the content AFTER the marker as canonical and DISCARD the content before it. This is intentional self-correction, not disfluency.")
                     append("\nExample: 'the meeting at 3pm, I mean 4pm' → 'the meeting at 4pm' (NOT '3pm 4pm', NOT '3pm').")
@@ -877,10 +900,19 @@ object ReconstructClient {
             }
 
             val reconMs = System.currentTimeMillis() - t0
-            val finalText = if (falconOk) cleanText else effectiveRaw
+            // Refusing to fabricate must not mean pasting caption boilerplate.
+            // When the guard rejects every candidate — which is what happens
+            // when a block destroyed a word and the model kept inventing a
+            // replacement — the raw transcript we fall back to is the one that
+            // still contains "thanks for watching". Strip it here.
+            val finalText = if (falconOk) cleanText else DisfluencyFilter.stripCaptionArtifacts(effectiveRaw)
 
             if (!falconOk) {
                 Log.w("WiM", "Integrity check rejected reconstruction, using raw text. Flags: $riskFlags")
+                com.wim.app.ConsoleLog.log(
+                    "Reconstruction refused (couldn't rebuild without inventing) — pasting your words as heard",
+                    "warn"
+                )
             }
 
             ReconstructResult(
