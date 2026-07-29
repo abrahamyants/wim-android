@@ -2709,7 +2709,7 @@ class BubbleService : Service() {
         // beers at six). The words decide; the clock only breaks a tie they
         // left open; the saved pref is the last resort. See ToneFromContent.
         val tone = if (WimApp.prefs.getBoolean("auto_tone", true)) {
-            when (val v = ToneFromContent.classify(rawText, profile.getVocabulary())) {
+            when (val v = ToneFromContent.classify(rawText, WimApp.profile().getVocabulary())) {
                 is ToneFromContent.Verdict.Use -> {
                     Log.i(TAG, "Tone from content: ${v.tone} (${v.why})")
                     ConsoleLog.log("Tone: ${v.tone} — ${v.why}", "info")
