@@ -4057,6 +4057,110 @@ permission restore now run over wireless with no cable in the loop.
   asserted, not measured — Firebase often restores `currentUser` synchronously.
   The network-failure half of that bug needs no race and stands on its own.
 
+## What WiM does for speech disfluency
+
+Every claim below was checked against the source before being written here, with
+the file it lives in. Nothing on this list is aspirational or planned. This
+section exists to be copied into the Play Store listing and the
+AccessibilityService declaration, so it has to survive a reviewer opening the
+repository.
+
+**The disfluency work lives at Layer 4.** Layers 1 to 3 are transcription,
+reconstruction, and reconstruction with your profile. Someone without a speech
+difference uses those and never loads any of the below. That separation is
+deliberate.
+
+### Before the words exist
+
+**You end the recording, not a timer.** Press and hold, 500 ms threshold
+(`BubbleService.HOLD_THRESHOLD_MS`), release when you are done. There is no
+voice-activity detector deciding you have finished because you went quiet. For
+someone who blocks mid-sentence, an automatic cut-off is the failure.
+
+**Silence is treated as speech that did not arrive.** At Layer 4 the
+no-speech threshold is raised to 0.6 (`WhisperClient.NO_SPEECH_THRESHOLD_PATIENCE`),
+so segments a standard transcriber discards as silence are kept and marked as
+possible blocks instead.
+
+**Delayed Auditory Feedback.** `DafPlayer` captures the microphone and plays it
+back through headphones on a 30–300 ms circular-buffer delay, with a toggle and
+delay slider in the app. Delayed feedback is a long-established stuttering
+intervention; it is running inside a dictation tool here.
+
+### On the text that comes back
+
+**Rate-gap detection.** `RateGapDetector` compares the words-per-second of an
+utterance against your own historical baseline, flagging when the audio ran
+longer than the word count explains. Its own comment states the case: Samsung's
+recogniser pre-smooths disfluency, so "go go go go go" arrives as "go go go" and
+"heyyyy" arrives as "hey". The duration is ground truth; the word count is
+already cleaned. The gap between them survives that cleaning.
+
+**Hallucination stripping.** During a long block Whisper emits its own
+training-data leakage — "thanks for watching", "subscribe", `[BLANK_AUDIO]`.
+`DisfluencyFilter.stripBlockHallucinations` removes those spans using the
+recogniser's own per-segment no-speech probability, and a fully hallucinated
+result is refused outright rather than pasted (`wasFullyHallucinated`).
+
+**Disfluency filtering with a preservation guard.** `DisfluencyFilter` handles
+part-word repetition ("p- p- pop"), word and phrase repetition, false starts and
+bilingual fillers — with a protected list so that "really really" and "да да"
+survive. Four test suites cover it, including `DisfluencyPreservationGuardTest`,
+which exists to prove it does not strip too much.
+
+### Recovering what you meant
+
+**Covert revision.** When a block makes a word unreachable, many speakers swap in
+an easier one. The audio then sounds fluent and the transcript is correct
+English carrying the wrong meaning — there is no acoustic evidence the failure
+happened, so no speech recogniser can detect it. The Layer 4 prompt treats
+synonym substitution, circumlocution and abandonment as avoidance behaviour
+rather than content (`ReconstructClient`, covert-avoidance block), with your own
+avoidance pairs supplied from your profile. This is the app's name and the one
+capability here that cannot be closed by anyone improving their ASR.
+
+**Your own onset map.** Which first sounds you block on, learned from your
+confirmed trigger words rather than a population average, carried in
+`onset_weights` and used to weight what gets reconstructed and what gets
+questioned.
+
+**Bounded clarification.** When a word comes back uncertain, WiM asks rather than
+guessing — capped at three questions per utterance (`Clarifier.MAX_FLAGS`),
+ranked by what is likely hard for you specifically. A cap matters: someone
+managing speech has limited attention to spend on a dialogue box.
+
+### While you are using it
+
+**The host application is never disturbed.** No focus change, no cursor move, no
+keyboard dismissal, no scroll. The bubble reads the focused field's position and
+writes into it, and nothing else.
+
+**Password fields are refused.** `WimAccessibilityService.detectPasswordField`
+disables dictation when a password field takes focus.
+
+**The send button comes to you.** After text is inserted the bubble can relocate
+onto the host application's own send control, so the motor target you already
+learned still works. It never sends by itself: the five-second window expires
+into a cancel, and transmission requires a deliberate tap.
+
+### What it does not do
+
+It does not diagnose, treat, cure or prevent any condition, and it is not a
+medical device — wording already carried in the app's own layer description.
+
+It cannot recover a word the recogniser never captured. If a block removed a
+word before the text arrived, nothing downstream can know what it was.
+
+Reconstruction can invent content when a span was destroyed. A deterministic
+guard checks that names, figures, dates and negations were neither lost nor
+fabricated, and falls back to unreconstructed text when they were, but the guard
+is rule-based and does not catch everything.
+
+The claim being made is a functional one: WiM reduces the interaction burden of
+dictating, correcting and sending for someone already spending attention on
+managing speech. It is not a claim of clinical effect, and no efficacy testing
+has been done.
+
 ### Session Log — 2026-07-28 — the bubble was never the slider
 
 Four fixes shipped (`11f3ec0`, `9ba0a12`, `08bf561`, `4753392`), versionCode
@@ -4279,108 +4383,3 @@ that list.
   denies `/system/bin/logcat`, and the on-device MCP server returns only its own
   process log — and adb was unavailable all session. Nothing in tonight's window
   split is a proven cause, and nothing rules it out.
-
-
-## What WiM does for speech disfluency
-
-Every claim below was checked against the source before being written here, with
-the file it lives in. Nothing on this list is aspirational or planned. This
-section exists to be copied into the Play Store listing and the
-AccessibilityService declaration, so it has to survive a reviewer opening the
-repository.
-
-**The disfluency work lives at Layer 4.** Layers 1 to 3 are transcription,
-reconstruction, and reconstruction with your profile. Someone without a speech
-difference uses those and never loads any of the below. That separation is
-deliberate.
-
-### Before the words exist
-
-**You end the recording, not a timer.** Press and hold, 500 ms threshold
-(`BubbleService.HOLD_THRESHOLD_MS`), release when you are done. There is no
-voice-activity detector deciding you have finished because you went quiet. For
-someone who blocks mid-sentence, an automatic cut-off is the failure.
-
-**Silence is treated as speech that did not arrive.** At Layer 4 the
-no-speech threshold is raised to 0.6 (`WhisperClient.NO_SPEECH_THRESHOLD_PATIENCE`),
-so segments a standard transcriber discards as silence are kept and marked as
-possible blocks instead.
-
-**Delayed Auditory Feedback.** `DafPlayer` captures the microphone and plays it
-back through headphones on a 30–300 ms circular-buffer delay, with a toggle and
-delay slider in the app. Delayed feedback is a long-established stuttering
-intervention; it is running inside a dictation tool here.
-
-### On the text that comes back
-
-**Rate-gap detection.** `RateGapDetector` compares the words-per-second of an
-utterance against your own historical baseline, flagging when the audio ran
-longer than the word count explains. Its own comment states the case: Samsung's
-recogniser pre-smooths disfluency, so "go go go go go" arrives as "go go go" and
-"heyyyy" arrives as "hey". The duration is ground truth; the word count is
-already cleaned. The gap between them survives that cleaning.
-
-**Hallucination stripping.** During a long block Whisper emits its own
-training-data leakage — "thanks for watching", "subscribe", `[BLANK_AUDIO]`.
-`DisfluencyFilter.stripBlockHallucinations` removes those spans using the
-recogniser's own per-segment no-speech probability, and a fully hallucinated
-result is refused outright rather than pasted (`wasFullyHallucinated`).
-
-**Disfluency filtering with a preservation guard.** `DisfluencyFilter` handles
-part-word repetition ("p- p- pop"), word and phrase repetition, false starts and
-bilingual fillers — with a protected list so that "really really" and "да да"
-survive. Four test suites cover it, including `DisfluencyPreservationGuardTest`,
-which exists to prove it does not strip too much.
-
-### Recovering what you meant
-
-**Covert revision.** When a block makes a word unreachable, many speakers swap in
-an easier one. The audio then sounds fluent and the transcript is correct
-English carrying the wrong meaning — there is no acoustic evidence the failure
-happened, so no speech recogniser can detect it. The Layer 4 prompt treats
-synonym substitution, circumlocution and abandonment as avoidance behaviour
-rather than content (`ReconstructClient`, covert-avoidance block), with your own
-avoidance pairs supplied from your profile. This is the app's name and the one
-capability here that cannot be closed by anyone improving their ASR.
-
-**Your own onset map.** Which first sounds you block on, learned from your
-confirmed trigger words rather than a population average, carried in
-`onset_weights` and used to weight what gets reconstructed and what gets
-questioned.
-
-**Bounded clarification.** When a word comes back uncertain, WiM asks rather than
-guessing — capped at three questions per utterance (`Clarifier.MAX_FLAGS`),
-ranked by what is likely hard for you specifically. A cap matters: someone
-managing speech has limited attention to spend on a dialogue box.
-
-### While you are using it
-
-**The host application is never disturbed.** No focus change, no cursor move, no
-keyboard dismissal, no scroll. The bubble reads the focused field's position and
-writes into it, and nothing else.
-
-**Password fields are refused.** `WimAccessibilityService.detectPasswordField`
-disables dictation when a password field takes focus.
-
-**The send button comes to you.** After text is inserted the bubble can relocate
-onto the host application's own send control, so the motor target you already
-learned still works. It never sends by itself: the five-second window expires
-into a cancel, and transmission requires a deliberate tap.
-
-### What it does not do
-
-It does not diagnose, treat, cure or prevent any condition, and it is not a
-medical device — wording already carried in the app's own layer description.
-
-It cannot recover a word the recogniser never captured. If a block removed a
-word before the text arrived, nothing downstream can know what it was.
-
-Reconstruction can invent content when a span was destroyed. A deterministic
-guard checks that names, figures, dates and negations were neither lost nor
-fabricated, and falls back to unreconstructed text when they were, but the guard
-is rule-based and does not catch everything.
-
-The claim being made is a functional one: WiM reduces the interaction burden of
-dictating, correcting and sending for someone already spending attention on
-managing speech. It is not a claim of clinical effect, and no efficacy testing
-has been done.
