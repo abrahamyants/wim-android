@@ -53,8 +53,16 @@ object DisfluencyFilter {
     // ASR repetition loop (hundreds of identical tokens, which Whisper hallucinates
     // on silence/noise) overflows the stack. No real disfluency repeats one word
     // 40+ times; large runs simply collapse over successive matches instead.
+    // The separator allows an optional comma / semicolon / colon before the
+    // whitespace. Cloud Whisper punctuates as it transcribes and returns
+    // "I, I, I need to reschedule"; the local whisper-tiny engine returns bare
+    // "i i i need to reschedule". With a whitespace-only separator the comma
+    // form never matched, so the SAME utterance came out clean on the local
+    // route and still stuttering on the cloud route — measured on device
+    // 2026-07-29. That is a parity break for every cloud-ASR user, not just a
+    // test artifact.
     private val WORD_REPEAT = Regex(
-        """\b(\w+)(?:\s+\1){1,40}\b""",
+        """\b(\w+)(?:[,;:]?\s+\1){1,40}\b[,;:]?""",
         RegexOption.IGNORE_CASE
     )
 
