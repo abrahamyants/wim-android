@@ -116,16 +116,36 @@ object PermissionLauncher {
     }
 
     /**
-     * Opens Android's battery-optimization list rather than the one-tap
-     * ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS dialog. The dialog requires
-     * the REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission, which Google Play
-     * reviews case by case and which is a recurring rejection trigger for
-     * overlay apps. The list intent needs no permission and reaches the same
-     * setting; `PowerManager.isIgnoringBatteryOptimizations` still reports the
-     * result, so grant detection is unchanged. Costs the user two extra taps.
+     * Battery-optimization exemption, by the cheapest route the build is
+     * allowed to take.
+     *
+     * The one-tap ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS dialog needs the
+     * matching permission, which Google Play reviews case by case and which is
+     * a recurring rejection trigger for overlay apps. It is therefore declared
+     * only in `src/giveaway` (sideload), never in `src/main`, so the Play
+     * variant silently falls through to ACTION_IGNORE_BATTERY_OPTIMIZATION_
+     * SETTINGS — same setting, no permission, but the user has to find WiM in
+     * a list of every installed app.
+     *
+     * `PowerManager.isIgnoringBatteryOptimizations` reports the result either
+     * way, so grant detection and the auto-return are identical on both paths.
      */
     fun openBatteryOptimizationSettings(activity: Activity) {
+        // One-tap system dialog when the build is allowed to ask for it
+        // (sideload/giveaway variants declare the permission). Otherwise the
+        // permission-free list intent, which reaches the same setting but
+        // makes the user find WiM among every installed app.
+        val canPrompt = activity.packageManager.checkPermission(
+            Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            activity.packageName,
+        ) == PackageManager.PERMISSION_GRANTED
+        val direct = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${activity.packageName}"),
+        )
         runCatching {
+            if (canPrompt) activity.startActivity(direct) else error("no permission")
+        }.recoverCatching {
             activity.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }.onSuccess {
             returnToOnboardingWhenGranted(activity) { PermissionStatus.batteryOptimization(it) }

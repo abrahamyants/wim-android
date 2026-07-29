@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Giveaway (sideload) builds only. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS turns
+  the battery step into a single system dialog instead of dumping the user in
+  a list of every app on the phone to hunt for WiM.
+
+  Deliberately NOT in src/main: Google Play reviews this permission case by
+  case and it is a documented rejection trigger for overlay apps, so the
+  `release` variant keeps the no-permission list intent. PermissionLauncher
+  checks at runtime which route it is allowed to take.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+</manifest>
