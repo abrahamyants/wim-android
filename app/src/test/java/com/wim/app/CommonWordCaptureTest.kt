@@ -80,10 +80,11 @@ class CommonWordCaptureTest {
     }
 
     @Test fun exactCorrectionOnACommonWordStillApplies() {
-        // The blocklist gates approximate matching only. A user who explicitly
-        // saved a correction still gets it applied.
-        val out = recover("send the file", corrections = mapOf("send" to "Send"))
-        assertTrue("explicit correction was dropped: $out", out.contains("Send"))
+        // The blocklist gates PHONETIC recovery. An explicitly saved correction
+        // is a literal match applied before that loop runs, so a user who
+        // deliberately mapped a common word still gets it.
+        val out = recover("send the file", corrections = mapOf("send" to "submit"))
+        assertTrue("explicit correction was dropped: $out", out.contains("submit"))
     }
 
     @Test fun properNounNextToACommonWordSurvives() {

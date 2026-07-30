@@ -198,9 +198,24 @@ object ProfileTermRecovery {
                 if (heardNorm.isBlank() || heardNorm == normalizedWords(target)) continue
 
                 val uncertain = isLowConfidencePhrase(heard, lowConfTexts)
+
+                // Ordinary English words are never phonetic-recovery targets,
+                // on EITHER path. The blocklist used to guard corrections only,
+                // on the theory that vocabulary needs an exact phonetic-code
+                // match and therefore can't misfire. It can: Double Metaphone
+                // maps "get" and "Git" to the same code (KT), and "could" and
+                // "Claude" to the same code (KLT). So an exact match was enough
+                // to swap a common verb for a profile term. Measured on device
+                // 2026-07-29 — "send the Henderson invoice" came back as "Git
+                // the Henderson invoice".
+                //
+                // Explicitly saved corrections still apply: replaceExactCorrections
+                // runs before this loop and is a literal match, not phonetic.
+                if (heardNorm in APPROXIMATE_BLOCKLIST) continue
+
                 val relation: String?
                 if (kind == "correction") {
-                    if (!uncertain || heardNorm in APPROXIMATE_BLOCKLIST) continue
+                    if (!uncertain) continue
                     relation = phoneticRelation(heard, probes, allowApproximate = true)
                 } else {
                     if (!(uncertain || isDistinctiveVocabulary(target))) continue
