@@ -18,11 +18,58 @@ object ReconstructClient {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    /**
+     * Register instructions, one per tone.
+     *
+     * These were abstract ("clean, clear business language", "minor rephrasing
+     * is OK") and the models read them as permission to leave the register
+     * alone. Measured on device 2026-07-30: professional returned "Hey, so I'm
+     * gonna need the report by Friday afternoon" — a greeting and two
+     * colloquialisms intact, because nothing in the rule said to remove them
+     * and "contractions acceptable" said the opposite.
+     *
+     * Each rule now names the specific things to change, with examples. Vague
+     * register instructions do not survive a prompt that also says "preserve
+     * the speaker's words".
+     */
     val TONE_RULES = mapOf(
-        "formal" to "Use complete sentences. No contractions. No colloquialisms. Proper grammar and punctuation. Preserve the speaker's exact word choices where possible.",
-        "professional" to "Clean, clear business language. Contractions acceptable but not preferred. Fix grammar and strip fillers. Minor rephrasing for clarity is OK.",
-        "casual" to "Natural spoken rhythm. Contractions OK. Strip fillers and fix obvious errors, but keep the speaker's natural voice.",
-        "friend" to "Conversational, relaxed. Contractions expected. Sentence fragments OK if natural. Strip fillers but preserve personality."
+        "formal" to (
+            "Formal written register. Complete sentences only. NO contractions — write " +
+            "\"I will\", \"do not\", \"cannot\". NO colloquialisms, NO slang, NO " +
+            "greetings or address terms — drop \"hey\", \"hey man\", \"hi\", \"yo\", " +
+            "\"dude\", \"guys\" entirely. Open on the substance. Full punctuation."
+        ),
+        "professional" to (
+            "Professional business register — the way this would be written to a colleague " +
+            "or client, not spoken to a friend. Apply ALL of the following: " +
+            "(1) DROP casual greetings and address terms — \"hey\", \"hey man\", \"hi " +
+            "there\", \"yo\", \"dude\", \"man\", \"guys\". Start with the substance. " +
+            "(2) EXPAND spoken contractions of intent — \"gonna\" to \"going to\", " +
+            "\"wanna\" to \"want to\", \"gotta\" to \"need to\", \"kinda\" to " +
+            "\"somewhat\", \"lemme\" to \"let me\". Ordinary contractions (\"I'll\", " +
+            "\"it's\", \"we're\") are fine. " +
+            "(3) DROP discourse openers that carry no content — a leading \"so\", " +
+            "\"well\", \"okay\", \"look\", \"I mean\". " +
+            "(4) Replace vague filler nouns with the specific one when the speaker made it " +
+            "clear — \"the thing\" to what the thing is. " +
+            "Example: \"hey man I'm gonna need that report by Friday\" becomes \"I'll need " +
+            "the report by Friday.\" " +
+            "This is a rewrite of REGISTER only — the request, the facts, the names, the " +
+            "numbers, the deadline and the speaker's forcefulness all stay exactly as spoken."
+        ),
+        "casual" to (
+            "Natural spoken rhythm — how this person actually talks, cleaned up. " +
+            "Contractions expected. KEEP greetings and address terms the speaker used " +
+            "(\"hey\", \"hey man\") — they are part of the voice, not filler. Strip " +
+            "disfluencies and fix obvious errors only. Do not formalize, do not add " +
+            "business phrasing, do not lengthen."
+        ),
+        "friend" to (
+            "Relaxed and conversational. Contractions expected. Sentence fragments are fine " +
+            "when natural. KEEP greetings, address terms, slang, and personality intact — " +
+            "\"hey man\", \"yeah\", \"gonna\" all stay. Strip only disfluencies. If this " +
+            "reads like a work email, it is wrong."
+        ),
     )
 
     /** Per-tone temperature: formal is tighter, friend is looser */
