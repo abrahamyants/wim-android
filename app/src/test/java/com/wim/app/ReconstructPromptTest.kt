@@ -33,7 +33,11 @@ class ReconstructPromptTest {
     // ── Tone rules are distinct and contain key phrases ─
 
     @Test fun toneRule_formal_noContractions() {
-        assertTrue(ReconstructClient.TONE_RULES["formal"]!!.contains("No contractions"))
+        // Wording was sharpened 2026-07-30 ("No" -> "NO"); the requirement is
+        // that formal forbids contractions, not that it says it in one casing.
+        assertTrue(
+            ReconstructClient.TONE_RULES["formal"]!!.lowercase().contains("no contractions")
+        )
     }
 
     @Test fun toneRule_professional_business() {
@@ -41,7 +45,13 @@ class ReconstructPromptTest {
     }
 
     @Test fun toneRule_casual_contractionsOk() {
-        assertTrue(ReconstructClient.TONE_RULES["casual"]!!.contains("Contractions OK"))
+        // "Contractions OK" became "Contractions expected" when the rules were
+        // made specific — a stronger statement of the same permission.
+        val rule = ReconstructClient.TONE_RULES["casual"]!!.lowercase()
+        assertTrue(
+            "casual must permit contractions: $rule",
+            rule.contains("contractions ok") || rule.contains("contractions expected"),
+        )
     }
 
     @Test fun toneRule_friend_relaxed() {
