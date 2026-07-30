@@ -779,6 +779,31 @@ object ReconstructClient {
                         val flagged = predicted.take(5).joinToString(", ") { "${it.first}(${it.second})" }
                         append("\n\nPhonetically predicted high-risk words in this utterance: $flagged")
                     }
+
+                    // TONE ANCHOR — must be the LAST thing L4 reads.
+                    //
+                    // The tone requirement is stated once, ~90 lines earlier, at
+                    // the top of the shared prompt. Everything after it is
+                    // clinical instruction that ends with "prefer conservative
+                    // cleanup over aggressive rewriting" — which the model reads
+                    // last and applies to the register as well as the meaning.
+                    // The scoping rule that fixed this for L2/L3 lives inside an
+                    // `if (layer in 2..3)` block, so the clinical layer never saw
+                    // it: L4 returned the same sentence for "casual" and
+                    // "professional" while L2 obeyed both.
+                    //
+                    // Restate the requirement here, and scope "conservative" to
+                    // what it was written to protect — meaning, numbers, names,
+                    // profanity — explicitly NOT the register.
+                    append("\n\nTONE — read this last, it outranks the conservatism guidance above.")
+                    append("\nRequired tone: $tone. ")
+                    append(toneRule)
+                    append("\n\"Conservative cleanup\" above governs MEANING: do not invent, do not summarize,")
+                    append(" do not soften profanity, do not alter numbers, dates, amounts, or names.")
+                    append(" It does NOT govern register. Greetings, sign-offs, address terms ('hey man',")
+                    append(" 'dude', 'yo'), contractions, and overall formality ARE yours to change, and you")
+                    append(" MUST change them when the required tone calls for it.")
+                    append("\nA disfluency-clean sentence in the wrong register is a failed reconstruction.")
                 }
 
                 // Domain pack injection (legal / medical / finance / sf_pro / hipaa).
