@@ -272,6 +272,21 @@ class BubbleService : Service() {
 
     companion object {
         private const val TAG = "WiM"
+
+        /**
+         * How long an explicit tone pick outranks [ToneFromContent].
+         *
+         * The legacy app-based router used 30 s, which was only ever meant to
+         * stop a window event from ping-ponging the tone back. That is far too
+         * short for a deliberate pick: the user opens the dashboard, taps
+         * professional, returns to the app they were in, and starts talking —
+         * easily past 30 s, and the classifier then silently overrode them.
+         *
+         * Ten minutes covers a deliberate pick and the run of messages that
+         * follows it, and still lets the classifier resume later in the day
+         * without the user having to remember to unset anything.
+         */
+        private const val MANUAL_TONE_LOCK_MS = 10 * 60 * 1000L
         // Two channels: routine foreground-service status (no badge, no sound,
         // user trains to ignore) vs permission-broken alerts (badge ON, user
         // sees a real signal). Single channel previously meant the launcher
@@ -2719,7 +2734,22 @@ class BubbleService : Service() {
         // you email your brother; the same coworker gets a deadline at noon and
         // beers at six). The words decide; the clock only breaks a tie they
         // left open; the saved pref is the last resort. See ToneFromContent.
-        val tone = if (WimApp.prefs.getBoolean("auto_tone", true)) {
+        // An explicit tone pick outranks the classifier. Picking a tone in the
+        // dashboard, or answering the bubble's work/casual question, stamps
+        // manual_tone_set_ms — the legacy app-based router has honored that
+        // signal since it was added, but ToneFromContent shipped without
+        // reading it and overrode the user unconditionally. Measured on device
+        // 2026-07-29: the operator selected professional, said "hey man, I need
+        // you to send the Henderson invoice before Friday", and got the
+        // identical casual output he got on the casual run — because the words
+        // said casual and the picker was never consulted. The tone tile was
+        // decorative and the layer took the blame.
+        val manualToneAgeMs = System.currentTimeMillis() - WimApp.prefs.getLong("manual_tone_set_ms", 0L)
+        val manualToneHolds = manualToneAgeMs < MANUAL_TONE_LOCK_MS
+        val tone = if (manualToneHolds) {
+            ConsoleLog.log("Tone: ${WimApp.tone()} — you picked it", "info")
+            WimApp.tone()
+        } else if (WimApp.prefs.getBoolean("auto_tone", true)) {
             when (val v = ToneFromContent.classify(rawText, WimApp.profile().getVocabulary())) {
                 is ToneFromContent.Verdict.Use -> {
                     Log.i(TAG, "Tone from content: ${v.tone} (${v.why})")

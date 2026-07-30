@@ -40,6 +40,35 @@ object ProfileTermRecovery {
         "must", "my", "no", "not", "of", "on", "or", "our", "shall", "she",
         "should", "so", "that", "the", "their", "them", "they", "this", "those",
         "to", "us", "was", "we", "were", "will", "with", "would", "you", "your",
+        // High-frequency CONTENT words. The list above is function words only,
+        // which left every everyday verb open to phonetic capture by a profile
+        // term. Measured on device 2026-07-29: "I need you to send the Henderson
+        // invoice" came back as "I need you to Git the Henderson invoice" — a
+        // vocabulary entry ate an ordinary verb, in the middle of a sentence
+        // that had nothing to do with it. That is the same failure as
+        // could→Claude, and the same fix.
+        //
+        // This only blocks APPROXIMATE matching. An exact match against a
+        // vocabulary term still applies, so a user whose vocabulary genuinely
+        // contains one of these words loses nothing.
+        "get", "gets", "getting", "got", "give", "gives", "given", "go", "goes",
+        "going", "gone", "went", "come", "comes", "coming", "came", "take",
+        "takes", "taking", "took", "make", "makes", "making", "made", "need",
+        "needs", "needed", "want", "wants", "wanted", "know", "knows", "knew",
+        "think", "thinks", "thought", "say", "says", "said", "see", "sees",
+        "saw", "seen", "look", "looks", "looking", "tell", "tells", "told",
+        "ask", "asks", "asked", "work", "works", "working", "call", "calls",
+        "called", "try", "tries", "tried", "put", "puts", "keep", "keeps",
+        "let", "lets", "help", "helps", "show", "shows", "run", "runs",
+        "move", "moves", "hold", "holds", "bring", "brings", "write", "writes",
+        "send", "sends", "sent", "sending", "read", "reads", "find", "finds",
+        "found", "use", "uses", "used", "mean", "means", "meant", "set",
+        "sets", "start", "starts", "stop", "stops", "here", "there", "then",
+        "than", "when", "what", "who", "how", "why", "where", "all", "any",
+        "just", "like", "now", "only", "out", "over", "some", "such", "up",
+        "very", "well", "back", "down", "off", "one", "two", "day", "days",
+        "time", "thing", "things", "good", "new", "old", "same", "next",
+        "last", "first", "about", "after", "before", "again", "still",
     )
 
     private fun normalizedWords(text: String): String =
