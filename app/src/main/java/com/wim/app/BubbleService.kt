@@ -339,7 +339,7 @@ class BubbleService : Service() {
      */
     fun askToneForApp(pkg: String) {
         if (pkg.isBlank()) return
-        if (!WimApp.prefs.getBoolean("auto_tone", true)) return
+        if (!WimApp.prefs.getBoolean("auto_tone", false)) return
         if (WimApp.prefs.contains(ToneRouting.learnedKey(pkg))) return
         if (pkg in toneAskedThisSession) return
         if (bubbleView == null || isRecording) return
@@ -2749,7 +2749,7 @@ class BubbleService : Service() {
         val tone = if (manualToneHolds) {
             ConsoleLog.log("Tone: ${WimApp.tone()} — you picked it", "info")
             WimApp.tone()
-        } else if (WimApp.prefs.getBoolean("auto_tone", true)) {
+        } else if (WimApp.prefs.getBoolean("auto_tone", false)) {
             when (val v = ToneFromContent.classify(rawText, WimApp.profile().getVocabulary())) {
                 is ToneFromContent.Verdict.Use -> {
                     Log.i(TAG, "Tone from content: ${v.tone} (${v.why})")

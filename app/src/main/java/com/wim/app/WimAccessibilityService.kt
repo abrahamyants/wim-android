@@ -199,7 +199,7 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
 
     private fun autoSwitchToneLegacy(packageName: String) {
         val prefs = WimApp.prefs
-        if (!prefs.getBoolean("auto_tone", true)) return
+        if (!prefs.getBoolean("auto_tone", false)) return
         // The bezel tap is the user's explicit work/personal toggle. Within
         // 30 seconds of that tap, suppress auto-tone so the very next
         // accessibility event for the same host app doesn't ping-pong the

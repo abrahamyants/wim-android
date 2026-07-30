@@ -272,7 +272,7 @@ class WimTestReceiver : BroadcastReceiver() {
             put("fast_mode", WimApp.prefs.getBoolean("fast_mode", false))
             put("instant_mode", WimApp.prefs.getBoolean("instant_mode", false))
             put("quiet_mode", WimApp.prefs.getBoolean("quiet_mode", false))
-            put("auto_tone", WimApp.prefs.getBoolean("auto_tone", true))
+            put("auto_tone", WimApp.prefs.getBoolean("auto_tone", false))
             put("vocabulary_count", profile.getVocabulary().size)
             put("corrections_count", profile.getCorrections().size)
             put("trigger_words_count", profile.getTriggerWords().size)

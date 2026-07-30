@@ -304,6 +304,31 @@ class WimApp : Application() {
     /** Application-lifetime scope for background work (Moonshine model download, etc.). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + coroutineExceptionHandler)
 
+    /**
+     * One-time removal of a stored auto_tone=true.
+     *
+     * Auto-tone decided the register from the words of the message and
+     * silently discarded whatever the user had picked. It cost two rounds of
+     * debugging aimed at Layer 4 — professional and casual returned the
+     * identical sentence because the classifier reclassified both — and it
+     * fired the work/casual question at moments the user had not asked for.
+     * The default is now off, but a device that already has `true` written to
+     * prefs would never see the new default. Clear it once, keyed on a flag,
+     * so a user who deliberately turns it back on afterwards keeps it.
+     */
+    private fun clearRetiredAutoTone() {
+        try {
+            val p = prefs
+            if (p.getBoolean("auto_tone_default_cleared", false)) return
+            p.edit()
+                .remove("auto_tone")
+                .putBoolean("auto_tone_default_cleared", true)
+                .apply()
+        } catch (t: Throwable) {
+            Log.w("WiM", "auto_tone migration skipped: ${t.message}")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -328,6 +353,7 @@ class WimApp : Application() {
         // manifest providers are skipped, so initialize explicitly. Idempotent.
         if (FirebaseApp.getApps(this).isEmpty()) FirebaseApp.initializeApp(this)
         prefs = getSharedPreferences("wim", MODE_PRIVATE)
+        clearRetiredAutoTone()
         // One-time migration: old installs may have clarifier_sensitivity="off"
         // from when that was the default. Default is "medium" now; bring those
         // forward so users don't have a permanently-disabled clarifier.
