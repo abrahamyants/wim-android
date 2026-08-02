@@ -743,8 +743,19 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
                 it.root?.packageName?.toString() == targetPkg
             }?.root
             ?: windows.firstOrNull {
+                // Tier 3 used to accept ANY visible window that was not WiM or
+                // systemui, with no package check at all. When tiers 1 and 2
+                // both missed, that could hand back a completely different
+                // app's window — and findSendNodeForApp would then look up
+                // THAT app's Send selector and click it. The user dictates into
+                // one app and a message leaves from another. Nothing else in
+                // this codebase is irreversible in that way.
+                //
+                // Narrowed to the focused window: the one the user is actually
+                // interacting with, which is the only defensible guess.
                 val pkg = it.root?.packageName?.toString()
-                pkg != null && pkg != packageName && pkg != "com.android.systemui"
+                it.isFocused && pkg != null && pkg != packageName &&
+                    pkg != "com.android.systemui"
             }?.root
         if (root == null) {
             Log.w("WiM", "clickSendButton: no window root (targetPkg=$targetPkg) — dumping windows")
@@ -755,6 +766,17 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
             return false
         }
         val pkg = root.packageName?.toString() ?: ""
+        // We injected the text into targetPkg. Sending from anywhere else is
+        // never correct, whichever tier resolved the window — so this is a hard
+        // stop rather than a preference. The user taps send again if it fires.
+        if (targetPkg != null && pkg != targetPkg) {
+            Log.w(
+                "WiM",
+                "clickSendButton: resolved window is $pkg but the text went to " +
+                    "$targetPkg — refusing to send from a different app",
+            )
+            return false
+        }
         val sendNode = findSendNodeForApp(root, pkg)
         if (sendNode == null) {
             Log.w("WiM", "clickSendButton: no Send node found in $pkg — dumping a11y tree")
