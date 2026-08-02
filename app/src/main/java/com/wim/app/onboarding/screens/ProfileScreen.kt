@@ -36,16 +36,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
+import com.wim.app.ToneRouting
 import com.wim.app.WimApp
 import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
- * Profile seed — Calm-dark. Two single-tap questions that calibrate the tone engine
- * from message one: "mostly for" (work_setup) and "your hours" (work_hours). Both are
- * read by [com.wim.app.ToneRouting], which decides work-vs-casual per app and only
- * falls back to asking the user when these can't settle it.
+ * Profile seed — Calm-dark. Two single-tap questions: "mostly for" (work_setup) and
+ * "your hours" (work_hours).
+ *
+ * "MOSTLY FOR" seeds the starting tone through [ToneRouting.seedTone] — work opens on
+ * professional, life on casual, both leaves the default alone. It applies only until
+ * the user picks a tone themselves; the dashboard tile stamps `manual_tone_set_ms` and
+ * that pick wins from then on.
+ *
+ * Corrected 2026-08-02: this comment claimed both answers were read by [ToneRouting],
+ * "which decides work-vs-casual per app". Per-app routing was retired on 2026-07-29 and
+ * its call site became a no-op, which left both prefs written and read by nothing —
+ * answering "work" still started you on casual. The seed below is what makes the
+ * calibrate-from-message-one claim true. "YOUR HOURS" reaches only
+ * [com.wim.app.ToneFromContent.breakTieByClock], behind the retired `auto_tone` flag.
  *
  * Corrected 2026-07-25: this comment used to claim the values matched
  * BouncerActivity's. They did not — Bouncer wrote 9to5/night_owl/shifts/off_clock for
@@ -62,7 +73,17 @@ fun ProfileScreen(onBack: () -> Unit, onContinue: () -> Unit) {
     var setup by remember { mutableStateOf(prefs.getString("work_setup", null) ?: "both") }
     var hours by remember { mutableStateOf(prefs.getString("work_hours", null) ?: "flexible") }
 
-    fun writeSetup(v: String) { setup = v; prefs.edit().putString("work_setup", v).apply() }
+    fun writeSetup(v: String) {
+        setup = v
+        val edit = prefs.edit().putString("work_setup", v)
+        // Seed the tone only while the user has never picked one. Any explicit
+        // pick — dashboard tile or the bubble's work/casual question — stamps
+        // manual_tone_set_ms, and re-running onboarding must not quietly undo it.
+        if (prefs.getLong("manual_tone_set_ms", 0L) == 0L) {
+            ToneRouting.seedTone(v)?.let { edit.putString("tone", it) }
+        }
+        edit.apply()
+    }
     fun writeHours(v: String) { hours = v; prefs.edit().putString("work_hours", v).apply() }
 
     CalmDark {

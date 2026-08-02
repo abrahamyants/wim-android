@@ -5,7 +5,16 @@ package com.wim.app
  * WiM should stop guessing and ask.
  *
  * Pure Kotlin, no Android imports, so the decision is unit-testable without
- * Robolectric. [WimAccessibilityService.autoSwitchTone] is the only caller.
+ * Robolectric.
+ *
+ * ## Status, 2026-08-02
+ *
+ * [decide] currently has no production caller. `autoSwitchTone` became a no-op
+ * stub when per-app routing was retired on 2026-07-29, and
+ * `autoSwitchToneLegacy` — the only code that ever called [decide] — was left
+ * behind with nothing invoking it. The constants, [learnedKey] and [seedTone]
+ * are live; the router below is kept because the retirement was a behavior
+ * decision, not a verdict on the code.
  *
  * ## Why this exists
  *
@@ -135,4 +144,26 @@ object ToneRouting {
 
     /** SharedPreferences key holding the user's answer for [packageName]. */
     fun learnedKey(packageName: String): String = "app_tone_$packageName"
+
+    /**
+     * The tone a fresh install starts on, from the onboarding "MOSTLY FOR"
+     * answer. This is the only remaining live consumer of `work_setup`.
+     *
+     * Onboarding has asked this question since 2026-06-20 and ProfileScreen's
+     * KDoc has claimed since then that it "calibrates the tone engine from
+     * message one". It did not. The answer reached [decide], [decide] lost its
+     * caller when per-app routing was retired, and the pref has been written
+     * and read by nothing ever since — so a user who said "work" still got the
+     * `casual` default on their first dictation.
+     *
+     * Returns null when the answer carries no register signal: "both", never
+     * answered, and BouncerActivity's legacy location vocabulary
+     * (office/hybrid/remote/mobile), which answered "where do you work" — a
+     * different question that must not be bent into a tone.
+     */
+    fun seedTone(workSetup: String?): String? = when (workSetup) {
+        "work" -> PROFESSIONAL
+        "life" -> CASUAL
+        else -> null
+    }
 }

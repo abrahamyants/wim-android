@@ -220,4 +220,32 @@ class ToneRoutingTest {
     @Test fun learnedKey_isNamespacedPerPackage() {
         assertEquals("app_tone_com.slack", ToneRouting.learnedKey("com.slack"))
     }
+
+    // ── seedTone: onboarding's "MOSTLY FOR" answer ──────────────────
+    //
+    // The regression these cover: the answer was written to work_setup and read
+    // only by decide(), decide() lost its caller when per-app routing was
+    // retired, and someone who answered "work" still started on casual.
+
+    @Test fun seedTone_workStartsProfessional() {
+        assertEquals(ToneRouting.PROFESSIONAL, ToneRouting.seedTone("work"))
+    }
+
+    @Test fun seedTone_lifeStartsCasual() {
+        assertEquals(ToneRouting.CASUAL, ToneRouting.seedTone("life"))
+    }
+
+    @Test fun seedTone_bothAndUnansweredLeaveTheDefaultAlone() {
+        assertEquals(null, ToneRouting.seedTone("both"))
+        assertEquals(null, ToneRouting.seedTone(null))
+        assertEquals(null, ToneRouting.seedTone(""))
+    }
+
+    @Test fun seedTone_ignoresBouncerLocationVocabulary() {
+        // office/hybrid/remote/mobile answer "where do you work", not "what do
+        // you use this for". Installs from that era still hold these values.
+        for (v in listOf("office", "hybrid", "remote", "mobile")) {
+            assertEquals("'$v' is a location answer, not a register signal", null, ToneRouting.seedTone(v))
+        }
+    }
 }
