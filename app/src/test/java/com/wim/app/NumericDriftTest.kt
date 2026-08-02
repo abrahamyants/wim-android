@@ -1,6 +1,7 @@
 package com.wim.app
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -90,5 +91,56 @@ class NumericDriftTest {
             "Wire \$4,200 to Henderson before Monday.",
         )
         assertTrue("unexpected: lost=${g.lost} invented=${g.invented}", g.ok)
+    }
+
+    // ── critical_token_lost and self-correction ─────────────────────
+    //
+    // The exemption for self-corrections used to be blanket: one "I mean"
+    // anywhere in the utterance switched the numeric check off for every number
+    // in it. Self-corrections are constant in disfluent speech, so the guard
+    // was absent from a large share of real utterances — including the amount
+    // drops it exists to catch.
+
+    private fun lostFlag(raw: String, clean: String) =
+        ReconstructClient.computeRiskFlags(raw, clean).contains("critical_token_lost")
+
+    @Test fun supersededValueMayDrop() {
+        assertFalse(lostFlag("the meeting is at 3 pm i mean 4 pm on tuesday",
+            "The meeting is at 4 PM on Tuesday."))
+    }
+
+    @Test fun selfCorrectionDoesNotExcuseAnUnrelatedAmount() {
+        // "I mean" corrects the folder count. The 5 has nothing to do with it
+        // and vanished anyway.
+        assertTrue(lostFlag("send 5 copies and 10 folders i mean 12 folders",
+            "Send 12 folders."))
+    }
+
+    @Test fun correctedValueDropsWhileOthersSurvive() {
+        assertFalse(lostFlag("send 5 copies and 10 folders i mean 12 folders",
+            "Send 5 copies and 12 folders."))
+    }
+
+    @Test fun selfCorrectionWithNoReplacementStillProtectsTheAmount() {
+        assertTrue(lostFlag("wire 4200 to henderson i mean before monday",
+            "Wire to Henderson before Monday."))
+    }
+
+    @Test fun markerBeforeTheNumberGivesItNoCover() {
+        assertTrue(lostFlag("i mean send 500 dollars", "Send dollars."))
+    }
+
+    @Test fun theDocumentedL4AmountFailureIsCaught() {
+        assertTrue(lostFlag("wire 4200 before monday", "Wire \$1,200 before Monday."))
+    }
+
+    @Test fun reformattingIsNotDrift() {
+        assertFalse(lostFlag("transfer \$1,000 today", "Transfer 1000 today."))
+        assertFalse(lostFlag("call me at 90% capacity", "Call me at 90% capacity."))
+    }
+
+    @Test fun noWaitAlsoScopesToTheCorrectedValue() {
+        assertFalse(lostFlag("meet at 3 no wait 4 and bring 12 chairs",
+            "Meet at 4 and bring 12 chairs."))
     }
 }

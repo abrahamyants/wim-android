@@ -1110,16 +1110,44 @@ object ReconstructClient {
     private fun normalizeNumericToken(tok: String): String =
         tok.trim().removePrefix("$").removeSuffix("%").removeSuffix(".").replace(",", "")
 
-    /** Check that numbers, percentages, dollar amounts survived reconstruction. */
+    /**
+     * Check that numbers, percentages and dollar amounts survived reconstruction.
+     *
+     * A self-correction legitimately drops the value it replaced — "the meeting
+     * is at 3 pm, I mean 4 pm" is allowed to lose the 3. That exemption used to
+     * be a blanket `if (SELF_CORRECTION_MARKERS.containsMatchIn(raw)) return
+     * true`: one "I mean" anywhere in the utterance switched the numeric guard
+     * off for every number in it. Self-corrections are constant in disfluent
+     * speech, which is the speech this product exists for, so the guard was
+     * absent from a large share of real utterances — and losing an amount is
+     * the documented L4 failure that motivated the guard ("four thousand two
+     * hundred" arriving as $1,200, three runs running).
+     *
+     * The exemption is now scoped to the value actually being corrected: for
+     * each self-correction, the number immediately preceding it, and only when
+     * another number follows the correction to take its place. "Send 5 copies
+     * and 10 folders, I mean 12 folders" may lose the 10 and nothing else — the
+     * 5 is still protected.
+     */
     private fun checkCriticalTokens(raw: String, clean: String): Boolean {
-        // A self-correction legitimately removes the earlier value — don't flag.
-        if (SELF_CORRECTION_MARKERS.containsMatchIn(raw)) return true
         val tokenPattern = Regex("""\$?\d[\d,.]*%?""")
-        val rawTokens = tokenPattern.findAll(raw)
-            .map { normalizeNumericToken(it.value) }.filter { it.isNotEmpty() }.toSet()
         val cleanTokens = tokenPattern.findAll(clean)
             .map { normalizeNumericToken(it.value) }.filter { it.isNotEmpty() }.toSet()
-        return rawTokens.all { it in cleanTokens }
+
+        val rawTokens = tokenPattern.findAll(raw)
+            .mapNotNull { m ->
+                normalizeNumericToken(m.value).takeIf { it.isNotEmpty() }?.let { it to m.range.first }
+            }
+            .toList()
+
+        val superseded = buildSet {
+            for (marker in SELF_CORRECTION_MARKERS.findAll(raw)) {
+                val replaced = rawTokens.lastOrNull { it.second < marker.range.first } ?: continue
+                if (rawTokens.any { it.second > marker.range.last }) add(replaced.first)
+            }
+        }
+
+        return rawTokens.all { (value, _) -> value in cleanTokens || value in superseded }
     }
 
     /**
