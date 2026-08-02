@@ -1858,11 +1858,24 @@ class BubbleService : Service() {
         //   gpt-4o-transcribe via AudioRecorder when not.
         // AudioRecorder fires when ANY of the cloud paths above will run.
         val isL4 = WimApp.layer() >= 4
-        val l1Cloud = WimApp.l1CloudAsr()
-        val l1NeedsCloud = l1Cloud && WimApp.layer() < 2
-        val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !l1NeedsCloud
         val cloudAvailable = WimApp.apiKey().isNotBlank() || AuthManager.isSignedIn
-        if ((isL4 || l1NeedsCloud || (!wantLocalLive && WimApp.layer() >= 2)) && cloudAvailable) {
+        // The transcription source the user picked, honoured at every layer.
+        //
+        // This was `l1CloudAsr() && layer < 2`, so choosing CLOUD did nothing at
+        // L2 and L3: the local English-only whisper-tiny transcribed anyway.
+        // The control sits under a heading called TRANSCRIPTION and gates behind
+        // cloudUnlocked(), so a user could pay for cloud transcription and
+        // silently get the local engine on three of the four layers. L2/L3
+        // already route to cloud whenever the local engine is unavailable, so
+        // this hands them a path they exercise regularly.
+        //
+        // Gated on cloudAvailable so a stale CLOUD pick — chosen while signed
+        // in, then signed out — falls through to the local engine and, when
+        // that is missing too, to the existing refusal toast. Previously it
+        // took the cloud branch with no recorder running and captured nothing.
+        val cloudAsrSelected = WimApp.l1CloudAsr() && cloudAvailable
+        val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !cloudAsrSelected
+        if ((isL4 || cloudAsrSelected || (!wantLocalLive && WimApp.layer() >= 2)) && cloudAvailable) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
@@ -1876,7 +1889,7 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed: ${e.message}", e)
                 audioRecorder = null
-                if (isL4 || l1NeedsCloud) {
+                if (isL4 || cloudAsrSelected) {
                     // At L4 / L1-cloud the WAV recorder is the ONLY capture path —
                     // there is no local engine to fall back to. Surface the failure
                     // now instead of letting post-stop ASR time out after ~30s with
@@ -1993,7 +2006,7 @@ class BubbleService : Service() {
         if (isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording for deep reconstruction…")
-        } else if (l1NeedsCloud) {
+        } else if (cloudAsrSelected) {
             Log.i(TAG, "L1 cloud mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording (cloud ASR)…")
         } else if (l1LocalLiveOverride) {
@@ -2014,6 +2027,21 @@ class BubbleService : Service() {
                 override fun onSoundEvent(label: String) = handleSound(label)
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
+        } else if (audioRecorder != null) {
+            // The WAV recorder is already capturing. This is the L2/L3 cloud
+            // fallback the routing comment above promises — "falls back to
+            // cloud gpt-4o-transcribe via AudioRecorder when not [ready]" —
+            // and it was never reached: the recorder started, then this chain
+            // fell through to the refusal below and idled the bubble. A
+            // signed-in L2/L3 user whose local model had not landed could not
+            // dictate at all, with a working cloud path already recording
+            // their voice, and the mic stayed open behind the toast because
+            // the refusal never stopped the recorder.
+            Log.i(TAG, "whisper-tiny not ready — using cloud ASR (L${WimApp.layer()})")
+            lastAsrRoute = "cloud (local model unavailable)"
+            updateLiveTranscript("Recording (cloud ASR)…")
+            // Still fetch the model so the next take runs on-device.
+            WhisperLocalModelDownloader.ensureDownloading(this, scope)
         } else {
             // No silent fallback to Android SpeechRecognizer. Per operator
             // 2026-06-06: L1 Local must never route through the native ASR
@@ -2022,6 +2050,10 @@ class BubbleService : Service() {
             // model is still downloading. The download is a one-time ~40 MB
             // background fetch; usually completes within minutes of first
             // launch. Subsequent taps work normally once the model lands.
+            //
+            // isRecording was left true here, so the bubble kept believing a
+            // take was in flight after the refusal idled it.
+            isRecording = false
             Log.w(TAG, "whisper-tiny model not ready — refusing recording (no fallback to native ASR)")
             // "Try again in a moment" was a lie whenever the one download
             // attempt from WimApp.onCreate had already failed: nothing on any
