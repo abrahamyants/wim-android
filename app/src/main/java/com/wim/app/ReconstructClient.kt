@@ -88,6 +88,56 @@ object ReconstructClient {
     )
 
     /**
+     * Ceilings on the profile lists injected into the L3 prompt.
+     *
+     * Every other profile block in the same prompt is bounded — trigger words
+     * at 10, rejection history and style examples at their own recent-N — while
+     * vocabulary and corrections went in whole, straight from ProfileManager,
+     * which caps neither. Both grow for the life of the install and corrections
+     * grow on their own, so a long-running profile quietly inflates every L3
+     * request and dilutes the instructions the model actually needs to follow.
+     *
+     * Set high enough that a realistic profile is never touched, and truncation
+     * is logged rather than silent — dropping the speaker's own terms without
+     * saying so is the worse failure of the two.
+     */
+    private const val MAX_PROMPT_VOCABULARY = 60
+    private const val MAX_PROMPT_CORRECTIONS = 40
+
+    /**
+     * The L3 profile-terms block: the speaker's vocabulary and their learned
+     * transcription corrections, as the reconstruction prompt sees them.
+     *
+     * Pulled out of the prompt's buildString so it can be tested. The bug that
+     * prompted the extraction was invisible from every test the file had, since
+     * the prompt is assembled inside a private suspend function that no test
+     * can reach: the vocabulary header was emitted whenever EITHER list had
+     * entries, while the body printed only the vocabulary. A speaker with
+     * corrections and no vocabulary got a header with nothing under it and the
+     * corrections list on the following line.
+     *
+     * Returns "" when both lists are empty, so the caller can append it blind.
+     * Pure — no android.util.Log, which is unmocked in this module's unit
+     * tests. Truncation is logged by the caller.
+     */
+    internal fun buildProfileTermsBlock(
+        vocabulary: List<String>,
+        corrections: Map<String, String>,
+    ): String = buildString {
+        if (vocabulary.isNotEmpty()) {
+            append("\n\nSpeaker's known vocabulary (prefer these spellings): ")
+            append(vocabulary.take(MAX_PROMPT_VOCABULARY).joinToString(", "))
+        }
+        if (corrections.isNotEmpty()) {
+            append("\n\nKnown transcription errors to correct: ")
+            append(
+                corrections.entries.take(MAX_PROMPT_CORRECTIONS)
+                    .joinToString(", ") { (wrong, right) -> "\"$wrong\" -> \"$right\"" }
+            )
+        }
+    }
+
+    /**
      * Send raw transcription to GPT for reconstruction.
      * Returns clean text.
      *
@@ -605,15 +655,20 @@ object ReconstructClient {
 
                 // L3+ profile context: vocabulary and corrections
                 if (layer >= 3) {
-                    if (vocabulary.isNotEmpty() || corrections.isNotEmpty()) {
-                        append("\n\nSpeaker's known vocabulary (prefer these spellings): ")
-                        append(vocabulary.joinToString(", "))
+                    // The condition used to be `vocabulary.isNotEmpty() ||
+                    // corrections.isNotEmpty()` while the body appended only the
+                    // vocabulary. A speaker with corrections and no vocabulary —
+                    // the normal early state, since corrections are learned
+                    // automatically and vocabulary is typed by hand — got the
+                    // header "Speaker's known vocabulary:" followed by nothing,
+                    // with the corrections list on the next line. The model has
+                    // every reason to read those corrections as the vocabulary.
+                    append(buildProfileTermsBlock(vocabulary, corrections))
+                    if (vocabulary.size > MAX_PROMPT_VOCABULARY) {
+                        Log.i("WiM", "L3 vocabulary truncated for prompt: ${vocabulary.size} → $MAX_PROMPT_VOCABULARY")
                     }
-                    if (corrections.isNotEmpty()) {
-                        append("\n\nKnown transcription errors to correct: ")
-                        corrections.forEach { (wrong, right) ->
-                            append("\"$wrong\" -> \"$right\", ")
-                        }
+                    if (corrections.size > MAX_PROMPT_CORRECTIONS) {
+                        Log.i("WiM", "L3 corrections truncated for prompt: ${corrections.size} → $MAX_PROMPT_CORRECTIONS")
                     }
                     // Persistent rejection history — cross-session counterpart
                     // to the within-session regenerate-as-negative block at

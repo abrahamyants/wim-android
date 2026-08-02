@@ -83,4 +83,66 @@ class ReconstructPromptTest {
         assertFalse("1.0 not aggressive", s >= 1.4)
         assertFalse("1.0 not conservative", s <= 0.6)
     }
+
+    // ── L3 profile-terms block ──────────────────────────────────────
+    //
+    // The header used to be emitted whenever EITHER list had entries while the
+    // body printed only the vocabulary, so corrections-and-no-vocabulary — the
+    // normal early state, since corrections are learned and vocabulary is typed
+    // — produced an empty "known vocabulary:" header with the corrections list
+    // directly beneath it.
+
+    @Test fun profileTerms_correctionsOnly_omitsTheVocabularyHeader() {
+        val block = ReconstructClient.buildProfileTermsBlock(
+            vocabulary = emptyList(),
+            corrections = mapOf("Duncan" to "Dankeschön"),
+        )
+        assertFalse("no dangling vocabulary header", block.contains("known vocabulary"))
+        assertTrue(block.contains("Known transcription errors"))
+        assertTrue(block.contains("\"Duncan\" -> \"Dankeschön\""))
+    }
+
+    @Test fun profileTerms_vocabularyOnly_omitsTheCorrectionsHeader() {
+        val block = ReconstructClient.buildProfileTermsBlock(
+            vocabulary = listOf("synecdoche"),
+            corrections = emptyMap(),
+        )
+        assertTrue(block.contains("known vocabulary"))
+        assertTrue(block.contains("synecdoche"))
+        assertFalse(block.contains("Known transcription errors"))
+    }
+
+    @Test fun profileTerms_bothEmpty_producesNothing() {
+        assertEquals("", ReconstructClient.buildProfileTermsBlock(emptyList(), emptyMap()))
+    }
+
+    @Test fun profileTerms_bothPresent_carriesBoth() {
+        val block = ReconstructClient.buildProfileTermsBlock(
+            vocabulary = listOf("synecdoche", "bake-off"),
+            corrections = mapOf("Duncan" to "Dankeschön"),
+        )
+        assertTrue(block.contains("synecdoche, bake-off"))
+        assertTrue(block.contains("\"Duncan\" -> \"Dankeschön\""))
+    }
+
+    @Test fun profileTerms_areCappedSoALongProfileCannotSwampThePrompt() {
+        // ProfileManager caps neither list, and both grow for the life of the
+        // install; every other profile block in this prompt is bounded.
+        val block = ReconstructClient.buildProfileTermsBlock(
+            vocabulary = (1..200).map { "term$it" },
+            corrections = (1..200).associate { "wrong$it" to "right$it" },
+        )
+        assertTrue("vocabulary capped", block.contains("term60"))
+        assertFalse("vocabulary capped", block.contains("term61"))
+        assertTrue("corrections capped", block.contains("\"wrong40\" -> \"right40\""))
+        assertFalse("corrections capped", block.contains("\"wrong41\" -> \"right41\""))
+    }
+
+    @Test fun profileTerms_correctionsAreCommaSeparatedWithoutATrailingComma() {
+        val block = ReconstructClient.buildProfileTermsBlock(
+            vocabulary = emptyList(),
+            corrections = linkedMapOf("a" to "b", "c" to "d"),
+        )
+        assertTrue(block.trimEnd().endsWith("\"c\" -> \"d\""))
+    }
 }
