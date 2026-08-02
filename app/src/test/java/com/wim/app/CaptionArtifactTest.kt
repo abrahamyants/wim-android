@@ -69,4 +69,46 @@ class CaptionArtifactTest {
         val text = "can you send me the report by friday"
         assertEquals(text, DisfluencyFilter.stripCaptionArtifacts(text))
     }
+
+    // Bracketed silence markers. A block puts nothing in the transcript, and
+    // Whisper fills the hole with "[BLANK_AUDIO]" as readily as with caption
+    // boilerplate. This helper handled only the boilerplate, so a refusal on a
+    // bracketed transcript still pasted the bracket into the user's message.
+
+    @Test fun stripsBlankAudioMarker() {
+        assertEquals(
+            "tell him the meeting moved",
+            DisfluencyFilter.stripCaptionArtifacts("tell him [BLANK_AUDIO] the meeting moved")
+        )
+    }
+
+    @Test fun stripsInaudibleMarker() {
+        assertEquals(
+            "wire it to before monday",
+            DisfluencyFilter.stripCaptionArtifacts("wire it to [inaudible] before monday")
+        )
+    }
+
+    @Test fun stripsUnclosedMarkerAtEnd() {
+        assertEquals(
+            "i need to call about the invoice",
+            DisfluencyFilter.stripCaptionArtifacts("i need to call about the invoice [silence")
+        )
+    }
+
+    @Test fun stripsMarkerAndBoilerplateTogether() {
+        assertEquals(
+            "the address is fifth street",
+            DisfluencyFilter.stripCaptionArtifacts(
+                "the address is [BLANK_AUDIO] thanks for watching fifth street"
+            )
+        )
+    }
+
+    @Test fun markerOnlyUtteranceFallsBackToOriginal() {
+        assertEquals(
+            "[BLANK_AUDIO]",
+            DisfluencyFilter.stripCaptionArtifacts("[BLANK_AUDIO]")
+        )
+    }
 }

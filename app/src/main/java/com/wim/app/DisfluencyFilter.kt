@@ -137,7 +137,15 @@ object DisfluencyFilter {
      */
     fun stripCaptionArtifacts(text: String): String {
         if (text.isBlank()) return text
-        val stripped = MULTI_SPACE.replace(CAPTION_ARTIFACT.replace(text, " "), " ").trim()
+        // SYSTEM_MARKER as well as CAPTION_ARTIFACT: a block is silence, and
+        // Whisper fills silence with "[BLANK_AUDIO]" as readily as with "thanks
+        // for watching". This helper covered only the second, so a refusal on a
+        // bracketed-marker transcript still pasted the bracket into the message.
+        // stripBlockHallucinations has always removed both — but it needs the
+        // Whisper confidence metadata that the refusal path does not carry.
+        val stripped = MULTI_SPACE.replace(
+            CAPTION_ARTIFACT.replace(SYSTEM_MARKER.replace(text, ""), " "), " "
+        ).trim()
         return if (stripped.isBlank()) text else stripped
     }
 
