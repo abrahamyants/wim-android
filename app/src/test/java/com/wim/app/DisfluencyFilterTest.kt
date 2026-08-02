@@ -162,6 +162,36 @@ class DisfluencyFilterTest {
         )
     }
 
+    // ── Prolongation must not touch digits ─────────────
+    //
+    // The regex was `(\w)\1{2,200}`, and \w includes digits, so any run of three
+    // identical digits collapsed to one: "wire 1000 dollars" became "wire 10
+    // dollars". filter() runs at L1, L2 and L3, and it runs BEFORE the numeric
+    // guard, so computeRiskFlags compared an already-mangled raw against the
+    // output and could never flag it. At L1 there is no guard at all.
+
+    @Test fun prolongation_leavesRoundThousandsAlone() {
+        assertEquals("wire 1000 dollars", filter("wire 1000 dollars"))
+    }
+
+    @Test fun prolongation_leavesLargeAmountsAlone() {
+        assertEquals("transfer 10000 today", filter("transfer 10000 today"))
+        assertEquals("the balance is 2000", filter("the balance is 2000"))
+    }
+
+    @Test fun prolongation_leavesCommaFormattedAmountsAlone() {
+        assertEquals("account 1,000", filter("account 1,000"))
+    }
+
+    @Test fun prolongation_leavesPhoneNumbersAlone() {
+        assertEquals("call 5551000", filter("call 5551000"))
+    }
+
+    @Test fun prolongation_stillCollapsesLetters() {
+        assertEquals("yes", filter("yessss"))
+        assertEquals("hey", filter("heyyyy"))
+    }
+
     // ── Hyphenated words are not stutter fragments ─────
     //
     // The whitespace-fragment regex allowed zero repetitions, so a single

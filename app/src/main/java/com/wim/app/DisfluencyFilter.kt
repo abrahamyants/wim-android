@@ -97,8 +97,16 @@ object DisfluencyFilter {
     // "heyyyy" -> "hey". Match 3+ consecutive identical characters anywhere in a token
     // and collapse to one. Common double letters ("success", "Mississippi") stay intact
     // because the regex demands 3+ in a row.
+    // LETTERS ONLY. `\w` includes digits, and a prolongation collapse over
+    // digits destroys amounts: "wire 1000 dollars" became "wire 10 dollars",
+    // "the balance is 2000" became "20", "account 1,000" became "1,0".
+    // This runs inside filter(), which is applied at L1, L2 and L3 — and it
+    // runs BEFORE the numeric guard sees the text, so computeRiskFlags compared
+    // an already-mangled raw against the output and could never flag it. At L1
+    // there is no model and no guard at all: the altered number went straight
+    // into the message. Cyrillic range matches the FALSE_START convention above.
     private val PROLONGATION = Regex(
-        """(\w)\1{2,200}""",
+        """([A-Za-z\u0400-\u04FF])\1{2,200}""",
         RegexOption.IGNORE_CASE
     )
 
