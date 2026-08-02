@@ -1873,9 +1873,22 @@ class BubbleService : Service() {
         // in, then signed out — falls through to the local engine and, when
         // that is missing too, to the existing refusal toast. Previously it
         // took the cloud branch with no recorder running and captured nothing.
-        val cloudAsrSelected = WimApp.l1CloudAsr() && cloudAvailable
-        val wantLocalLive = (whisperLocalEngine?.isReady() == true) && !isL4 && !cloudAsrSelected
-        if ((isL4 || cloudAsrSelected || (!wantLocalLive && WimApp.layer() >= 2)) && cloudAvailable) {
+        //
+        // The decision itself now lives in AsrRoute, which is four booleans and
+        // an integer and therefore testable. Extracting it turned up a fifth
+        // defect in this block: at L4 with no key and not signed in, the old
+        // condition started no recorder (it required cloudAvailable) while the
+        // engine picker still took the isL4 branch, which starts nothing
+        // either. The bubble sat recording and captured silence. AsrRoute
+        // refuses that cell instead, so the user is told.
+        val route = AsrRoute.decide(
+            layer = WimApp.layer(),
+            cloudPreferred = WimApp.l1CloudAsr(),
+            localModelReady = whisperLocalEngine?.isReady() == true,
+            cloudReachable = cloudAvailable,
+        )
+        val cloudAsrSelected = route.useCloudRecorder && !isL4
+        if (route.useCloudRecorder) {
             try {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
@@ -1889,7 +1902,7 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed: ${e.message}", e)
                 audioRecorder = null
-                if (isL4 || cloudAsrSelected) {
+                if (route.useCloudRecorder) {
                     // At L4 / L1-cloud the WAV recorder is the ONLY capture path —
                     // there is no local engine to fall back to. Surface the failure
                     // now instead of letting post-stop ASR time out after ~30s with
@@ -2003,7 +2016,12 @@ class BubbleService : Service() {
         @Suppress("UNUSED_VARIABLE") val liveOnIgnoredForL1Local = liveOn
         val l1LocalLiveOverride = false
 
-        if (isL4) {
+        // Every branch below is gated on the route, so Decision.Refuse matches
+        // none of them and falls through to the refusal at the end. Gating only
+        // the tail would let an L4 refusal take the isL4 branch and leave the
+        // bubble "recording" with nothing capturing — the failure this whole
+        // extraction exists to remove.
+        if (route.useCloudRecorder && isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording for deep reconstruction…")
         } else if (cloudAsrSelected) {
@@ -2018,7 +2036,7 @@ class BubbleService : Service() {
                 override fun onSoundEvent(label: String) = handleSound(label)
                 override fun onError(errorCode: Int) = handleError(errorCode)
             })
-        } else if (whisperLocalEngine?.isReady() == true) {
+        } else if (route.useLocalEngine) {
             Log.i(TAG, "Using whisper-tiny.en engine (local, sherpa-onnx)")
             lastAsrRoute = "local (whisper-tiny.en on-device)"
             whisperLocalEngine?.start(object : WhisperLocalEngine.ResultListener {
@@ -2073,6 +2091,13 @@ class BubbleService : Service() {
                 }
             }
             val note = when {
+                // The model being present but cloud unreachable is a different
+                // problem, and "still downloading" is a lie in that case — it
+                // is the only state L4 can refuse in, since L4 has no local
+                // option at all.
+                WhisperLocalModelDownloader.isInstalled(this) ->
+                    if (WimApp.layer() >= 4) "Layer IV needs a connection — sign in or switch layer"
+                    else "Cloud transcription needs a connection — sign in or switch to Local"
                 started -> "Speech model downloading — one moment"
                 WhisperLocalModelDownloader.inProgress -> "Speech model still downloading…"
                 else -> WhisperLocalModelDownloader.lastFailure
