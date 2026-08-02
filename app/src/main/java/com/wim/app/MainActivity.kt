@@ -2879,10 +2879,24 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         // ── Usage mode ──
         val usageIds = listOf(R.id.profileWorkOnly, R.id.profileLifeOnly, R.id.profileBoth)
         val usageValues = listOf("work_only", "life_only", "both")
-        val savedUsage = prefs.getString("profile_usage", "both") ?: "both"
+        // Onboarding asks this same question and stores it as work_setup with
+        // values work/life/both; this screen stores profile_usage with
+        // work_only/life_only/both. One question, two keys, two spellings — so
+        // answering it in onboarding left this screen showing defaults, and
+        // answering it here never reached ToneRouting.seedTone. Read across
+        // both, and mirror on write so every consumer sees the latest answer.
+        val savedUsage = prefs.getString(ToneRouting.LEGACY_USAGE_KEY, null)
+            ?: when (prefs.getString(ToneRouting.USAGE_KEY, null)) {
+                "work" -> "work_only"
+                "life" -> "life_only"
+                else -> "both"
+            }
         val sliderRow = overlay.findViewById<View>(R.id.balanceSliderRow)
         sliderRow?.visibility = if (savedUsage == "both") View.VISIBLE else View.GONE
-        setupProfileGroup(overlay, usageIds, usageValues, "profile_usage", savedUsage) { _, value ->
+        setupProfileGroup(overlay, usageIds, usageValues, ToneRouting.LEGACY_USAGE_KEY, savedUsage) { _, value ->
+            ToneRouting.normalizeUsage(value)?.let {
+                prefs.edit().putString(ToneRouting.USAGE_KEY, it).apply()
+            }
             sliderRow?.visibility = if (value == "both") View.VISIBLE else View.GONE
         }
 
@@ -2956,8 +2970,14 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         // ── Work hours ──
         val hoursIds = listOf(R.id.hoursMorning, R.id.hoursDay, R.id.hoursEvening, R.id.hoursFlexible)
         val hoursValues = listOf("morning", "nine_to_five", "evening", "flexible")
-        val savedHours = prefs.getString("profile_hours", "nine_to_five") ?: "nine_to_five"
-        setupProfileGroup(overlay, hoursIds, hoursValues, "profile_hours", savedHours)
+        // Same split as usage above — onboarding writes work_hours, this screen
+        // writes profile_hours, and the clock tie-breaker only reads the former.
+        val savedHours = prefs.getString(ToneRouting.LEGACY_HOURS_KEY, null)
+            ?: prefs.getString(ToneRouting.HOURS_KEY, null)
+            ?: "nine_to_five"
+        setupProfileGroup(overlay, hoursIds, hoursValues, ToneRouting.LEGACY_HOURS_KEY, savedHours) { _, value ->
+            prefs.edit().putString(ToneRouting.HOURS_KEY, value).apply()
+        }
 
         // ── Profile editor: vocabulary, corrections, triggers — card-bg pills ──
         // Each pill matches the Work/Life/Industry/Hours selector aesthetic

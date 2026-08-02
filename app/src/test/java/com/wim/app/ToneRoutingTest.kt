@@ -241,6 +241,34 @@ class ToneRoutingTest {
         assertEquals(null, ToneRouting.seedTone(""))
     }
 
+    // The dashboard Profile overlay stores the same answer under a different
+    // key with a different spelling, so a user who set it there reached none of
+    // the consumers keyed on work_setup.
+
+    @Test fun seedTone_acceptsTheDashboardVocabulary() {
+        assertEquals(ToneRouting.PROFESSIONAL, ToneRouting.seedTone("work_only"))
+        assertEquals(ToneRouting.CASUAL, ToneRouting.seedTone("life_only"))
+    }
+
+    @Test fun normalizeUsage_translatesDashboardToOnboarding() {
+        assertEquals("work", ToneRouting.normalizeUsage("work_only"))
+        assertEquals("life", ToneRouting.normalizeUsage("life_only"))
+        assertEquals("both", ToneRouting.normalizeUsage("both"))
+    }
+
+    @Test fun normalizeUsage_leavesOnboardingValuesAlone() {
+        assertEquals("work", ToneRouting.normalizeUsage("work"))
+        assertEquals("life", ToneRouting.normalizeUsage("life"))
+        assertEquals(null, ToneRouting.normalizeUsage(null))
+    }
+
+    @Test fun theTwoKeyPairsAreDistinct() {
+        assertEquals("work_setup", ToneRouting.USAGE_KEY)
+        assertEquals("profile_usage", ToneRouting.LEGACY_USAGE_KEY)
+        assertEquals("work_hours", ToneRouting.HOURS_KEY)
+        assertEquals("profile_hours", ToneRouting.LEGACY_HOURS_KEY)
+    }
+
     @Test fun seedTone_ignoresBouncerLocationVocabulary() {
         // office/hybrid/remote/mobile answer "where do you work", not "what do
         // you use this for". Installs from that era still hold these values.

@@ -156,14 +156,42 @@ object ToneRouting {
      * and read by nothing ever since — so a user who said "work" still got the
      * `casual` default on their first dictation.
      *
+     * Accepts both vocabularies for the same question. Onboarding's ProfileScreen
+     * stores work/life/both under `work_setup`; the dashboard's Profile overlay
+     * stores work_only/life_only/both under `profile_usage`. One question, two
+     * keys, two spellings — see [USAGE_KEY] and [LEGACY_USAGE_KEY].
+     *
      * Returns null when the answer carries no register signal: "both", never
      * answered, and BouncerActivity's legacy location vocabulary
      * (office/hybrid/remote/mobile), which answered "where do you work" — a
      * different question that must not be bent into a tone.
      */
     fun seedTone(workSetup: String?): String? = when (workSetup) {
-        "work" -> PROFESSIONAL
-        "life" -> CASUAL
+        "work", "work_only" -> PROFESSIONAL
+        "life", "life_only" -> CASUAL
         else -> null
+    }
+
+    /** Onboarding's key for "MOSTLY FOR". Values: work / life / both. */
+    const val USAGE_KEY = "work_setup"
+
+    /** The dashboard Profile overlay's key for the same question.
+     *  Values: work_only / life_only / both. */
+    const val LEGACY_USAGE_KEY = "profile_usage"
+
+    /** Onboarding's key for "YOUR HOURS". Same values as [LEGACY_HOURS_KEY]. */
+    const val HOURS_KEY = "work_hours"
+
+    /** The dashboard Profile overlay's key for the same question. */
+    const val LEGACY_HOURS_KEY = "profile_hours"
+
+    /**
+     * Translate the dashboard's usage vocabulary into onboarding's, so an answer
+     * given on either screen reaches the consumers of [USAGE_KEY].
+     */
+    fun normalizeUsage(value: String?): String? = when (value) {
+        "work_only" -> "work"
+        "life_only" -> "life"
+        else -> value
     }
 }
