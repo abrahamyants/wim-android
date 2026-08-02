@@ -26,6 +26,19 @@ class NumericDriftTest {
         assertTrue(v.contains(4200L))
     }
 
+    @Test fun parsesBillions() {
+        // NUMBER_WORD_RE recognised "billion" while SCALES could not convert it,
+        // so the accumulator ended the run and "two billion" parsed as 2 — which
+        // made a swap to "two million" invisible to the guard.
+        assertTrue(MeaningGuard.numericValues("two billion dollars").contains(2_000_000_000L))
+        assertTrue(MeaningGuard.numericValues("one billion").contains(1_000_000_000L))
+    }
+
+    @Test fun aBillionSwappedForAMillionIsCaught() {
+        val g = MeaningGuard.guard("wire two billion to henderson", "Wire two million to Henderson.")
+        assertTrue("expected the swap flagged, got lost=${g.lost} invented=${g.invented}", !g.ok)
+    }
+
     @Test fun parsesTeensAndTens() {
         assertTrue(MeaningGuard.numericValues("fifteen people").contains(15L))
         assertTrue(MeaningGuard.numericValues("twenty two dollars").contains(22L))
@@ -47,6 +60,62 @@ class NumericDriftTest {
             "Wire \$1,002 to Henderson by Tuesday, not Monday.",
         )
         assertTrue(drift.isNotEmpty())
+    }
+
+    // ── Spelled-out figures are checked too ───────────────────────
+    //
+    // CRITICAL_TOKEN_RE matches digits only, so an output that kept the number
+    // in words produced no matches and every change passed. L4 writes prose and
+    // spells figures out routinely.
+
+    @Test fun catchesASpelledOutAmountChange() {
+        val g = MeaningGuard.guard("wire four thousand two hundred to henderson",
+            "Wire five thousand three hundred to Henderson.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", !g.ok)
+    }
+
+    @Test fun catchesASpelledOutAmountShrinking() {
+        val g = MeaningGuard.guard("wire four thousand two hundred to henderson",
+            "Wire four thousand to Henderson.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", !g.ok)
+    }
+
+    @Test fun catchesASpelledOutCountChange() {
+        val g = MeaningGuard.guard("send twenty copies", "Send thirty copies.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", !g.ok)
+    }
+
+    @Test fun catchesDigitsRewrittenAsTheWrongWords() {
+        val g = MeaningGuard.guard("wire 4200 to henderson",
+            "Wire one thousand two hundred to Henderson.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", !g.ok)
+    }
+
+    // ── Correct reconstructions that change representation ────────
+    //
+    // Numeric anchors were compared as literal substrings, so spelling a figure
+    // out read as a lost anchor and the reconstruction was discarded.
+
+    @Test fun digitsSpelledOutIsNotALoss() {
+        val g = MeaningGuard.guard("wire 4200 to henderson",
+            "Wire four thousand two hundred to Henderson.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", g.ok)
+    }
+
+    @Test fun commaFormattingIsNotALoss() {
+        val g = MeaningGuard.guard("transfer \$1,000 today", "Transfer 1000 today.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", g.ok)
+    }
+
+    @Test fun digitsToWordsIsNotALoss() {
+        val g = MeaningGuard.guard("send 5 copies", "Send five copies to the second floor.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", g.ok)
+    }
+
+    @Test fun wordsToDigitsIsNotALoss() {
+        val g = MeaningGuard.guard("the meeting is at three pm on tuesday",
+            "The meeting is at 3 PM on Tuesday.")
+        assertTrue("lost=${g.lost} invented=${g.invented}", g.ok)
     }
 
     // ── Legitimate reformatting must NOT be flagged ───────────────

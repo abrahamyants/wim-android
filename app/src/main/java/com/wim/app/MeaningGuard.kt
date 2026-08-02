@@ -178,13 +178,28 @@ object MeaningGuard {
         }
 
         val cleanLower = cleanText.lowercase()
+        // Numeric anchors are compared BY VALUE, not as literal substrings. A
+        // digit token from the input had to appear verbatim in the output, so a
+        // CORRECT reconstruction that spelled the figure out — "4200" -> "four
+        // thousand two hundred", "$1,000" -> "1000" — read as a lost anchor and
+        // the guard threw the whole reconstruction away. L4 spells figures out
+        // routinely, so the layer that rewrites hardest was the one most often
+        // rejected for being right.
+        val numericTokens = CRITICAL_TOKEN_RE.findAll(rawText)
+            .map { it.value.lowercase() }.toSet()
+        val cleanNumeric = numericValues(cleanText)
         val seen = mutableSetOf<String>()
         val lost = mutableListOf<String>()
         for (t in critical) {
             val key = t.lowercase()
             if (key in seen) continue
             seen.add(key)
-            if (key !in cleanLower) lost.add(t)
+            val retained = if (key in numericTokens) {
+                key in cleanLower || tokenValue(t)?.let { it in cleanNumeric } == true
+            } else {
+                key in cleanLower
+            }
+            if (!retained) lost.add(t)
         }
 
         // "whether X or not" legitimately reconstructs to "whether X" — do not
@@ -279,7 +294,16 @@ object MeaningGuard {
         "twenty" to 20L, "thirty" to 30L, "forty" to 40L, "fifty" to 50L,
         "sixty" to 60L, "seventy" to 70L, "eighty" to 80L, "ninety" to 90L,
     )
-    private val SCALES = mapOf("hundred" to 100L, "thousand" to 1_000L, "million" to 1_000_000L)
+    // "billion" belongs here even though it is rare in dictation: NUMBER_WORD_RE
+    // already recognises it, so without a scale entry the accumulator treats it
+    // as a run-ending word and "two billion" parses as 2. A reconstruction that
+    // said "two million" would then compare {2} against {2} and pass the guard —
+    // a thousand-fold error waved through by the check that exists to stop it.
+    // meaning_guard.py has always had it.
+    private val SCALES = mapOf(
+        "hundred" to 100L, "thousand" to 1_000L,
+        "million" to 1_000_000L, "billion" to 1_000_000_000L,
+    )
 
     /**
      * Every number the text states, however written: digits, "4,200", "$4,200",
@@ -322,18 +346,36 @@ object MeaningGuard {
      * This is what catches 4200 becoming 1200 — the fabrication check cannot,
      * because the input did contain numbers.
      */
+    /** A digit token's integer value, or null when it is not a whole number. */
+    private fun tokenValue(token: String): Long? {
+        val v = token.replace(",", "").removePrefix("$").removeSuffix("%")
+            .toDoubleOrNull() ?: return null
+        return if (v == Math.floor(v)) v.toLong() else null
+    }
+
     fun checkNumericDrift(rawText: String, cleanText: String): List<String> {
         val rawValues = numericValues(rawText)
         if (rawValues.isEmpty()) return emptyList()
         val drifted = mutableListOf<String>()
+        val seenValues = mutableSetOf<Long>()
         for (m in CRITICAL_TOKEN_RE.findAll(cleanText)) {
-            val v = m.value.replace(",", "").removePrefix("$").removeSuffix("%")
-                .toDoubleOrNull() ?: continue
-            if (v != Math.floor(v)) continue
-            val asLong = v.toLong()
+            val asLong = tokenValue(m.value) ?: continue
             // Ordinals and small counts legitimately appear from restructuring
             // ("the 15th"), and a value present in the input is fine.
-            if (asLong !in rawValues) drifted.add(m.value)
+            if (asLong !in rawValues) {
+                drifted.add(m.value)
+                seenValues.add(asLong)
+            }
+        }
+        // Spelled-out figures. CRITICAL_TOKEN_RE matches digits only, so an
+        // output that kept the number in WORDS produced no matches at all and
+        // every change passed: "four thousand two hundred" -> "five thousand
+        // three hundred" was invisible, as were "two billion" -> "two million"
+        // and "twenty copies" -> "thirty copies". Layer 4 writes prose and
+        // spells figures out routinely, so the layer that rewrites hardest was
+        // the one this check could not see.
+        for (value in numericValues(cleanText).sorted()) {
+            if (value !in rawValues && value !in seenValues) drifted.add(value.toString())
         }
         return drifted
     }
