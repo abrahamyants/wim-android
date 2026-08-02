@@ -162,6 +162,34 @@ class DisfluencyFilterTest {
         )
     }
 
+    // ── Hyphenated words are not stutter fragments ─────
+    //
+    // The whitespace-fragment regex allowed zero repetitions, so a single
+    // "word- " was deleted whether or not it was a stutter. A fragment is a
+    // prefix of the word the speaker was reaching for; a compound's first half
+    // is not. At L1 nothing compares output to input, so a word deleted here is
+    // simply gone from the message.
+
+    @Test fun compoundWord_firstHalfSurvives() {
+        assertEquals("co- founder of the company", filter("co- founder of the company"))
+    }
+
+    @Test fun preExisting_survives() {
+        assertEquals("pre- existing condition", filter("pre- existing condition"))
+    }
+
+    @Test fun wellKnown_survives() {
+        assertEquals("well- known author", filter("well- known author"))
+    }
+
+    @Test fun stutterOnSingleLetterWordStillCollapses() {
+        assertEquals("I want that", filter("I- I want that"))
+    }
+
+    @Test fun repeatedFragmentBeforeItsWordStillCollapses() {
+        assertEquals("the meeting", filter("th- th- the meeting"))
+    }
+
     // ── Helper ─────────────────────────────────────────
 
     private fun filter(text: String, fillers: List<String> = defaultFillers): String {

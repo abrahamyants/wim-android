@@ -34,8 +34,20 @@ object DisfluencyFilter {
 
     // Step 1a: Stutter fragments with whitespace — "p- p- pop" -> "pop",
     // "s- stop" -> "stop", "be- be- become" -> "become".
+    //
+    // The trailing word is captured and the fragment is only dropped when it is
+    // a prefix of that word, which is what makes a fragment a fragment: you
+    // block on the onset of the word you are trying to say. Without that check
+    // the `{0,40}` matched a single hyphen-then-space with no repetition at
+    // all, so "co- founder" became "founder" and "pre- existing" became
+    // "existing" — the speaker's word deleted outright. The sibling regex below
+    // already guards the same hazard by requiring a repeat, and its comment
+    // spells out why; this one was left open.
+    //
+    // L1 is where this bites hardest: no reconstruction, no meaning guard,
+    // nothing comparing output to input. Whatever this emits is pasted.
     private val STUTTER_FRAGMENT = Regex(
-        """(\b\w+)-\s+(?:\1-\s+){0,40}""",
+        """(\b\w+)-\s+((?:\1-\s+){0,40})(\w+)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -201,7 +213,11 @@ object DisfluencyFilter {
         val activeNaturalRepeats = naturalRepeats ?: NATURAL_REPEATS
 
         // Step 1: Remove stutter fragments (two passes — with and without whitespace)
-        var cleaned = STUTTER_FRAGMENT.replace(text, "")
+        var cleaned = STUTTER_FRAGMENT.replace(text) { m ->
+            val fragment = m.groupValues[1]
+            val word = m.groupValues[3]
+            if (word.startsWith(fragment, ignoreCase = true)) word else m.value
+        }
         cleaned = STUTTER_FRAGMENT_NOSPACE.replace(cleaned, "")
 
         // Step 2: Remove consecutive word repetitions (protect natural repeats).
