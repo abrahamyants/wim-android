@@ -433,7 +433,17 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         // smash together (matches Wispr Flow / Dragon behavior).
         var finalText = text
         if (existing.isNotEmpty()) {
-            val cursorEnd = if (node.textSelectionEnd >= 0) node.textSelectionEnd else existing.length
+            // coerceAtMost mirrors the insertPos calculation below, which has
+            // always clamped. textSelectionEnd is reported by the host app and
+            // can exceed the text this node handed back — the two are read at
+            // slightly different moments, and some editors index into a longer
+            // internal buffer. Unclamped, existing[cursorEnd - 1] throws
+            // StringIndexOutOfBounds and the paste is lost entirely.
+            val cursorEnd = if (node.textSelectionEnd >= 0) {
+                node.textSelectionEnd.coerceAtMost(existing.length)
+            } else {
+                existing.length
+            }
             if (cursorEnd > 0) {
                 val charBefore = existing[cursorEnd - 1]
                 if (charBefore != ' ' && charBefore != '\n' && charBefore != '\t') {
