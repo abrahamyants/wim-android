@@ -430,15 +430,42 @@ object MeaningGuard {
         var cleanText = ""
         var guardResult = GuardResult(ok = true, lost = emptyList(), invented = emptyList())
         var attempts = 0
+        // Earliest attempt that kept every anchor and said something, whose only
+        // fault was leaving the wording alone. The loop retries past it looking
+        // for an actual rewrite, and the attempts that follow can be worse.
+        var safeText: String? = null
+        var safeGuard: GuardResult? = null
+
         for (attemptIndex in 0 until maxAttempts) {
             cleanText = rewriteOnce(attemptIndex).trim()
             attempts += 1
             guardResult = guard(rawText, cleanText, vocabulary)
             if (!needsRetry(rawText, cleanText, guardResult)) break
+            if (safeText == null && cleanText.isNotBlank() &&
+                guardResult.lost.isEmpty() && guardResult.invented.isEmpty()
+            ) {
+                safeText = cleanText
+                safeGuard = guardResult
+            }
             if (attemptIndex + 1 >= maxAttempts) break
             onRetry?.invoke(attempts, cleanText, guardResult)
             appendRepair(cleanText, buildRepairInstruction(rawText, cleanText, guardResult))
         }
+
+        // Attempts exhausted holding a candidate that dropped an anchor,
+        // invented one, or came back blank. Returning it costs the user the
+        // whole reconstruction: the caller reads lost/invented as a hard
+        // failure and pastes the raw disfluent transcript instead. An earlier
+        // attempt that merely echoed the speaker is worth more than that —
+        // ReconstructClient keeps unchanged-only output on purpose, because
+        // identical words are safe words.
+        val finalFailed = cleanText.isBlank() ||
+            guardResult.lost.isNotEmpty() || guardResult.invented.isNotEmpty()
+        if (finalFailed && safeText != null) {
+            cleanText = safeText
+            guardResult = safeGuard!!
+        }
+
         val unchanged = isEffectivelyUnchanged(rawText, cleanText)
         return RewriteOutcome(
             cleanText = cleanText,
