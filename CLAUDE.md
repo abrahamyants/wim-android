@@ -197,6 +197,7 @@ gcloud functions deploy wim-reconstruct --source=. \
 - `app/build.gradle.kts` — Maven deps + signing config (release keystore at `../wim-release.jks`, `wimstore2026` password).
 - `app/src/main/AndroidManifest.xml` — service exports + permissions.
 - `onboarding-plugin/brand.local.md` — brand tokens (CANONICAL — every skill and reviewer reads this).
+- `docs/code_review_process.md` — how to audit this codebase: the twelve steps, the seven axes ranked by yield, and the failure modes specific to a pipeline implemented twice in two languages. Read it before starting any audit; the twins/claims/churn axes are mechanical and run before any code is read.
 - `docs/bubble_unified_build_spec.md` — Phases 0–7 spec for the bubble FSM, Clarifier, MultiPassDecoder, PredictionEngine.
 - `docs/patent_claim_chain.md` — sharpened claim 1 + dependent claims, prior-art positioning, gating risks (US20250246187A1).
 - `docs/asr_2026_research.md` — ~500-line 2026 mobile ASR landscape doc, 45 citations.
