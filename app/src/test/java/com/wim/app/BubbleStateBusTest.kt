@@ -312,4 +312,49 @@ class BubbleStateBusTest {
         assertFalse(ok)
         assertEquals(before::class, BubbleStateBus.current()::class)
     }
+
+    // ── Cleanup always lands on Idle, through Failed when required ──
+    //
+    // setBubbleIdle relies on exactly this shape: the four mid-pipeline states
+    // refuse a direct drop to Idle, accept Failed, and Failed accepts Idle. It
+    // used to call reset(), which force-set Idle and skipped Failed entirely —
+    // and Failed is what BubbleAffect and BubblePersona watch, so a mid-flight
+    // failure showed the user nothing at all.
+
+    @Test fun midPipelineStatesRefuseADirectDropToIdle() {
+        for (drive in listOf(
+            listOf(listening(), transcribing(), stripping()),
+            listOf(listening(), transcribing(), stripping(), readingContext()),
+            listOf(listening(), transcribing(), stripping(), reconstructing()),
+        )) {
+            BubbleStateBus.reset()
+            driveThrough(*drive.toTypedArray())
+            val at = BubbleStateBus.current()
+            assertFalse("expected Idle to be forbidden from $at",
+                BubbleStateBus.advance(BubbleState.Idle))
+            assertEquals(at::class, BubbleStateBus.current()::class)
+        }
+    }
+
+    @Test fun midPipelineStatesReachIdleThroughFailed() {
+        BubbleStateBus.reset()
+        driveThrough(listening(), transcribing(), stripping(), reconstructing())
+        assertFalse(BubbleStateBus.advance(BubbleState.Idle))
+        assertTrue(BubbleStateBus.advance(BubbleState.Failed(FailReason.UNKNOWN)))
+        assertTrue(BubbleStateBus.advance(BubbleState.Idle))
+        assertTrue(BubbleStateBus.current() is BubbleState.Idle)
+    }
+
+    @Test fun idleToIdleIsForbiddenSoCleanupMustShortCircuit() {
+        BubbleStateBus.reset()
+        assertFalse("Idle→Idle must stay forbidden; setBubbleIdle short-circuits on it",
+            BubbleStateBus.advance(BubbleState.Idle))
+    }
+
+    @Test fun failedAlwaysAcceptsIdle() {
+        BubbleStateBus.reset()
+        driveThrough(listening(), transcribing())
+        assertTrue(BubbleStateBus.advance(BubbleState.Failed(FailReason.NETWORK)))
+        assertTrue(BubbleStateBus.advance(BubbleState.Idle))
+    }
 }

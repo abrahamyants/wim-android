@@ -2374,9 +2374,35 @@ class BubbleService : Service() {
     }
 
     private fun setBubbleIdle() {
-        // FSM: drop to Idle (force-set so we don't fight the transition
-        // matrix on cancel/cleanup paths from arbitrary prior states).
-        BubbleStateBus.reset()
+        // FSM: drop to Idle, honouring the transition matrix.
+        //
+        // This used to call BubbleStateBus.reset(), which force-sets Idle with
+        // no validation — and setBubbleIdle is the ordinary return-to-rest
+        // path, reached from 26 sites including every error and cancel branch.
+        // So the matrix was bypassed on the way back from everywhere.
+        //
+        // That matters because the matrix deliberately FORBIDS Idle from the
+        // four mid-pipeline states — Stripping, ReadingContext, Reconstructing,
+        // Verified. A stop in the middle of the pipeline is supposed to pass
+        // through Failed, and Failed is what BubbleAffect and BubblePersona
+        // watch to commiserate and to explain what went wrong. Slamming
+        // straight to Idle skipped it, so a reconstruction that died mid-flight
+        // read to the user as the bubble quietly going back to sleep. That is
+        // the silent-reset complaint 6e8a1bf patched site by site; this is the
+        // mechanism underneath it.
+        //
+        // Cleanup still never blocks: when the direct transition is refused we
+        // route through Failed and land on Idle regardless.
+        //
+        // Already-Idle is checked first because the matrix forbids Idle→Idle,
+        // and this function is called from cleanup paths that can run twice.
+        // Without the check every redundant call logs two FORBIDDEN errors.
+        if (BubbleStateBus.current() !is BubbleState.Idle &&
+            !BubbleStateBus.advance(BubbleState.Idle)
+        ) {
+            BubbleStateBus.advance(BubbleState.Failed(FailReason.UNKNOWN))
+            BubbleStateBus.advance(BubbleState.Idle)
+        }
         pulseRings?.stop()
         hideLiveTranscript()
         // DO NOT delete lastWavFile here. The previous `lastWavFile?.delete()`
