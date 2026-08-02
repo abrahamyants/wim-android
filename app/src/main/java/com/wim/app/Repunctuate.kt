@@ -52,7 +52,16 @@ object Repunctuate {
         }
 
         if (s.isNotEmpty() && s.last() !in ".!?") {
-            val firstWord = s.split(FIRST_WORD, limit = 2).firstOrNull()?.lowercase().orEmpty()
+            // The mark belongs to the sentence being closed, so the opening
+            // word is read from the LAST sentence, not from the whole text.
+            // Reading the whole text put a question mark on a statement —
+            // "can you send the report. i will wait" closed as "I will wait?"
+            // — and a full stop on a question, "the report is done. can you
+            // send it" closing as "Can you send it." Single-sentence input is
+            // unaffected, since there the last sentence is the whole text.
+            val lastSentence = s.takeLastWhile { it !in ".!?" }.trim()
+            val firstWord = lastSentence.split(FIRST_WORD)
+                .firstOrNull { it.isNotEmpty() }?.lowercase().orEmpty()
             s += if (firstWord in QUESTION_STARTERS) "?" else "."
         }
         return s

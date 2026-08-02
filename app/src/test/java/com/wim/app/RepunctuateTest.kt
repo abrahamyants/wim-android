@@ -128,4 +128,31 @@ class RepunctuateTest {
             repunc("where is the report")
         )
     }
+
+    // ── The mark belongs to the sentence being closed ───
+    //
+    // The terminal mark was chosen from the first word of the whole text, so a
+    // multi-sentence utterance took its punctuation from a sentence that had
+    // already been closed.
+
+    @Test fun statementAfterAQuestionClosesWithAPeriod() {
+        assertEquals(
+            "Can you send the report. I will wait.",
+            repunc("can you send the report. i will wait")
+        )
+    }
+
+    @Test fun questionAfterAStatementClosesWithAQuestionMark() {
+        assertEquals(
+            "The report is done. Can you send it?",
+            repunc("the report is done. can you send it")
+        )
+    }
+
+    @Test fun questionAfterTwoStatementsStillClosesWithAQuestionMark() {
+        assertEquals(
+            "I finished it. It is on your desk. Do you want a copy?",
+            repunc("i finished it. it is on your desk. do you want a copy")
+        )
+    }
 }
