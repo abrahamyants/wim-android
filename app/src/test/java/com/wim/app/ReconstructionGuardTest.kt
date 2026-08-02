@@ -126,4 +126,73 @@ class ReconstructionGuardTest {
         )
         assertTrue(r.leakDetected)
     }
+
+    // ── The speaker's own words are not a leak ──────────────────────
+    //
+    // These phrases were matched as bare substrings anywhere in the output, so
+    // dictating an apology threw away the reconstruction and pasted the raw
+    // disfluent ASR. The raw transcript now decides: if the speaker said it,
+    // the model carrying it through is faithful, not a leak.
+
+    @Test fun `dictated apology is not a leak`() {
+        val raw = "i i i am sorry i will be late for the meeting"
+        val r = ReconstructionGuard.apply(
+            reconstructed = "I'm sorry, I'll be late for the meeting.",
+            fallbackText = raw,
+            fallbackWordCount = 12,
+        )
+        assertFalse(r.leakDetected)
+        assertEquals("I'm sorry, I'll be late for the meeting.", r.outputText)
+    }
+
+    @Test fun `dictated apologize is not a leak`() {
+        val raw = "please apologize to them for the the delay"
+        val r = ReconstructionGuard.apply(
+            reconstructed = "I apologize for the delay.",
+            fallbackText = raw,
+            fallbackWordCount = 7,
+        )
+        assertFalse(r.leakDetected)
+    }
+
+    @Test fun `dictated cannot help is not a leak`() {
+        val raw = "tell him i i cant help with the move this weekend"
+        val r = ReconstructionGuard.apply(
+            reconstructed = "Tell him I can't help with the move this weekend.",
+            fallbackText = raw,
+            fallbackWordCount = 10,
+        )
+        assertFalse(r.leakDetected)
+    }
+
+    @Test fun `dictated please clarify is not a leak`() {
+        val raw = "please clarify what you need from me"
+        val r = ReconstructionGuard.apply(
+            reconstructed = "Please clarify what you need from me.",
+            fallbackText = raw,
+            fallbackWordCount = 7,
+        )
+        assertFalse(r.leakDetected)
+    }
+
+    @Test fun `model apology on an unrelated raw is still a leak`() {
+        // Same phrase, but nothing in the raw motivates it.
+        val r = ReconstructionGuard.apply(
+            reconstructed = "I'm sorry, could you please repeat that?",
+            fallbackText = fallback,
+            fallbackWordCount = fallbackWordCount,
+        )
+        assertTrue(r.leakDetected)
+        assertEquals(fallback, r.outputText)
+    }
+
+    @Test fun `machine-only string leaks regardless of raw`() {
+        // No stem escape hatch for these — nobody dictates them.
+        val r = ReconstructionGuard.apply(
+            reconstructed = "As an AI, I think you meant the store.",
+            fallbackText = "as an ai i think you meant the store",
+            fallbackWordCount = 9,
+        )
+        assertTrue(r.leakDetected)
+    }
 }
