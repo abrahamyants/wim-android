@@ -996,40 +996,39 @@ object ReconstructClient {
                 } catch (e: Exception) {
                     Log.w("WiM", "Sonnet L4 failed (${e.message?.take(120)}), falling back to GPT-4o")
                     sonnetDowngraded = true
-                    loopGuard = null
-                    reconstructWithGpt4o(finalSystemPrompt, effectiveRaw, apiKey, temperature)
+                    // GPT-4o gets the guard loop here too. This fallback used to
+                    // be a bare single-shot call, so a Sonnet timeout mid-call
+                    // dropped the user from the most-checked path to the
+                    // least-checked one in a single step.
+                    val outcome = gpt4oRewriteLoop(
+                        finalSystemPrompt, effectiveRaw, apiKey, temperature, vocabulary, layer
+                    )
+                    rewriteAttempts = outcome.attempts
+                    loopGuard = outcome.guard
+                    outcome.cleanText
                 }
-            } else if (layer in 2..3) {
+            } else if (layer >= 2) {
                 // L2/L3 must always reconstruct — empty, unchanged, or
                 // guard-rejected output is retried with exact feedback, up to
                 // MAX_REWRITE_ATTEMPTS. Port of the backend's
                 // run_layer2_rewrite (6a0ad9a); short inputs get the same
                 // treatment — there is no length gate on this path.
-                val messages = JSONArray().apply {
-                    put(JSONObject().put("role", "system").put("content", finalSystemPrompt))
-                    put(JSONObject().put("role", "user").put("content", effectiveRaw))
+                //
+                // The gate was `layer in 2..3`, so an L4 request that could not
+                // reach Sonnet — no key and not signed in — fell past it to the
+                // bare single-shot call below. That made L4-without-Sonnet the
+                // only reconstruction route in the app with no guard and no
+                // retry: the user picked the most careful layer and got less
+                // checking than L2 gives. It now takes this loop, and
+                // sonnetDowngraded is set so the existing "L4 unavailable"
+                // toast actually fires instead of the swap happening in silence.
+                if (layer >= 4) {
+                    sonnetDowngraded = true
+                    Log.w("WiM", "L4 requested without Sonnet access — reconstructing with GPT-4o")
+                    com.wim.app.ConsoleLog.log("L4 unavailable on this device — using GPT-4o", "warn")
                 }
-                val outcome = MeaningGuard.runRewriteLoop(
-                    rawText = effectiveRaw,
-                    vocabulary = vocabulary,
-                    rewriteOnce = { attemptIndex ->
-                        // Retries drop to near-greedy sampling so the repair
-                        // instruction, not randomness, drives the change.
-                        val attemptTemp = if (attemptIndex == 0) temperature else minOf(temperature, 0.1)
-                        reconstructWithGpt4oMessages(messages, apiKey, attemptTemp)
-                    },
-                    appendRepair = { candidate, instruction ->
-                        messages.put(JSONObject().put("role", "assistant").put("content", candidate))
-                        messages.put(JSONObject().put("role", "user").put("content", instruction))
-                    },
-                    onRetry = { attempt, candidate, g ->
-                        Log.w(
-                            "WiM",
-                            "L$layer rewrite rejected on attempt $attempt: lost=${g.lost} " +
-                                "invented=${g.invented} unchanged=${MeaningGuard.isEffectivelyUnchanged(effectiveRaw, candidate)} — retrying"
-                        )
-                        com.wim.app.ConsoleLog.log("Rewrite attempt $attempt rejected — retrying", "warn")
-                    },
+                val outcome = gpt4oRewriteLoop(
+                    finalSystemPrompt, effectiveRaw, apiKey, temperature, vocabulary, layer
                 )
                 rewriteAttempts = outcome.attempts
                 loopGuard = outcome.guard
@@ -1174,9 +1173,56 @@ object ReconstructClient {
     // Falcon retired — falconValidate() is now a stub returning true (lavrentiy.py:3420).
 
     /**
-     * GPT-4o single-pass reconstruction (L2/L3 default and L4 fallback).
-     * Extracted so the Sonnet ET-extinction catch can call the same path
-     * without duplicating the OkHttp/JSON plumbing.
+     * GPT-4o reconstruction with the guard-and-retry loop — empty, unchanged,
+     * or guard-rejected output is retried with exact feedback, up to
+     * MAX_REWRITE_ATTEMPTS. Port of the backend's run_layer2_rewrite. No length
+     * gate: short inputs get the same treatment.
+     *
+     * Every GPT-4o reconstruction goes through here. The two L4 fallbacks —
+     * no Sonnet key, and Sonnet throwing mid-call — each used to make a bare
+     * single-shot call instead, so choosing the most careful layer and missing
+     * Sonnet left you with no guard and no retry at all.
+     */
+    private fun gpt4oRewriteLoop(
+        systemPrompt: String,
+        effectiveRaw: String,
+        apiKey: String,
+        temperature: Double,
+        vocabulary: List<String>,
+        layer: Int,
+    ): MeaningGuard.RewriteOutcome {
+        val messages = JSONArray().apply {
+            put(JSONObject().put("role", "system").put("content", systemPrompt))
+            put(JSONObject().put("role", "user").put("content", effectiveRaw))
+        }
+        return MeaningGuard.runRewriteLoop(
+            rawText = effectiveRaw,
+            vocabulary = vocabulary,
+            rewriteOnce = { attemptIndex ->
+                // Retries drop to near-greedy sampling so the repair
+                // instruction, not randomness, drives the change.
+                val attemptTemp = if (attemptIndex == 0) temperature else minOf(temperature, 0.1)
+                reconstructWithGpt4oMessages(messages, apiKey, attemptTemp)
+            },
+            appendRepair = { candidate, instruction ->
+                messages.put(JSONObject().put("role", "assistant").put("content", candidate))
+                messages.put(JSONObject().put("role", "user").put("content", instruction))
+            },
+            onRetry = { attempt, candidate, g ->
+                Log.w(
+                    "WiM",
+                    "L$layer rewrite rejected on attempt $attempt: lost=${g.lost} " +
+                        "invented=${g.invented} unchanged=${MeaningGuard.isEffectivelyUnchanged(effectiveRaw, candidate)} — retrying"
+                )
+                com.wim.app.ConsoleLog.log("Rewrite attempt $attempt rejected — retrying", "warn")
+            },
+        )
+    }
+
+    /**
+     * GPT-4o single-pass reconstruction. Kept for callers outside the
+     * reconstruction path; the reconstruction path itself goes through
+     * [gpt4oRewriteLoop].
      */
     private fun reconstructWithGpt4o(
         systemPrompt: String,
