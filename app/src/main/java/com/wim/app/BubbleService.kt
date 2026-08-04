@@ -3249,6 +3249,17 @@ class BubbleService : Service() {
                     ConsoleLog.log("$it — using raw", "error")
                 }
 
+                // Net two — deterministic swear gate, professional/formal only
+                // ("the transistor switch", George 2026-08-04). Runs after
+                // every other guard so nothing downstream can reintroduce a
+                // swear. Catches only what the prompt's register net missed.
+                val gateResult = SwearGate.apply(outputText, tone)
+                if (gateResult.caught > 0) {
+                    outputText = gateResult.text
+                    Log.i(TAG, "Swear gate: ${gateResult.caught} caught ($tone)")
+                    ConsoleLog.log("Swear gate: ${gateResult.caught} caught", "warn")
+                }
+
                 val finalWordCount = outputText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
                 val integrityLabel = if (leakDetected) "\u26A0 LLM leak filtered" else if (reconResult.falconApproved) "\u2713 Meaning verified" else "\u26A0 Using original"
                 BubbleStateBus.advance(BubbleState.Verified(System.currentTimeMillis()))
