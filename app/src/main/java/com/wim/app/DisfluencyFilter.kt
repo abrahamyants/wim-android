@@ -199,10 +199,24 @@ object DisfluencyFilter {
             val wordCount = segText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
             if (wordCount >= 5) continue
             if (segText.isBlank()) continue
-            // Escape for regex and strip this segment's text
+            // Strip this segment's text — but only when the transcript contains
+            // it once. Regex.replace removes EVERY match, and Whisper reports a
+            // suspect segment by time, not by character offset, so there is no
+            // way to tell which copy it meant. A speaker who says "the report"
+            // twice, or "okay" twice, lost both to one flagged segment. Short
+            // phrases are exactly the ones that repeat, and this runs before
+            // the filter and before every guard, so nothing downstream could
+            // see the loss.
             val pattern = Regex("\\b${Regex.escape(segText)}\\b", RegexOption.IGNORE_CASE)
-            if (pattern.containsMatchIn(result)) {
-                result = pattern.replace(result, "")
+            val hits = pattern.findAll(result).take(2).count()
+            when (hits) {
+                0 -> {}
+                1 -> result = pattern.replace(result, "")
+                else -> android.util.Log.i(
+                    "DisfluencyFilter",
+                    "block-suspect \"$segText\" appears more than once — leaving it, " +
+                        "cannot tell which copy Whisper meant"
+                )
             }
         }
         // Collapse multiple spaces left by removals

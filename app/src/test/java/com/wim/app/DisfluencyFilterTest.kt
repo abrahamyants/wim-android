@@ -234,6 +234,52 @@ class DisfluencyFilterTest {
         assertEquals("the pin is 1 2 1 2", filter("the pin is 1 2 1 2"))
     }
 
+    // ── A suspect segment must not take other copies with it ──
+    //
+    // Regex.replace removes EVERY match, and Whisper reports a block-suspect
+    // segment by time, not by character offset, so there is no way to tell
+    // which copy it meant. A speaker who said "the report" twice lost both:
+    //
+    //     "send the report and then send the report again"
+    //         -> "send and then send again"
+    //
+    // Short phrases are exactly the ones that repeat, and this runs before the
+    // filter and before every guard, so nothing downstream saw the loss.
+
+    private fun suspect(text: String) = WhisperClient.LowConfidenceSegment(
+        text = text, avgLogprob = -1.0, noSpeechProb = 0.9, blockSuspect = true
+    )
+
+    @Test fun blockStrip_leavesARepeatedPhraseAlone() {
+        assertEquals(
+            "send the report and then send the report again",
+            DisfluencyFilter.stripBlockHallucinations(
+                "send the report and then send the report again",
+                listOf(suspect("the report"))
+            )
+        )
+    }
+
+    @Test fun blockStrip_leavesARepeatedWordAlone() {
+        assertEquals(
+            "i said yes and he said yes too",
+            DisfluencyFilter.stripBlockHallucinations(
+                "i said yes and he said yes too",
+                listOf(suspect("yes"))
+            )
+        )
+    }
+
+    @Test fun blockStrip_stillRemovesASingleOccurrence() {
+        assertEquals(
+            "call me tomorrow",
+            DisfluencyFilter.stripBlockHallucinations(
+                "call me thanks for watching tomorrow",
+                listOf(suspect("thanks for watching"))
+            )
+        )
+    }
+
     @Test fun repetitionCollapse_stillWorksOnWords() {
         assertEquals("I need to reschedule", filter("I I I need to reschedule"))
         assertEquals("the dog", filter("the the the dog"))
