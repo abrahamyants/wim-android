@@ -228,6 +228,16 @@ class MeaningGuardTest {
         assertEquals("", bin)
     }
 
+    @Test fun splitDropped_binFirstDoesNotEatTheMessage() {
+        // The 13:28 blank-paste bug: model put DROPPED first; the old parser
+        // swallowed the whole message into the bin.
+        val (body, bin) = MeaningGuard.splitDropped(
+            "DROPPED: shut up buddy not now\nCan we push the fix to Git tomorrow?"
+        )
+        assertEquals("Can we push the fix to Git tomorrow?", body)
+        assertEquals("shut up buddy not now", bin)
+    }
+
     @Test fun guard_asideNegationInBinIsNotLost() {
         // The baby's "not now" was binned on purpose — the body owes no "not".
         val g = MeaningGuard.guard(

@@ -397,15 +397,22 @@ object MeaningGuard {
      * "not now" survive, and GPT appeased it by flipping the core message to
      * "does not look great" (caught live 2026-08-04 12:29).
      */
-    private val DROPPED_LINE = Regex("""(?is)(?:^|[\r\n]+)\s*DROPPED:\s*(.*)\s*$""")
-
     /** Split a candidate into (message body, dropped-bin). Bin is "" when the
-     *  line is missing or says none. The DROPPED line itself never pastes. */
+     *  line is missing or says none. The DROPPED line itself never pastes.
+     *
+     *  Line-based on purpose: the first regex version anchored "DROPPED:" to
+     *  the end of the string with a (?s) greedy capture, so when the model
+     *  put the DROPPED line FIRST — which GPT did on the very first L3 take,
+     *  2026-08-04 13:28 — the entire message was swallowed into the bin and
+     *  the paste came out empty, three attempts in a row. Now exactly one
+     *  line is the bin, wherever it sits; every other line is the message. */
     fun splitDropped(candidate: String): Pair<String, String> {
-        val m = DROPPED_LINE.find(candidate) ?: return candidate.trim() to ""
-        val body = candidate.substring(0, m.range.first).trim()
-        val binRaw = m.groupValues[1].trim()
+        val lines = candidate.lines()
+        val idx = lines.indexOfLast { it.trim().uppercase().startsWith("DROPPED:") }
+        if (idx == -1) return candidate.trim() to ""
+        val binRaw = lines[idx].trim().substringAfter(":").trim()
         val bin = if (binRaw.isBlank() || binRaw.equals("none", ignoreCase = true)) "" else binRaw
+        val body = (lines.take(idx) + lines.drop(idx + 1)).joinToString("\n").trim()
         return body to bin
     }
 
