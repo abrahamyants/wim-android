@@ -116,6 +116,18 @@ object ClarifierController {
         if (ok) {
             // Update the in-memory injection text so subsequent ranges still match.
             lastInjectionText = applyEdit(lastInjectionText, current.rangeStart, current.rangeEnd, replacement)
+            // Every flag still to come holds an offset measured against the
+            // text BEFORE this swap. A replacement of a different length moves
+            // everything after it, so the ranges downstream of the edit have to
+            // move with it — otherwise the next approval writes over the wrong
+            // characters. Clarifier hands flags back sorted by uncertainty, not
+            // by position, so the next one is as likely to sit after this edit
+            // as before it.
+            shiftFlagsAfterEdit(
+                editStart = current.rangeStart,
+                editEnd = current.rangeEnd,
+                replacementLength = replacement.length,
+            )
             recordSwap(current.originalWord, replacement)
             // Claim 9: an approved swap is the one cursor move the claim allows.
             swappedThisCycle = true
@@ -322,5 +334,41 @@ object ClarifierController {
     private fun applyEdit(text: String, start: Int, end: Int, replacement: String): String {
         if (start < 0 || end > text.length || start > end) return text
         return text.substring(0, start) + replacement + text.substring(end)
+    }
+
+    /**
+     * Move every remaining flag that sits after an accepted edit.
+     *
+     * A flag's range is a character offset into the injected text. Accepting a
+     * swap whose replacement is a different length shifts everything after it,
+     * and the flags were measured before that happened. Left alone, the next
+     * approval writes over the wrong characters — and the highlight overlay
+     * underlines the wrong word on the way there.
+     *
+     * A flag that overlaps the edited span is dropped: the word it pointed at
+     * no longer exists, and there is no honest place to move it to.
+     */
+    /** Seed the cycle state without a host app. Tests only. */
+    internal fun setFlagsForTest(flags: List<FlaggedWord>, index: Int) {
+        flagged = flags
+        cycleIndex = index
+    }
+
+    /** Read the cycle's flags back. Tests only. */
+    internal fun flagsForTest(): List<FlaggedWord> = flagged
+
+    internal fun shiftFlagsAfterEdit(editStart: Int, editEnd: Int, replacementLength: Int) {
+        val delta = replacementLength - (editEnd - editStart)
+        flagged = flagged.mapIndexedNotNull { idx, f ->
+            when {
+                idx <= cycleIndex -> f                    // already handled
+                f.rangeStart >= editEnd -> f.copy(
+                    rangeStart = f.rangeStart + delta,
+                    rangeEnd = f.rangeEnd + delta,
+                )
+                f.rangeEnd <= editStart -> f              // entirely before the edit
+                else -> null                              // overlapped the edit
+            }
+        }
     }
 }
