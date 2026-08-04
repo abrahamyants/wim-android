@@ -47,6 +47,54 @@ class WhisperLocalEngine(private val context: Context) {
         // ~30s must be split into <=30s chunks and stitched back together.
         private const val WHISPER_WINDOW_SAMPLES = SAMPLE_RATE * 30
 
+        /** How far back from the 30s ceiling to hunt for a pause: 2 seconds. */
+        private const val SEAM_SEARCH_SAMPLES = SAMPLE_RATE * 2
+
+        /** Frame size for that hunt: 20ms, shorter than any spoken syllable. */
+        private const val SEAM_FRAME_SAMPLES = SAMPLE_RATE / 50
+
+        /**
+         * Where to end the chunk that starts at [start].
+         *
+         * The window used to end at exactly `start + 30s`, which is a stopwatch
+         * mark and has nothing to do with speech. A word straddling that mark was
+         * cut in half and both halves decoded as nonsense — a two-minute recording
+         * has three of these seams. Whisper is stateless across streams, so it
+         * cannot recover the other half.
+         *
+         * So: keep the 30s ceiling, but back off to the quietest 20ms frame in the
+         * last [SEAM_SEARCH_SAMPLES] before it. A pause between words is the
+         * quietest thing in that stretch, and cutting there costs nothing.
+         * Falls back to the hard ceiling when the tail is uniformly loud, and is a
+         * no-op for the final chunk.
+         */
+        internal fun chooseSplit(samples: FloatArray, start: Int): Int {
+            val ceiling = start + WHISPER_WINDOW_SAMPLES
+            if (ceiling >= samples.size) return samples.size
+
+            val searchFrom = maxOf(start + 1, ceiling - SEAM_SEARCH_SAMPLES)
+            var quietestAt = ceiling
+            var quietest = Float.MAX_VALUE
+            var frameStart = searchFrom
+            while (frameStart + SEAM_FRAME_SAMPLES <= ceiling) {
+                var energy = 0f
+                for (i in frameStart until frameStart + SEAM_FRAME_SAMPLES) {
+                    energy += kotlin.math.abs(samples[i])
+                }
+                // <= not < : on a tie the LATEST frame wins. With a strict <, audio
+                // of even loudness kept the earliest frame and threw away two
+                // seconds of every window.
+                if (energy <= quietest) {
+                    quietest = energy
+                    // Cut in the MIDDLE of the quiet frame, so neither side keeps
+                    // the leading edge of the next word.
+                    quietestAt = frameStart + SEAM_FRAME_SAMPLES / 2
+                }
+                frameStart += SEAM_FRAME_SAMPLES
+            }
+            return quietestAt.coerceIn(start + 1, ceiling)
+        }
+
         const val ERROR_NO_MODEL = 300
         const val ERROR_INIT = 301
         const val ERROR_INFERENCE = 302
@@ -247,7 +295,7 @@ class WhisperLocalEngine(private val context: Context) {
                 val sb = StringBuilder()
                 var start = 0
                 while (start < samples.size) {
-                    val end = minOf(start + WHISPER_WINDOW_SAMPLES, samples.size)
+                    val end = chooseSplit(samples, start)
                     val part = decodeChunk(rec, samples.copyOfRange(start, end))
                     if (part.isNotEmpty()) {
                         if (sb.isNotEmpty()) sb.append(' ')
