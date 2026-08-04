@@ -615,6 +615,7 @@ object ReconstructClient {
                 // Backend prompt (wim-reconstruct) needs this same change —
                 // keep the two in sync, same contract as MeaningGuard.
                 append(" INTERRUPTION RULE (applies in EVERY tone): mid-dictation speech aimed at someone OTHER than the message's recipient — a child, a pet, another driver, someone else in the room (\"shut up\", \"not now, honey\", a road-rage outburst) — is NOT message content. Drop it entirely and join the message cleanly around the gap.")
+                append(" FORMAT: after the reconstructed message, output ONE final line exactly as \"DROPPED: <the interruption words you removed, verbatim>\" — or \"DROPPED: none\" if you removed no interruptions. The DROPPED line is bookkeeping for an integrity checker; it is never part of the message.")
                 if (tone.lowercase() in setOf("professional", "formal")) {
                     append(" Profanity WITHIN the message itself: translate its intensity into this register instead of deleting it — \"this is fucking great\" becomes \"this is genuinely excellent\", \"that's bullshit\" becomes \"that is unacceptable\". The emphasis survives; the wording dresses for the reader.")
                 } else {

@@ -205,4 +205,71 @@ class MeaningGuardTest {
         )
         assertFalse(lost.any { it.equals("doctor", ignoreCase = true) })
     }
+
+    // ── DROPPED bin: the envelope rule's bookkeeping (2026-08-04) ──
+
+    @Test fun splitDropped_parsesBinOffTheBody() {
+        val (body, bin) = MeaningGuard.splitDropped(
+            "Can we move the meeting to Thursday?\nDROPPED: shut up buddy not now"
+        )
+        assertEquals("Can we move the meeting to Thursday?", body)
+        assertEquals("shut up buddy not now", bin)
+    }
+
+    @Test fun splitDropped_noneMeansEmptyBin() {
+        val (body, bin) = MeaningGuard.splitDropped("Send the contract tonight.\nDROPPED: none")
+        assertEquals("Send the contract tonight.", body)
+        assertEquals("", bin)
+    }
+
+    @Test fun splitDropped_missingLineIsBackwardCompatible() {
+        val (body, bin) = MeaningGuard.splitDropped("Send the contract tonight.")
+        assertEquals("Send the contract tonight.", body)
+        assertEquals("", bin)
+    }
+
+    @Test fun guard_asideNegationInBinIsNotLost() {
+        // The baby's "not now" was binned on purpose — the body owes no "not".
+        val g = MeaningGuard.guard(
+            rawText = "can we push the meeting shut up buddy not now to thursday",
+            cleanText = "Can we push the meeting to Thursday?",
+            dropped = "shut up buddy not now"
+        )
+        assertFalse(g.lost.contains("<negation>"))
+    }
+
+    @Test fun guard_binnedNegationWovenBackIsInvented() {
+        // The live 12:29 flip: aside's "not" resurfaced as "does not look great".
+        val g = MeaningGuard.guard(
+            rawText = "shut up not now the deal looks great",
+            cleanText = "The deal does not look great.",
+            dropped = "shut up not now"
+        )
+        assertTrue(g.invented.contains("<negation>"))
+    }
+
+    @Test fun guard_pureInventedNegationCaught() {
+        val g = MeaningGuard.guard(
+            rawText = "the deal looks great",
+            cleanText = "The deal does not look great."
+        )
+        assertTrue(g.invented.contains("<negation>"))
+    }
+
+    @Test fun guard_coreNegationStillRequiredWithoutBin() {
+        val g = MeaningGuard.guard(
+            rawText = "do not send the contract",
+            cleanText = "Send the contract."
+        )
+        assertTrue(g.lost.contains("<negation>"))
+    }
+
+    @Test fun guard_anchorSurvivingOnlyInBinIsRetained() {
+        val g = MeaningGuard.guard(
+            rawText = "tell henderson to wait push the meeting to thursday",
+            cleanText = "Push the meeting to Thursday.",
+            dropped = "tell henderson to wait"
+        )
+        assertFalse(g.lost.any { it.equals("henderson", ignoreCase = true) })
+    }
 }

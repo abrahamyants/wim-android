@@ -389,15 +389,66 @@ object MeaningGuard {
         return drifted
     }
 
-    /** Full check: ok is false when reconstruction dropped or invented an anchor. */
+    /**
+     * The model's trash bin. The reconstruction prompt orders a final
+     * "DROPPED: <verbatim asides>" line (or "DROPPED: none"). Anchors that
+     * live in the bin were removed ON PURPOSE — the envelope rule — and must
+     * not count as lost. Without this, the guard demanded the baby-aside's
+     * "not now" survive, and GPT appeased it by flipping the core message to
+     * "does not look great" (caught live 2026-08-04 12:29).
+     */
+    private val DROPPED_LINE = Regex("""(?is)(?:^|[\r\n]+)\s*DROPPED:\s*(.*)\s*$""")
+
+    /** Split a candidate into (message body, dropped-bin). Bin is "" when the
+     *  line is missing or says none. The DROPPED line itself never pastes. */
+    fun splitDropped(candidate: String): Pair<String, String> {
+        val m = DROPPED_LINE.find(candidate) ?: return candidate.trim() to ""
+        val body = candidate.substring(0, m.range.first).trim()
+        val binRaw = m.groupValues[1].trim()
+        val bin = if (binRaw.isBlank() || binRaw.equals("none", ignoreCase = true)) "" else binRaw
+        return body to bin
+    }
+
+    /** Full check: ok is false when reconstruction dropped or invented an anchor.
+     *  [dropped] is the model's declared aside-bin; its anchors count as retained,
+     *  and a negation living ONLY in the bin must not reappear in the body. */
     fun guard(
         rawText: String,
         cleanText: String,
         vocabulary: List<String> = emptyList(),
+        dropped: String = "",
     ): GuardResult {
-        val lost = checkRetention(rawText, cleanText, vocabulary)
+        // Anchors may survive in the bin — retention checks body + bin.
+        val retentionTarget = if (dropped.isBlank()) cleanText else "$cleanText\n$dropped"
+        val lost = checkRetention(rawText, retentionTarget, vocabulary)
+            .filterNot { it == "<negation>" }
+            .toMutableList()
         val invented = (checkFabrication(rawText, cleanText) + checkNumericDrift(rawText, cleanText))
             .distinct()
+            .toMutableList()
+
+        // Count-based, bin-aware negation accounting. checkRetention's own
+        // boolean negation check is filtered out above and replaced here:
+        // the effective raw count is raw minus what was binned on purpose.
+        val rawNeg = NEGATION_RE.findAll(rawText).count()
+        val droppedNeg = if (dropped.isBlank()) 0 else NEGATION_RE.findAll(dropped).count()
+        val cleanNeg = NEGATION_RE.findAll(cleanText).count()
+        val effRawNeg = (rawNeg - droppedNeg).coerceAtLeast(0)
+        val rawWhetherOrNot = Regex(
+            """\bwhether\b[^.?!]*\bor\s+not\b""", RegexOption.IGNORE_CASE
+        ).containsMatchIn(rawText)
+        val cleanKeepsUncertainty = Regex(
+            """\b(?:whether|if)\b""", RegexOption.IGNORE_CASE
+        ).containsMatchIn(cleanText)
+        if (effRawNeg > 0 && cleanNeg == 0 && !(rawWhetherOrNot && cleanKeepsUncertainty)) {
+            lost.add("<negation>")
+        }
+        // A negation the speaker's MESSAGE never had — either pure invention,
+        // or a binned aside's negation woven back into the body. This is the
+        // "does not look great" flip.
+        if (cleanNeg > 0 && effRawNeg == 0) {
+            invented.add("<negation>")
+        }
         return GuardResult(ok = lost.isEmpty() && invented.isEmpty(), lost = lost, invented = invented)
     }
 
@@ -488,9 +539,12 @@ object MeaningGuard {
         var safeGuard: GuardResult? = null
 
         for (attemptIndex in 0 until maxAttempts) {
-            cleanText = rewriteOnce(attemptIndex).trim()
+            // Parse the DROPPED bin off every candidate HERE, inside the loop,
+            // so no exit path can ever paste the bookkeeping line.
+            val (body, bin) = splitDropped(rewriteOnce(attemptIndex).trim())
+            cleanText = body
             attempts += 1
-            guardResult = guard(rawText, cleanText, vocabulary)
+            guardResult = guard(rawText, cleanText, vocabulary, bin)
             if (!needsRetry(rawText, cleanText, guardResult)) break
             if (safeText == null && cleanText.isNotBlank() &&
                 guardResult.lost.isEmpty() && guardResult.invented.isEmpty()
