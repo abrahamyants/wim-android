@@ -146,6 +146,10 @@ object WhisperClient {
         // wire payload, which materially reduces round-trip on longer
         // recordings. L4 + reconstruction layers default to verbose_json.
         verboseSegments: Boolean = true,
+        // Per-word start/end times for the L1-cloud clock-broom
+        // (DisfluencyFilter.stripTimedFillers). whisper-1 only, and only
+        // meaningful with verbose_json — silently ignored otherwise.
+        wordTimestamps: Boolean = false,
         prompt: String = ScriptPrepStore.activeContext(),
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
@@ -158,6 +162,14 @@ object WhisperClient {
                     .addFormDataPart("language", language)
                     .addFormDataPart("temperature", temperature.toString())
                     .addFormDataPart("response_format", if (verboseSegments) "verbose_json" else "json")
+                if (wordTimestamps && verboseSegments) {
+                    // Word granularity alone drops the segments array, and L4's
+                    // MultiPassDecoder still needs segments — request both.
+                    bodyBuilder
+                        .addFormDataPart("timestamp_granularities[]", "word")
+                        .addFormDataPart("timestamp_granularities[]", "segment")
+                }
+                bodyBuilder
                     .addFormDataPart(
                         "file", audioFile.name,
                         audioFile.asRequestBody("audio/wav".toMediaType())
@@ -179,6 +191,7 @@ object WhisperClient {
                     put("model", model)
                     put("temperature", temperature)
                     put("verbose_segments", verboseSegments)
+                    if (wordTimestamps) put("word_timestamps", true)
                     if (prompt.isNotBlank()) put("prompt", prompt.take(4000))
                 }
                 val request = Request.Builder()
@@ -224,6 +237,21 @@ object WhisperClient {
                 }
             }
 
+            // Per-word timings (timestamp_granularities[]=word). Only present
+            // when requested; empty list otherwise, and every consumer treats
+            // empty as "no clock available — behave as before".
+            val timedWords = mutableListOf<TimedWord>()
+            val wordsArray = json.optJSONArray("words")
+            if (wordsArray != null) {
+                for (i in 0 until wordsArray.length()) {
+                    val w = wordsArray.getJSONObject(i)
+                    val wStart = w.optDouble("start", 0.0)
+                    timedWords.add(
+                        TimedWord(wStart, w.optDouble("end", wStart), w.optString("word", "").trim())
+                    )
+                }
+            }
+
             val rawText = json.optString("text", "").trim()
             val cleanText = stripHallucinations(rawText)
             val wasFullyHallucinated = rawText.isNotBlank() && cleanText.isBlank()
@@ -240,6 +268,7 @@ object WhisperClient {
                 asrMs = asrMs,
                 lowConfidenceSegments = lowConfidenceSegments,
                 timedSegments = timedSegments,
+                timedWords = timedWords,
                 wasFullyHallucinated = wasFullyHallucinated,
                 engine = engine
             )
@@ -304,11 +333,14 @@ object WhisperClient {
 
     data class TimedSegment(val startS: Double, val endS: Double, val text: String)
 
+    data class TimedWord(val startS: Double, val endS: Double, val text: String)
+
     data class TranscribeResult(
         val text: String,
         val asrMs: Long,
         val lowConfidenceSegments: List<LowConfidenceSegment> = emptyList(),
         val timedSegments: List<TimedSegment> = emptyList(),
+        val timedWords: List<TimedWord> = emptyList(),
         val wasFullyHallucinated: Boolean = false,
         val engine: String = "unknown"
     )

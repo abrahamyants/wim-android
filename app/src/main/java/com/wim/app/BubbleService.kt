@@ -134,6 +134,7 @@ class BubbleService : Service() {
     private var audioRecorder: AudioRecorder? = null
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
     private var lastWhisperSegments: List<WhisperClient.TimedSegment> = emptyList()
+    private var lastWhisperWords: List<WhisperClient.TimedWord> = emptyList()
 
     // Command Mode cluster extracted to BubbleCommandMode 2026-05-25 —
     // ninth slice. State (armed flag + selection) lives in the new class.
@@ -459,6 +460,7 @@ class BubbleService : Service() {
         if (!WimApp.testHooksEnabled()) return
         if (isRecording) return
         lastWhisperLowConf = emptyList()
+        lastWhisperWords = emptyList()
         recordingStartTime = System.currentTimeMillis()
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             processText(rawText)
@@ -2304,11 +2306,16 @@ class BubbleService : Service() {
                     // which is fine for L1-cloud + L2/L3 — only L4's
                     // MultiPassDecoder consumes the per-segment signal).
                         verboseSegments = (whisperModel == "whisper-1"),
+                        // Clock-broom input: L1-cloud is the tier whose whole
+                        // pitch is "better ear, no model" — word timings let
+                        // the filler strip tell the verb "like" from the tic.
+                        wordTimestamps = l1CloudFastPath,
                         language = WimApp.appLanguage(),
                     )
                     Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     lastWhisperSegments = whisperResult.timedSegments
+                    lastWhisperWords = whisperResult.timedWords
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                         Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                     }
@@ -2361,6 +2368,7 @@ class BubbleService : Service() {
             // lastRawText with the full utterance. Without this wait we paste a
             // truncated partial (e.g. "this is" instead of "this is a test").
             lastWhisperLowConf = emptyList()
+            lastWhisperWords = emptyList()
             // 1500ms upper bound (was 400ms — too short for whisper-tiny.en
             // sherpa-onnx; observed Stop→Final-callback latency was ~540ms
             // on Samsung Z Flip 7 and scales with audio length). handleFinal
@@ -2911,7 +2919,9 @@ class BubbleService : Service() {
         BubbleStateBus.advance(BubbleState.Stripping(System.currentTimeMillis()))
 
         // Strip Whisper block hallucinations — applies to ALL layers
-        val deHallucinated = DisfluencyFilter.stripBlockHallucinations(expandedText, lastWhisperLowConf)
+        val deHallucinated = DisfluencyFilter.stripBlockHallucinations(
+            expandedText, lastWhisperLowConf, log = { msg -> Log.i(TAG, msg) }
+        )
         if (deHallucinated != expandedText) {
             Log.i(TAG, "Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars")
             ConsoleLog.log("Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars", "warn")
@@ -2924,9 +2934,22 @@ class BubbleService : Service() {
         // Merge user profile fillers with language-pack fillers (empty for English).
         val fillerWords = profile.getFillerWords() + LangPack.fillers()
         showPipelineStage("\u29BB Cleaning up...", "Removing disfluencies & fillers")
+        // Clock-broom (L1-cloud only): whisper-1 word timings tell the verb
+        // "like" from the filler tic \u2014 strip only pause-bounded occurrences,
+        // and keep the risky fillers OUT of the naive word-list pass so it
+        // can't eat what the clock protected. No timings \u2192 old behavior.
+        val clockBroom = layer < 2 && lastWhisperWords.isNotEmpty()
+        val broomInput = if (clockBroom) {
+            DisfluencyFilter.stripTimedFillers(
+                deHallucinated, lastWhisperWords, log = { msg -> ConsoleLog.log(msg, "info") }
+            )
+        } else deHallucinated
+        val safeFillers = if (clockBroom) {
+            fillerWords.filter { it.lowercase().trim() !in DisfluencyFilter.RISKY_FILLERS }
+        } else fillerWords
         val preCleaned = if (layer >= 4) deHallucinated else DisfluencyFilter.filter(
-            deHallucinated,
-            fillerWords,
+            broomInput,
+            safeFillers,
             LangPack.naturalRepeats()
         )
         val cleanWordCount = preCleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
@@ -2956,7 +2979,11 @@ class BubbleService : Service() {
                 preCleaned = preCleaned,
                 profile = profile,
                 sessionNum = sessionHistory?.count() ?: 0,
-                log = { msg -> Log.i(TAG, msg) }
+                log = { msg -> Log.i(TAG, msg) },
+                // Corrections are Layer-3+ (design call, George 2026-08-04).
+                // The poisoned-list incident: 50 auto-learned pairs rewrote a
+                // quarter of every plain transcription, and L1 has no guard.
+                applyCorrections = false
             )
             val l1Text = l1Result.text
             // FSM: L1 has no model reconstruction — the deterministic pass is "trusted by

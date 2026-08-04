@@ -43,14 +43,22 @@ object L1Pipeline {
      *                   Used by decay scheduling.
      * @param log Optional sink for per-correction "wrong → right" logs.
      *            Default no-op so tests can pass without capturing logs.
+     * @param applyCorrections Profile corrections are a Layer-3+ feature
+     *            (design call, George 2026-08-04). Applying them at L1 is
+     *            how a poisoned list mangled every plain transcription for
+     *            weeks: 50 auto-learned pairs ("with"→"come", "you"→"else")
+     *            rewrote a quarter of the words in the no-model tier — the
+     *            one tier with no guard to notice. Default true for Lav
+     *            parity in tests; BubbleService passes false at L1.
      */
     fun transform(
         preCleaned: String,
         profile: ProfileManager,
         sessionNum: Int,
-        log: (String) -> Unit = {}
+        log: (String) -> Unit = {},
+        applyCorrections: Boolean = true
     ): Result {
-        val corrections = profile.getCorrections()
+        val corrections = if (applyCorrections) profile.getCorrections() else emptyMap()
         var l1Text = preCleaned
         var applied = 0
         for ((wrong, right) in corrections) {

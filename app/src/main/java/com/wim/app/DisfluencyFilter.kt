@@ -132,6 +132,19 @@ object DisfluencyFilter {
             """\[(?:blank[_ ]audio|inaudible|music|applause|silence|no[_ ]audio|laughter)\s*$"""
     )
 
+    // Whisper also emits caption markers in ROUND brackets — "(chuckles).",
+    // "(mumbling).", "(muffled speaking)" — observed on-device 2026-08-04,
+    // three junk sessions in a row on the local L1 route. The bracket regex
+    // above never matched them, so they pasted straight into the user's
+    // field. Vocabulary is a closed list of caption stage-directions, so
+    // legitimate parenthesized prose ("(see attached)") is never touched.
+    private val PAREN_MARKER = Regex(
+        """(?i)\((?:chuckles?|chuckling|laughs?|laughing|laughter|mumbles?|mumbling|""" +
+            """muffled(?:\s+speaking)?|sighs?|sighing|coughs?|coughing|sneezes?|groans?|""" +
+            """music|applause|silence|inaudible|indistinct(?:\s+chatter)?|static|""" +
+            """speaking\s+in\s+foreign\s+language|foreign\s+language|breathing|snoring)\)[.,!?]*"""
+    )
+
     /**
      * Caption boilerplate Whisper emits when it decodes silence — training-data
      * leakage from subtitled video. For this user, silence usually means a
@@ -172,7 +185,9 @@ object DisfluencyFilter {
         // stripBlockHallucinations has always removed both — but it needs the
         // Whisper confidence metadata that the refusal path does not carry.
         val stripped = MULTI_SPACE.replace(
-            CAPTION_ARTIFACT.replace(SYSTEM_MARKER.replace(text, ""), " "), " "
+            CAPTION_ARTIFACT.replace(
+                PAREN_MARKER.replace(SYSTEM_MARKER.replace(text, ""), ""), " "
+            ), " "
         ).trim()
         return if (stripped.isBlank()) text else stripped
     }
@@ -189,9 +204,15 @@ object DisfluencyFilter {
      * @param lowConfSegments from WhisperClient — segments with avgLogprob, noSpeechProb, blockSuspect
      * @return text with block-suspect hallucinated phrases removed
      */
-    fun stripBlockHallucinations(text: String, lowConfSegments: List<WhisperClient.LowConfidenceSegment>): String {
+    fun stripBlockHallucinations(
+        text: String,
+        lowConfSegments: List<WhisperClient.LowConfidenceSegment>,
+        log: (String) -> Unit = {}
+    ): String {
         if (text.isBlank()) return text
-        var result = CAPTION_ARTIFACT.replace(SYSTEM_MARKER.replace(text, ""), " ")
+        var result = CAPTION_ARTIFACT.replace(
+            PAREN_MARKER.replace(SYSTEM_MARKER.replace(text, ""), ""), " "
+        )
         for (seg in lowConfSegments) {
             if (!seg.blockSuspect) continue
             val segText = seg.text.trim()
@@ -212,8 +233,10 @@ object DisfluencyFilter {
             when (hits) {
                 0 -> {}
                 1 -> result = pattern.replace(result, "")
-                else -> android.util.Log.i(
-                    "DisfluencyFilter",
+                // Plain callback, not android.util.Log — this branch is exactly
+                // the one JVM unit tests exercise, and an unmocked Log.i throws
+                // there. Same shape as L1Pipeline's log parameter.
+                else -> log(
                     "block-suspect \"$segText\" appears more than once — leaving it, " +
                         "cannot tell which copy Whisper meant"
                 )
@@ -334,5 +357,85 @@ object DisfluencyFilter {
 
         // Don't return empty — fall back to original
         return cleaned.ifBlank { text }
+    }
+
+    /**
+     * Fillers that are also ordinary English: the verb "like", the phrase
+     * "you know" as subject+verb, "I mean" as a statement opener. A plain
+     * word-list strip eats the real ones — "I like how it looks" became
+     * "I how it looks" and "You know what I want" became "what I want",
+     * both observed 2026-08-04. Deterministic code cannot tell the two
+     * apart from text alone; the clock can.
+     */
+    val RISKY_FILLERS = setOf("like", "you know", "i mean")
+
+    // A filler is a hesitation: the speaker pauses, drops the token in,
+    // pauses again. Meaning runs tight into its neighbors. 350 ms is well
+    // above whisper-1's word-boundary jitter and well below a real
+    // hesitation pause.
+    private const val FILLER_PAUSE_S = 0.35
+
+    private fun tok(s: String) = s.lowercase().trim(
+        '.', ',', '!', '?', ';', ':', '"', '’', '\'', '(', ')'
+    )
+
+    /**
+     * Clock-broom for the risky fillers, cloud-L1 only. Uses whisper-1
+     * word timestamps: an occurrence is stripped ONLY when a real pause
+     * (>= [FILLER_PAUSE_S]) sits on BOTH sides of it (utterance edges
+     * count as pauses). Callers must also remove [RISKY_FILLERS] from the
+     * word-list they hand to [filter], or the naive pass eats what this
+     * one protected.
+     *
+     * Occurrences are matched k-th-regex-hit to k-th-token-run; both scan
+     * the same word sequence left to right. When the timing stream and
+     * the text disagree (Whisper trims tokens differently), the occurrence
+     * is KEPT — deleting a real word is the failure mode this exists to
+     * stop, a hallucinated filler is what L2+ already tolerates.
+     */
+    fun stripTimedFillers(
+        text: String,
+        timedWords: List<WhisperClient.TimedWord>,
+        log: (String) -> Unit = {}
+    ): String {
+        if (text.isBlank() || timedWords.isEmpty()) return text
+        val tokens = timedWords.map { tok(it.text) }
+        var result = text
+        for (phrase in RISKY_FILLERS) {
+            val phraseToks = phrase.split(' ')
+            // Every token-run start index for this phrase, in time order.
+            val runs = (0..tokens.size - phraseToks.size).filter { i ->
+                phraseToks.indices.all { j -> tokens[i + j] == phraseToks[j] }
+            }
+            if (runs.isEmpty()) continue
+            val re = Regex(
+                """\b""" + Regex.escape(phrase).replace("\\ ", """\s+""") + """\b[,]?""",
+                RegexOption.IGNORE_CASE
+            )
+            var k = 0
+            result = re.replace(result) { m ->
+                val run = runs.getOrNull(k++)
+                if (run == null) {
+                    m.value // more text hits than timed runs — keep, don't guess
+                } else {
+                    val first = timedWords[run]
+                    val last = timedWords[run + phraseToks.size - 1]
+                    val gapBefore =
+                        if (run == 0) FILLER_PAUSE_S
+                        else first.startS - timedWords[run - 1].endS
+                    val gapAfter =
+                        if (run + phraseToks.size >= timedWords.size) FILLER_PAUSE_S
+                        else timedWords[run + phraseToks.size].startS - last.endS
+                    if (gapBefore >= FILLER_PAUSE_S && gapAfter >= FILLER_PAUSE_S) {
+                        log(
+                            "timed filler \"$phrase\" stripped " +
+                                "(%.2fs / %.2fs pause)".format(gapBefore, gapAfter)
+                        )
+                        " "
+                    } else m.value
+                }
+            }
+        }
+        return MULTI_SPACE.replace(result, " ").trim().ifBlank { text }
     }
 }

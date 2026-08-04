@@ -359,4 +359,92 @@ class DisfluencyFilterTest {
     private fun filter(text: String, fillers: List<String> = defaultFillers): String {
         return DisfluencyFilter.filter(text, fillers)
     }
+
+    // ── Parenthesized caption markers (observed on-device 2026-08-04) ──
+
+    @Test fun parenMarker_chucklesAloneStripsToEmpty() {
+        assertEquals("", DisfluencyFilter.stripBlockHallucinations("(chuckles).", emptyList()))
+    }
+
+    @Test fun parenMarker_strippedMidSentence() {
+        assertEquals(
+            "okay send it",
+            DisfluencyFilter.stripBlockHallucinations("okay (mumbling) send it", emptyList())
+        )
+    }
+
+    @Test fun parenMarker_muffledSpeakingStripped() {
+        assertEquals(
+            "",
+            DisfluencyFilter.stripBlockHallucinations("(muffled speaking)", emptyList())
+        )
+    }
+
+    @Test fun parenMarker_legitimateParenthesesKept() {
+        assertEquals(
+            "see the file (attached) for details",
+            DisfluencyFilter.stripBlockHallucinations("see the file (attached) for details", emptyList())
+        )
+    }
+
+    @Test fun parenMarker_refusalPathAlsoStripsParens() {
+        assertEquals(
+            "send it now",
+            DisfluencyFilter.stripCaptionArtifacts("send it now (chuckles).")
+        )
+    }
+
+    // ── Clock-broom: timed risky fillers ──
+
+    private fun words(vararg spec: Pair<String, Double>): List<WhisperClient.TimedWord> {
+        // Each word 0.2s long, starting at the given time.
+        return spec.map { (w, t) -> WhisperClient.TimedWord(t, t + 0.2, w) }
+    }
+
+    @Test fun timed_pauseBoundedYouKnowIsStripped() {
+        val tw = words(
+            "so" to 0.0, "you" to 1.0, "know" to 1.25, "I" to 2.2, "was" to 2.45, "thinking" to 2.7
+        )
+        assertEquals(
+            "so, I was thinking",
+            DisfluencyFilter.stripTimedFillers("so, you know, I was thinking", tw)
+        )
+    }
+
+    @Test fun timed_tightYouKnowIsKept() {
+        val tw = words(
+            "You" to 0.0, "know" to 0.22, "what" to 0.44, "I" to 0.66, "want" to 0.88
+        )
+        assertEquals(
+            "You know what I want",
+            DisfluencyFilter.stripTimedFillers("You know what I want", tw)
+        )
+    }
+
+    @Test fun timed_verbLikeIsKept() {
+        val tw = words(
+            "I" to 0.0, "like" to 0.22, "how" to 0.44, "it" to 0.66, "looks" to 0.88
+        )
+        assertEquals(
+            "I like how it looks",
+            DisfluencyFilter.stripTimedFillers("I like how it looks", tw)
+        )
+    }
+
+    @Test fun timed_fillerLikeBetweenPausesIsStripped() {
+        val tw = words(
+            "it" to 0.0, "was" to 0.22, "like" to 1.2, "huge" to 2.2
+        )
+        assertEquals(
+            "it was huge",
+            DisfluencyFilter.stripTimedFillers("it was like huge", tw)
+        )
+    }
+
+    @Test fun timed_noTimingsMeansNoChange() {
+        assertEquals(
+            "you know what I want",
+            DisfluencyFilter.stripTimedFillers("you know what I want", emptyList())
+        )
+    }
 }

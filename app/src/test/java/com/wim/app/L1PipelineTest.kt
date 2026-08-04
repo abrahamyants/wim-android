@@ -43,6 +43,22 @@ class L1PipelineTest {
         assertEquals("Hello world.", result.text)
     }
 
+    @Test fun applyCorrectionsFalseIgnoresProfilePairs() {
+        // BubbleService passes applyCorrections=false at L1 — corrections are
+        // a Layer-3+ feature (design call, George 2026-08-04). Repunctuate
+        // still runs; the poison pair must not.
+        profile.addCorrection("with", "come")
+        val result = L1Pipeline.transform(
+            preCleaned = "what's wrong with whim",
+            profile = profile,
+            sessionNum = 1,
+            applyCorrections = false,
+        )
+        assertEquals(0, result.correctionsApplied)
+        // Repunctuate reads "what" as a question starter → "?" terminal.
+        assertEquals("What's wrong with whim?", result.text)
+    }
+
     @Test fun singleCorrectionFiresAndCountsOnce() {
         profile.addCorrection("teh", "the")
         val result = L1Pipeline.transform(

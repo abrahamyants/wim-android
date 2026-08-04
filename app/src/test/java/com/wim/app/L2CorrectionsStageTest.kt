@@ -44,13 +44,27 @@ class L2CorrectionsStageTest {
         assertEquals("hello world", result.text)
     }
 
-    @Test fun singleCorrectionFiresAtLayer2() {
+    @Test fun correctionsDoNotFireAtLayer2() {
+        // Profile corrections are a Layer-3+ feature (design call, George
+        // 2026-08-04). L2 gets phonetic alignment only.
         profile.addCorrection("teh", "the")
         val result = L2CorrectionsStage.apply(
             preCleaned = "teh quick fox",
             profile = profile,
             sessionNum = 1,
             layer = 2,
+        )
+        assertEquals(0, result.correctionsApplied)
+        assertEquals("teh quick fox", result.text)
+    }
+
+    @Test fun singleCorrectionFiresAtLayer3() {
+        profile.addCorrection("teh", "the")
+        val result = L2CorrectionsStage.apply(
+            preCleaned = "teh quick fox",
+            profile = profile,
+            sessionNum = 1,
+            layer = 3,
         )
         assertEquals(1, result.correctionsApplied)
         assertEquals("the quick fox", result.text)
@@ -75,7 +89,7 @@ class L2CorrectionsStageTest {
             preCleaned = "TEH QUICK FOX",
             profile = profile,
             sessionNum = 1,
-            layer = 2,
+            layer = 3,
         )
         assertEquals(1, result.correctionsApplied)
         assertEquals("the QUICK FOX", result.text)
@@ -87,7 +101,7 @@ class L2CorrectionsStageTest {
             preCleaned = "the tether held",
             profile = profile,
             sessionNum = 1,
-            layer = 2,
+            layer = 3,
         )
         assertEquals(0, result.correctionsApplied)
         assertEquals("the tether held", result.text)

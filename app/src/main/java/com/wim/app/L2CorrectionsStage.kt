@@ -48,7 +48,11 @@ object L2CorrectionsStage {
         layer: Int,
         log: (String) -> Unit = {}
     ): Result {
-        val corrections = profile.getCorrections()
+        // Profile corrections are a Layer-3+ feature (design call, George
+        // 2026-08-04): L3 is the "profile" tier. At L2 the auto-learned list
+        // used to rewrite words before GPT ever saw them, so a poisoned pair
+        // corrupted even the layers with a model in the loop.
+        val corrections = if (layer >= 3) profile.getCorrections() else emptyMap()
         var corrected = preCleaned
         var applied = 0
         for ((wrong, right) in corrections) {
