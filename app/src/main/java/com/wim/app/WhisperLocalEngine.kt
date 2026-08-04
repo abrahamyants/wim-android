@@ -53,6 +53,50 @@ class WhisperLocalEngine(private val context: Context) {
         /** Frame size for that hunt: 20ms, shorter than any spoken syllable. */
         private const val SEAM_FRAME_SAMPLES = SAMPLE_RATE / 50
 
+        // Quiet Mode, matching AudioRecorder's values exactly. Those apply to
+        // the WAV that feeds the CLOUD route; this engine keeps its own float
+        // buffer and never touches that file, so neither the manual toggle nor
+        // the automatic one reached the local route at all — the default,
+        // offline path, where a soft take simply stayed soft and the speaker
+        // had to lean into the microphone.
+        private const val QUIET_GAIN_DB = 18.0f
+        private val QUIET_GAIN_LINEAR = Math.pow(10.0, (QUIET_GAIN_DB / 20.0)).toFloat()
+        private const val HIGHPASS_ALPHA = 0.995f
+
+        /** Validated in lavrentiy.py:263 (QUIET_AUTO_DBFS). */
+        private const val QUIET_AUTO_MAX_DBFS = -22.0
+        private const val QUIET_AUTO_MIN_DBFS = -110.0
+
+        /** Mean loudness of [samples] in dBFS. -120 for an empty take. */
+        internal fun meanDbfs(samples: FloatArray): Double {
+            if (samples.isEmpty()) return -120.0
+            var sumSquares = 0.0
+            for (s in samples) sumSquares += s.toDouble() * s.toDouble()
+            val rms = Math.sqrt(sumSquares / samples.size)
+            return 20.0 * Math.log10(rms.coerceAtLeast(1e-9))
+        }
+
+        /** True when a take is quiet enough to boost but not pure silence. */
+        internal fun shouldAutoBoost(dbfs: Double): Boolean =
+            dbfs in QUIET_AUTO_MIN_DBFS..QUIET_AUTO_MAX_DBFS
+
+        /**
+         * High-pass then +18dB, in place. Same filter and same gain as
+         * AudioRecorder.applyQuietModeProcessing, working in floats instead of
+         * 16-bit shorts, so the two routes hear the same thing.
+         */
+        internal fun applyQuietBoost(samples: FloatArray) {
+            var lastIn = 0f
+            var lastOut = 0f
+            for (i in samples.indices) {
+                val x = samples[i]
+                val filtered = HIGHPASS_ALPHA * (lastOut + x - lastIn)
+                lastIn = x
+                lastOut = filtered
+                samples[i] = (filtered * QUIET_GAIN_LINEAR).coerceIn(-1f, 1f)
+            }
+        }
+
         /**
          * Where to end the chunk that starts at [start].
          *
@@ -283,6 +327,22 @@ class WhisperLocalEngine(private val context: Context) {
             dispatchFinal("")
             return
         }
+
+        // Quiet Mode for the local route. BubbleService applies this to the WAV
+        // that feeds the cloud route; this engine decodes its own float buffer
+        // and never reads that file, so both the manual toggle and the
+        // automatic boost stopped at the route boundary. Same threshold and
+        // same gain as the cloud side, so a whispered take transcribes the same
+        // whichever route it took.
+        val dbfs = meanDbfs(samples)
+        val manualQuiet = WimApp.prefs.getBoolean("quiet_mode", false)
+        if (manualQuiet || shouldAutoBoost(dbfs)) {
+            Log.i(TAG, "Quiet boost on local take: ${"%.1f".format(dbfs)} dBFS (manual=$manualQuiet)")
+            applyQuietBoost(samples)
+        } else {
+            Log.i(TAG, "Take level: ${"%.1f".format(dbfs)} dBFS — no boost")
+        }
+
         try {
             val t0 = System.currentTimeMillis()
             // Whisper only hears a 30s window; sherpa-onnx drops everything past
