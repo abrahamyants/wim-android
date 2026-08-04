@@ -128,6 +128,24 @@ class ProfileManager(private val prefs: SharedPreferences) {
                 loadDoubleHistory(obj, "prosodic_energy_history", prosodicEnergyHistory)
                 loadDoubleHistory(obj, "prosodic_rate_history", prosodicRateHistory)
 
+                // One-time amnesty (2026-08-04): installs that ran the now-dead
+                // diff-learner carry factory-made correction pairs — the poison
+                // that rewrote "with"→"come" on every L1 paste, and later grew
+                // back to 40 pairs in a single afternoon of repeated test
+                // scripts. No hand adds ten pairs; a factory does. Ten or more
+                // → the list is presumed poisoned and cleared once. Small
+                // hand-curated lists are untouched.
+                if (!prefs.getBoolean("corrections_amnesty_2026_08", false)) {
+                    if (corrections.size >= 10) {
+                        Log.w(TAG, "Corrections amnesty: clearing ${corrections.size} presumed factory-made pairs")
+                        corrections.clear()
+                        correctionCounts.clear()
+                        correctionLastUsed.clear()
+                        saveProfile()
+                    }
+                    prefs.edit().putBoolean("corrections_amnesty_2026_08", true).apply()
+                }
+
                 Log.i(TAG, "Profile loaded: ${vocabulary.size} vocab, ${corrections.size} corrections, ${fillerWords.size} fillers, ${wpsHistory.size} wps samples")
             } catch (e: Exception) {
                 // Preserve the corrupt JSON before nuking the user's learned
