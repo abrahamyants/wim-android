@@ -143,4 +143,46 @@ class PhoneticMatcherTest {
         )
         assertTrue("expected SMITH uppercase: '$out'", out.contains("SMITH"))
     }
+
+    // ── A word already in the vocabulary is never swapped ──
+    //
+    // The identity test used to sit inside the candidate loop, so it only ran
+    // if the exact entry was reached first. With both spellings in the
+    // vocabulary the loop hit the sibling, matched, and returned before ever
+    // seeing the word the speaker actually said:
+    //
+    //     vocabulary ["Smyth", "Smith"], speaker says "Smith" -> "Smyth"
+    //
+    // Jon/John, Sara/Sarah and Katherine/Kathryn all sit in ordinary contact
+    // lists, and this rewrote the name the speaker got right.
+
+    @Test
+    fun identicalWord_notSwapped_whenSiblingIsEarlierInVocabulary() {
+        val out = PhoneticMatcher.correct(
+            "please ask Smith about it",
+            listOf("Smyth", "Smith"),
+            highRiskOnsets
+        )
+        assertEquals("please ask Smith about it", out)
+    }
+
+    @Test
+    fun identicalWord_notSwapped_regardlessOfCase() {
+        val out = PhoneticMatcher.correct(
+            "please ask smith about it",
+            listOf("Smyth", "Smith"),
+            highRiskOnsets
+        )
+        assertEquals("please ask smith about it", out)
+    }
+
+    @Test
+    fun siblingStillSwapsWhenTheWordIsNotInTheVocabulary() {
+        val out = PhoneticMatcher.correct(
+            "please ask Smyth about it",
+            listOf("Smith"),
+            highRiskOnsets
+        )
+        assertEquals("please ask Smith about it", out)
+    }
 }

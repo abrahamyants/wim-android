@@ -138,6 +138,15 @@ object PhoneticMatcher {
         val clean = asrWord.lowercase()
         if (clean.length < MIN_WORD_LENGTH) return null
 
+        // The word is already one of the speaker's own terms — never swap it.
+        // This test used to sit INSIDE the loop below, so it only ran if the
+        // identical entry happened to be reached first. With "Sara" and
+        // "Sarah" both in the vocabulary, a speaker who said "Sarah" got
+        // "Sara": the loop hit the phonetic sibling, matched, and returned
+        // before it ever reached the exact word. Name pairs like Jon/John,
+        // Smith/Smyth and Katherine/Kathryn all sit in ordinary contact lists.
+        if (vocabCodes.any { it.original.equals(asrWord, ignoreCase = true) }) return null
+
         val onset = PhoneticRisk.extractOnset(clean)
         if (highRiskOnsets != null && onset !in highRiskOnsets) return null
 
@@ -148,9 +157,6 @@ object PhoneticMatcher {
         val asrFirstLetter = clean.firstOrNull() ?: return null
 
         for (entry in vocabCodes) {
-            // Already identical (case-insensitive) — no swap needed.
-            if (entry.original.equals(asrWord, ignoreCase = true)) return null
-
             // Require first-letter match (case-insensitive). Double-Metaphone
             // collapses b/p, t/d, k/g, m/n etc. to the same code — without
             // this guard "bitch" collides with "push" (both PX), "tin" with
