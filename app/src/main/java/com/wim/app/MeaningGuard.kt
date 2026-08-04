@@ -409,8 +409,21 @@ object MeaningGuard {
     fun splitDropped(candidate: String): Pair<String, String> {
         val lines = candidate.lines()
         val idx = lines.indexOfLast { it.trim().uppercase().startsWith("DROPPED:") }
-        if (idx == -1) return candidate.trim() to ""
-        val binRaw = lines[idx].trim().substringAfter(":").trim()
+        if (idx == -1) {
+            // GPT sometimes glues the marker onto the message line instead of
+            // giving it its own line — "…contract tonight. DROPPED: …" pasted
+            // into the user's field on the first live L3 take (2026-08-04
+            // 14:09). If the marker appears mid-line, split the line there.
+            val li = lines.indexOfLast { it.uppercase().contains("DROPPED:") }
+            if (li == -1) return candidate.trim() to ""
+            val line = lines[li]
+            val at = line.uppercase().lastIndexOf("DROPPED:")
+            val binRaw = line.substring(at + "DROPPED:".length).trim().trim('"')
+            val bin = if (binRaw.isBlank() || binRaw.equals("none", ignoreCase = true)) "" else binRaw
+            val kept = (lines.take(li) + line.substring(0, at).trimEnd() + lines.drop(li + 1))
+            return kept.joinToString("\n").trim() to bin
+        }
+        val binRaw = lines[idx].trim().substringAfter(":").trim().trim('"')
         val bin = if (binRaw.isBlank() || binRaw.equals("none", ignoreCase = true)) "" else binRaw
         val body = (lines.take(idx) + lines.drop(idx + 1)).joinToString("\n").trim()
         return body to bin
@@ -535,6 +548,10 @@ object MeaningGuard {
         rewriteOnce: (attemptIndex: Int) -> String,
         appendRepair: (candidate: String, instruction: String) -> Unit,
         onRetry: ((attempt: Int, candidate: String, guard: GuardResult) -> Unit)? = null,
+        // Fires once at loop end with the accepted candidate's aside-bin, if
+        // any. The bin is diagnostics — it belongs in the console, never in
+        // the paste (design call, George 2026-08-04).
+        onDropped: ((String) -> Unit)? = null,
     ): RewriteOutcome {
         var cleanText = ""
         var guardResult = GuardResult(ok = true, lost = emptyList(), invented = emptyList())
@@ -545,11 +562,13 @@ object MeaningGuard {
         var safeText: String? = null
         var safeGuard: GuardResult? = null
 
+        var lastBin = ""
         for (attemptIndex in 0 until maxAttempts) {
             // Parse the DROPPED bin off every candidate HERE, inside the loop,
             // so no exit path can ever paste the bookkeeping line.
             val (body, bin) = splitDropped(rewriteOnce(attemptIndex).trim())
             cleanText = body
+            lastBin = bin
             attempts += 1
             guardResult = guard(rawText, cleanText, vocabulary, bin)
             if (!needsRetry(rawText, cleanText, guardResult)) break
@@ -578,6 +597,7 @@ object MeaningGuard {
             guardResult = safeGuard!!
         }
 
+        if (lastBin.isNotBlank()) onDropped?.invoke(lastBin)
         val unchanged = isEffectivelyUnchanged(rawText, cleanText)
         return RewriteOutcome(
             cleanText = cleanText,

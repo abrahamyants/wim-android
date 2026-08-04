@@ -228,6 +228,15 @@ class MeaningGuardTest {
         assertEquals("", bin)
     }
 
+    @Test fun splitDropped_midLineMarkerIsStillStripped() {
+        // The 14:09 live paste: GPT glued the marker onto the message line.
+        val (body, bin) = MeaningGuard.splitDropped(
+            "Please send the contract tonight. DROPPED: \"Shut up, buddy. Not now.\""
+        )
+        assertEquals("Please send the contract tonight.", body)
+        assertEquals("Shut up, buddy. Not now.", bin)
+    }
+
     @Test fun splitDropped_binFirstDoesNotEatTheMessage() {
         // The 13:28 blank-paste bug: model put DROPPED first; the old parser
         // swallowed the whole message into the bin.

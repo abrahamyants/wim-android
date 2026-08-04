@@ -125,8 +125,13 @@ object ReconstructClient {
         corrections: Map<String, String>,
     ): String = buildString {
         if (vocabulary.isNotEmpty()) {
-            append("\n\nSpeaker's known vocabulary (prefer these spellings): ")
+            // "prefer these spellings" licensed vocabulary mugging: the model
+            // read "cut me off", saw "Git" on the list, and pasted "Git me
+            // off" (live 2026-08-04 14:09, inside a dropped aside no less).
+            // The list restores GARBLED words; it never replaces clear ones.
+            append("\n\nSpeaker's known vocabulary — use ONLY to restore a garbled or misheard word to its intended form: ")
             append(vocabulary.take(MAX_PROMPT_VOCABULARY).joinToString(", "))
+            append("\nNEVER replace a clearly-transcribed ordinary word with a vocabulary word. \"cut\" stays \"cut\" even though \"Git\" is on the list.")
         }
         if (corrections.isNotEmpty()) {
             append("\n\nKnown transcription errors to correct: ")
@@ -1220,6 +1225,11 @@ object ReconstructClient {
             appendRepair = { candidate, instruction ->
                 messages.put(JSONObject().put("role", "assistant").put("content", candidate))
                 messages.put(JSONObject().put("role", "user").put("content", instruction))
+            },
+            onDropped = { bin ->
+                // The bin is diagnostics for the session console — the user
+                // sees what the envelope rule removed, and it never pastes.
+                com.wim.app.ConsoleLog.log("Dropped: \"${bin.take(120)}\"", "info")
             },
             onRetry = { attempt, candidate, g ->
                 Log.w(
