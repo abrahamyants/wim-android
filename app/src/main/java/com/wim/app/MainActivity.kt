@@ -1945,7 +1945,7 @@ class MainActivity : AppCompatActivity() {
 &#8226; LLM leak guard: catches "I'm sorry, I can't help" responses.<br>
 &#8226; Length guard: if AI output is more than 2.5&#215; the input length, it fabricated &#8212; we use the cleaned raw text instead.<br><br>
 <b>6. Paste.</b><br>The final text is injected into the app you're in via Android's accessibility service.<br><br>
-<b>7. Learning (L3+).</b><br>After WiM sees the same correction 3 times, it auto-adds it to your profile. Over time L1 and L3 get smarter for you specifically.""",
+<b>7. Learning (L3+).</b><br>Your profile grows only from what YOU teach it &#8212; corrections and vocabulary you add, on this phone or synced from desktop. WiM never guesses corrections from its own rewrites. Layer 3 applies your profile.""",
                 visual = {
                     // The bubble's life cycle — what you see on screen as the
                     // pipeline runs. Same theme as the user's selection so it

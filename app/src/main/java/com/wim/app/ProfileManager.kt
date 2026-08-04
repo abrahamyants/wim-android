@@ -321,9 +321,28 @@ class ProfileManager(private val prefs: SharedPreferences) {
      * other's trigger word. Pinned by ProfileManagerTest
      * .concurrent_writes_loseNoData_andPreserveSyncedFields.
      */
+    /**
+     * Function words that must never become triggers. Triggers feed the
+     * reconstruction prompt as block markers; a pronoun in that list tags
+     * every ordinary sentence as a block suspect. A bare "you" arrived via
+     * backend learning on one profile (found 2026-08-04) — this fence is
+     * global: rejected on add, filtered on read, so a poisoned store or a
+     * poisoned sync can't reach any consumer.
+     */
+    private val TRIGGER_STOPLIST = setOf(
+        "you", "i", "me", "we", "he", "she", "it", "they", "them",
+        "a", "an", "the", "and", "or", "but", "to", "of", "in", "on", "at",
+        "is", "are", "was", "were", "be", "do", "does", "did",
+        "this", "that", "not", "no", "yes", "so", "if", "as", "for", "with"
+    )
+
     fun addTriggerWord(word: String) {
         val w = word.trim()
         if (w.isEmpty()) return
+        if (w.lowercase() in TRIGGER_STOPLIST) {
+            Log.i(TAG, "Trigger word rejected (function-word stoplist): \"$w\"")
+            return
+        }
         synchronized(PROFILE_WRITE_LOCK) {
             val obj = prefs.getString(PREF_KEY, null)?.let { JSONObject(it) } ?: JSONObject()
             val arr = obj.optJSONArray("trigger_words") ?: JSONArray()
@@ -352,12 +371,16 @@ class ProfileManager(private val prefs: SharedPreferences) {
 
     fun getVocabulary(): List<String> = vocabulary.toList()
 
-    /** Trigger words — populated by backend learning, empty until then */
+    /** Trigger words — populated by backend learning, empty until then.
+     *  Read-side fence: stoplisted function words are filtered here too, so
+     *  junk already in storage (or re-synced from the backend) never reaches
+     *  the prompt, the UI, or any other consumer. */
     fun getTriggerWords(): List<String> {
         val json = prefs.getString(PREF_KEY, null) ?: return emptyList()
         return try {
             val arr = JSONObject(json).optJSONArray("trigger_words") ?: return emptyList()
             (0 until arr.length()).map { arr.getString(it) }
+                .filter { it.trim().lowercase() !in TRIGGER_STOPLIST }
         } catch (_: Exception) { emptyList() }
     }
 

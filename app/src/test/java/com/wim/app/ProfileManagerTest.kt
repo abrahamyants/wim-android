@@ -308,4 +308,29 @@ class ProfileManagerTest {
         assertNull(reloaded.prosodicBaseline())
         assertEquals(0, reloaded.prosodicSampleCount())
     }
+
+    // ── Trigger stoplist fence (2026-08-04) ──
+
+    @Test fun triggerStoplist_rejectsFunctionWordOnAdd() {
+        profile.addTriggerWord("you")
+        profile.addTriggerWord("um")
+        assertEquals(listOf("um"), profile.getTriggerWords())
+    }
+
+    @Test fun triggerStoplist_filtersJunkAlreadyInStorage() {
+        // Simulates a backend sync that planted a pronoun before the fence
+        // existed: write straight to the store, then read through the API.
+        profile.addTriggerWord("hey")
+        val obj = org.json.JSONObject(prefs.getString("profile_json", null)!!)
+        val arr = obj.optJSONArray("trigger_words")!!
+        arr.put("you")
+        obj.put("trigger_words", arr)
+        prefs.edit().putString("profile_json", obj.toString()).commit()
+        assertEquals(listOf("hey"), profile.getTriggerWords())
+    }
+
+    @Test fun triggerStoplist_caseInsensitive() {
+        profile.addTriggerWord("You")
+        assertTrue(profile.getTriggerWords().isEmpty())
+    }
 }

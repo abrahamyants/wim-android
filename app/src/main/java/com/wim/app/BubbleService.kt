@@ -2884,7 +2884,19 @@ class BubbleService : Service() {
         val audioDurationSec = asrMs / 1000.0
         val rawWordCountForGap = rawText.split("\\s+".toRegex()).filter { it.isNotBlank() }.size
         val rateGap = RateGapDetector.analyze(rawWordCountForGap, audioDurationSec, profile.baselineWps())
-        if (rateGap.wps > 0) profile.recordWps(rateGap.wps)
+        // Baseline hygiene (2026-08-04): junk takes must not teach the
+        // baseline. A one-word "(chuckles)" hallucination over six seconds
+        // reads as 0.16 wps and drags the median toward the floor — measured
+        // live, baseline fell 1.9 → 1.2 after a run of junk sessions. A wrong
+        // baseline then whispers "words are missing, invent from context" to
+        // the model on every normal take. Feed the baseline only real speech:
+        // enough words, enough audio, and not a take the gap detector already
+        // flagged as content-dropped.
+        if (rateGap.wps > 0 && rawWordCountForGap >= 5 &&
+            audioDurationSec >= 2.0 && !rateGap.gapDetected
+        ) {
+            profile.recordWps(rateGap.wps)
+        }
         if (rateGap.gapDetected) {
             Log.w(TAG, "Rate-gap: wps=${"%.2f".format(rateGap.wps)} baseline=${"%.2f".format(rateGap.baselineWps ?: 0.0)} ratio=${"%.2f".format(rateGap.ratio ?: 0.0)}")
             ConsoleLog.log("Rate-gap: ${((rateGap.ratio ?: 0.0) * 100).toInt()}% of baseline WPS — ASR likely dropped content", "warn")
@@ -3324,10 +3336,15 @@ class BubbleService : Service() {
                     return@launch
                 }
 
-                // L2+: learn from reconstruction results (skip if leak was filtered)
-                if (layer >= 2 && !leakDetected) {
-                    profile.learnFromReconstruction(preCleaned, outputText)
-                }
+                // Diff-learning KILLED 2026-08-04 (design call, George). The
+                // learner diffed the speaker's words against GPT's rework and
+                // mistook paraphrase for correction — that is the factory that
+                // manufactured the 50-pair poisoned list ("with"→"come",
+                // "just"→"participated") which mangled a quarter of every L1
+                // transcription. Corrections now enter the profile ONLY through
+                // explicit user acts (profile UI, synced desktop edits).
+                // learnFromReconstruction stays in ProfileManager for Lav
+                // parity and its tests, but nothing on this path calls it.
 
                 // L1 auto-detect: if the user has no L1 set and hasn't been prompted
                 // yet, count reconstructions and after 5 fire a background L1-guess
