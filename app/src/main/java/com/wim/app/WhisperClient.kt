@@ -45,24 +45,9 @@ object WhisperClient {
     /**
      * Known Whisper hallucinations — phrases Whisper injects when audio is silent/muffled/quiet.
      * These come from YouTube training data (auto-generated captions from silent video endings).
-     *
-     * Split into two lists, for the reason ReconstructionGuard was split on
-     * 2026-08-02: a phrase a person would never say can be cut wherever it
-     * appears, but a phrase a person WOULD say must not be cut out of the
-     * middle of their sentence.
-     *
-     * Everything below was matched as a bare substring anywhere in the
-     * transcript, and this is the first thing that touches cloud-ASR text at
-     * every layer, so nothing downstream could see the loss:
-     *
-     *   "thank you for watching the kids tonight" -> "the kids tonight"
-     *   "check out our website for the new menu"  -> "for the new menu"
-     *   "brought to you by the team that built it" -> ""
-     *
-     * Same shape as the 1,270-pattern Bag-of-Hallucinations filter that
-     * destroyed transcriptions for six days on Lavrentiy in April.
+     * Strip them from any Whisper output regardless of confidence.
      */
-    private val MACHINE_ONLY_PATTERNS = listOf(
+    private val HALLUCINATION_PATTERNS = listOf(
         // otter.ai / transcription service credits
         "transcribed by https://otter.ai",
         "transcribed by otter.ai",
@@ -81,17 +66,6 @@ object WhisperClient {
         "\\[silence\\]",
         "\\[no audio\\]",
         "\\[laughter\\]",
-        // Music markers
-        "♪♪♪",
-        "♪ ♪ ♪"
-    )
-
-    /**
-     * Phrases a real speaker can and does say. Cut ONLY when the phrase stands
-     * as its own sentence or ends the transcript — which is where Whisper puts
-     * a hallucination — never out of the middle of a sentence.
-     */
-    private val HUMAN_PLAUSIBLE_PATTERNS = listOf(
         // YouTube endings
         "thanks for watching",
         "thank you for watching",
@@ -122,45 +96,31 @@ object WhisperClient {
         "terms and conditions apply",
         "terms of service",
         "visit us at",
-        "powered by(?:\\s+\\S+){0,3}",
+        "powered by[^.]{0,30}",
         // Podcast / sponsor credits
-        "sponsored by(?:\\s+\\S+){0,3}",
-        "brought to you by(?:\\s+\\S+){0,3}",
+        "sponsored by[^.]{0,40}",
+        "brought to you by[^.]{0,40}",
         "this episode is",
         "this video is",
-        "available on all platforms"
+        "available on all platforms",
+        // Music markers
+        "♪♪♪",
+        "♪ ♪ ♪"
     )
 
-    // Pre-compiled regexes — recompiling every pattern on each transcribe
+    // Pre-compiled regexes — recompiling 60 patterns on every transcribe
     // call was adding ~100-200ms per Whisper round-trip on every layer.
     // Class-level lazy ensures compile cost is paid once, not per call.
-    private val COMPILED_MACHINE_ONLY: List<Regex> by lazy {
-        MACHINE_ONLY_PATTERNS.map { Regex("$it[.!?]?", RegexOption.IGNORE_CASE) }
-    }
-
-    /**
-     * For a human-plausible phrase, two anchored shapes only:
-     *   - it forms its own sentence  ("Send it monday. Thanks for watching.")
-     *   - it ends the transcript     ("the meeting is friday thanks for watching")
-     * A match with the speaker's own words after it is left alone.
-     */
-    private val COMPILED_HUMAN_PLAUSIBLE: List<Pair<Regex, Regex>> by lazy {
-        HUMAN_PLAUSIBLE_PATTERNS.map { p ->
-            Regex("""(?:^|(?<=[.!?]))\s*$p\s*[.!?]+""", RegexOption.IGNORE_CASE) to
-                Regex("""\s*$p[.!?]*\s*$""", RegexOption.IGNORE_CASE)
-        }
+    private val COMPILED_HALLUCINATION_REGEXES: List<Regex> by lazy {
+        HALLUCINATION_PATTERNS.map { Regex("(?i)$it[.!?]?", RegexOption.IGNORE_CASE) }
     }
     private val WHITESPACE_COLLAPSE_REGEX = Regex("\\s{2,}")
 
     private fun stripHallucinations(text: String): String {
         if (text.isBlank()) return text
         var result = text
-        for (regex in COMPILED_MACHINE_ONLY) {
+        for (regex in COMPILED_HALLUCINATION_REGEXES) {
             result = regex.replace(result, "")
-        }
-        for ((wholeSentence, atEnd) in COMPILED_HUMAN_PLAUSIBLE) {
-            result = wholeSentence.replace(result, " ")
-            result = atEnd.replace(result, " ")
         }
         return WHITESPACE_COLLAPSE_REGEX.replace(result, " ").trim()
     }

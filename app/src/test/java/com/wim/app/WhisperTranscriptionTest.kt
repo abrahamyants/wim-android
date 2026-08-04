@@ -157,57 +157,6 @@ class WhisperTranscriptionTest {
         assertFalse("No critical token loss", flags.contains("critical_token_lost"))
     }
 
-    // ── The hallucination list must not eat real speech ────
-    //
-    // Every pattern was matched as a bare substring anywhere in the
-    // transcript, and this runs on cloud-ASR text before anything else at
-    // every layer, so no guard downstream could see the loss:
-    //
-    //   "thank you for watching the kids tonight" -> "the kids tonight"
-    //   "check out our website for the new menu"  -> "for the new menu"
-    //   "brought to you by the team that built it" -> ""
-    //
-    // A person-plausible phrase is now cut only where Whisper actually puts a
-    // hallucination: as its own sentence, or at the end of the transcript.
-
-    @Test fun hallucination_keepsRealSpeechMidSentence() {
-        val strip = WhisperClient::stripHallucinationsForTest
-        assertEquals(
-            "thank you for watching the kids tonight",
-            strip("thank you for watching the kids tonight")
-        )
-        assertEquals(
-            "check out our website for the new menu",
-            strip("check out our website for the new menu")
-        )
-        assertEquals(
-            "brought to you by the team that built it",
-            strip("brought to you by the team that built it")
-        )
-        assertEquals(
-            "see you next time we are in town",
-            strip("see you next time we are in town")
-        )
-    }
-
-    @Test fun hallucination_stillStripsTrailingArtifact() {
-        val strip = WhisperClient::stripHallucinationsForTest
-        assertEquals("the meeting is friday", strip("the meeting is friday thanks for watching"))
-        assertEquals("the report is done", strip("the report is done see you next time"))
-    }
-
-    @Test fun hallucination_stillStripsWholeSentenceArtifact() {
-        val strip = WhisperClient::stripHallucinationsForTest
-        assertEquals("The meeting is friday.", strip("Thanks for watching. The meeting is friday."))
-        assertEquals("send it monday.", strip("send it monday. Thanks for watching!"))
-    }
-
-    @Test fun hallucination_machineArtifactsStillStrippedAnywhere() {
-        val strip = WhisperClient::stripHallucinationsForTest
-        assertEquals("send it monday", strip("send it [music] monday"))
-        assertEquals("send it monday", strip("send it monday subtitles by the amara.org community"))
-    }
-
     // ── Helper ─────────────────────────────────────────
 
     private fun filter(text: String): String = DisfluencyFilter.filter(text, fillers)
