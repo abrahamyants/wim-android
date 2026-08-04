@@ -3050,9 +3050,10 @@ class BubbleService : Service() {
             showPipelineStage("\u2713 $stripped disfluencies removed", "${rawWordCount}w \u2192 ${cleanWordCount}w")
         }
 
-        // Apply profile corrections + phonetic-neighbor matching at L2+
-        // client-side BEFORE GPT sees the text. Fixes the Lavrentiy bug
-        // where corrections were only applied at L3+. Logic extracted to
+        // Apply phonetic-neighbor matching (L2/L3) and, at L3+, profile
+        // corrections BEFORE GPT sees the text. Corrections are gated to
+        // layer >= 3 inside the stage (design call, George 2026-08-04 —
+        // the poisoned-list incident). Logic extracted to
         // L2CorrectionsStage 2026-05-25 — third Pipeline-cluster slice.
         var correctedText = L2CorrectionsStage.apply(
             preCleaned = preCleaned,

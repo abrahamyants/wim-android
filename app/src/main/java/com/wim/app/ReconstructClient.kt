@@ -606,9 +606,21 @@ object ReconstructClient {
                 append(toneRule)
                 append(" Strip filler words (including non-English fillers like \u044d, \u043d\u0443, \u044d\u044d).")
                 append(" Preserve FULL meaning. Do not summarize or add information.")
-                append(" Do NOT censor, sanitize, or soften the speaker's language. Profanity, slang, harsh words, and strong language must be preserved EXACTLY as spoken.")
-                append(" If the speaker said 'fuck', output 'fuck'. If the speaker said 'steal', output 'steal'. Do not substitute softer synonyms.")
-                append(" Your job is to clean up SPEECH ARTIFACTS, not to edit the speaker's word choices.")
+                // The envelope rule (design call, George 2026-08-04): the axis
+                // for profanity is never the word itself — it is who the words
+                // are AIMED at. Asides addressed to bystanders are dropped in
+                // every tone; heat inside the message follows the tone. The
+                // old unconditional "preserve EXACTLY" clause fought the
+                // "Tone is a REQUIREMENT" clause and the model coin-flipped.
+                // Backend prompt (wim-reconstruct) needs this same change —
+                // keep the two in sync, same contract as MeaningGuard.
+                append(" INTERRUPTION RULE (applies in EVERY tone): mid-dictation speech aimed at someone OTHER than the message's recipient — a child, a pet, another driver, someone else in the room (\"shut up\", \"not now, honey\", a road-rage outburst) — is NOT message content. Drop it entirely and join the message cleanly around the gap.")
+                if (tone.lowercase() in setOf("professional", "formal")) {
+                    append(" Profanity WITHIN the message itself: translate its intensity into this register instead of deleting it — \"this is fucking great\" becomes \"this is genuinely excellent\", \"that's bullshit\" becomes \"that is unacceptable\". The emphasis survives; the wording dresses for the reader.")
+                } else {
+                    append(" Do NOT censor, sanitize, or soften the speaker's language WITHIN the message. Profanity, slang, harsh words, and strong language must be preserved EXACTLY as spoken. If the speaker said 'fuck', output 'fuck'. Do not substitute softer synonyms.")
+                    append(" Your job is to clean up SPEECH ARTIFACTS, not to edit the speaker's word choices.")
+                }
                 append(" Output ONLY the reconstructed text, nothing else.")
 
                 // Accessibility look-behind: text already sitting in the field before the dictation.
