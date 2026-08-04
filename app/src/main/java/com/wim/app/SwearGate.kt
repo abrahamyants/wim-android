@@ -22,12 +22,15 @@ object SwearGate {
     /** Tones that close the gate. Everything else passes untouched. */
     private val GATED_TONES = setOf("professional", "formal")
 
-    // (?U) — Unicode word classes: Java's default \b treats every Cyrillic
-    // letter as a non-word char, so \bсука\b can never match without it.
-    // Trailing [,]? eats the comma an interjection drags along ("Fuck, the
-    // deal…") but leaves sentence-ending periods alone.
+    // No \b and no (?U): desktop JVM needs (?U) for Cyrillic word edges,
+    // but Android's ICU regex REJECTS the (?U) flag at compile time — the
+    // gate's <clinit> threw on-device and killed every L2+ dictation
+    // (caught live 2026-08-04 12:13). Explicit \p{L}\p{N} lookarounds mean
+    // the same thing in BOTH dialects. Trailing [,]? eats the comma an
+    // interjection drags along ("Fuck, the deal…") but leaves
+    // sentence-ending periods alone.
     private val SWEARS = Regex(
-        """(?ixU)\b(?:
+        """(?ix)(?<![\p{L}\p{N}_])(?:
             fuck(?:er|ers|ing|ed|s)?|motherfuck(?:er|ers|ing)?|
             shit(?:ty|s|ted|ting)?|bullshit|horseshit|
             bitch(?:es|y)?|
@@ -39,8 +42,8 @@ object SwearGate {
             goddamn(?:it|ed)?|damn(?:it|ed)?|
             crap(?:py|s)?|
             сука|суки|блять|блядь|бля|гандон(?:ы)?|пиздец|
-            хуй\w*|хуев\w*|ебан\w*|заебал\w*|нахуй|нихуя
-        )\b[,]?"""
+            хуй[\p{L}]*|хуев[\p{L}]*|ебан[\p{L}]*|заебал[\p{L}]*|нахуй|нихуя
+        )(?![\p{L}\p{N}_])[,]?"""
     )
 
     private val MULTI_SPACE = Regex("""\s{2,}""")
