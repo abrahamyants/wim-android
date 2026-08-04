@@ -78,6 +78,14 @@ object DisfluencyFilter {
         RegexOption.IGNORE_CASE
     )
 
+    // A token that carries digits is data, never a disfluency. Nobody stutters
+    // in numerals: once the ASR has rendered "5", a following "5" is the next
+    // digit of an account, PIN, phone number or zip — not a repetition to
+    // collapse. Steps 1, 2 and 3 all use `\w`, which includes digits, so each
+    // one had to be taught this separately.
+    private fun isNumericToken(token: String): Boolean =
+        token.any { it.isDigit() }
+
     // Step 3: Phrase repetitions (2-3 word phrases) — "I want I want to go" -> "I want to go"
     private val PHRASE_REPEAT = Regex(
         """\b(\w+\s+\w+(?:\s+\w+)?)\s+\1\b""",
@@ -226,7 +234,9 @@ object DisfluencyFilter {
             val word = m.groupValues[3]
             if (word.startsWith(fragment, ignoreCase = true)) word else m.value
         }
-        cleaned = STUTTER_FRAGMENT_NOSPACE.replace(cleaned, "")
+        cleaned = STUTTER_FRAGMENT_NOSPACE.replace(cleaned) { m ->
+            if (isNumericToken(m.groupValues[1])) m.value else ""
+        }
 
         // Step 2: Remove consecutive word repetitions (protect natural repeats).
         // Natural repeats ("bye bye", "go go", "sí sí") are valid at exactly 2
@@ -235,7 +245,11 @@ object DisfluencyFilter {
             val word = match.groupValues[1]
             val pair = "${word.lowercase()} ${word.lowercase()}"
             val totalCount = match.value.trim().split("\\s+".toRegex()).size
-            if (pair in activeNaturalRepeats && totalCount == 2) match.value else word
+            when {
+                isNumericToken(word) -> match.value
+                pair in activeNaturalRepeats && totalCount == 2 -> match.value
+                else -> word
+            }
         }
 
         // Step 3: Remove phrase repetitions — but skip phrases that are just
@@ -243,7 +257,11 @@ object DisfluencyFilter {
         cleaned = PHRASE_REPEAT.replace(cleaned) { match ->
             val phrase = match.groupValues[1]
             val words = phrase.trim().split("\\s+".toRegex()).map { it.lowercase() }
-            if (words.toSet().size == 1) match.value else phrase
+            when {
+                words.any { isNumericToken(it) } -> match.value
+                words.toSet().size == 1 -> match.value
+                else -> phrase
+            }
         }
 
         // Step 4: Strip filler words

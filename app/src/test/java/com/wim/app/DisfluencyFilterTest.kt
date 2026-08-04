@@ -192,6 +192,55 @@ class DisfluencyFilterTest {
         assertEquals("hey", filter("heyyyy"))
     }
 
+    // ── Repetition collapse must not touch digits ──────
+    //
+    // Same defect as the prolongation one above, in the three regexes either
+    // side of it. STUTTER_FRAGMENT_NOSPACE, WORD_REPEAT and PHRASE_REPEAT all
+    // match on `\w`, which includes digits, so a spoken number came out short:
+    //
+    //     "my account is 5 5 5 1234"  -> "my account is 5 1234"
+    //     "call me at 4 1 5 5 5 5 1 2 1 2" -> "call me at 4 1 5 1 2 1 2"
+    //     "my zip is 9-4-1-1-0"       -> "my zip is 9-4-0"
+    //     "the pin is 1 2 1 2"        -> "the pin is 1 2"
+    //
+    // Whisper renders spoken digits as numerals, and a speaker reading out an
+    // account, PIN, phone number or zip repeats digits constantly. Like the
+    // prolongation case, this runs inside filter() before the numeric guard,
+    // so computeRiskFlags never sees the original — and at L1 there is no
+    // guard at all.
+
+    @Test fun wordRepeat_leavesRepeatedDigitsAlone() {
+        assertEquals("my account is 5 5 5 1234", filter("my account is 5 5 5 1234"))
+        assertEquals("the code is 8 8 8", filter("the code is 8 8 8"))
+    }
+
+    @Test fun wordRepeat_leavesSpokenPhoneNumbersAlone() {
+        assertEquals(
+            "call me at 4 1 5 5 5 5 1 2 1 2",
+            filter("call me at 4 1 5 5 5 5 1 2 1 2")
+        )
+    }
+
+    @Test fun wordRepeat_leavesRepeatedAmountsAlone() {
+        assertEquals("wire 100 100 dollars", filter("wire 100 100 dollars"))
+    }
+
+    @Test fun stutterFragment_leavesHyphenatedDigitsAlone() {
+        assertEquals("call 5-5-5-1234", filter("call 5-5-5-1234"))
+        assertEquals("my zip is 9-4-1-1-0", filter("my zip is 9-4-1-1-0"))
+    }
+
+    @Test fun phraseRepeat_leavesRepeatedDigitPairsAlone() {
+        assertEquals("the pin is 1 2 1 2", filter("the pin is 1 2 1 2"))
+    }
+
+    @Test fun repetitionCollapse_stillWorksOnWords() {
+        assertEquals("I need to reschedule", filter("I I I need to reschedule"))
+        assertEquals("the dog", filter("the the the dog"))
+        assertEquals("I want to go", filter("I want I want to go"))
+        assertEquals("meeting", filter("m-m-m-meeting"))
+    }
+
     // ── Hyphenated words are not stutter fragments ─────
     //
     // The whitespace-fragment regex allowed zero repetitions, so a single
