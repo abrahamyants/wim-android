@@ -31,7 +31,13 @@ Step 4 is **skipped at layer 4 on purpose** (`BubbleService.kt:2927`). Layer
 
 ## Layer 1 — "transcribe"
 
-**No model.** Nothing leaves the phone. `L1Pipeline.transform()`.
+**No model that rewrites. There is very much a model that listens.**
+whisper-tiny runs on the phone through sherpa-onnx, and it has already
+decided what the speaker said — including smoothing some of the speech —
+before `L1Pipeline.transform()` sees a single character. Calling layer 1
+"no model" hides the one piece of it with the most power over the result.
+
+Nothing leaves the phone at this layer. `L1Pipeline.transform()`:
 
 - Applies the corrections the user has taught it, as whole-word swaps.
 - Every 30 sessions, prunes corrections that stopped being used.
@@ -41,7 +47,7 @@ Step 4 is **skipped at layer 4 on purpose** (`BubbleService.kt:2927`). Layer
 Fast, free, offline, private.
 
 **It has no safety net.** The code calls it "trusted by construction"
-(`BubbleService.kt:2962`). No model, so no guard, no risk flags, no
+(`BubbleService.kt:2962`). No rewriting model, so no guard, no risk flags, no
 fallback. Whatever the deterministic code produces goes straight into the
 user's message. Both of the number-eating bugs found in this code lived
 here, and at layer 1 nothing would ever have caught them.
@@ -172,10 +178,11 @@ deleting them, using rhythm and pauses, asking about the three words it is
 unsure of — is the part that is genuinely different, and it is the part the
 patent claims are built around.
 
-**Layer 1 is the free tier that has to be flawless.** It runs offline with no
-model, no cost and no guard. It is the honest demo, the thing that works on a
-plane, and the layer where a silent bug does the most damage, since nothing
-downstream checks it.
+**Layer 1 is the free tier that has to be flawless.** It runs offline, costs
+nothing per use, and has no guard. It is the honest demo, the thing that works
+on a plane, and the layer where a silent bug does the most damage, since
+nothing downstream checks it. Its quality ceiling is whatever whisper-tiny
+heard — the app cannot be better at layer 1 than the model on the phone.
 
 **Layer 3 is the retention story.** It gets better the longer someone uses
 it, without them doing anything. That is what makes leaving expensive.
