@@ -283,8 +283,10 @@ class DisfluencyFilterTest {
     // the one layer with no model is also the one with no guard.
 
     @Test fun filler_stripsTwoWordFillers() {
+        // defaultFillers holds um, uh, like, "you know", "i mean" — no "so",
+        // so "so" is expected to survive here.
         assertEquals(
-            "the report is due friday",
+            "so the report is due friday",
             filter("um so you know i mean the report is like due friday")
         )
     }
