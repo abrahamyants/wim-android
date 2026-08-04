@@ -271,6 +271,43 @@ class DisfluencyFilterTest {
 
     // ── Helper ─────────────────────────────────────────
 
+    // ── Fillers made of two words ──────────────────────
+    //
+    // Step 4 split on whitespace and compared single tokens, so a two-word
+    // filler could never equal a one-word token. "you know" and "i mean" are
+    // in DEFAULT_FILLERS and had never been stripped, along with 9 multi-word
+    // entries across the Spanish, French, Portuguese and Russian packs.
+    //
+    // Only L1 was affected. From L2 up the prompt says "Strip these fillers:"
+    // and the model handles a phrase unaided — which is why this survived:
+    // the one layer with no model is also the one with no guard.
+
+    @Test fun filler_stripsTwoWordFillers() {
+        assertEquals(
+            "the report is due friday",
+            filter("um so you know i mean the report is like due friday")
+        )
+    }
+
+    @Test fun filler_stripsTwoWordFillerWithTrailingComma() {
+        assertEquals("the meeting moved", filter("you know, the meeting moved"))
+    }
+
+    @Test fun filler_twoWordFillerAloneIsKept() {
+        assertEquals("you know", filter("you know"))
+    }
+
+    @Test fun filler_leavesCleanSentenceAlone() {
+        assertEquals("send the report on friday", filter("send the report on friday"))
+    }
+
+    @Test fun filler_stripsNonEnglishPhraseFillers() {
+        assertEquals(
+            "el informe es para el viernes",
+            filter("o sea el informe es para el viernes", listOf("o sea", "es que", "pues"))
+        )
+    }
+
     private fun filter(text: String, fillers: List<String> = defaultFillers): String {
         return DisfluencyFilter.filter(text, fillers)
     }

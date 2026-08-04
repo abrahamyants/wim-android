@@ -264,8 +264,33 @@ object DisfluencyFilter {
             }
         }
 
-        // Step 4: Strip filler words
-        val fillerSet = fillerWords.map { it.lowercase() }.toSet()
+        // Step 4: Strip filler words.
+        //
+        // Two passes, because step 4 used to split on whitespace and compare
+        // single tokens — so a filler made of two words could never equal a
+        // one-word token and was silently inert. "you know" and "i mean" are
+        // in DEFAULT_FILLERS and had never once been stripped, along with 9
+        // multi-word entries across the Spanish, French, Portuguese and
+        // Russian packs ("o sea", "en fait", "как бы").
+        //
+        // It only showed at L1. From L2 up the prompt carries "Strip these
+        // fillers: ..." and the model handles a phrase without help, which is
+        // why the gap survived: the layer with no model was the only one
+        // affected, and it is also the layer with no guard to notice.
+        val allFillers = fillerWords.map { it.lowercase().trim() }.filter { it.isNotEmpty() }
+        for (phrase in allFillers.filter { it.contains(' ') }.sortedByDescending { it.length }) {
+            // Whole phrase only, and never when it is the entire utterance —
+            // the same rule the single-word pass below applies.
+            if (cleaned.trim().equals(phrase, ignoreCase = true)) continue
+            val re = Regex(
+                """\b""" + Regex.escape(phrase).replace("\\ ", """\s+""") + """\b[,]?""",
+                RegexOption.IGNORE_CASE
+            )
+            cleaned = re.replace(cleaned, " ")
+        }
+        cleaned = MULTI_SPACE.replace(cleaned, " ").trim()
+
+        val fillerSet = allFillers.toSet()
         val words = cleaned.split("\\s+".toRegex())
         val filtered = mutableListOf<String>()
 
