@@ -156,4 +156,53 @@ class MeaningGuardTest {
         val msg = MeaningGuard.buildRepairInstruction("send it", "", g)
         assertTrue(msg.contains("previous answer was empty"))
     }
+
+    // ── A title must survive as a title, not as letters ────────
+    //
+    // Retention tested every anchor with a plain substring check. The short
+    // titles hide inside ordinary words — "dr" is in "address", "hundred" and
+    // "children"; "ms" is in "terms", "items" and "problems" — so the guard
+    // reported the title retained in exactly the sentences where it had been
+    // dropped. meaning_guard.py matches titles in the output with the same
+    // regex it uses on the input; this is that behaviour, ported.
+
+    @Test fun retention_drIsNotRetainedByTheWordAddress() {
+        val lost = MeaningGuard.checkRetention(
+            "tell dr williams to send the address",
+            "Tell Williams to send the address."
+        )
+        assertTrue(lost.any { it.equals("dr", ignoreCase = true) })
+    }
+
+    @Test fun retention_msIsNotRetainedByTheWordTerms() {
+        val lost = MeaningGuard.checkRetention(
+            "tell ms taylor about the terms",
+            "Tell Taylor about the terms."
+        )
+        assertTrue(lost.any { it.equals("ms", ignoreCase = true) })
+    }
+
+    @Test fun retention_drIsNotRetainedByTheWordHundred() {
+        val lost = MeaningGuard.checkRetention(
+            "ask dr chen how many hundred",
+            "Ask Chen how many hundred."
+        )
+        assertTrue(lost.any { it.equals("dr", ignoreCase = true) })
+    }
+
+    @Test fun retention_keptTitleStillPasses() {
+        val lost = MeaningGuard.checkRetention(
+            "tell dr williams to send the address",
+            "Tell Dr. Williams to send the address."
+        )
+        assertFalse(lost.any { it.equals("dr", ignoreCase = true) })
+    }
+
+    @Test fun retention_titleSpelledOutInFullStillPasses() {
+        val lost = MeaningGuard.checkRetention(
+            "tell doctor williams about the appointment",
+            "Please tell Doctor Williams about the appointment."
+        )
+        assertFalse(lost.any { it.equals("doctor", ignoreCase = true) })
+    }
 }

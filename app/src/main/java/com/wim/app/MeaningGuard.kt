@@ -167,6 +167,7 @@ object MeaningGuard {
         critical.addAll(properNouns(rawText))
         // Titles: invisible to the proper-noun check on lowercase ASR output,
         // and dropping one still reads as a valid sentence. See TITLE_RE.
+        val rawTitles = TITLE_RE.findAll(rawText).map { it.value.trimEnd('.').lowercase() }.toSet()
         critical.addAll(TITLE_RE.findAll(rawText).map { it.value.trimEnd('.') })
 
         for (termRaw in vocabulary) {
@@ -188,16 +189,24 @@ object MeaningGuard {
         val numericTokens = CRITICAL_TOKEN_RE.findAll(rawText)
             .map { it.value.lowercase() }.toSet()
         val cleanNumeric = numericValues(cleanText)
+        // A title has to survive AS A TITLE, not as a run of letters. The short
+        // ones hide inside ordinary words — "dr" is in "address", "hundred" and
+        // "children"; "ms" is in "terms", "items" and "problems" — so a plain
+        // substring test reported the title retained in exactly the sentences
+        // where it had been dropped. meaning_guard.py has always matched titles
+        // in the output with the same regex it used on the input.
+        val cleanTitles = TITLE_RE.findAll(cleanText).map { it.value.trimEnd('.').lowercase() }.toSet()
         val seen = mutableSetOf<String>()
         val lost = mutableListOf<String>()
         for (t in critical) {
             val key = t.lowercase()
             if (key in seen) continue
             seen.add(key)
-            val retained = if (key in numericTokens) {
-                key in cleanLower || tokenValue(t)?.let { it in cleanNumeric } == true
-            } else {
-                key in cleanLower
+            val retained = when {
+                key in rawTitles -> key in cleanTitles
+                key in numericTokens ->
+                    key in cleanLower || tokenValue(t)?.let { it in cleanNumeric } == true
+                else -> key in cleanLower
             }
             if (!retained) lost.add(t)
         }
