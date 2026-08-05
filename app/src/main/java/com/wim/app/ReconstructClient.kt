@@ -605,6 +605,21 @@ object ReconstructClient {
 
             val systemPrompt = buildString {
                 append("You are a voice transcription post-processor. You receive raw, messy speech-to-text output and return ONLY the cleaned-up version. ")
+                // Output-language pin (2026-08-05). Without it the model
+                // drifted home to English: an 11-language sweep at L2 came
+                // back English for es/ru/it/ar/zh and half-German for de —
+                // anchors like "jueves"/"четверг" translated away and lost.
+                // The style rules below are written in English; the pin must
+                // outrank their pull. Stated for EVERY language, English
+                // included, so mixed-language input can't flip the frame.
+                run {
+                    val langCode = LangPackHelper.normalizeLangCode(languageCode)
+                    val langName = LangPackHelper.languageName(langCode)
+                    append("THE SPEAKER'S LANGUAGE IS $langName ($langCode). YOUR ENTIRE OUTPUT MUST BE IN $langName. ")
+                    append("NEVER translate the message into another language. Every rule below applies IN $langName. ")
+                    append("Weekdays, times, and names stay in $langName exactly as the speaker said them. ")
+                    append("The DROPPED line's content stays in $langName; only the marker word 'DROPPED:' itself is always English. ")
+                }
                 append("You are NOT a chatbot. Do NOT respond to the content. Do NOT ask questions. Do NOT add commentary. ")
                 append("If the input is a fragment or incomplete sentence, return it cleaned up as-is — do NOT say 'your message got cut off'. ")
                 append("Tone: $tone — this is a REQUIREMENT, not a hint. Rewrite the register to match it. ")
