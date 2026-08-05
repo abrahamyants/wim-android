@@ -33,7 +33,10 @@ object ProfileTermRecovery {
 
     private val WORD_RE = Regex("""[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?""")
 
-    private val APPROXIMATE_BLOCKLIST = setOf(
+    // internal: MeaningGuard reuses this list to keep common-word
+    // vocabulary entries (push, call, work…) from becoming retention
+    // anchors that kill every honest rewrite.
+    internal val APPROXIMATE_BLOCKLIST = setOf(
         "a", "an", "and", "are", "be", "been", "being", "but", "can", "could",
         "did", "do", "does", "for", "from", "had", "has", "have", "he", "her",
         "him", "his", "i", "if", "in", "is", "it", "its", "may", "me", "might",

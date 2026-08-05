@@ -206,6 +206,37 @@ class MeaningGuardTest {
         assertFalse(lost.any { it.equals("doctor", ignoreCase = true) })
     }
 
+    // ── Whisper-capitalization traps (2026-08-05) ──
+
+    @Test fun retention_sentenceInitialCapitalsAreNotNames() {
+        // Cloud Whisper capitalizes sentence starts; "Hey"/"Shut"/"Sorry" are
+        // not people. lost=[Hey] killed three rewrites in a row, live 09:40.
+        val lost = MeaningGuard.checkRetention(
+            "Hey, about tomorrow. Shut up, buddy. Sorry, some guy just cut me off.",
+            "About tomorrow — can we move the meeting?"
+        )
+        assertTrue(lost.none { it in listOf("Hey", "Shut", "Sorry") })
+    }
+
+    @Test fun retention_midSentenceNameStillProtected() {
+        val lost = MeaningGuard.checkRetention(
+            "please tell Henderson the invoice is ready",
+            "The invoice is ready."
+        )
+        assertTrue(lost.any { it == "Henderson" })
+    }
+
+    @Test fun retention_commonVocabularyWordIsNotAnAnchor() {
+        // lost=[push] helped kill a take whose rewrite said "move" — a
+        // vocabulary entry that is an everyday verb is not an anchor.
+        val lost = MeaningGuard.checkRetention(
+            "can we push the meeting to thursday",
+            "Can we move the meeting to Thursday?",
+            vocabulary = listOf("push", "Git")
+        )
+        assertTrue(lost.none { it.equals("push", ignoreCase = true) })
+    }
+
     // ── DROPPED bin: the envelope rule's bookkeeping (2026-08-04) ──
 
     @Test fun splitDropped_parsesBinOffTheBody() {

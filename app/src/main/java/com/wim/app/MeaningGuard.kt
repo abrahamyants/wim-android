@@ -126,10 +126,33 @@ object MeaningGuard {
         "tell", "told", "please", "okay", "well", "now", "also", "still", "back",
     )
 
-    private fun properNouns(text: String): List<String> =
-        PROPER_NOUN_RE.findAll(text).map { it.value }
+    /**
+     * A capitalized word only counts as a NAME when it appears capitalized
+     * somewhere that isn't a sentence start. Cloud Whisper punctuates and
+     * capitalizes, so "Hey, about tomorrow. Shut up. Sorry." grows four fake
+     * "names" — and the guard then rejects every rewrite that correctly drops
+     * them. Live 2026-08-05 09:40: lost=[Hey], then lost=[Shut, Sorry, Fuck,
+     * Anyway] — three attempts dead, raw pasted, asides included. The machine
+     * tests never hit this because injected text was all-lowercase.
+     * "Henderson" in "tell Henderson" stays protected: mid-sentence capital.
+     */
+    private fun properNouns(text: String): List<String> {
+        val all = PROPER_NOUN_RE.findAll(text).toList()
+        // A word earns name-status from any occurrence whose position is NOT
+        // a sentence start: not at the very beginning, and not right after
+        // . ! or ? — judged by position, so "Henderson called. Tell Henderson."
+        // keeps its protection from the mid-sentence copy. A name whose only
+        // appearance opens a sentence does lose cover; that rare miss beats
+        // the old behavior, which nuked every capitalized-by-Whisper take.
+        val midSentenceWords = all.filter { m ->
+            val before = text.substring(0, m.range.first).trimEnd()
+            before.isNotEmpty() && before.last() !in ".!?"
+        }.map { it.value }.toSet()
+        return all.map { it.value }
             .filter { it !in PROPER_NOUN_EXCLUDE }
+            .filter { it in midSentenceWords }
             .toList()
+    }
 
     /** Meaning-carrying words: not function words, at least four characters. */
     private fun contentWords(text: String): List<String> =
@@ -173,6 +196,12 @@ object MeaningGuard {
         for (termRaw in vocabulary) {
             val term = termRaw.trim()
             if (term.length < 2) continue
+            // A vocabulary entry that is an ordinary English word ("push",
+            // "call") must not become an anchor: live 2026-08-05 09:40,
+            // lost=[push] helped kill all three rewrites of a take that
+            // merely reworded "push the meeting". Same list ProfileTermRecovery
+            // uses to stop phonetic mugging.
+            if (term.lowercase() in ProfileTermRecovery.APPROXIMATE_BLOCKLIST) continue
             if (Regex("""\b""" + Regex.escape(term.lowercase()) + """\b""").containsMatchIn(rawLower)) {
                 critical.add(term)
             }
