@@ -38,7 +38,12 @@ class BubbleShakeDetector(
 ) {
     private companion object {
         private const val TAG = "WiM"
-        private const val SHAKE_MIN_QUIET_MS = 280L
+        // 120, not 280: a genuine fast double-shake reverses direction in
+        // ~150-250ms, and the old 280ms quiet rule swallowed the second hit
+        // as an echo of the first. That is why the gesture "never worked the
+        // first time" (George 2026-08-05) — only slow, unnaturally spaced
+        // shakes could count. 120ms still kills single-shake bounce.
+        private const val SHAKE_MIN_QUIET_MS = 120L
     }
 
     private var sensorManager: SensorManager? = null
@@ -70,7 +75,12 @@ class BubbleShakeDetector(
 
                 if (!prefs.getBoolean("shake_enabled", false)) return
 
-                val highThreshold = if (shakeCount == 0) 2.6 else 2.0
+                // First-shake bar lowered 2.6 -> 2.2: a deliberate human shake
+                // often peaks near 2.2g, so at 2.6 the FIRST shake registered
+                // nothing and the user re-shook harder — the second attempt
+                // then passed the easier 2.0 bar, which read as "you have to
+                // time it". Same fix family as the quiet-gap above.
+                val highThreshold = if (shakeCount == 0) 2.2 else 2.0
                 val releaseThreshold = 1.5
                 if (gForce > 1.4) Log.i(
                     TAG,
