@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.wim.app.onboarding.screens.AboutYouScreen
 import com.wim.app.onboarding.screens.AccessibilityPermissionScreen
 import com.wim.app.onboarding.screens.AutoSendScreen
+import com.wim.app.onboarding.screens.DriveItScreen
 import com.wim.app.onboarding.screens.BatteryPermissionScreen
 import com.wim.app.onboarding.screens.FinalScreen
 import com.wim.app.onboarding.screens.MicPermissionScreen
