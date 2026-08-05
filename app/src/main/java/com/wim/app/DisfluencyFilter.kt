@@ -359,6 +359,39 @@ object DisfluencyFilter {
         return cleaned.ifBlank { text }
     }
 
+    // Sanity cap for Whisper's repetition-loop failure. Live 2026-08-05
+    // 14:06: the speaker demonstrated a repetition, Whisper extended it to
+    // ~112 copies of "to", and L4 — which skips filter() on purpose so the
+    // model can SEE disfluencies — pasted the avalanche. No real disfluency
+    // repeats a word this many times (same reasoning as WORD_REPEAT's cap);
+    // beyond [INSANE_RUN_KEEP] copies it is ASR garbage. The cap keeps the
+    // first eight — evidence of the repetition survives for the clinical
+    // prompt — and drops the rest. Tail bounded at 40 with iterative
+    // collapse, same stack-safety pattern as WORD_REPEAT. Numeric runs are
+    // untouched: digits are data.
+    private const val INSANE_RUN_KEEP = 8
+    private val INSANE_RUN = Regex(
+        """\b(\w+)((?:[,;:]?\s+\1\b){7})(?:[,;:]?\s+\1\b){1,40}[,;:]?""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /** Collapse runs of more than [INSANE_RUN_KEEP] identical tokens down to
+     *  [INSANE_RUN_KEEP]. Applied at EVERY layer, including L4's unfiltered
+     *  path — this is corruption control, not disfluency cleaning. */
+    fun capInsaneRuns(text: String): String {
+        if (text.isBlank()) return text
+        var out = text
+        repeat(8) {
+            val next = INSANE_RUN.replace(out) { m ->
+                if (isNumericToken(m.groupValues[1])) m.value
+                else m.groupValues[1] + m.groupValues[2]
+            }
+            if (next == out) return out
+            out = next
+        }
+        return out
+    }
+
     /**
      * Fillers that are also ordinary English: the verb "like", the phrase
      * "you know" as subject+verb, "I mean" as a statement opener. A plain

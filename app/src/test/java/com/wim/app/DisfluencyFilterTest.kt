@@ -394,6 +394,26 @@ class DisfluencyFilterTest {
         )
     }
 
+    // ── Insane-run cap: Whisper's repetition-loop failure (2026-08-05) ──
+
+    @Test fun insaneRun_avalancheCollapsesToEight() {
+        val run = List(112) { "to" }.joinToString(", ")
+        val out = DisfluencyFilter.capInsaneRuns("I am going $run and then some")
+        val kept = Regex("\\bto\\b").findAll(out).count()
+        assertEquals(8, kept)
+        assertTrue(out.endsWith("and then some"))
+    }
+
+    @Test fun insaneRun_shortRepetitionUntouched() {
+        val text = "I am going to to to to the place"
+        assertEquals(text, DisfluencyFilter.capInsaneRuns(text))
+    }
+
+    @Test fun insaneRun_digitRunsAreData() {
+        val text = "code " + List(12) { "5" }.joinToString(" ")
+        assertEquals(text, DisfluencyFilter.capInsaneRuns(text))
+    }
+
     // ── Clock-broom: timed risky fillers ──
 
     private fun words(vararg spec: Pair<String, Double>): List<WhisperClient.TimedWord> {

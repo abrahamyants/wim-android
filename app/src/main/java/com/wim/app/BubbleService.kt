@@ -2931,8 +2931,13 @@ class BubbleService : Service() {
         BubbleStateBus.advance(BubbleState.Stripping(System.currentTimeMillis()))
 
         // Strip Whisper block hallucinations — applies to ALL layers
-        val deHallucinated = DisfluencyFilter.stripBlockHallucinations(
-            expandedText, lastWhisperLowConf, log = { msg -> Log.i(TAG, msg) }
+        // capInsaneRuns AFTER hallucination strip, BEFORE everything else —
+        // including L4's unfiltered path. Whisper's repetition loop pasted
+        // ~112 "to"s live (2026-08-05); the cap keeps 8 as evidence.
+        val deHallucinated = DisfluencyFilter.capInsaneRuns(
+            DisfluencyFilter.stripBlockHallucinations(
+                expandedText, lastWhisperLowConf, log = { msg -> Log.i(TAG, msg) }
+            )
         )
         if (deHallucinated != expandedText) {
             Log.i(TAG, "Block hallucination stripped: ${expandedText.length - deHallucinated.length} chars")
