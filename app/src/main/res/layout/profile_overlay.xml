@@ -721,6 +721,18 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+                <!-- V1 SHIP CUT (2026-08-05, George): the clarifier sleeps in
+                     v1 and the L1-pack share backend is not live, so a fresh
+                     user must not see knobs for them. Whole block hidden, not
+                     deleted — flip visibility to bring it back. MainActivity
+                     still wires these views; wiring a GONE view is harmless. -->
+                <LinearLayout
+                    android:id="@+id/advancedProfileSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
                 <!-- CLARIFIER SENSITIVITY — three-button low/medium/high -->
                 <TextView
                     android:layout_width="wrap_content"
@@ -876,6 +888,8 @@
                         android:id="@+id/switchContributeL1"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
+                </LinearLayout>
+
                 </LinearLayout>
 
                 <!-- YOUR DATA (GDPR/CCPA rights) — only shown when signed in -->
