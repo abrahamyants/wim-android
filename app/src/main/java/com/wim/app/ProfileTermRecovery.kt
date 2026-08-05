@@ -69,6 +69,25 @@ object ProfileTermRecovery {
         "very", "well", "back", "down", "off", "one", "two", "day", "days",
         "time", "thing", "things", "good", "new", "old", "same", "next",
         "last", "first", "about", "after", "before", "again", "still",
+        // 2026-08-05: "cut" was missing and "some guy just cut me off" pasted
+        // as "Git me off" — twice, live. Worse than the swap itself: the
+        // planted "Git" became a proper-noun anchor in effectiveRaw, the
+        // meaning guard demanded it survive, every honest rewrite lacked it,
+        // three attempts died, and the mugged RAW pasted with the asides
+        // still in. One missing list entry took down the whole take. Filling
+        // in the common short verbs and nouns that were still exposed.
+        "cut", "cuts", "cutting", "turn", "turns", "turned", "turning",
+        "play", "plays", "played", "playing", "push", "pushes", "pushed",
+        "pull", "pulls", "pulled", "pick", "picks", "picked", "pay", "pays",
+        "paid", "buy", "buys", "bought", "sell", "sells", "sold", "eat",
+        "eats", "ate", "sit", "sits", "sat", "stand", "stands", "stood",
+        "walk", "walks", "walked", "talk", "talks", "talked", "leave",
+        "leaves", "left", "live", "lives", "lived", "feel", "feels", "felt",
+        "hear", "hears", "heard", "wait", "waits", "waited", "watch",
+        "watches", "watched", "open", "opens", "opened", "close", "closes",
+        "closed", "guy", "guys", "man", "men", "way", "ways", "week", "weeks",
+        "year", "years", "home", "house", "car", "cars", "phone", "meeting",
+        "night", "tonight", "today", "tomorrow", "morning",
     )
 
     private fun normalizedWords(text: String): String =

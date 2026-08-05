@@ -106,6 +106,22 @@ class ProfileTermRecoveryTest {
         assertTrue("expected YOLO flag in: $result", result.contains("YOLO flag"))
     }
 
+    @Test fun commonVerbCutIsNeverMuggedByVocabulary() {
+        // Live 2026-08-05: "some guy just cut me off" pasted as "Git me off".
+        // "cut" and "Git" share Metaphone code KT; the low-confidence span
+        // made the phrase a recovery target; "cut" was missing from the
+        // blocklist. The planted "Git" then became a fake proper-noun anchor
+        // and the meaning guard killed every honest rewrite.
+        val (result, matches) = ProfileTermRecovery.apply(
+            "sorry some guy just cut me off",
+            emptyMap(),
+            listOf("Git"),
+            lowConfTexts = listOf("some guy just cut me off"),
+        )
+        assertEquals("sorry some guy just cut me off", result)
+        assertTrue(matches.isEmpty())
+    }
+
     // ── Phonetic-code edit distance ────────────────────────────────
 
     @Test fun oneEditOrLess() {
