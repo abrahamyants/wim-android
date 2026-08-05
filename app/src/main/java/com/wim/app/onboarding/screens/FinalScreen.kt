@@ -136,8 +136,8 @@ fun FinalScreen(onBack: () -> Unit, onDone: () -> Unit) {
                 Spacer(Modifier.height(14.dp))
 
                 Text(
-                    text = "If it ever disappears, the WiM notification in your tray brings it " +
-                        "back — leave that one on.",
+                    text = "If it ever disappears: swipe down from the top of your phone and " +
+                        "tap WiM right there — it comes back. Leave that one on.",
                     fontFamily = PlusJakartaFamily,
                     fontSize = 12.sp,
                     lineHeight = 18.sp,

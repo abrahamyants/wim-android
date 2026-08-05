@@ -92,8 +92,8 @@ fun SettingsMenuScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text = "Close the app — the bubble is all you need. Double-tap it any time for the " +
-                    "settings that matter:",
+                text = "Close the app — the bubble is all you need. Double-tap it — or drag it to " +
+                    "the top of your screen — any time for the settings that matter:",
                 fontFamily = PlusJakartaFamily,
                 fontSize = 14.sp,
                 lineHeight = 22.sp,

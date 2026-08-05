@@ -48,6 +48,7 @@ object OnboardingRoutes {
     const val PROFILE            = "profile"
     const val ABOUT_YOU          = "about-you"
     const val AUTOSEND           = "autosend"
+    const val DRIVE_IT           = "drive-it"
     const val SETTINGS_MENU      = "settings-menu"
 }
 
@@ -121,6 +122,12 @@ fun OnboardingNavHost(
         }
         composable(OnboardingRoutes.ABOUT_YOU) {
             AboutYouScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = { navController.navigate(OnboardingRoutes.DRIVE_IT) }
+            )
+        }
+        composable(OnboardingRoutes.DRIVE_IT) {
+            DriveItScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.AUTOSEND) }
             )
