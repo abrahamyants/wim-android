@@ -330,6 +330,7 @@
     <string name="lang_korean" translatable="false">한국어</string>
     <string name="lang_chinese" translatable="false">中文</string>
     <string name="lang_picker_dialog_title">Choose language</string>
+    <string name="lang_voice_only_suffix">\u0020\u00B7 voice only</string>
     <string name="lang_picker_restart_note">App will restart to apply</string>
 
     <!-- Google Play subscription -->

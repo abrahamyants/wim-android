@@ -595,19 +595,24 @@ class MainActivity : AppCompatActivity() {
             // pipeline (cloud ASR + reconstruction + lang pack) with the UI
             // staying English — deliberate, per operator 2026-07-29.
             val codes = arrayOf("en", "es", "ru", "pt", "fr", "ar", "de", "hi", "it", "ja", "ko", "zh")
+            // Two tiers, labeled honestly (11-language sweep, 2026-08-05):
+            // the first five have translated dashboards; the seven below run
+            // the full voice pipeline with the menus staying English. The
+            // picker used to promise "menu + spoken" for all twelve.
+            val voiceOnly = getString(R.string.lang_voice_only_suffix)
             val labels = arrayOf(
                 getString(R.string.lang_english),
                 getString(R.string.lang_spanish),
                 getString(R.string.lang_russian),
                 getString(R.string.lang_portuguese),
                 getString(R.string.lang_french),
-                getString(R.string.lang_arabic),
-                getString(R.string.lang_german),
-                getString(R.string.lang_hindi),
-                getString(R.string.lang_italian),
-                getString(R.string.lang_japanese),
-                getString(R.string.lang_korean),
-                getString(R.string.lang_chinese),
+                getString(R.string.lang_arabic) + voiceOnly,
+                getString(R.string.lang_german) + voiceOnly,
+                getString(R.string.lang_hindi) + voiceOnly,
+                getString(R.string.lang_italian) + voiceOnly,
+                getString(R.string.lang_japanese) + voiceOnly,
+                getString(R.string.lang_korean) + voiceOnly,
+                getString(R.string.lang_chinese) + voiceOnly,
             )
             val current = codes.indexOf(WimApp.appLanguage()).coerceAtLeast(0)
             androidx.appcompat.app.AlertDialog.Builder(this)
