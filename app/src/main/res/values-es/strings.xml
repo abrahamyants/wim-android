@@ -306,4 +306,5 @@
     <string name="cloud_unlock_action">SUSCRIBIRSE</string>
     <string name="cloud_unlock_restore">RESTAURAR</string>
     <string name="cloud_unlock_dialog">WiM Cloud incluye 300 dictados en la nube y hasta 20 dictados de la capa IV al mes. Se renueva mensualmente hasta que lo canceles en Google Play.</string>
+    <string name="lang_voice_only_suffix">\u0020\u00B7 solo voz</string>
 </resources>

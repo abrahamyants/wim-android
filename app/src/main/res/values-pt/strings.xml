@@ -306,4 +306,5 @@
     <string name="cloud_unlock_action">ASSINAR</string>
     <string name="cloud_unlock_restore">RESTAURAR</string>
     <string name="cloud_unlock_dialog">O WiM Cloud inclui 300 ditados na nuvem e até 20 ditados da camada IV por mês. A assinatura é renovada mensalmente até ser cancelada no Google Play.</string>
+    <string name="lang_voice_only_suffix">\u0020\u00B7 apenas voz</string>
 </resources>

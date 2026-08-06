@@ -306,4 +306,5 @@
     <string name="cloud_unlock_action">S’ABONNER</string>
     <string name="cloud_unlock_restore">RESTAURER</string>
     <string name="cloud_unlock_dialog">WiM Cloud inclut 300 dictées dans le cloud et jusqu’à 20 dictées de couche IV par mois. L’abonnement se renouvelle chaque mois jusqu’à son annulation dans Google Play.</string>
+    <string name="lang_voice_only_suffix">\u0020\u00B7 voix seulement</string>
 </resources>
