@@ -1,14 +1,17 @@
 # WiM — Play Store Listing (draft v1, 2026-08-06)
 
 ## App name (30 chars max)
-WiM: What I Meant
+WiM: Disfluency Voice Typing
+
+(28 chars. Disfluency-first per operator decision 2026-08-07. Brand line
+"What I Meant" opens the full description instead.)
 
 ## Short description (80 chars max)
-Speak messy, send clean. Dictation that types what you MEANT, in any app.
+Voice typing built for disfluent speech. Speak messy, send what you MEANT.
 
 ## Full description (4000 chars max)
 
-**The first app you won't use.**
+**WiM — What I Meant. The first app you won't use.**
 
 Set WiM up once, then close it. A small floating bubble stays on top of
 whatever you're doing. That bubble IS the app.
@@ -25,11 +28,10 @@ you meant to write. Like handing a rough draft to an editor. Your words,
 your meaning, tidied up. Casual or Professional — your pick.
 
 **Built for people the other apps gave up on.**
-WiM was built by a speaker with a stutter, for everyone whose speech
-doesn't come out in a straight line: people who stutter or block,
-non-native speakers, fast talkers, tired brains. Repetitions are bridged.
-False starts are cleaned. What you meant survives.
-WiM is an assistive dictation tool, not a medical device.
+WiM was built by a speaker with a hard speech block, for everyone whose
+speech doesn't come out in a straight line: speech disfluency, blocks,
+repetitions, non-native speakers, fast talkers, tired brains. Repetitions
+are bridged. False starts are cleaned. What you meant survives.
 
 **Four gears.**
 - Transcribe (free, on your phone): your words as spoken, tidied — no
@@ -47,23 +49,30 @@ translate the app's menus too.
 **Private by design.**
 Your recordings live on your phone only while a take is processed, then
 they're deleted. Free mode never touches the internet. No ads. No selling
-your data. Full policy: https://gugosf114.github.io/wim-android/privacy.html
+your data. Full policy: https://mybakingcreations.com/wim-android/privacy.html
 
 **WiM Cloud** unlocks the cloud gears: $9.99/month, 300 cloud takes,
 up to 20 deep-gear takes. The free gear is free forever.
 
 Speak like yourself. Send like you meant it.
 
+WiM is an assistive dictation tool, not a medical device. It does not
+diagnose, treat, cure, or prevent any medical condition. Consult a
+qualified healthcare professional for medical advice, diagnosis, or
+treatment.
+
 ## Category
 Productivity (alt: Tools)
 
 ## Tags / keywords
-voice typing, dictation, speech to text, stutter, accessibility, voice
-keyboard, talk to text, disfluency
+voice typing, dictation, speech to text, speech disfluency, accessibility,
+voice keyboard, talk to text, assistive
 
 ## Contact
 Email: gugosf@gmail.com
-Website: https://gugosf114.github.io/wim-android/privacy.html
+Website: https://mybakingcreations.com/wim-android/privacy.html
+Privacy policy URL (console field): https://mybakingcreations.com/wim-android/privacy.html
+Account deletion URL (console field): https://mybakingcreations.com/wim-delete-account
 
 ---
 
