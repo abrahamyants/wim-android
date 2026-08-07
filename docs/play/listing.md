@@ -1,10 +1,11 @@
 # WiM — Play Store Listing (draft v1, 2026-08-06)
 
 ## App name (30 chars max)
-WiM: Disfluency Voice Typing
+WiM: What I Meant
 
-(28 chars. Disfluency-first per operator decision 2026-08-07. Brand line
-"What I Meant" opens the full description instead.)
+(Operator-owned decision, confirmed 2026-08-07: the store name is George's
+call alone. Disfluency-first stays in the short description and body copy,
+not the title, unless George says otherwise.)
 
 ## Short description (80 chars max)
 Voice typing built for disfluent speech. Speak messy, send what you MEANT.
