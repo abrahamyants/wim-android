@@ -2,7 +2,7 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
-**[Download WiM — WiM-vc13.apk](https://github.com/gugosf114/wim-android/releases/latest/download/WiM-vc13.apk)**
+**[Download WiM — WiM-vc29.apk](https://github.com/gugosf114/wim-android/releases/latest/download/WiM-vc29.apk)**
 
 One file per release, named for the `versionCode` the phone reports under
 Settings → Apps → What I Meant. If the phone shows a lower number, the install
