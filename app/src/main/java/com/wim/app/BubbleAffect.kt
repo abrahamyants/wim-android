@@ -41,7 +41,7 @@ class BubbleAffect(
 
     private var observeJob: Job? = null
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var restingAnim: ValueAnimator? = null
+    private var restingTick: Runnable? = null
     private var leaningAnim: ValueAnimator? = null
     private var leanBreatheAnim: ValueAnimator? = null
     private var tadaAnim: ValueAnimator? = null
@@ -108,20 +108,29 @@ class BubbleAffect(
         cancelMotion(applyRestingFallback = false)
         val view = bubbleViewProvider() ?: return
         val bezel = view.findViewById<FrameLayout>(R.id.bubbleBezel) ?: return
-        val anim = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 4200
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            interpolator = AccelerateDecelerateInterpolator()
-            addUpdateListener { v ->
-                val t = v.animatedValue as Float
-                val s = baseScale() * (1.0f + 0.012f * t)
+        // Idle breathe runs on a 12fps Handler ticker, NOT an INFINITE
+        // ValueAnimator. A vsync-rate animator forces the overlay to render
+        // at full display refresh 24/7 — root cause of the 2026-08-10 phone
+        // freeze (1.46M frames / 6h, whole graphics stack pinned while the
+        // bubble sat idle). At a 1.2% scale amplitude, 12fps is visually
+        // identical. Do not "upgrade" this back to a ValueAnimator.
+        val startMs = android.os.SystemClock.uptimeMillis()
+        val interp = AccelerateDecelerateInterpolator()
+        val tick = object : Runnable {
+            override fun run() {
+                val elapsed = android.os.SystemClock.uptimeMillis() - startMs
+                // Same shape as the old animator: 4200ms per leg, reversed —
+                // a triangle wave through the ease, period 8400ms.
+                val phase = (elapsed % 8400L) / 4200f
+                val t = if (phase <= 1f) phase else 2f - phase
+                val s = baseScale() * (1.0f + 0.012f * interp.getInterpolation(t))
                 bezel.scaleX = s
                 bezel.scaleY = s
+                mainHandler.postDelayed(this, 83L)
             }
         }
-        restingAnim = anim
-        anim.start()
+        restingTick = tick
+        mainHandler.post(tick)
     }
 
     // ── LEANING_FORWARD ─────────────────────────────────
@@ -353,7 +362,7 @@ class BubbleAffect(
     // ── Lifecycle / cancellation ────────────────────────
 
     private fun cancelMotion(applyRestingFallback: Boolean) {
-        restingAnim?.cancel(); restingAnim = null
+        restingTick?.let { mainHandler.removeCallbacks(it) }; restingTick = null
         leaningAnim?.cancel(); leaningAnim = null
         leanBreatheAnim?.cancel(); leanBreatheAnim = null
         tadaAnim?.cancel(); tadaAnim = null
