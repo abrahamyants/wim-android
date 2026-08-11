@@ -816,12 +816,12 @@ class MainActivity : AppCompatActivity() {
         val micBtn = findViewById<View>(R.id.micPermBtn)
 
         overlayBtn.setOnClickListener {
-            if (!Settings.canDrawOverlays(this)) {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")))
-            } else {
-                Toast.makeText(this, "Overlay already granted", Toast.LENGTH_SHORT).show()
-            }
+            // Always open the system Appear-on-top page. It is the only place
+            // that can GRANT and also REVOKE the overlay. The old granted-branch
+            // dead-ended in a toast, which hid the revoke path from the operator
+            // entirely (George, 2026-08-11).
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")))
         }
 
         accessibilityBtn.setOnClickListener {
