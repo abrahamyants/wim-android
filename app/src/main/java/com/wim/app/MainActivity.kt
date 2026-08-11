@@ -820,6 +820,15 @@ class MainActivity : AppCompatActivity() {
             // that can GRANT and also REVOKE the overlay. The old granted-branch
             // dead-ended in a toast, which hid the revoke path from the operator
             // entirely (George, 2026-08-11).
+            //
+            // Stop the bubble FIRST: with the overlay window live, Samsung's
+            // Appear-on-top switch fights the press — it sticks, reverts, and
+            // obeys only after the app dies (operator-reproduced 2026-08-11).
+            // With the service down the switch obeys first press, both ways.
+            // The bubble returns via ensureBubbleRunning when WiM reopens.
+            try {
+                stopService(Intent(this, BubbleService::class.java))
+            } catch (_: Exception) {}
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")))
         }
