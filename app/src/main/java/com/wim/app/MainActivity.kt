@@ -815,50 +815,56 @@ class MainActivity : AppCompatActivity() {
         val accessibilityBtn = findViewById<View>(R.id.accessibilityPermBtn)
         val micBtn = findViewById<View>(R.id.micPermBtn)
 
+        // Every permission row must flip BOTH WAYS, ANY TIME (George,
+        // 2026-08-12: "I open the app and I can switch on and off all the
+        // permissions all the time whenever I want"). Two standing repairs
+        // make that true:
+        //  1. quietBubbleForSettings() before EVERY system page — a live
+        //     overlay window makes Samsung's permission switches ignore
+        //     the press (operator-reproduced 2026-08-11), and the 2s retry
+        //     could relight it mid-Settings (the hit-or-miss, 2026-08-12).
+        //     The bubble returns via ensureBubbleRunning when WiM reopens.
+        //  2. Granted state routes to the page that can REVOKE — a runtime
+        //     dialog can only grant, and a dead-end toast hides the off
+        //     switch entirely (George, 2026-08-11).
         overlayBtn.setOnClickListener {
-            // Always open the system Appear-on-top page. It is the only place
-            // that can GRANT and also REVOKE the overlay. The old granted-branch
-            // dead-ended in a toast, which hid the revoke path from the operator
-            // entirely (George, 2026-08-11).
-            //
-            // Stop the bubble FIRST: with the overlay window live, Samsung's
-            // Appear-on-top switch fights the press — it sticks, reverts, and
-            // obeys only after the app dies (operator-reproduced 2026-08-11).
-            // With the service down the switch obeys first press, both ways.
-            // The bubble returns via ensureBubbleRunning when WiM reopens.
-            // Kill the pending 2s retry too — it fired mid-Settings and
-            // relit the overlay window, resurrecting the fight whenever the
-            // tap came <2s after resume (the hit-or-miss, 2026-08-12).
-            window.decorView.removeCallbacks(bubbleRetryRunnable)
-            try {
-                stopService(Intent(this, BubbleService::class.java))
-            } catch (_: Exception) {}
+            // The system Appear-on-top page grants AND revokes.
+            quietBubbleForSettings()
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")))
         }
 
         accessibilityBtn.setOnClickListener {
-            // Enforce order: overlay must be granted before accessibility
-            if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Grant overlay permission first", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
+            // No overlay-first gate — any switch, any time, either way.
+            // (Gate removed 2026-08-12; onboarding order lives in Bouncer.)
+            quietBubbleForSettings()
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
 
         micBtn.setOnClickListener {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.RECORD_AUDIO),
-                100
-            )
+            quietBubbleForSettings()
+            val micGranted = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (micGranted) {
+                // Only the app-info page can take mic away.
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:$packageName")))
+            } else {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.RECORD_AUDIO),
+                    100
+                )
+            }
         }
 
         findViewById<View>(R.id.batteryPermBtn)?.setOnClickListener {
+            quietBubbleForSettings()
             try {
                 // Battery-optimization LIST, not the one-tap dialog — the dialog
                 // needs REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which WiM no longer
                 // declares (Play reviews it case by case). See PermissionLauncher.
+                // The list grants and revokes.
                 startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             } catch (_: Exception) {
                 Toast.makeText(this, "Open battery settings manually", Toast.LENGTH_SHORT).show()
@@ -866,14 +872,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.notifPermBtn)?.setOnClickListener {
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
+            quietBubbleForSettings()
+            val notifGranted = android.os.Build.VERSION.SDK_INT < 33 ||
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (notifGranted) {
+                // The app-notification page grants and revokes.
+                startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+            } else {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
                     200
                 )
-            } else {
-                Toast.makeText(this, "Notifications already granted", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -2469,6 +2481,17 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     // bubble while Samsung's Appear-on-top page is front, and the switch
     // fights a live overlay window — the "hit or miss" toggle, 2026-08-12).
     private val bubbleRetryRunnable = Runnable { ensureBubbleRunning() }
+
+    /** Kill the bubble AND its pending 2s retry before opening any system
+     *  permission page. A live overlay window makes Samsung's permission
+     *  switches swallow the press; the retry could relight it mid-page.
+     *  ensureBubbleRunning brings the bubble back when WiM regains focus. */
+    private fun quietBubbleForSettings() {
+        window.decorView.removeCallbacks(bubbleRetryRunnable)
+        try {
+            stopService(Intent(this, BubbleService::class.java))
+        } catch (_: Exception) {}
+    }
 
     private fun ensureBubbleRunning() {
         if (!Settings.canDrawOverlays(this)) return
