@@ -826,6 +826,10 @@ class MainActivity : AppCompatActivity() {
             // obeys only after the app dies (operator-reproduced 2026-08-11).
             // With the service down the switch obeys first press, both ways.
             // The bubble returns via ensureBubbleRunning when WiM reopens.
+            // Kill the pending 2s retry too — it fired mid-Settings and
+            // relit the overlay window, resurrecting the fight whenever the
+            // tap came <2s after resume (the hit-or-miss, 2026-08-12).
+            window.decorView.removeCallbacks(bubbleRetryRunnable)
             try {
                 stopService(Intent(this, BubbleService::class.java))
             } catch (_: Exception) {}
@@ -985,6 +989,10 @@ class MainActivity : AppCompatActivity() {
         // activity after it's gone.
         BubbleService.onBubbleVisibilityChanged = null
         sessionTimerHandler.removeCallbacks(sessionTimerTick)
+        // The 2s bubble retry must die with the foreground state — it may
+        // never fire while another screen (esp. Appear-on-top) is in front.
+        // onResume re-arms it on every return.
+        window.decorView.removeCallbacks(bubbleRetryRunnable)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -2456,6 +2464,12 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         return enabledServices.contains("$packageName/${WimAccessibilityService::class.java.canonicalName}")
     }
 
+    // Named so it can be cancelled: the 2s retry must NOT fire after the
+    // operator taps the overlay-permission button (it would restart the
+    // bubble while Samsung's Appear-on-top page is front, and the switch
+    // fights a live overlay window — the "hit or miss" toggle, 2026-08-12).
+    private val bubbleRetryRunnable = Runnable { ensureBubbleRunning() }
+
     private fun ensureBubbleRunning() {
         if (!Settings.canDrawOverlays(this)) return
         if (!isAccessibilityEnabled()) return
@@ -2511,7 +2525,8 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             // bulb removed
             // Start bubble now, and retry after 2s in case accessibility service is still connecting
             ensureBubbleRunning()
-            window.decorView.postDelayed({ ensureBubbleRunning() }, 2000)
+            window.decorView.removeCallbacks(bubbleRetryRunnable)
+            window.decorView.postDelayed(bubbleRetryRunnable, 2000)
         } else {
             statusText.text = "SETUP"
             // bulb removed
