@@ -2493,8 +2493,34 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         } catch (_: Exception) {}
     }
 
+    /** Live truth for the overlay permission. Settings.canDrawOverlays caches
+     *  per-process — stale after grant AND after revoke (the six-day lie +
+     *  the dead red row on camera, 2026-08-12). appops answers live. */
+    private fun hasOverlayPermission(): Boolean {
+        return try {
+            val ops = getSystemService(android.app.AppOpsManager::class.java)
+            val mode = if (android.os.Build.VERSION.SDK_INT >= 29) {
+                ops.unsafeCheckOpNoThrow(
+                    android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                    android.os.Process.myUid(), packageName)
+            } else {
+                @Suppress("DEPRECATION")
+                ops.checkOpNoThrow(
+                    android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                    android.os.Process.myUid(), packageName)
+            }
+            when (mode) {
+                android.app.AppOpsManager.MODE_ALLOWED -> true
+                android.app.AppOpsManager.MODE_DEFAULT -> Settings.canDrawOverlays(this)
+                else -> false
+            }
+        } catch (_: Exception) {
+            Settings.canDrawOverlays(this)
+        }
+    }
+
     private fun ensureBubbleRunning() {
-        if (!Settings.canDrawOverlays(this)) return
+        if (!hasOverlayPermission()) return
         if (!isAccessibilityEnabled()) return
         // Send SHOW regardless — if service is running but bubble is hidden, this brings it back
         try {
@@ -2506,7 +2532,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     }
 
     private fun updatePermissionStatus() {
-        val overlayOk = Settings.canDrawOverlays(this)
+        val overlayOk = hasOverlayPermission()
         val accessibilityOk = isAccessibilityEnabled()
         val micOk = AudioRecorder(this).hasPermission()
         val pm = getSystemService(android.os.PowerManager::class.java)
