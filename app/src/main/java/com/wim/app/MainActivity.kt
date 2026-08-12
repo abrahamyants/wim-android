@@ -2549,8 +2549,16 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         val red = 0xFFEF4444.toInt()
         val grantedColor = 0x99C8B48A.toInt()
         val missingColor = 0xFFD96A4A.toInt()
+        // Pills may live inside a reparented bottom sheet — a separate window
+        // Activity.findViewById cannot see (same trap as line ~1444). Search
+        // the sheet and the section overlay before the activity tree, else
+        // the pills keep their launch-time color forever.
+        fun findPill(pillId: Int): TextView? =
+            currentBottomSheet?.findViewById(pillId)
+                ?: sectionOverlay?.findViewById(pillId)
+                ?: findViewById(pillId)
         fun paintPill(pillId: Int, ok: Boolean) {
-            val tv = findViewById<TextView>(pillId) ?: return
+            val tv = findPill(pillId) ?: return
             tv.text = if (ok) "✓ GRANTED" else "✗ TAP TO GRANT"
             tv.setTextColor(if (ok) grantedColor else missingColor)
         }
@@ -2630,6 +2638,19 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
     // when the user returns from Android Settings with all perms granted.
     private var currentBottomSheet: com.google.android.material.bottomsheet.BottomSheetDialog? = null
     private var currentBottomSheetContentId: Int = 0
+
+    /** Repaint the permission pills every 800ms while the PERMISSIONS sheet
+     *  is open, so a grant made on the system page shows the moment the
+     *  operator returns — no close/reopen dance, no stale pills on camera. */
+    private val permPillPollRunnable = object : Runnable {
+        override fun run() {
+            if (currentBottomSheetContentId == R.id.contentPermissions ||
+                sectionContentView?.id == R.id.contentPermissions) {
+                updatePermissionStatus()
+                window.decorView.postDelayed(this, 800)
+            }
+        }
+    }
 
     // Section-overlay state — track the original parent + index for the
     // currently-shown section so we can put it back on dismiss.
@@ -2852,6 +2873,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
 
         // Restore content on dismiss
         dialog.setOnDismissListener {
+            window.decorView.removeCallbacks(permPillPollRunnable)
             (content.parent as? android.view.ViewGroup)?.removeView(content)
             content.visibility = originalVisibility
             if (originalIndex >= 0) {
@@ -2868,6 +2890,11 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         currentBottomSheet = dialog
         currentBottomSheetContentId = contentResId
         dialog.show()
+        if (contentResId == R.id.contentPermissions) {
+            updatePermissionStatus()
+            window.decorView.removeCallbacks(permPillPollRunnable)
+            window.decorView.postDelayed(permPillPollRunnable, 800)
+        }
     }
 
     private fun showProfileOverlay() {
