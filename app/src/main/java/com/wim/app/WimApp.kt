@@ -248,6 +248,43 @@ class WimApp : Application() {
         fun autoSendDisclaimerCount(): Int = prefInt("auto_send_disclaimer_count", 0)
 
         /**
+         * Read-back: on SEND_READY, speak the reconstructed text before the
+         * countdown starts (2026-08-13). The countdown is held for the whole
+         * read, so the five seconds is a real window that begins after the
+         * user has heard what they are about to send.
+         *
+         * ON by default. Reconstruction is not transcription — the user cannot
+         * know it understood them without checking, and the window existed
+         * with nothing in it to check with.
+         */
+        fun readBackEnabled(): Boolean = prefBool("read_back_enabled", true)
+
+        /**
+         * Engine voice name from [android.speech.tts.Voice.name], or blank for
+         * the engine default. Stored as the raw name because the set of voices
+         * is whatever that particular phone has installed — see
+         * [ReadBackSpeaker.voiceOptions].
+         */
+        fun readBackVoiceId(): String = prefStr("read_back_voice", "")
+
+        /** Playback rate: 1.0, 1.25 or 1.5. Above 1.5 the voice reads as
+         *  rushed and users stop trusting what they heard. */
+        fun readBackSpeed(): Float = when (prefStr("read_back_speed", "1.0")) {
+            "1.25" -> 1.25f
+            "1.5" -> 1.5f
+            else -> 1.0f
+        }
+
+        /**
+         * BCP-47 tag for the language the user is actually writing in, as
+         * stored by [setAppLanguage]. Read-back follows the OUTGOING message's
+         * language, not the dashboard's — the interface can sit in English
+         * while the user writes Spanish, and an English voice reading Spanish
+         * is noise.
+         */
+        fun speechLocaleTag(): String = prefStr("primary_language", "en-US")
+
+        /**
          * UI/spoken-language code: "en", "es", or "ru". Drives both the
          * Android resource locale (via AppCompatDelegate.setApplicationLocales)
          * and the OpenAI Whisper API `language` parameter. Non-English locales

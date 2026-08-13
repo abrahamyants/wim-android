@@ -307,4 +307,13 @@
     <string name="cloud_unlock_restore">ВОССТАНОВИТЬ</string>
     <string name="cloud_unlock_dialog">WiM Cloud включает 300 облачных диктовок и до 20 диктовок уровня IV в месяц. Подписка продлевается ежемесячно, пока вы не отмените её в Google Play.</string>
     <string name="lang_voice_only_suffix">\u0020\u00B7 только голос</string>
+    <string name="settings_read_back">Прочитать мне вслух</string>
+    <string name="settings_read_back_sub">Услышьте сообщение до начала обратного отсчёта</string>
+    <string name="settings_read_back_voice">Голос озвучки</string>
+    <string name="settings_read_back_voice_default">По умолчанию</string>
+    <string name="settings_read_back_voice_none">Голос не установлен</string>
+    <string name="settings_read_back_speed">Скорость озвучки</string>
+    <string name="settings_read_back_speed_1x">Обычная</string>
+    <string name="settings_read_back_speed_125x">1,25x</string>
+    <string name="settings_read_back_speed_15x">1,5x</string>
 </resources>

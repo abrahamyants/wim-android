@@ -655,6 +655,13 @@ class MainActivity : AppCompatActivity() {
         // ── Type-to-speak ──
         tts = android.speech.tts.TextToSpeech(this) { status ->
             if (status != android.speech.tts.TextToSpeech.SUCCESS) Log.e("WiM", "TTS init failed")
+            else runOnUiThread {
+                // The read-back voice row reads its list off this engine, and
+                // init lands asynchronously — without this the row shows
+                // "Default" and an empty picker to anyone who reaches settings
+                // before the engine finishes binding.
+                refreshReadBackVoiceLabel()
+            }
         }
         findViewById<TextView>(R.id.ttsSpeak)?.setOnClickListener {
             val text = findViewById<EditText>(R.id.ttsInput)?.text?.toString()?.trim() ?: return@setOnClickListener
@@ -732,6 +739,7 @@ class MainActivity : AppCompatActivity() {
         setupAutoSendToggle()
         // ── Facehugger Send (bubble jumps to host Send button on SEND_READY) ──
         setupFacehuggerToggle()
+        setupReadBackControls()
 
         // ── DAF in Settings ──
         val settingsDafToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingsDafToggle)
@@ -3487,6 +3495,98 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         styleToggle(toggle)
         toggle.setOnCheckedChangeListener { _, checked ->
             WimApp.prefs.edit().putBoolean("facehugger_send", checked).apply()
+        }
+    }
+
+    // ── Read-back (2026-08-13) ──
+    // On SEND_READY the bubble speaks the reconstruction, and the five-second
+    // countdown is held until the read finishes. Three controls: on/off, which
+    // installed voice, and how fast.
+    private fun setupReadBackControls() {
+        findViewById<MaterialSwitch>(R.id.readBackToggle)?.let { toggle ->
+            toggle.isChecked = WimApp.readBackEnabled()
+            styleToggle(toggle)
+            toggle.setOnCheckedChangeListener { _, checked ->
+                WimApp.prefs.edit().putBoolean("read_back_enabled", checked).apply()
+            }
+        }
+
+        refreshReadBackVoiceLabel()
+        findViewById<View>(R.id.readBackVoiceRow)?.setOnClickListener {
+            // Built from what this phone actually has installed. Deliberately
+            // not a fixed four-item menu: a Pixel carries several English
+            // voices and plenty of phones carry exactly one.
+            val options = ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag())
+            if (options.isEmpty()) {
+                Toast.makeText(this, getString(R.string.settings_read_back_voice_none), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val labels = (listOf(getString(R.string.settings_read_back_voice_default)) +
+                options.map { it.second }).toTypedArray()
+            val ids = listOf("") + options.map { it.first }
+            val current = ids.indexOf(WimApp.readBackVoiceId()).coerceAtLeast(0)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.settings_read_back_voice)
+                .setSingleChoiceItems(labels, current) { dialog, which ->
+                    WimApp.prefs.edit().putString("read_back_voice", ids[which]).apply()
+                    refreshReadBackVoiceLabel()
+                    // Speak the sample in the voice just picked, so the choice
+                    // is made by ear instead of by an engine name nobody can
+                    // read ("en-us-x-sfg#female_1-local").
+                    tts?.let { engine ->
+                        try {
+                            if (ids[which].isBlank()) engine.setLanguage(
+                                java.util.Locale.forLanguageTag(WimApp.speechLocaleTag()))
+                            else engine.voices?.firstOrNull { v -> v.name == ids[which] }
+                                ?.let { v -> engine.voice = v }
+                            engine.setSpeechRate(WimApp.readBackSpeed())
+                            engine.speak(
+                                getString(R.string.settings_read_back_sub),
+                                android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_voice_preview"
+                            )
+                        } catch (_: Exception) {}
+                    }
+                    dialog.dismiss()
+                }
+                .show()
+        }
+
+        refreshReadBackSpeedLabel()
+        findViewById<View>(R.id.readBackSpeedRow)?.setOnClickListener {
+            val values = arrayOf("1.0", "1.25", "1.5")
+            val labels = arrayOf(
+                getString(R.string.settings_read_back_speed_1x),
+                getString(R.string.settings_read_back_speed_125x),
+                getString(R.string.settings_read_back_speed_15x)
+            )
+            val stored = try { WimApp.prefs.getString("read_back_speed", "1.0") } catch (_: Exception) { "1.0" }
+            val current = values.indexOf(stored).coerceAtLeast(0)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.settings_read_back_speed)
+                .setSingleChoiceItems(labels, current) { dialog, which ->
+                    WimApp.prefs.edit().putString("read_back_speed", values[which]).apply()
+                    refreshReadBackSpeedLabel()
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun refreshReadBackVoiceLabel() {
+        val label = findViewById<TextView>(R.id.readBackVoiceValue) ?: return
+        val id = WimApp.readBackVoiceId()
+        label.text = if (id.isBlank()) getString(R.string.settings_read_back_voice_default)
+        else ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag())
+            .firstOrNull { it.first == id }?.second
+            ?: getString(R.string.settings_read_back_voice_default)
+    }
+
+    private fun refreshReadBackSpeedLabel() {
+        val label = findViewById<TextView>(R.id.readBackSpeedValue) ?: return
+        label.text = when (WimApp.readBackSpeed()) {
+            1.25f -> getString(R.string.settings_read_back_speed_125x)
+            1.5f -> getString(R.string.settings_read_back_speed_15x)
+            else -> getString(R.string.settings_read_back_speed_1x)
         }
     }
 

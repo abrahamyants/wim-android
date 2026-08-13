@@ -1189,6 +1189,10 @@ class BubbleService : Service() {
                     if (isSendReady && !isRecording && dist < outerR && tapDuration < 300) {
                         try { vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                         isSendReady = false
+                        // Tapping SEND while the read-back is still talking is
+                        // the user saying "I heard enough" — cut the voice off
+                        // mid-word rather than narrating a sent message.
+                        stopReadBack()
                         timerHandler.removeCallbacks(revertSendReadyRunnable)
                         handleSendConfirmTap()
                         return@setOnTouchListener true
@@ -1404,6 +1408,9 @@ class BubbleService : Service() {
         // Drop any in-flight send-ready timer + disclaimer so they don't
         // survive the bubble's lifetime.
         isSendReady = false
+        // The bubble is going away; a voice still reading its message out is
+        // the app talking about something the user can no longer see.
+        stopReadBack()
         timerHandler.removeCallbacks(revertSendReadyRunnable)
         dismissSendDisclaimer()
         hideWordHighlight()
@@ -1451,6 +1458,37 @@ class BubbleService : Service() {
             snapBackFromFacehugger()
             setBubbleIdle()
         }
+    }
+
+    /**
+     * Starts the five-second SEND_READY window. Split out of
+     * [setBubbleSendReady] on 2026-08-13 so read-back can hold the countdown:
+     * when the voice is speaking, this is called from the speech callback
+     * instead of inline, and the user gets the whole window after the read.
+     */
+    private fun armSendReadyCountdown() {
+        bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.text =
+            "${SEND_READY_TIMEOUT_MS / 1000}s"
+        sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
+        timerHandler.removeCallbacks(sendReadyTickRunnable)
+        timerHandler.post(sendReadyTickRunnable)
+        timerHandler.removeCallbacks(revertSendReadyRunnable)
+        timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
+        ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
+    }
+
+    /** Lazily built so a user with read-back off never constructs a TTS
+     *  engine, and so engine startup cost lands on the first read, not on
+     *  every service start. */
+    private var readBackSpeakerInstance: ReadBackSpeaker? = null
+    private fun readBackSpeaker(): ReadBackSpeaker =
+        readBackSpeakerInstance ?: ReadBackSpeaker(this).also { readBackSpeakerInstance = it }
+
+    /** Cuts a read-back short. Called wherever SEND_READY ends early — the
+     *  voice must not keep talking about a message the user already sent or
+     *  abandoned. */
+    private fun stopReadBack() {
+        readBackSpeakerInstance?.stop()
     }
     // Send disclaimer overlay extracted to BubbleSendDisclaimer 2026-05-25
     // — fifth BubbleWindow slice. Show path is dormant (tap-to-send confirm
@@ -1633,12 +1671,23 @@ class BubbleService : Service() {
             text = "${SEND_READY_TIMEOUT_MS / 1000}s"
             setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.green_bright))
         }
-        sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
-        timerHandler.removeCallbacks(sendReadyTickRunnable)
-        timerHandler.post(sendReadyTickRunnable)
-        timerHandler.removeCallbacks(revertSendReadyRunnable)
-        timerHandler.postDelayed(revertSendReadyRunnable, SEND_READY_TIMEOUT_MS)
-        ConsoleLog.log("Ready to send — tap bubble or wait to cancel", "info")
+        // Read-back (2026-08-13): speak the reconstruction, THEN start the
+        // five seconds. The countdown is held for the whole read so the window
+        // is a real one — it begins after the user has heard what they are
+        // about to send, not while they are still hearing it.
+        val readBackText = WimAccessibilityService.lastInjectedTextSnapshot().trim()
+        if (WimApp.readBackEnabled() && readBackText.isNotEmpty()) {
+            view.findViewById<TextView>(R.id.bubbleTime)?.text = "…"
+            ConsoleLog.log("Reading back — countdown starts after", "info")
+            readBackSpeaker().speak(readBackText) {
+                // isSendReady can have been cleared while the voice was
+                // talking (user tapped send, started a new recording, or the
+                // bubble went away). Arming here would resurrect a dead state.
+                if (isSendReady) armSendReadyCountdown()
+            }
+        } else {
+            armSendReadyCountdown()
+        }
         val facehuggerOn = WimApp.facehuggerSendEnabled()
         if (facehuggerOn) {
             val sendCenter = injectionPort?.getSendButtonCenter()
@@ -2450,6 +2499,9 @@ class BubbleService : Service() {
         tipRotator?.maybeShow()
         // Cancel SEND-ready countdown ticker if still running.
         timerHandler.removeCallbacks(sendReadyTickRunnable)
+        // Going Idle also ends any read-back — the countdown it was holding
+        // open no longer exists.
+        stopReadBack()
         bubbleTouchView?.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
         applyBubbleTheme()
         bubbleTouchView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
@@ -3619,6 +3671,11 @@ class BubbleService : Service() {
 
         shakeDetector?.stop()
         shakeDetector = null
+        // TextToSpeech holds a bound service connection; without shutdown it
+        // leaks past this Service and Android logs the engine as still
+        // connected. Mirrors MainActivity's stop/shutdown/null on destroy.
+        try { readBackSpeakerInstance?.shutdown() } catch (_: Exception) {}
+        readBackSpeakerInstance = null
         stopHotwordListener()
         hotword = null
         bubbleMenu?.dismiss()
