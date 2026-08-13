@@ -4383,3 +4383,105 @@ that list.
   denies `/system/bin/logcat`, and the on-device MCP server returns only its own
   process log — and adb was unavailable all session. Nothing in tonight's window
   split is a proven cause, and nothing rules it out.
+
+---
+
+## Session Log — 2026-08-13 (covering 2026-08-06 → 2026-08-13: the permission-settings week)
+
+**The goal all week:** film the Play Console demo video (one link, three waiting
+boxes: the accessibility form + two foreground-service declarations). The video
+must show permissions being granted on camera and the bubble typing into a real
+app. The operator's standing requirement underneath it: open WiM, toggle any
+permission on or off, and SEE the change happen with his own eyes.
+
+**What actually shipped this week (all pushed, CI green, installed on phone):**
+
+- `245f7c0` (8/11) — Overlay row always opens the system Appear-on-top page
+  (was a grant-only dead end with an "already granted" toast).
+- `90b61f0`, `d9c97c6` (8/11–12) — bubble + its 2s retry timer quieted before
+  any system permission page opens (a live overlay makes Samsung's permission
+  switches swallow presses).
+- `c070402` (8/12 03:05) — every permission row flips both ways, any order; the
+  overlay-before-accessibility gate removed; "Grant overlay permission first"
+  demoted to a toast nag that blocks nothing.
+- `7fdafd6` (8/12) — sheet reads overlay truth from AppOpsManager instead of
+  `Settings.canDrawOverlays`, whose per-process cache lies in BOTH directions
+  (stale red after a grant, stale green after a revoke).
+- `8d76830` (8/12) — the real killer: `openBottomSheet` reparents
+  `contentPermissions` into a BottomSheetDialog window where
+  `Activity.findViewById` cannot reach the pills, so every pill kept its
+  launch-time color forever. paintPill now searches the sheet window first, and
+  an 800ms repaint poll runs while the sheet is open.
+
+**Verified once, on the operator's own eyes (8/12 ~4:47pm PT):** with the sheet
+open and nobody touching the phone, the Overlay row flipped GREEN → RED → GREEN
+by itself as the permission was flipped from the shell. That is the first time
+in seven days the display and the truth agreed in real time. This is recorded
+as one verified demonstration — not as "the war is over."
+
+### Failure Log — 2026-08-13 (the week)
+
+**The three diseases, as finally diagnosed (8/12):**
+
+- **Samsung's "Appear on top" page never repaints at tap time.** For every app,
+  not just WiM. Survives a phone restart and `pm clear` on the Settings app
+  (both cure the standing picture on a fresh open; neither revives tap-time
+  repaint). Every tap LANDS — the appops log flipped on every single tap all
+  week — the page just never draws it. Unfixable from outside Samsung; the only
+  untried cures are a Samsung software update and a factory reset. Operating
+  rule forever: tap once, leave the page, come back; never double-tap (each
+  pair of taps silently cancels itself).
+- **WiM's own sheet lied twice on top of that** — the `canDrawOverlays` cache
+  and the unreachable reparented pills above. Two stacked bugs on one row is
+  why the first fix (7fdafd6) visibly changed nothing and cost a burned take
+  before 8d76830 found the second layer.
+
+**What was tried and failed, or wasted the week:**
+
+- Six days were spent re-fixing switches that were never broken, because two
+  lying displays (Samsung's page + WiM's sheet) hid the fact that every tap
+  landed. The permission state flipped correctly the entire week.
+- Night fixes slept in GitHub while mornings tested stale phone builds. The
+  3:05am any-order fix was not on the phone until 10:07 the next morning; the
+  operator spent that morning fighting a bug that was already fixed upstream.
+  Rule now standing: before any test, compare the installed build's
+  lastUpdateTime against the latest commit.
+- Restart and Settings-wipe were tried as cures: both repaint the page
+  correctly on fresh open, neither revives live tap-time repaint. The
+  operator's own all-apps test (no app's switch moves) killed the theory that
+  WiM's reinstall churn poisoned its row specifically.
+- Four-plus filming attempts died before any footage was usable: blind
+  coordinate taps hit a rotated/landscape screen and a picture-in-picture
+  video; the operator reading this session in Termux on the same phone pulled
+  every staged page behind his keyboard mid-take; one take died on the
+  pre-8d76830 stale red row; the Samsung screen recorder's floating control is
+  itself an overlay and is suspected (operator's live report, unverified) of
+  eating permission-switch taps.
+- False calls made and corrected on the record this week: "the bubble came
+  alive" (it was WiM's in-app widget, BubbleService was not running); "both
+  taps landed" during a recording (the log showed no change — the taps had hit
+  the keyboard); the reinstall-churn theory (killed by the all-apps test);
+  and early framing that the video needed the Appear-on-top switch itself to
+  animate (it never did — the accessibility switch is the only toggle Google
+  requires to be seen moving, and it slides correctly on this phone; overlay's
+  on-camera proof is the row turning green and the bubble appearing).
+
+**Not tried / still open:**
+
+- Samsung software update check (last plausible cure for the dead page).
+- Factory reset (other cure; cost exceeds the disease).
+- THE VIDEO ITSELF. Every component is now individually verified — honest
+  rows, sliding accessibility toggle, bubble, TTS voice through the speaker
+  (termux-tts-speak, tested audible), Claude app chosen as the safe inject
+  target — but the 90-second end-to-end take has never been run. That is the
+  single unfinished act of the week.
+- Backend port of the 8/4–8/5 prompt/guard fixes to the wim-reconstruct cloud
+  function — untouched all week; still required before real testers judge the
+  Play build.
+- Mic/Battery/Notifications rows: c070402's revoke-routing for those three has
+  not been personally verified on device.
+
+**On the record, no repetition needed ever again:** the switches always worked;
+the screens lied; two of the three liars are fixed and the third is Samsung's
+forever. Nothing in this entry claims the war is won — it claims the map is
+finally correct.
