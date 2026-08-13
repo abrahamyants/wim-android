@@ -4485,3 +4485,56 @@ as one verified demonstration — not as "the war is over."
 the screens lied; two of the three liars are fixed and the third is Samsung's
 forever. Nothing in this entry claims the war is won — it claims the map is
 finally correct.
+
+### Failure Log — 2026-08-13, second pass (transcript-checked)
+
+Re-read of the week's session transcripts (8/10, 8/11, 8/12-night, 8/12-13
+main) against the first-pass log above, per this README's own rule that first
+failure logs capture the salient half and miss the systemic half. Corrections
+and omissions:
+
+- **Correction to the first pass:** "TTS voice through the speaker … tested
+  audible" is an overclaim. The command exited OK; the operator never
+  confirmed hearing it. Status: works on paper, unheard in the room.
+- **The operator dictated the complete take script on 8/12 ~01:40** — bubble
+  absent at recording start → open WiM → give permissions → bubble appears →
+  open the Claude app, brand-new chat → record → speak 2–3 sentences → inject
+  → bubble green → face-hug Claude's send → tap our send → end recording.
+  Today's session carried the stale 8/11 plan (Messages as target) instead,
+  re-derived the script, and made him re-dictate scene order mid-day ("why am
+  I telling you this"). The map he had already drawn was not carried forward.
+- **The day opened with a wrong recap** — "we stopped at filming, everything
+  was set" — contradicting his lived state (six days unable to toggle
+  visibly). The first hour of goodwill was spent on that mismatch.
+- **Communication failures, his banned list, hit repeatedly today:** two
+  "it's been 5 minutes" pings went unanswered before the third demand got the
+  explanation (blind cable-driving pace: ~20s screenshot verification per
+  tap); explanations failed three consecutive times ("every response worse
+  than the previous", "new record") until the answer became a concrete
+  step-list in his own nouns — numbered abstractions ("switch 1 / switch 2")
+  made it worse; "way too theatrical" called out mid-session; he had to force
+  compressions ("under two sentences", "a very short answer", "answer or
+  refuse"); he flagged two full re-derivation loops as restarts of a
+  conversation had "77 times".
+- **Finished work re-pitched as motion:** the privacy policy page and store
+  listing were presented as next actions; both had been done for days ("all
+  of that's already done"). Plus a wrong-repo detour into lavrentiy off a
+  code-search hit, questioned twice before it was explained plainly.
+- **8/11-night carry-overs that belong to this week's record:** a no-receipt
+  claim ("the crash did it") answered from assumption and called out — the
+  incident class that led to the receipts-gate Stop hook being built that
+  night; earlier that day, "accessibility revives the bubble" was defended
+  through two live corrections before the operator's phone evidence won
+  (overlay owns the bubble; accessibility injects only).
+- **The operator ordered the app deleted twice mid-war.** One pushback given,
+  order not renewed after the live green-red-green proof. Recorded as a cost
+  marker of the week, nothing more.
+- **Open regression, folded into the backend-port debt:** 8/11-night report of
+  severe L1 latency on the keyless/backend lane versus the keys-inside phone
+  build ("earth and the bottom of the ocean"), plus the lost
+  quiet-second-then-processing behavior. Unresolved; lands with the prompt
+  and guard port to wim-reconstruct.
+- **Blind cable-driving filmed the operator's private screens twice** (Termux
+  sessions, a recruiter draft) when takes rolled while he was using the
+  phone; footage discarded. Operational rule: no driven takes while the
+  operator's hands are on the device — his finger or a true hands-off window.
