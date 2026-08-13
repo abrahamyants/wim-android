@@ -316,4 +316,6 @@
     <string name="settings_read_back_speed_1x">Обычная</string>
     <string name="settings_read_back_speed_125x">1,25x</string>
     <string name="settings_read_back_speed_15x">1,5x</string>
+    <string name="settings_read_back_voice_pro">Деловой голос</string>
+    <string name="settings_read_back_voice_casual">Обычный голос</string>
 </resources>

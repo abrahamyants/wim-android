@@ -84,8 +84,10 @@
     <string name="settings_read_back">Read it back to me</string>
     <string name="settings_read_back_sub">Hear your message before the countdown starts</string>
     <string name="settings_read_back_voice">Read-back voice</string>
+    <string name="settings_read_back_voice_pro">Professional voice</string>
+    <string name="settings_read_back_voice_casual">Casual voice</string>
     <string name="settings_read_back_voice_default">Default</string>
-    <string name="settings_read_back_voice_none">No voice installed</string>
+    <string name="settings_read_back_voice_none">No voice installed on this phone</string>
     <string name="settings_read_back_speed">Read-back speed</string>
     <string name="settings_read_back_speed_1x">Normal</string>
     <string name="settings_read_back_speed_125x">1.25x</string>

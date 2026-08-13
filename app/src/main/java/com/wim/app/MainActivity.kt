@@ -656,11 +656,11 @@ class MainActivity : AppCompatActivity() {
         tts = android.speech.tts.TextToSpeech(this) { status ->
             if (status != android.speech.tts.TextToSpeech.SUCCESS) Log.e("WiM", "TTS init failed")
             else runOnUiThread {
-                // The read-back voice row reads its list off this engine, and
-                // init lands asynchronously — without this the row shows
-                // "Default" and an empty picker to anyone who reaches settings
-                // before the engine finishes binding.
-                refreshReadBackVoiceLabel()
+                // The read-back rows read their voice list off this engine, and
+                // init lands asynchronously — without this they show "Default",
+                // an empty picker, and a grayed-out state to anyone who reaches
+                // settings before the engine finishes binding.
+                refreshReadBackAvailability()
             }
         }
         findViewById<TextView>(R.id.ttsSpeak)?.setOnClickListener {
@@ -3511,45 +3511,16 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
             }
         }
 
-        refreshReadBackVoiceLabel()
-        findViewById<View>(R.id.readBackVoiceRow)?.setOnClickListener {
-            // Built from what this phone actually has installed. Deliberately
-            // not a fixed four-item menu: a Pixel carries several English
-            // voices and plenty of phones carry exactly one.
-            val options = ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag())
-            if (options.isEmpty()) {
-                Toast.makeText(this, getString(R.string.settings_read_back_voice_none), Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val labels = (listOf(getString(R.string.settings_read_back_voice_default)) +
-                options.map { it.second }).toTypedArray()
-            val ids = listOf("") + options.map { it.first }
-            val current = ids.indexOf(WimApp.readBackVoiceId()).coerceAtLeast(0)
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(R.string.settings_read_back_voice)
-                .setSingleChoiceItems(labels, current) { dialog, which ->
-                    WimApp.prefs.edit().putString("read_back_voice", ids[which]).apply()
-                    refreshReadBackVoiceLabel()
-                    // Speak the sample in the voice just picked, so the choice
-                    // is made by ear instead of by an engine name nobody can
-                    // read ("en-us-x-sfg#female_1-local").
-                    tts?.let { engine ->
-                        try {
-                            if (ids[which].isBlank()) engine.setLanguage(
-                                java.util.Locale.forLanguageTag(WimApp.speechLocaleTag()))
-                            else engine.voices?.firstOrNull { v -> v.name == ids[which] }
-                                ?.let { v -> engine.voice = v }
-                            engine.setSpeechRate(WimApp.readBackSpeed())
-                            engine.speak(
-                                getString(R.string.settings_read_back_sub),
-                                android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_voice_preview"
-                            )
-                        } catch (_: Exception) {}
-                    }
-                    dialog.dismiss()
-                }
-                .show()
-        }
+        // One row per register — ToneRouting already decides which one is
+        // active, so hearing which voice starts is how you know what went out.
+        setupReadBackVoiceRow(
+            R.id.readBackVoiceProRow, R.id.readBackVoiceProValue,
+            ToneRouting.PROFESSIONAL, R.string.settings_read_back_voice_pro
+        )
+        setupReadBackVoiceRow(
+            R.id.readBackVoiceCasualRow, R.id.readBackVoiceCasualValue,
+            ToneRouting.CASUAL, R.string.settings_read_back_voice_casual
+        )
 
         refreshReadBackSpeedLabel()
         findViewById<View>(R.id.readBackSpeedRow)?.setOnClickListener {
@@ -3570,15 +3541,84 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
                 }
                 .show()
         }
+
+        // Engine may already be bound (returning to the screen); if it is not,
+        // the TTS init callback calls this again.
+        refreshReadBackAvailability()
     }
 
-    private fun refreshReadBackVoiceLabel() {
-        val label = findViewById<TextView>(R.id.readBackVoiceValue) ?: return
-        val id = WimApp.readBackVoiceId()
+    private fun setupReadBackVoiceRow(rowId: Int, valueId: Int, tone: String, titleRes: Int) {
+        refreshReadBackVoiceLabel(valueId, tone)
+        findViewById<View>(rowId)?.setOnClickListener {
+            // Built from what this phone actually has installed. Deliberately
+            // not a fixed four-item menu: a Pixel carries several English
+            // voices and plenty of phones carry exactly one.
+            val options = ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag())
+            if (options.isEmpty()) {
+                Toast.makeText(this, getString(R.string.settings_read_back_voice_none), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val labels = (listOf(getString(R.string.settings_read_back_voice_default)) +
+                options.map { it.second }).toTypedArray()
+            val ids = listOf("") + options.map { it.first }
+            val current = ids.indexOf(WimApp.readBackVoiceId(tone)).coerceAtLeast(0)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(titleRes)
+                .setSingleChoiceItems(labels, current) { dialog, which ->
+                    WimApp.prefs.edit()
+                        .putString(WimApp.readBackVoiceKey(tone), ids[which]).apply()
+                    refreshReadBackVoiceLabel(valueId, tone)
+                    // Speak the sample in the voice just picked, so the choice
+                    // is made by ear instead of by an engine name nobody can
+                    // read ("en-us-x-sfg#female_1-local").
+                    tts?.let { engine ->
+                        try {
+                            if (ids[which].isBlank()) engine.setLanguage(
+                                java.util.Locale.forLanguageTag(WimApp.speechLocaleTag()))
+                            else engine.voices?.firstOrNull { v -> v.name == ids[which] }
+                                ?.let { v -> engine.voice = v }
+                            engine.setSpeechRate(WimApp.readBackSpeed())
+                            engine.speak(
+                                getString(R.string.settings_read_back_sub),
+                                android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "wim_voice_preview"
+                            )
+                        } catch (_: Exception) {}
+                    }
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun refreshReadBackVoiceLabel(valueId: Int, tone: String) {
+        val label = findViewById<TextView>(valueId) ?: return
+        val id = WimApp.readBackVoiceId(tone)
         label.text = if (id.isBlank()) getString(R.string.settings_read_back_voice_default)
         else ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag())
             .firstOrNull { it.first == id }?.second
             ?: getString(R.string.settings_read_back_voice_default)
+    }
+
+    /**
+     * Grays out the read-back rows when this phone has no usable voice.
+     * Without it the switch reads "on" and the rows look live while nothing
+     * will ever speak — the settings screen would be lying about what the app
+     * can do. Re-run whenever the TTS engine finishes binding, since the voice
+     * list is empty until then.
+     */
+    private fun refreshReadBackAvailability() {
+        val hasVoice = ReadBackSpeaker.voiceOptions(tts, WimApp.speechLocaleTag()).isNotEmpty()
+        listOf(
+            R.id.readBackToggle, R.id.readBackVoiceProRow,
+            R.id.readBackVoiceCasualRow, R.id.readBackSpeedRow
+        ).forEach { id ->
+            findViewById<View>(id)?.apply {
+                isEnabled = hasVoice
+                alpha = if (hasVoice) 1f else 0.4f
+            }
+        }
+        refreshReadBackVoiceLabel(R.id.readBackVoiceProValue, ToneRouting.PROFESSIONAL)
+        refreshReadBackVoiceLabel(R.id.readBackVoiceCasualValue, ToneRouting.CASUAL)
     }
 
     private fun refreshReadBackSpeedLabel() {

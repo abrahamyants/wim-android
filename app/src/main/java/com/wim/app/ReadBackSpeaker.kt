@@ -104,14 +104,26 @@ class ReadBackSpeaker(private val context: Context) {
         try { engine.setSpeechRate(WimApp.readBackSpeed()) } catch (_: Exception) {}
     }
 
-    /** Re-reads the voice/speed prefs. Called on every speak so a settings
-     *  change takes effect on the next message, with no service restart. */
+    /**
+     * Re-reads the voice pref for the CURRENT register and applies it. Called
+     * on every speak, so a settings change takes effect on the next message
+     * with no service restart, and so a professional message and a casual one
+     * in the same session get different voices.
+     *
+     * A blank pref must actively reset to the locale default — without that,
+     * a voice chosen for "professional" would keep talking through the next
+     * casual message, which is the exact wrong-register signal this feature
+     * exists to give.
+     */
     private fun applyVoicePref() {
         val engine = tts ?: return
         val wanted = WimApp.readBackVoiceId()
-        if (wanted.isBlank()) return
         try {
-            engine.voices?.firstOrNull { it.name == wanted }?.let { engine.voice = it }
+            if (wanted.isBlank()) {
+                engine.setLanguage(Locale.forLanguageTag(WimApp.speechLocaleTag()))
+            } else {
+                engine.voices?.firstOrNull { it.name == wanted }?.let { engine.voice = it }
+            }
         } catch (_: Exception) {}
     }
 

@@ -264,8 +264,22 @@ class WimApp : Application() {
          * the engine default. Stored as the raw name because the set of voices
          * is whatever that particular phone has installed — see
          * [ReadBackSpeaker.voiceOptions].
+         *
+         * Kept per register (2026-08-13). [ToneRouting] already decides
+         * professional vs casual from the focused app and the hour, so a
+         * different voice per register costs one lookup and turns the read-back
+         * into a mode display: in the car, hearing WHICH voice starts talking
+         * tells you which register went out before you hear a single word.
+         * Wrong-register is a worse failure than a typo and this catches it in
+         * half a second, without looking at the screen.
          */
-        fun readBackVoiceId(): String = prefStr("read_back_voice", "")
+        fun readBackVoiceId(tone: String = tone()): String =
+            if (tone == ToneRouting.PROFESSIONAL) prefStr("read_back_voice_professional", "")
+            else prefStr("read_back_voice_casual", "")
+
+        fun readBackVoiceKey(tone: String): String =
+            if (tone == ToneRouting.PROFESSIONAL) "read_back_voice_professional"
+            else "read_back_voice_casual"
 
         /** Playback rate: 1.0, 1.25 or 1.5. Above 1.5 the voice reads as
          *  rushed and users stop trusting what they heard. */
