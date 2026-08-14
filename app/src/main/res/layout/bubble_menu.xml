@@ -207,8 +207,8 @@
 
                 <View
                     android:id="@+id/menuThemeBronze"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
                     android:background="@drawable/bubble_bg_idle"
@@ -216,8 +216,8 @@
                     android:contentDescription="@string/bubble_color_bronze" />
                 <View
                     android:id="@+id/menuThemeAluminum"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
                     android:background="@drawable/bubble_bezel_aluminum"
@@ -225,8 +225,8 @@
                     android:contentDescription="@string/bubble_color_silver" />
                 <View
                     android:id="@+id/menuThemeGunmetal"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
                     android:background="@drawable/bubble_bezel_gunmetal"
