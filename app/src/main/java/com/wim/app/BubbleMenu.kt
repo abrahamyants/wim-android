@@ -260,10 +260,18 @@ class BubbleMenu(
             paintL1Source()
         }
 
-        // Bubble color picker — three tiny replicas of the bubble bezel
-        // itself. Selecting one literally swaps the floating bubble's
-        // metal. The selector drawables flip to a cream glow ring on
-        // state_selected.
+        // Bubble color picker. These are the SAME drawables the Settings
+        // screen's Bubble color row uses (bubble_bg_idle /
+        // bubble_bezel_aluminum / bubble_bezel_gunmetal) — the real bezels,
+        // not replicas of them (2026-08-14). The old color_indicator_*
+        // selectors were hand-copied approximations that had drifted from the
+        // metals they were standing in for, so the same three colors looked
+        // like different colors depending on which screen you opened.
+        //
+        // Selection is shown the same way too: bigger and fully opaque when
+        // picked, smaller and dimmed when not, matching
+        // MainActivity.paintBubbleColorRow. The selectors' cream glow ring is
+        // gone with them — one selection language across both screens.
         val themeBtns = mapOf(
             "bronze" to v.findViewById<View>(R.id.menuThemeBronze),
             "aluminum" to v.findViewById<View>(R.id.menuThemeAluminum),
@@ -271,7 +279,11 @@ class BubbleMenu(
         )
         val currentTheme = WimApp.bubbleTheme()
         themeBtns.forEach { (themeKey, btn) ->
-            btn.isSelected = (themeKey == currentTheme)
+            val selected = themeKey == currentTheme
+            btn.isSelected = selected
+            btn.scaleX = if (selected) 1.15f else 0.92f
+            btn.scaleY = if (selected) 1.15f else 0.92f
+            btn.alpha = if (selected) 1.0f else 0.6f
             btn.setOnClickListener {
                 WimApp.prefs.edit().putString("bubble_theme", themeKey).apply()
                 onThemeChanged()

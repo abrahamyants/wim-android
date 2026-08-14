@@ -207,29 +207,29 @@
 
                 <View
                     android:id="@+id/menuThemeBronze"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_bronze"
+                    android:background="@drawable/bubble_bg_idle"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_bronze" />
                 <View
                     android:id="@+id/menuThemeAluminum"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_silver"
+                    android:background="@drawable/bubble_bezel_aluminum"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_silver" />
                 <View
                     android:id="@+id/menuThemeGunmetal"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:minWidth="48dp"
                     android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_gunmetal"
+                    android:background="@drawable/bubble_bezel_gunmetal"
                     android:layout_marginStart="6dp"
                     android:contentDescription="@string/bubble_color_gunmetal" />
             </LinearLayout>
