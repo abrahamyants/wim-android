@@ -155,6 +155,13 @@ object WhisperClient {
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
             val t0 = System.currentTimeMillis()
+            // Upload, not inference, is the long pole: raw 16 kHz mono PCM is
+            // 32 KB per second of speech, and the backend path base64-wraps it
+            // and relays it, so it crosses the uplink twice. Transcode once
+            // here and both routes carry a quarter of the bytes. Falls back to
+            // the WAV on any encoder trouble — see AudioCompressor.
+            val uploadFile = AudioCompressor.compressForUpload(audioFile) ?: audioFile
+            val uploadMime = if (uploadFile.extension.equals("m4a", true)) "audio/mp4" else "audio/wav"
             val (responseBody, engine) = if (apiKey.isNotBlank()) {
                 val bodyBuilder = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
@@ -171,8 +178,8 @@ object WhisperClient {
                 }
                 bodyBuilder
                     .addFormDataPart(
-                        "file", audioFile.name,
-                        audioFile.asRequestBody("audio/wav".toMediaType())
+                        "file", uploadFile.name,
+                        uploadFile.asRequestBody(uploadMime.toMediaType())
                     )
                 if (prompt.isNotBlank()) bodyBuilder.addFormDataPart("prompt", prompt.take(4000))
                 val request = Request.Builder()
@@ -186,7 +193,10 @@ object WhisperClient {
                     ?: throw IllegalStateException("Sign in to use cloud transcription")
                 val body = JSONObject().apply {
                     put("action", "transcribe_audio")
-                    put("audio_base64", Base64.encodeToString(audioFile.readBytes(), Base64.NO_WRAP))
+                    put("audio_base64", Base64.encodeToString(uploadFile.readBytes(), Base64.NO_WRAP))
+                    // The Cloud Function sniffs the container; older revisions
+                    // accept WAV only, so it must be told what it is getting.
+                    put("audio_format", if (uploadFile === audioFile) "wav" else "m4a")
                     put("language", language)
                     put("model", model)
                     put("temperature", temperature)
