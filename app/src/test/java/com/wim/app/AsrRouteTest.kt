@@ -60,13 +60,14 @@ class AsrRouteTest {
         assertEquals(AsrRoute.Decision.SelectedCloud, d(1, cloud = true, model = true, reach = true))
     }
 
-    // ── The documented L2/L3 fallback ───────────────────────────────
-    // It had no branch at all, so a signed-in user whose model had not
+    // ── L2/L3 with no local model ───────────────────────────────────
+    // This once had no branch at all, so a signed-in user whose model had not
     // downloaded could not dictate while a recorder was already capturing.
+    // It is now the same answer as having the model: cloud ears either way.
 
-    @Test fun l2AndL3FallBackToCloudWhenTheModelIsMissing() {
+    @Test fun l2AndL3UseCloudEarsWhenTheModelIsMissing() {
         for (layer in 2..3) {
-            assertEquals("L$layer", AsrRoute.Decision.CloudFallback,
+            assertEquals("L$layer", AsrRoute.Decision.PaidLayerCloud,
                 d(layer, cloud = false, model = false, reach = true))
         }
     }

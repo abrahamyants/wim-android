@@ -56,12 +56,6 @@ object AsrRoute {
         /** LOCAL, and the model is on disk. */
         object LocalEngine : Decision(false, true, false)
 
-        /**
-         * LOCAL, model missing, but the recorder is running because L2+ falls
-         * back to cloud transcription. Documented behaviour that had no branch.
-         */
-        object CloudFallback : Decision(true, false, false)
-
         /** Nothing can capture. The caller shows the download state. */
         object Refuse : Decision(false, false, true)
     }
@@ -92,8 +86,16 @@ object AsrRoute {
         // whatever the speaker picked.
         if (layer >= 2 && cloudReachable) return Decision.PaidLayerCloud
         if (localModelReady) return Decision.LocalEngine
-        // Model missing. L2+ may still transcribe in the cloud; L1 has nowhere
-        // to go, because its whole contract is that no model runs.
-        return if (layer >= 2 && cloudReachable) Decision.CloudFallback else Decision.Refuse
+        // Model missing. The only cell left is L1 with no local model, which
+        // has nowhere to go: its whole contract is that no model runs, so
+        // there is no paid layer to borrow the cloud from.
+        //
+        // CloudFallback used to live here for "L2+, model missing, transcribe
+        // in the cloud". PaidLayerCloud now catches that case earlier and on
+        // better grounds — L2/L3 take cloud ears whether or not the local model
+        // exists — which left this branch unreachable. An unreachable case in a
+        // decision table is a lie about what the code does, so it is gone
+        // rather than kept for shape.
+        return Decision.Refuse
     }
 }
