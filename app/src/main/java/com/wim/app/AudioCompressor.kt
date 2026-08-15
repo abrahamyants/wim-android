@@ -35,7 +35,12 @@ object AudioCompressor {
     private const val MIME = MediaFormat.MIMETYPE_AUDIO_AAC
     private const val BIT_RATE = 64_000
     private const val WAV_HEADER_BYTES = 44
-    private const val CODEC_TIMEOUT_US = 10_000L
+    // Poll without blocking. The first version waited 10 ms on every input and
+    // every output buffer; AAC emits a frame per 1024 samples, so a 20-second
+    // take is ~300 frames and the waiting alone cost seconds — more than the
+    // upload it was meant to save. Take whatever is ready, and only yield when
+    // the codec has nothing at all.
+    private const val POLL_NOW_US = 0L
 
     /** Below this there is nothing to win and the muxer overhead can exceed the saving. */
     private const val MIN_WORTHWHILE_BYTES = 32 * 1024
@@ -62,7 +67,7 @@ object AudioCompressor {
             val format = MediaFormat.createAudioFormat(MIME, sampleRate, channels).apply {
                 setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
                 setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
-                setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16 * 1024)
+                setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 64 * 1024)
             }
             codec = MediaCodec.createEncoderByType(MIME)
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
@@ -73,16 +78,19 @@ object AudioCompressor {
 
             RandomAccessFile(wav, "r").use { raf ->
                 raf.seek(WAV_HEADER_BYTES.toLong())
-                val pcm = ByteArray(8 * 1024)
+                val pcm = ByteArray(64 * 1024)
                 val info = MediaCodec.BufferInfo()
                 var totalSamples = 0L
                 var sawInputEos = false
                 var sawOutputEos = false
 
                 while (!sawOutputEos) {
+                    var progressed = false
+
                     if (!sawInputEos) {
-                        val inIndex = codec.dequeueInputBuffer(CODEC_TIMEOUT_US)
+                        val inIndex = codec.dequeueInputBuffer(POLL_NOW_US)
                         if (inIndex >= 0) {
+                            progressed = true
                             val buf: ByteBuffer = codec.getInputBuffer(inIndex) ?: continue
                             buf.clear()
                             val read = raf.read(pcm, 0, minOf(pcm.size, buf.capacity()))
@@ -103,7 +111,11 @@ object AudioCompressor {
                         }
                     }
 
-                    val outIndex = codec.dequeueOutputBuffer(info, CODEC_TIMEOUT_US)
+                    // Drain whatever the codec has before feeding it again.
+                    val outIndex = codec.dequeueOutputBuffer(info, POLL_NOW_US)
+                    if (outIndex >= 0 || outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        progressed = true
+                    }
                     when {
                         outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
                             if (muxerStarted) throw IllegalStateException("format changed twice")
@@ -129,6 +141,11 @@ object AudioCompressor {
                             }
                         }
                     }
+
+                    // Nothing to give and nothing to take: hand the CPU back
+                    // briefly rather than spin. Without this the loop is a busy
+                    // wait; without the zero-timeout polls above it is a crawl.
+                    if (!progressed) Thread.sleep(1)
                 }
             }
 
