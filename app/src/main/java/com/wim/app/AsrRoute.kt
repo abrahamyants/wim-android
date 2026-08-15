@@ -41,14 +41,20 @@ object AsrRoute {
         /** The speaker picked CLOUD and cloud is reachable. */
         object SelectedCloud : Decision(true, false, false)
 
+        /**
+         * A paid layer, cloud reachable: cloud ears by default.
+         *
+         * L2 and L3 used to transcribe with whisper-tiny.en — the same engine
+         * the free layer uses — and hand that transcript to gpt-4o. A paid
+         * layer was feeding an expensive brain the cheap tier's ears, and a
+         * misheard word does not arrive flagged: the model rebuilds a clean,
+         * confident sentence around the wrong word. Cloud ears cost about two
+         * tenths of a cent on a call that is already being paid for.
+         */
+        object PaidLayerCloud : Decision(true, false, false)
+
         /** LOCAL, and the model is on disk. */
         object LocalEngine : Decision(false, true, false)
-
-        /**
-         * LOCAL, model missing, but the recorder is running because L2+ falls
-         * back to cloud transcription. Documented behaviour that had no branch.
-         */
-        object CloudFallback : Decision(true, false, false)
 
         /** Nothing can capture. The caller shows the download state. */
         object Refuse : Decision(false, false, true)
@@ -74,9 +80,22 @@ object AsrRoute {
         // A CLOUD pick only counts when cloud can actually be reached. Trusting
         // the pref alone is what produced a cloud branch with no recorder.
         if (cloudPreferred && cloudReachable) return Decision.SelectedCloud
+        // L2/L3 prefer cloud ears. Local stays as the fallback below for a dead
+        // connection or a signed-out user, so nobody loses dictation over it.
+        // L1 is untouched: its free half is the whole point, and it keeps
+        // whatever the speaker picked.
+        if (layer >= 2 && cloudReachable) return Decision.PaidLayerCloud
         if (localModelReady) return Decision.LocalEngine
-        // Model missing. L2+ may still transcribe in the cloud; L1 has nowhere
-        // to go, because its whole contract is that no model runs.
-        return if (layer >= 2 && cloudReachable) Decision.CloudFallback else Decision.Refuse
+        // Model missing. The only cell left is L1 with no local model, which
+        // has nowhere to go: its whole contract is that no model runs, so
+        // there is no paid layer to borrow the cloud from.
+        //
+        // CloudFallback used to live here for "L2+, model missing, transcribe
+        // in the cloud". PaidLayerCloud now catches that case earlier and on
+        // better grounds — L2/L3 take cloud ears whether or not the local model
+        // exists — which left this branch unreachable. An unreachable case in a
+        // decision table is a lie about what the code does, so it is gone
+        // rather than kept for shape.
+        return Decision.Refuse
     }
 }

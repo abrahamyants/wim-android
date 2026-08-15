@@ -479,9 +479,13 @@ class BubbleService : Service() {
         scope.launch {
             try {
                 val whisperModel = when {
+                    // L4's MultiPassDecoder reads per-segment confidence, and
+                    // whisper-1 is the only model that still returns it.
                     WimApp.layer() >= 4 -> "whisper-1"
                     WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
-                    else -> "whisper-1"
+                    // L2/L3 consume no segment data, so they take the newer,
+                    // more accurate transcriber. Same price per minute.
+                    else -> "gpt-4o-transcribe"
                 }
                 val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
                 val whisperResult = WhisperClient.transcribe(
@@ -2290,9 +2294,13 @@ class BubbleService : Service() {
                 try {
                     lastAsrRoute = "cloud"
                     val whisperModel = when {
+                        // L4's MultiPassDecoder reads per-segment confidence, and
+                        // whisper-1 is the only model that still returns it.
                         WimApp.layer() >= 4 -> "whisper-1"
                         WimApp.layer() < 2 && WimApp.l1CloudAsr() -> "whisper-1"
-                        else -> "whisper-1"
+                        // L2/L3 consume no segment data, so they take the newer,
+                        // more accurate transcriber. Same price per minute.
+                        else -> "gpt-4o-transcribe"
                     }
                     val l1CloudFastPath = WimApp.layer() < 2 && WimApp.l1CloudAsr()
                     val whisperResult = WhisperClient.transcribe(

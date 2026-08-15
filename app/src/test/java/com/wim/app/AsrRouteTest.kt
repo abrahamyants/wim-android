@@ -26,20 +26,48 @@ class AsrRouteTest {
         }
     }
 
-    @Test fun localPickUsesTheLocalEngineWhenTheModelIsThere() {
-        for (layer in 1..3) {
-            assertEquals("L$layer", AsrRoute.Decision.LocalEngine,
+    @Test fun localPickUsesTheLocalEngineAtLayerOne() {
+        // L1 is the only layer where a LOCAL pick still means local while the
+        // cloud is reachable. Its free half is the whole point of the layer.
+        assertEquals(AsrRoute.Decision.LocalEngine,
+            d(1, cloud = false, model = true, reach = true))
+    }
+
+    // ── Paid layers buy the better ears ─────────────────────────────
+    // L2/L3 used to transcribe with whisper-tiny.en — the free tier's engine —
+    // and hand that to gpt-4o. A misheard word does not arrive flagged: the
+    // brain rebuilds a confident sentence around it. Cloud ears cost about two
+    // tenths of a cent on a call already being paid for.
+
+    @Test fun l2AndL3PreferCloudEarsEvenWithTheModelOnDisk() {
+        for (layer in 2..3) {
+            assertEquals("L$layer", AsrRoute.Decision.PaidLayerCloud,
                 d(layer, cloud = false, model = true, reach = true))
         }
     }
 
-    // ── The documented L2/L3 fallback ───────────────────────────────
-    // It had no branch at all, so a signed-in user whose model had not
-    // downloaded could not dictate while a recorder was already capturing.
-
-    @Test fun l2AndL3FallBackToCloudWhenTheModelIsMissing() {
+    @Test fun l2AndL3StillUseTheLocalEngineWhenCloudIsUnreachable() {
+        // Nobody loses dictation to a dead connection.
         for (layer in 2..3) {
-            assertEquals("L$layer", AsrRoute.Decision.CloudFallback,
+            assertEquals("L$layer", AsrRoute.Decision.LocalEngine,
+                d(layer, cloud = false, model = true, reach = false))
+        }
+    }
+
+    @Test fun layerOneIsUntouchedByThePaidLayerRule() {
+        // Free half stays free and offline; paid half only on an explicit pick.
+        assertEquals(AsrRoute.Decision.LocalEngine, d(1, cloud = false, model = true, reach = true))
+        assertEquals(AsrRoute.Decision.SelectedCloud, d(1, cloud = true, model = true, reach = true))
+    }
+
+    // ── L2/L3 with no local model ───────────────────────────────────
+    // This once had no branch at all, so a signed-in user whose model had not
+    // downloaded could not dictate while a recorder was already capturing.
+    // It is now the same answer as having the model: cloud ears either way.
+
+    @Test fun l2AndL3UseCloudEarsWhenTheModelIsMissing() {
+        for (layer in 2..3) {
+            assertEquals("L$layer", AsrRoute.Decision.PaidLayerCloud,
                 d(layer, cloud = false, model = false, reach = true))
         }
     }
