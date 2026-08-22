@@ -32,14 +32,6 @@ sealed class BubbleState {
         val enteredAtMs: Long,
     ) : BubbleState()
     object SendReady : BubbleState()
-
-    /**
-     * The SEND window lapsed without a tap and a re-rollable reconstruction is
-     * still held. The text is sitting unsent in the user's field — the only
-     * window where a re-roll is still worth anything, since a sent message
-     * cannot be taken back. Times out to Idle on its own.
-     */
-    object RedoReady : BubbleState()
     data class Failed(val reason: FailReason) : BubbleState()
 }
 
@@ -119,7 +111,6 @@ object BubbleStateBus {
                 is BubbleState.Reconstructing -> false
                 is BubbleState.Idle,
                 is BubbleState.SendReady,
-                is BubbleState.RedoReady,
                 is BubbleState.Failed,
                 is BubbleState.Clarifying,
                 is BubbleState.Listening -> true
@@ -175,15 +166,6 @@ object BubbleStateBus {
                 else -> false
             }
             is BubbleState.SendReady -> when (to) {
-                is BubbleState.RedoReady -> true
-                is BubbleState.Idle -> true
-                else -> false
-            }
-            is BubbleState.RedoReady -> when (to) {
-                // A re-roll re-enters the reconstruction pipeline, and lands
-                // back on SendReady with the fresh phrasing.
-                is BubbleState.Reconstructing -> true
-                is BubbleState.SendReady -> true
                 is BubbleState.Idle -> true
                 else -> false
             }
@@ -205,7 +187,6 @@ object BubbleStateBus {
         is BubbleState.Injected -> "Injected(${s.cue})"
         is BubbleState.Clarifying -> "Clarifying(${s.flagged.size}, idx=${s.cycleIndex})"
         is BubbleState.SendReady -> "SendReady"
-        is BubbleState.RedoReady -> "RedoReady"
         is BubbleState.Failed -> "Failed(${s.reason})"
     }
 }
