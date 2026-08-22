@@ -176,27 +176,22 @@ object ReconstructClient {
         whisperSegments: List<WhisperClient.TimedSegment> = emptyList(),
         scriptPrepContext: String = ScriptPrepStore.activeContext()
     ): ReconstructResult {
-        // Persistent learning state machine (RejectionStore + StyleExamples):
+        // The learning state machine that lived here is OFF as of 2026-08-22.
         //
-        //   - Non-empty previousOutputs → current call is a regenerate.
-        //     Prior reconstruction was REJECTED. Capture into RejectionStore.
-        //     Drop the pending StyleExamples pair (it was the rejected one).
+        // It read a fresh dictation as an implicit ACCEPT of the previous
+        // reconstruction — "no regenerate fired, so they kept it" — and
+        // promoted that pair into StyleExamples as a positive example. That
+        // inference is only sound while rejecting is possible. Regenerate was
+        // removed the same day at the operator's instruction, so nothing can
+        // ever be rejected again: every output, including ones the speaker
+        // hated and deleted by hand, would be promoted as a model of their
+        // voice and fed back into the next prompt. Silence stops meaning yes
+        // the moment no becomes unsayable.
         //
-        //   - Empty previousOutputs → current call is a fresh dictation.
-        //     Prior reconstruction was implicitly ACCEPTED (no regenerate
-        //     fired before this). Promote pending pair to StyleExamples.
-        //
-        // After reconstruction returns, this call's (raw, output) gets
-        // staged as the new pending pair — next call decides its fate.
-        // Atomic claim of the pending pair — exactly one caller wins
-        // the prior value, the other sees null and short-circuits.
-        // Closes the overlapping-reconstruct race.
-        val pending = StyleExamples.pendingPair.getAndSet(null)
-        if (previousOutputs.isNotEmpty()) {
-            RejectionStore.record(previousOutputs.last())
-        } else if (pending != null) {
-            StyleExamples.record(pending.first, pending.second)
-        }
+        // RejectionStore and StyleExamples keep their stored contents and are
+        // still read into the L3 prompt below — what a speaker accepted or
+        // rejected while the button existed is still true. Only the writing
+        // stops. Restore both halves together if regenerate ever returns.
 
         // Build acoustic context before routing so backend and direct L4 share
         // the same personal-baseline behavior.
@@ -238,12 +233,8 @@ object ReconstructClient {
 
         prosodicSummary?.let { WimApp.profile().recordProsodic(it) }
 
-        // Stage this reconstruction's (raw, output) pair as PENDING. The
-        // next reconstruct() call decides whether it gets promoted to
-        // accepted (StyleExamples) or dropped (was a regenerate target).
-        if (result.cleanText.isNotBlank()) {
-            StyleExamples.pendingPair.set(rawText to result.cleanText)
-        }
+        // Nothing stages a pending pair any more — see the note above. The
+        // pair had no reader left once the accept/reject decision was gone.
         return result
     }
 

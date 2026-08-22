@@ -35,7 +35,9 @@ sealed class BubbleState {
     data class Failed(val reason: FailReason) : BubbleState()
 }
 
-enum class SuccessCue { PASTE, AUTO_SEND, COMMAND_REPLACE, REGEN_SUCCESS }
+// REGEN_SUCCESS dropped 2026-08-22 with the regenerate feature — nothing
+// could emit it any more.
+enum class SuccessCue { PASTE, AUTO_SEND, COMMAND_REPLACE }
 enum class FailReason { NETWORK, HALLUCINATED, FALCON_REJECT, INJECT_FAIL, CONFIG, SERVER, UNKNOWN }
 
 /**

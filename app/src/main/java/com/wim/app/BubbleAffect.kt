@@ -198,7 +198,6 @@ class BubbleAffect(
      *   PASTE           — standard 380ms three-stage pop (the canonical TA_DA)
      *   AUTO_SEND       — 380ms pop + a follow-up tighter pulse (~"sealed")
      *   COMMAND_REPLACE — fast 220ms double-tap (transform completed)
-     *   REGEN_SUCCESS   — 380ms pop with a 0.93 contraction (re-roll, "got it")
      */
     private fun applyTaDa(cue: SuccessCue) {
         cancelMotion(applyRestingFallback = false)
@@ -209,7 +208,6 @@ class BubbleAffect(
             SuccessCue.PASTE -> SuccessCueShape(380L, 1.10f, 0.96f, 24L)
             SuccessCue.AUTO_SEND -> SuccessCueShape(380L, 1.12f, 0.94f, 28L)
             SuccessCue.COMMAND_REPLACE -> SuccessCueShape(220L, 1.06f, 0.98f, 18L)
-            SuccessCue.REGEN_SUCCESS -> SuccessCueShape(380L, 1.08f, 0.93f, 22L)
         }
         val anim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = durationMs

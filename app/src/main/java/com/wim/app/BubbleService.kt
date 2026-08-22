@@ -224,26 +224,16 @@ class BubbleService : Service() {
     // they wrap ClarifierController, not the bubble's visual state.
     private var clarifierUI: BubbleClarifierUI? = null
 
-    // Regenerate state — set after a successful L2/L3/L4 paste so the user can
-    // re-roll the phrasing by tapping the regenerate icon on the lower bezel.
-    // Cleared when stale (after timeout) or after the user records again.
-    private data class RegenContext(
-        val rawText: String,
-        val correctedText: String,
-        val tone: String,
-        val layer: Int,
-        val situation: String,
-        val precedingContext: String,
-        val languageCode: String,
-        val rateGapDetected: Boolean,
-    )
-    private var lastRegenCtx: RegenContext? = null
-    private val previousOutputs = mutableListOf<String>()
-    // Regen icon (lower-bezel re-roll hint) extracted to BubbleRegenIcon
-    // 2026-05-25 — fourteenth slice. isAvailable getter still used by the
-    // touch handler tap-zone test.
-    private var regenIcon: BubbleRegenIcon? = null
-    private var isRegenInFlight: Boolean = false
+    // Regenerate removed entirely 2026-08-22 (operator: "eliminate the
+    // regenerate feature altogether — the bubble, the button, the code").
+    // The lower-bezel icon was a few dp wide on a bubble the user can shrink
+    // to 70%, and the tap zone it sat in was unreachable during SEND_READY
+    // because the send branch claims the whole bubble first. An indigo
+    // second countdown was tried the same night to give it a reachable
+    // window and made things worse: it spent five seconds after EVERY take
+    // answering a tap with a re-roll instead of a recording, which read as
+    // the bubble being slow and busy, and a re-roll that cannot replace in
+    // place appends, so the same sentence landed twice.
     // Clarifier retry/timeout state moved to BubbleClarifierUI.
     // SupervisorJob: child coroutine failures don't cancel siblings.
     // CoroutineExceptionHandler: any throw in a launched coroutine that's
@@ -669,10 +659,6 @@ class BubbleService : Service() {
             timerHandler = timerHandler,
             onPipelineStage = { title, body -> showPipelineStage(title, body) },
             onHideLiveTranscript = { hideLiveTranscript() },
-        )
-        regenIcon = BubbleRegenIcon(
-            getBubbleView = { bubbleTouchView },
-            scope = scope,
         )
         statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleTouchView })
         stageArc = BubbleStageArc(getBubbleView = { bubbleTouchView })
@@ -1235,16 +1221,6 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
 
-                    // REGEN: tap on the lower-bezel regen icon re-rolls the
-                    // last reconstruction with a "different phrasing" hint.
-                    // Takes precedence over the work/life toggle so the bottom
-                    // half of the bezel is unambiguously the regen affordance
-                    // while the icon is visible.
-                    if ((regenIcon?.isAvailable == true) && !isRecording && dist < outerR && ty > outerR * 0.45 && tapDuration < 300) {
-                        performRegen()
-                        return@setOnTouchListener true
-                    }
-
                     // Clarifier answers — left half approves, right half rejects,
                     // anywhere on the visible bubble. Only claims the tap while a
                     // clarifier is actually on screen; otherwise the tap falls
@@ -1557,115 +1533,6 @@ class BubbleService : Service() {
         }
     }
 
-    private fun showRegenIcon() { regenIcon?.show() }
-    private fun hideRegenIcon() { regenIcon?.hide() }
-
-    private fun performRegen() {
-        if (isRegenInFlight) return
-        val ctx = lastRegenCtx ?: return
-        val accessibility = injectionPort ?: run {
-            Toast.makeText(this, getString(R.string.toast_enable_accessibility), Toast.LENGTH_SHORT).show()
-            return
-        }
-        isRegenInFlight = true
-        hideRegenIcon()
-        try { vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
-        ConsoleLog.log("Regenerating L${ctx.layer}...", "info")
-
-        scope.launch {
-            try {
-                val profile = WimApp.profile()
-                val vocabulary = profile.getVocabulary()
-                val corrections = profile.getCorrections()
-                val fillerWords = profile.getFillerWords()
-                val result = ReconstructClient.reconstruct(
-                    rawText = ctx.correctedText,
-                    tone = ctx.tone,
-                    layer = ctx.layer,
-                    situation = ctx.situation,
-                    vocabulary = vocabulary,
-                    corrections = corrections,
-                    fillerWords = fillerWords,
-                    triggerWords = profile.getTriggerWords(),
-                    onsetWeights = profile.getOnsetWeights(),
-                    covertProfile = profile.getCovertProfile(),
-                    speechSeverityMod = if (ctx.rateGapDetected) 0.3 else 0.0,
-                    precedingContext = ctx.precedingContext,
-                    languageCode = ctx.languageCode,
-                    previousOutputs = previousOutputs.toList(),
-                )
-                if (result.downgradedFromL4 && !l4DowngradeNotified) {
-                    l4DowngradeNotified = true
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        Toast.makeText(this@BubbleService, "L4 unavailable — using L3 this session.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                val newText = result.cleanText.trim()
-                if (newText.isBlank() || previousOutputs.contains(newText)) {
-                    ConsoleLog.log("Regen returned same/blank — keeping original", "warn")
-                    Toast.makeText(this@BubbleService, "No fresh phrasing this time", Toast.LENGTH_SHORT).show()
-                    showRegenIcon()
-                    return@launch
-                }
-                // L1 contribution: when the user triggers regen, the previous
-                // output was implicitly rejected. Fire-and-forget to the contribution
-                // endpoint if the user has opted in and has an L1 set.
-                if (profile.contributeL1Data() && profile.profileL1() != null && previousOutputs.isNotEmpty()) {
-                    val rejected = previousOutputs.last()
-                    val l1 = profile.profileL1()!!
-                    val anonId = profile.anonymousId()
-                    val rawForContrib = ctx.rawText
-                    WimApp.instance.appScope.launch {
-                        try {
-                            val payload = org.json.JSONObject().apply {
-                                put("raw", rawForContrib.take(2000))
-                                put("model_output", rejected.take(2000))
-                                put("user_correction", "")
-                                put("profile_l1", l1)
-                                put("anonymous_id", anonId)
-                            }.toString()
-                            val url = java.net.URL("https://us-central1-bakers-agent.cloudfunctions.net/wim-l1-contribute")
-                            val conn = url.openConnection() as java.net.HttpURLConnection
-                            conn.requestMethod = "POST"
-                            conn.setRequestProperty("Content-Type", "application/json")
-                            conn.doOutput = true
-                            conn.connectTimeout = 5000
-                            conn.readTimeout = 5000
-                            // Samsung's OEM HttpURLConnection stalls TCP if the
-                            // output stream isn't closed before reading the
-                            // response — burns a socket fd until readTimeout.
-                            conn.outputStream.use { it.write(payload.toByteArray()) }
-                            conn.responseCode // trigger request
-                            conn.disconnect()
-                        } catch (_: Exception) {}
-                    }
-                }
-
-                val replaced = accessibility.replaceLastInjected(newText)
-                if (!replaced) {
-                    // M10: replace fell back to an append (field diverged from our
-                    // snapshot) — the new phrasing was added, not swapped in.
-                    Log.w(TAG, "regen: replaceLastInjected fell back to append")
-                    ConsoleLog.log("Regen appended (couldn't replace in place)", "warn")
-                }
-                previousOutputs.add(newText)
-                ConsoleLog.log("Regen: ${result.reconMs}ms -> \"${newText.take(80)}\"", "out")
-                showRegenIcon()
-            } catch (e: Exception) {
-                Log.e(TAG, "Regen error: ${e.message}", e)
-                ConsoleLog.log("Regen failed: ${e.message?.take(60)}", "error")
-                // Tell the user the re-roll failed — without this the regen icon
-                // just reappears and they tap into the void (finding H7). Mirrors
-                // the blank-result branch, which already toasts.
-                try {
-                    Toast.makeText(this@BubbleService, "Couldn't regenerate — tap to try again", Toast.LENGTH_SHORT).show()
-                } catch (_: Exception) {}
-                showRegenIcon()
-            } finally {
-                isRegenInFlight = false
-            }
-        }
-    }
 
     private fun setBubbleSendReady() {
         val view = bubbleTouchView ?: return
@@ -1829,12 +1696,6 @@ class BubbleService : Service() {
             ClarifierController.cancelForNewRecording()
             TranscriptBarController.clear(TranscriptBarController.Priority.CLARIFIER)
         }
-
-        // Stale regen state: a fresh recording invalidates the cached
-        // reconstruction context.
-        if ((regenIcon?.isAvailable == true)) hideRegenIcon()
-        lastRegenCtx = null
-        previousOutputs.clear()
 
         // Safety: refuse to record into password/sensitive fields
         if (WimAccessibilityService.isPasswordField) {
@@ -3343,24 +3204,9 @@ class BubbleService : Service() {
                 val injectResult = accInstance?.injectText(outputText)
                 if (injectResult == WimAccessibilityService.InjectResult.FIELD) {
                     relayToTermux(outputText)
-                    val injectCue = if (previousOutputs.isNotEmpty()) SuccessCue.REGEN_SUCCESS else SuccessCue.PASTE
-                    BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), injectCue))
+                    BubbleStateBus.advance(BubbleState.Injected(System.currentTimeMillis(), SuccessCue.PASTE))
                     injected = true
                     setStageArc(3)
-                    // Cache so the user can re-roll on the bezel without re-recording.
-                    lastRegenCtx = RegenContext(
-                        rawText = correctedText,
-                        correctedText = correctedText,
-                        tone = tone,
-                        layer = layer,
-                        situation = situation,
-                        precedingContext = precedingContext,
-                        languageCode = primaryLanguage,
-                        rateGapDetected = rateGap.gapDetected,
-                    )
-                    previousOutputs.clear()
-                    previousOutputs.add(outputText)
-                    showRegenIcon()
                 } else {
                     // The reconstruction did NOT land in the target field: either
                     // there is no accessibility service, or injectText fell back to
@@ -3701,7 +3547,6 @@ class BubbleService : Service() {
         try { pulseRings?.stop() } catch (_: Exception) {}
         pulseRings = null
         tipRotator = null
-        regenIcon = null
         bubbleDock = null
         bubbleAppearance = null
         twistController = null

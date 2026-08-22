@@ -91,7 +91,6 @@ class BubblePersona {
         SuccessCue.PASTE -> "pasted"
         SuccessCue.AUTO_SEND -> "ready to send"
         SuccessCue.COMMAND_REPLACE -> "rewritten"
-        SuccessCue.REGEN_SUCCESS -> "re-rolled"
     }
 
     companion object {
