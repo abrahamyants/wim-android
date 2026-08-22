@@ -2249,11 +2249,6 @@ class BubbleService : Service() {
             updateLiveTranscript("Recording (cloud ASR)…")
             // Still fetch the model so the next take runs on-device.
             WhisperLocalModelDownloader.ensureDownloading(this, scope)
-            // Ride along: the punctuation model is 7 MB against whisper's 40,
-            // and a user who is fetching one is on a connection and expecting
-            // a wait. Fetching it lazily on first use instead would spend the
-            // first local take unpunctuated for no reason.
-            Punctuator.ensureDownloading(this)
         } else {
             // No silent fallback to Android SpeechRecognizer. Per operator
             // 2026-06-06: L1 Local must never route through the native ASR
@@ -3196,15 +3191,7 @@ class BubbleService : Service() {
                 // Corrections are Layer-3+ (design call, George 2026-08-04).
                 // The poisoned-list incident: 50 auto-learned pairs rewrote a
                 // quarter of every plain transcription, and L1 has no guard.
-                applyCorrections = false,
-                // Local route only. whisper-tiny returns a flat lowercase run;
-                // every cloud provider already returns punctuated, cased text,
-                // and running a second punctuator over that would fight it.
-                punctuate = if (lastAsrRoute.startsWith("local")) {
-                    { t -> Punctuator.apply(t) }
-                } else {
-                    { t -> t }
-                }
+                applyCorrections = false
             )
             val l1Text = l1Result.text
             // FSM: L1 has no model reconstruction — the deterministic pass is "trusted by
