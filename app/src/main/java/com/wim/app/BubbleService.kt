@@ -492,7 +492,7 @@ class BubbleService : Service() {
                     language = WimApp.appLanguage(),
                 )
                 lastAsrRoute = "cloud ($whisperModel)"
-                Log.i("WiM", "Test audio Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
+                Log.i("WiM", "Test audio Whisper ($whisperModel via ${whisperResult.engine}, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                 lastWhisperLowConf = whisperResult.lowConfidenceSegments
                 if (whisperResult.wasFullyHallucinated) {
                     WimTestReceiver.lastResult = org.json.JSONObject().apply {
@@ -2226,7 +2226,14 @@ class BubbleService : Service() {
                         wordTimestamps = l1CloudFastPath,
                         language = WimApp.appLanguage(),
                     )
-                    Log.i(TAG, "Whisper ($whisperModel, ${whisperResult.asrMs}ms): ${whisperResult.text}")
+                    // Name the road, not just the model. TranscribeResult.engine
+                    // has always said "direct" or "backend" and was never
+                    // logged, so nothing on the phone could tell whether a take
+                    // went straight to OpenAI or through wim-reconstruct — the
+                    // one question force_backend exists to answer. lastAsrRoute
+                    // said "cloud" for both.
+                    lastAsrRoute = "cloud/${whisperResult.engine} ($whisperModel)"
+                    Log.i(TAG, "Whisper ($whisperModel via ${whisperResult.engine}, ${whisperResult.asrMs}ms): ${whisperResult.text}")
                     lastWhisperLowConf = whisperResult.lowConfidenceSegments
                     lastWhisperSegments = whisperResult.timedSegments
                     lastWhisperWords = whisperResult.timedWords

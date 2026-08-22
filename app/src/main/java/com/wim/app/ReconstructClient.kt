@@ -469,6 +469,7 @@ object ReconstructClient {
 
         val json = JSONObject(responseBody)
         val reconMs = System.currentTimeMillis() - t0
+        Log.i("WiM", "Reconstruction route: backend (wim-reconstruct), L$layer, ${reconMs}ms")
 
         if (!json.has("clean")) {
             Log.e("WiM", "Backend response missing 'clean' field — keys=${json.keys().asSequence().toList()}")
@@ -563,6 +564,7 @@ object ReconstructClient {
             if (apiKey.isBlank()) throw IllegalStateException("No API key configured")
 
             val t0 = System.currentTimeMillis()
+            Log.i("WiM", "Reconstruction route: device-direct, L$layer")
 
             // L3 profile-term recovery (parity with the backend's
             // profile_terms.apply_profile_terms): exact corrections first, then
