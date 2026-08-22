@@ -1612,29 +1612,6 @@ class BubbleService : Service() {
         }
     }
 
-    /**
-     * True when [candidate] is the same sentence as [prior] with cosmetic edits.
-     *
-     * Word-multiset overlap, not string equality: the failure this exists to
-     * catch is "and nothing happens" coming back for "nothing happens", which
-     * no exact match and no length check can see. 0.8 is deliberately loose —
-     * a genuine re-roll changes the opening word and the clause order, which
-     * drops overlap well below it, while a real paraphrase of a short sentence
-     * can legitimately reuse most of its nouns.
-     */
-    private fun isTooSimilar(prior: String, candidate: String): Boolean {
-        fun words(t: String) = Regex("""\w+""").findAll(t.lowercase()).map { it.value }.toList()
-        val a = words(prior)
-        val b = words(candidate)
-        if (a.isEmpty() || b.isEmpty()) return false
-        val pool = a.toMutableList()
-        var shared = 0
-        for (w in b) if (pool.remove(w)) shared++
-        val overlap = shared.toDouble() / maxOf(a.size, b.size)
-        val sameOpening = a.first() == b.first()
-        return overlap >= 0.8 || (overlap >= 0.65 && sameOpening)
-    }
-
     private fun showRegenIcon() { regenIcon?.show() }
     private fun hideRegenIcon() { regenIcon?.hide() }
 
@@ -1685,47 +1662,7 @@ class BubbleService : Service() {
                         Toast.makeText(this@BubbleService, "L4 unavailable — using L3 this session.", Toast.LENGTH_SHORT).show()
                     }
                 }
-                var newText = result.cleanText.trim()
-                // The old guard was `previousOutputs.contains(newText)` — an
-                // exact-string match. One moved comma passed as "fresh
-                // phrasing", so a re-roll routinely handed back the sentence
-                // the speaker had just rejected. Hitting regenerate means they
-                // did not want THAT sentence; returning it reworded is the same
-                // answer wearing a hat.
-                //
-                // So: measure it, and spend exactly one more call when the
-                // answer is too close. Not a loop — if the second attempt is
-                // still the same shape, there genuinely is no other way to say
-                // it, and burning further calls on the speaker's time and money
-                // would not find one.
-                if (newText.isNotBlank() && previousOutputs.isNotEmpty() &&
-                    isTooSimilar(previousOutputs.last(), newText)
-                ) {
-                    Log.i(TAG, "Regen came back too similar — asking once more")
-                    ConsoleLog.log("Too close to the last one — asking again", "info")
-                    val retry = ReconstructClient.reconstruct(
-                        rawText = ctx.correctedText,
-                        tone = ctx.tone,
-                        layer = ctx.layer,
-                        situation = ctx.situation,
-                        vocabulary = vocabulary,
-                        corrections = corrections,
-                        fillerWords = fillerWords,
-                        triggerWords = profile.getTriggerWords(),
-                        onsetWeights = profile.getOnsetWeights(),
-                        covertProfile = profile.getCovertProfile(),
-                        speechSeverityMod = if (ctx.rateGapDetected) 0.3 else 0.0,
-                        precedingContext = ctx.precedingContext,
-                        languageCode = ctx.languageCode,
-                        // The near-miss goes on the rejected list too, so the
-                        // model is steered away from it and not just from the
-                        // original.
-                        previousOutputs = (previousOutputs + newText).toList(),
-                    ).cleanText.trim()
-                    if (retry.isNotBlank() && !isTooSimilar(previousOutputs.last(), retry)) {
-                        newText = retry
-                    }
-                }
+                val newText = result.cleanText.trim()
                 if (newText.isBlank() || previousOutputs.contains(newText)) {
                     ConsoleLog.log("Regen returned same/blank — keeping original", "warn")
                     Toast.makeText(this@BubbleService, "No fresh phrasing this time", Toast.LENGTH_SHORT).show()
