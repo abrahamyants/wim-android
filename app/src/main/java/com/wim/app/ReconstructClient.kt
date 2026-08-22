@@ -604,6 +604,29 @@ object ReconstructClient {
             val severity = SITUATION_SEVERITY[situation] ?: 1.0
 
             val systemPrompt = buildString {
+                // REGENERATE HEADER — first thing the model reads, because the
+                // re-roll instruction used to be three lines appended after
+                // ~2000 words of "preserve the speaker's words, change nothing,
+                // do not invent". Those rules govern MEANING, but the model
+                // cannot separate meaning from phrasing under that much
+                // preserve-pressure, so it played safe and returned the same
+                // sentence with a comma moved. Measured on device 2026-08-22:
+                // a re-roll came back near-identical and the operator could not
+                // tell the button had fired.
+                //
+                // This is the same disease the tone rules already documented —
+                // a preserve rule silently blocking a change it was never
+                // written to block — and the same cure: say out loud what
+                // preserve does NOT cover, and say it first.
+                if (previousOutputs.isNotEmpty()) {
+                    append("THIS IS A REGENERATE. The speaker READ your previous answer and REJECTED it. ")
+                    append("Your single most important job on this call is to produce a sentence that is ")
+                    append("VISIBLY DIFFERENT from what you wrote before — different opening word, different ")
+                    append("clause order, different sentence count. A reworded version of the same sentence is a FAILED answer. ")
+                    append("The preservation rules below govern MEANING ONLY — facts, numbers, dates, names, negations, ")
+                    append("profanity and the speaker's intent. They do NOT govern phrasing, word choice, sentence ")
+                    append("structure or rhythm, and you MUST change those. ")
+                }
                 append("You are a voice transcription post-processor. You receive raw, messy speech-to-text output and return ONLY the cleaned-up version. ")
                 // Output-language pin (2026-08-05). Without it the model
                 // drifted home to English: an 11-language sweep at L2 came
@@ -964,7 +987,9 @@ object ReconstructClient {
                     previousOutputs.takeLast(4).forEachIndexed { i, prev ->
                         append("\n  ${i + 1}. \"$prev\"")
                     }
-                    append("\nProduce a new reconstruction that preserves the same meaning but uses different word choices, sentence structure, and rhythm. Do not return any of the prior outputs verbatim or with only trivial edits.")
+                    append("\nProduce a new reconstruction that preserves the same meaning but uses different word choices, sentence structure, and rhythm.")
+                    append("\nA trivial edit is a FAILED answer. Moving a comma, adding \"and\", swapping one adjective, or reordering two words is a trivial edit.")
+                    append("\nBefore answering, check your sentence against the rejected ones above: if it opens with the same word, or its clauses are in the same order, rewrite it again before replying.")
                 }
             }
 
