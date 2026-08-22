@@ -148,15 +148,8 @@ class BubbleStatusUI(
     /** True if WiM's accessibility service is enabled. Reinstalling the APK
      *  silently revokes accessibility on Samsung — without this check the
      *  bubble appears normally but inject and tap-to-send fail invisibly. */
-    fun isAccessibilityEnabled(): Boolean {
-        val flat = Settings.Secure.getString(
-            service.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val ours = "${service.packageName}/${WimAccessibilityService::class.java.name}"
-        val oursShort = "${service.packageName}/.WimAccessibilityService"
-        return flat.split(":").any { it.equals(ours, ignoreCase = true) || it.equals(oursShort, ignoreCase = true) }
-    }
+    // Live truth, not the settings string — see WimApp.accessibilityLive.
+    fun isAccessibilityEnabled(): Boolean = WimApp.accessibilityLive(service)
 
     fun hasMicPermission(): Boolean =
         ContextCompat.checkSelfPermission(service, android.Manifest.permission.RECORD_AUDIO) ==

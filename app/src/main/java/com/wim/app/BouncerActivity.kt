@@ -469,13 +469,11 @@ class BouncerActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
-    private fun isAccessibilityEnabled(): Boolean {
-        val enabledServices = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return enabledServices.contains("$packageName/${WimAccessibilityService::class.java.canonicalName}")
-    }
+    // Live truth, not the settings string — see WimApp.accessibilityLive. On
+    // this screen especially: the gate exists to stop a user reaching the
+    // bubble without working injection, and the string can say granted while
+    // the service is not bound.
+    private fun isAccessibilityEnabled(): Boolean = WimApp.accessibilityLive(this)
 
     /**
      * Shows pageFinal and sets the slide counter correctly.

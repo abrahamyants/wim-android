@@ -196,6 +196,48 @@ class WimApp : Application() {
         fun forceBackend(): Boolean = prefBool("force_backend", false)
 
         /**
+         * Is the accessibility service actually RUNNING — not merely listed.
+         *
+         * Every permission row in the app asked
+         * Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, which reports what
+         * the system was told, not what is bound. The two come apart after an
+         * install-over: the string survives the upgrade, the service does not
+         * rebind, and the row reads ON while nothing can type into a field.
+         * Seen on device 2026-08-22 — the operator had a green row and a
+         * bubble that refused to inject.
+         *
+         * WimAccessibilityService.instance is set in onServiceConnected and
+         * cleared on unbind, so it answers the question the user is actually
+         * asking: does dictation work right now.
+         *
+         * The setting is still consulted, because instance is briefly null
+         * during the service's own start-up and a row that flickers OFF on a
+         * healthy install is its own lie. A grant that is listed but not bound
+         * reports NOT granted after that grace window, which is the state this
+         * exists to catch.
+         */
+        fun accessibilityLive(context: android.content.Context): Boolean {
+            val listed = try {
+                android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                )?.split(":")?.any {
+                    it.equals("${context.packageName}/${WimAccessibilityService::class.java.name}", true) ||
+                        it.equals("${context.packageName}/.WimAccessibilityService", true)
+                } == true
+            } catch (_: Throwable) { false }
+            if (!listed) return false
+            if (WimAccessibilityService.instance != null) return true
+            // Listed but not bound. Give the service a moment after a cold
+            // start before calling it broken — anything older than that is the
+            // install-over failure and must read as OFF.
+            return android.os.SystemClock.elapsedRealtime() - processStartMs < BIND_GRACE_MS
+        }
+
+        private const val BIND_GRACE_MS = 8_000L
+        private val processStartMs = android.os.SystemClock.elapsedRealtime()
+
+        /**
          * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps
          * "low" / "medium" / "high" → [Clarifier.UNCERTAINTY_THRESHOLD]
          * adjustments. Default = medium (0.55, the canonical threshold).

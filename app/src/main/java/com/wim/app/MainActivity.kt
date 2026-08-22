@@ -2468,13 +2468,10 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
         toggle.scaleY = 0.75f
     }
 
-    private fun isAccessibilityEnabled(): Boolean {
-        val enabledServices = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return enabledServices.contains("$packageName/${WimAccessibilityService::class.java.canonicalName}")
-    }
+    // Live truth, not the settings string — see WimApp.accessibilityLive. The
+    // string survives an install-over while the service fails to rebind, and
+    // this row then reads ON over a bubble that cannot type.
+    private fun isAccessibilityEnabled(): Boolean = WimApp.accessibilityLive(this)
 
     // Named so it can be cancelled: the 2s retry must NOT fire after the
     // operator taps the overlay-permission button (it would restart the
