@@ -539,6 +539,27 @@ class BubbleService : Service() {
         Log.i(TAG, "BubbleService created")
         instance = this
 
+        // One-shot cleanup of an orphaned model directory.
+        //
+        // A punctuation-and-truecasing feature shipped and was reverted the same
+        // hour on 2026-08-22 — it was built against a stale comment claiming
+        // whisper-tiny.en returns flat lowercase, which it does not. Anyone who
+        // ran that build already downloaded its 7 MB model into filesDir, and
+        // reverting the code cannot reach it: app-private storage is sealed to
+        // the app, so neither adb shell nor Shizuku can delete it from outside.
+        //
+        // Safe to keep forever — deleteRecursively on a path that does not
+        // exist is a no-op — but it can go once no install from that window is
+        // still in the wild.
+        try {
+            val orphan = java.io.File(filesDir, "punct-models")
+            if (orphan.exists() && orphan.deleteRecursively()) {
+                Log.i(TAG, "Removed orphaned punct-models directory")
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "punct-models cleanup skipped: ${e.message}")
+        }
+
         // CRITICAL: startForeground MUST run within ~5 seconds of onCreate
         // or Android throws ForegroundServiceDidNotStartInTimeException and
         // bricks the app on launch. Previously this call lived at the
