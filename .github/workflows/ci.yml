@@ -1,10 +1,25 @@
 name: Build & Test
 
+# A plain push to main builds ONLY the giveaway APK — the file that goes on
+# the operator's phone, and the only artifact a normal push exists to produce.
+# Everything else (debug APK, unit tests, lint, the signed release APK+bundle
+# and every check that reads them) is the pre-submission suite and now runs on
+# a pull request or on a manual "Run workflow" click instead.
+#
+# Why: the job compiled the app three times on every one-line change and the
+# operator waited ~8 minutes to install it. The unit tests cover pure logic
+# only — route tables, the disfluency filter, the meaning guard — while every
+# defect found in practice lives in the overlay, the window timing and the
+# accessibility injection, which no unit test here can see. So the suite was
+# charging eight minutes to guard against a class of bug it does not catch.
+#
+# Run the full suite before any Play submission — that is what it is for.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -54,12 +69,15 @@ jobs:
           cache-read-only: false
 
       - name: Build debug APK
+        if: github.event_name != 'push'
         run: gradle assembleDebug
 
       - name: Run unit tests
+        if: github.event_name != 'push'
         run: gradle testDebugUnitTest
 
       - name: Lint release build
+        if: github.event_name != 'push'
         run: |
           gradle lintRelease || {
             cat app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -71,21 +89,26 @@ jobs:
       # arrive in Crashlytics as bare memory addresses. Skipping it here silently
       # defeated that — the symbols were never uploaded for any shipped build.
       - name: Build signed release APK and bundle
+        if: github.event_name != 'push'
         run: gradle assembleRelease bundleRelease --no-build-cache
 
       - name: Verify installable APK signature
+        if: github.event_name != 'push'
         run: |
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
           test -n "$apksigner"
           "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
 
+      # The one artifact a plain push exists to produce. On a push this now
+      # compiles from cold rather than inheriting the release build's work,
+      # so it costs more on its own than the 62s it took as the third build —
+      # and the run as a whole still lands at roughly half the old time.
       - name: Build full giveaway APK with the stable signer
-        if: github.event_name == 'push'
         run: gradle assembleGiveaway --no-build-cache
 
       - name: Preserve both APKs for signer diagnosis
         uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'push' && always() }}
+        if: ${{ github.event_name != 'push' && always() }}
         with:
           name: wim-signer-diagnostic-apks
           path: |
@@ -94,7 +117,7 @@ jobs:
           retention-days: 3
 
       - name: Verify standard and full APKs use the same certificate
-        if: github.event_name == 'push'
+        if: github.event_name != 'push'
         run: |
           set -o pipefail
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
@@ -113,6 +136,7 @@ jobs:
           test "$standard" = "$full"
 
       - name: Reject bundled provider keys
+        if: github.event_name != 'push'
         run: |
           forbidden="$(unzip -Z1 app/build/outputs/bundle/release/app-release.aab | rg '(^|/)(api_key|anthropic_key)\.txt$' || true)"
           if test -n "$forbidden"; then
@@ -122,6 +146,7 @@ jobs:
           fi
 
       - name: Reject advertising identifier permissions
+        if: github.event_name != 'push'
         run: |
           forbidden="$(unzip -p app/build/outputs/bundle/release/app-release.aab base/manifest/AndroidManifest.xml \
             | strings \
@@ -135,6 +160,7 @@ jobs:
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
+        if: github.event_name != 'push'
         with:
           name: wim-release-aab
           path: app/build/outputs/bundle/release/app-release.aab
@@ -146,7 +172,7 @@ jobs:
       # AccessibilityService approval.
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
-        if: github.event_name == 'push'
+        if: github.event_name != 'push'
         with:
           name: wim-release-apk
           path: app/build/outputs/apk/release/app-release.apk
@@ -154,7 +180,6 @@ jobs:
 
       - name: Upload stable-signed full APK
         uses: actions/upload-artifact@v4
-        if: github.event_name == 'push'
         with:
           name: wim-giveaway-apk
           path: app/build/outputs/apk/giveaway/app-giveaway.apk
