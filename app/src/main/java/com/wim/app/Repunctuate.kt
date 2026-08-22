@@ -51,6 +51,13 @@ object Repunctuate {
             m.groupValues[1] + m.groupValues[2].uppercase()
         }
 
+        // A removed filler leaves its punctuation behind — "…of layer, right?"
+        // loses "right?" and keeps the comma — so the terminal mark would be
+        // appended straight onto it and the user reads "layer,.".
+        // DisfluencyFilter.tidyPunctuation catches this upstream; this is the
+        // same guard at the point of the append, for the callers that reach
+        // here without passing through the filter.
+        s = s.trimEnd(',', ';', ':', ' ')
         if (s.isNotEmpty() && s.last() !in ".!?") {
             // The mark belongs to the sentence being closed, so the opening
             // word is read from the LAST sentence, not from the whole text.

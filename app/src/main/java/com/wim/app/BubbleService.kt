@@ -2869,15 +2869,36 @@ class BubbleService : Service() {
         // "like" from the filler tic \u2014 strip only pause-bounded occurrences,
         // and keep the risky fillers OUT of the naive word-list pass so it
         // can't eat what the clock protected. No timings \u2192 old behavior.
+        // Two brooms for the words that are fillers AND ordinary English —
+        // "like", "you know", "i mean", "so", "well", "right". The naive
+        // word-list pass cannot tell them apart and must never see them.
+        //
+        // The clock broom is the good one: it strips an occurrence only when a
+        // real pause sits on both sides. It needs per-word timings, which only
+        // whisper-1 returns, so it covers L1-cloud and nothing else. Everywhere
+        // else these six went to the naive pass, and it ate the real ones —
+        // measured on device 2026-08-22, "Is everything going well here?"
+        // arrived as "Is everything going here?", and "regardless of layer,
+        // right?" as "regardless of layer," which then collected a full stop
+        // and reached the user as "layer,.".
+        //
+        // Where there is no clock, position stands in for it: strip these words
+        // only where they OPEN a sentence, which is where a speaker fills time.
+        // Inside a clause they are doing work. From L2 up the prompt already
+        // says "Strip filler words" and the model can weigh context that no
+        // regex here can, so the leftovers are its job, not ours.
         val clockBroom = layer < 2 && lastWhisperWords.isNotEmpty()
         val broomInput = if (clockBroom) {
             DisfluencyFilter.stripTimedFillers(
                 deHallucinated, lastWhisperWords, log = { msg -> ConsoleLog.log(msg, "info") }
             )
-        } else deHallucinated
-        val safeFillers = if (clockBroom) {
+        } else {
+            DisfluencyFilter.stripLeadingMarkers(deHallucinated)
+        }
+        // Risky fillers are held back from the naive pass on EVERY route now,
+        // not just the one with a clock.
+        val safeFillers =
             fillerWords.filter { it.lowercase().trim() !in DisfluencyFilter.RISKY_FILLERS }
-        } else fillerWords
         val preCleaned = if (layer >= 4) deHallucinated else DisfluencyFilter.filter(
             broomInput,
             safeFillers,

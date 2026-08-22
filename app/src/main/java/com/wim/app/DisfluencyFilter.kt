@@ -355,6 +355,9 @@ object DisfluencyFilter {
         // Collapse multiple spaces
         cleaned = MULTI_SPACE.replace(cleaned, " ").trim()
 
+        // Repair punctuation orphaned by every strip above.
+        cleaned = tidyPunctuation(cleaned)
+
         // Don't return empty — fall back to original
         return cleaned.ifBlank { text }
     }
@@ -400,7 +403,67 @@ object DisfluencyFilter {
      * both observed 2026-08-04. Deterministic code cannot tell the two
      * apart from text alone; the clock can.
      */
-    val RISKY_FILLERS = setOf("like", "you know", "i mean")
+    val RISKY_FILLERS = setOf("like", "you know", "i mean", "so", "well", "right")
+
+    /**
+     * Strip [RISKY_FILLERS] only where they open a sentence.
+     *
+     * The clock-broom above is the good tool and it needs word timings, which
+     * only whisper-1 returns. Everywhere else these six words were handed to
+     * the naive word-list pass, which cannot tell a discourse marker from the
+     * word itself. Measured on device 2026-08-22: "Is everything going well
+     * here?" arrived as "Is everything going here?", and "regardless of layer,
+     * right?" as "regardless of layer," — which then collected a full stop from
+     * Repunctuate and reached the user as "layer,.".
+     *
+     * Position is the signal the clock is standing in for. A speaker filling
+     * time does it at the top of a clause — "So, back to the thing", "Well, I
+     * think" — while the same word inside a clause is doing work: "going well",
+     * "the right one", "so tired". So: strip only at the start of the text or
+     * immediately after . ! ?, AND only when a comma follows. The comma is what
+     * separates "So, back to the thing" from "So tired" — a speaker who pauses
+     * long enough for the ASR to punctuate was filling time. Requiring it means
+     * some fillers survive; that is the trade taken deliberately, since from L2
+     * up the model strips the leftovers and at L1 an extra "well" is cheaper
+     * than a missing one.
+     *
+     * Conservative by construction — a missed filler is a word the reader
+     * skims past, a deleted real word changes what was said.
+     */
+    fun stripLeadingMarkers(text: String, fillers: Set<String> = RISKY_FILLERS): String {
+        if (text.isBlank()) return text
+        var out = text
+        for (phrase in fillers.sortedByDescending { it.length }) {
+            val re = Regex(
+                """(^|[.!?]\s+)""" + Regex.escape(phrase).replace("\\ ", """\s+""") + """\s*,\s*""",
+                RegexOption.IGNORE_CASE,
+            )
+            out = re.replace(out) { m -> m.groupValues[1] }
+        }
+        return MULTI_SPACE.replace(out, " ").trim().ifBlank { text }
+    }
+
+    /**
+     * Repair punctuation left stranded by a removed word.
+     *
+     * Every strip in this file replaces a token with a space and leaves the
+     * punctuation that was attached to it. "…of layer, right?" loses "right?"
+     * and keeps the comma, so the sentence ends on a comma; Repunctuate then
+     * appends a full stop and the user reads "layer,.". The same removal
+     * mid-sentence leaves ", ," and " ." behind.
+     *
+     * Runs last, after every other pass, and only touches punctuation.
+     */
+    fun tidyPunctuation(text: String): String {
+        if (text.isBlank()) return text
+        var out = text
+        out = Regex("""\s+([,.;:!?])""").replace(out, "$1")      // " ,"  -> ","
+        out = Regex("""([,;:])\s*([,;:])+""").replace(out, "$1")  // ",,"  -> ","
+        out = Regex("""[,;:]+([.!?])""").replace(out, "$1")        // ",."  -> "."
+        out = Regex("""([.!?])\1+""").replace(out, "$1")          // ".."  -> "."
+        out = Regex("""[,;:]+\s*$""").replace(out, "")            // trailing comma
+        return MULTI_SPACE.replace(out, " ").trim().ifBlank { text }
+    }
 
     // A filler is a hesitation: the speaker pauses, drops the token in,
     // pauses again. Meaning runs tight into its neighbors. 350 ms is well
