@@ -101,7 +101,7 @@ class WimApp : Application() {
         /** True when this build carries its own provider keys and therefore
          *  never needs the authenticated backend for a cloud layer. */
         fun hasEmbeddedKeys(): Boolean =
-            BuildConfig.EMBEDDED_OPENAI_KEY.isNotBlank()
+            BuildConfig.EMBEDDED_OPENAI_KEY.isNotBlank() && !forceBackend()
 
         /**
          * True when the pipeline should expose its test hooks — the
@@ -163,6 +163,29 @@ class WimApp : Application() {
          * a user-facing toggle is not yet wired into the bubble menu.
          */
         fun l1CloudAsr(): Boolean = prefBool("l1_cloud_asr", false)
+
+        /**
+         * Force every cloud call through wim-reconstruct, ignoring the keys
+         * baked into this build.
+         *
+         * The giveaway build the operator runs carries its own OpenAI and
+         * Anthropic keys and therefore takes the device-direct path at every
+         * layer, while a Play install has no keys and must go through the
+         * backend. That is two different pipelines, and the operator only ever
+         * exercises the one his users do not have — so a backend regression is
+         * invisible to the person testing.
+         *
+         * With this on, a signed-in giveaway build behaves exactly like a Play
+         * install: same route, same entitlement check, same quota. Signed out,
+         * it falls back to the embedded keys rather than failing, so flipping
+         * it can never leave the bubble unable to dictate.
+         *
+         * Off by default. Flip without a rebuild:
+         *   adb shell am broadcast -a com.wimlabs.wim.TEST \
+         *     -n com.wimlabs.wim/com.wim.app.WimTestReceiver \
+         *     --es action set_pref --es key force_backend --es value true --es type bool
+         */
+        fun forceBackend(): Boolean = prefBool("force_backend", false)
 
         /**
          * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps

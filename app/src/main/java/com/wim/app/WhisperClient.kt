@@ -162,7 +162,15 @@ object WhisperClient {
             // the WAV on any encoder trouble — see AudioCompressor.
             val uploadFile = AudioCompressor.compressForUpload(audioFile) ?: audioFile
             val uploadMime = if (uploadFile.extension.equals("m4a", true)) "audio/mp4" else "audio/wav"
-            val (responseBody, engine) = if (apiKey.isNotBlank()) {
+            // Route choice. Normally: a key in the build means go straight to
+            // OpenAI. With force_backend on (see WimApp.forceBackend) the token
+            // is fetched first and the backend wins, so the operator's build
+            // takes the same path a Play install takes. No token means no
+            // backend to reach, and the embedded key carries the take rather
+            // than the dictation failing.
+            val overrideToken =
+                if (WimApp.forceBackend() || apiKey.isBlank()) AuthManager.getIdToken() else null
+            val (responseBody, engine) = if (apiKey.isNotBlank() && overrideToken == null) {
                 val bodyBuilder = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("model", model)
@@ -189,7 +197,7 @@ object WhisperClient {
                     .build()
                 executeJson(request, "Whisper API") to "direct"
             } else {
-                val idToken = AuthManager.getIdToken()
+                val idToken = overrideToken
                     ?: throw IllegalStateException("Sign in to use cloud transcription")
                 val body = JSONObject().apply {
                     put("action", "transcribe_audio")
