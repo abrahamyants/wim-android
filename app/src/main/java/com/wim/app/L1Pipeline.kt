@@ -43,6 +43,12 @@ object L1Pipeline {
      *                   Used by decay scheduling.
      * @param log Optional sink for per-correction "wrong → right" logs.
      *            Default no-op so tests can pass without capturing logs.
+     * @param punctuate Optional real punctuation + truecasing pass, applied
+     *            BEFORE Repunctuate. Injected rather than called directly so
+     *            this object stays a pure function on the JVM — [Punctuator]
+     *            needs an Android Context and a native model. Identity by
+     *            default; BubbleService supplies it only on the local route,
+     *            since every cloud provider already punctuates.
      * @param applyCorrections Profile corrections are a Layer-3+ feature
      *            (design call, George 2026-08-04). Applying them at L1 is
      *            how a poisoned list mangled every plain transcription for
@@ -56,7 +62,8 @@ object L1Pipeline {
         profile: ProfileManager,
         sessionNum: Int,
         log: (String) -> Unit = {},
-        applyCorrections: Boolean = true
+        applyCorrections: Boolean = true,
+        punctuate: (String) -> String = { it }
     ): Result {
         val corrections = if (applyCorrections) profile.getCorrections() else emptyMap()
         var l1Text = preCleaned
@@ -82,8 +89,17 @@ object L1Pipeline {
         if (sessionNum > 0 && sessionNum % 30 == 0) {
             profile.decayStaleCorrections(sessionNum)
         }
+        // Real punctuation + truecasing first, when the caller supplied an
+        // engine for it — see [Punctuator]. Local whisper-tiny returns a flat
+        // lowercase run, and Repunctuate alone can only capitalise the first
+        // letter and append one terminal mark, so a three-sentence take came
+        // out as one sentence. Default is identity, so unit tests and the
+        // cloud routes behave exactly as before.
+        l1Text = punctuate(l1Text)
         // Deterministic capitalization + terminal punctuation. Idempotent
-        // on already-punctuated text. Mirrors lavrentiy.py repunctuate().
+        // on already-punctuated text — a no-op after a successful punctuate(),
+        // and the whole job when that was identity or the model was missing.
+        // Mirrors lavrentiy.py repunctuate().
         l1Text = Repunctuate.apply(l1Text)
         return Result(l1Text, applied)
     }
