@@ -5,10 +5,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import java.io.File
+import kotlin.io.path.createTempDirectory
 
 class AudioCompressorPathTest {
     @Test fun parallelCallsReceiveDifferentOutputPaths() {
-        val dir = createTempDir(prefix = "wim-audio-path-")
+        val dir = createTempDirectory("wim-audio-path-").toFile()
         try {
             val wav = File(dir, "wim_recording.wav")
             val first = AudioCompressor.newOutputFile(wav)
