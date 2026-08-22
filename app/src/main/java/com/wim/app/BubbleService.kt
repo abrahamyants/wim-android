@@ -3204,7 +3204,23 @@ class BubbleService : Service() {
                     onsetWeights = profile.getOnsetWeights(),
                     covertProfile = profile.getCovertProfile(),
                     whisperLowConf = lastWhisperLowConf,
-                    whisperDisagreements = multiPass?.disagreementSummary ?: emptyList(),
+                    // HELD BACK 2026-08-22, an hour after it was first sent.
+                    //
+                    // The passes still run and are still awaited, and the
+                    // clarifier still gets them. But this field had never once
+                    // carried a value — every caller passed emptyList() — and
+                    // the first real payload took wim-reconstruct down:
+                    //
+                    //   MultiPass: 1 disagreement positions into the prompt
+                    //   Backend error 500: {"error": "Reconstruction failed:
+                    //   TypeError", "retriable": false, "tier": "Pro"}
+                    //
+                    // one second apart, on the operator's phone, at L4. The
+                    // server has never parsed this shape because nothing ever
+                    // sent it. Restore this line together with the server-side
+                    // fix, not before — the deploy is what is missing, not the
+                    // signal, and L4 failing outright is worse than L4 guessing.
+                    whisperDisagreements = emptyList(),
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext,
                     languageCode = primaryLanguage,
