@@ -80,6 +80,61 @@ class WhisperLocalEngine(private val context: Context) {
         private const val QUIET_AUTO_MAX_DBFS = -22.0
         private const val QUIET_AUTO_MIN_DBFS = -110.0
 
+        // Silence trimming, float mirror of WavSilenceTrimmer's constants:
+        // 20 ms windows, 100 ms of padding kept on each side, and the same RMS
+        // floor expressed for normalised floats (250 / 32768).
+        //
+        // WavSilenceTrimmer runs on the WAV, which only the CLOUD route reads.
+        // This engine decodes its own float buffer and never opens that file,
+        // so leading and trailing silence reached whisper-tiny untouched — the
+        // same route boundary that hid Quiet Mode from the local path until it
+        // was found. Silence is what Whisper hallucinates into: measured on
+        // device 2026-08-22, three consecutive local takes returned "[",
+        // "[BLANK_AUDIO]" and "[ Sound Effects ]".
+        private const val TRIM_WINDOW_SAMPLES = 320
+        private const val TRIM_PAD_WINDOWS = 5
+        private const val TRIM_RMS_THRESHOLD = 250.0f / 32768.0f
+
+        /**
+         * Drop leading and trailing silence, keeping 100 ms of padding so word
+         * onsets and offsets are not clipped. Returns [samples] unchanged when
+         * the take is too short to window, or when no window clears the floor —
+         * an all-quiet take is the caller's problem, not something to truncate
+         * to nothing here.
+         *
+         * Deliberately measured BEFORE the quiet boost, unlike the WAV route
+         * where AudioRecorder boosts first and WavSilenceTrimmer measures the
+         * boosted file. An 18 dB lift multiplies room tone by about eight, so
+         * measuring after it can push background noise over the floor and trim
+         * nothing at all. Same numbers, better order; the WAV route probably
+         * wants the same change, which is a separate job on a separate path.
+         */
+        internal fun trimSilence(samples: FloatArray): FloatArray {
+            val windows = samples.size / TRIM_WINDOW_SAMPLES
+            if (windows < 2 * TRIM_PAD_WINDOWS) return samples
+            var first = -1
+            var last = -1
+            for (w in 0 until windows) {
+                var sum = 0.0
+                val base = w * TRIM_WINDOW_SAMPLES
+                for (i in base until base + TRIM_WINDOW_SAMPLES) {
+                    sum += samples[i].toDouble() * samples[i].toDouble()
+                }
+                if (Math.sqrt(sum / TRIM_WINDOW_SAMPLES) >= TRIM_RMS_THRESHOLD) {
+                    if (first < 0) first = w
+                    last = w
+                }
+            }
+            if (first < 0) return samples
+            val startW = maxOf(0, first - TRIM_PAD_WINDOWS)
+            val endW = minOf(windows - 1, last + TRIM_PAD_WINDOWS)
+            val start = startW * TRIM_WINDOW_SAMPLES
+            val end = minOf(samples.size, (endW + 1) * TRIM_WINDOW_SAMPLES)
+            if (start >= end) return samples
+            if (start == 0 && end == samples.size) return samples
+            return samples.copyOfRange(start, end)
+        }
+
         /** Mean loudness of [samples] in dBFS. -120 for an empty take. */
         internal fun meanDbfs(samples: FloatArray): Double {
             if (samples.isEmpty()) return -120.0
@@ -286,6 +341,27 @@ class WhisperLocalEngine(private val context: Context) {
                 resultListener.onError(ERROR_AUDIO)
                 return
             }
+            // Delayed Auditory Feedback plays the speaker's own voice back out
+            // of the phone WHILE this recorder is running (see DafPlayer). The
+            // microphone hears that playback, so the delayed copy of a word can
+            // land in the transcript a second time. Android's echo canceller is
+            // built for exactly this and costs two lines and no download.
+            //
+            // AEC only. NoiseSuppressor and AutomaticGainControl are deliberately
+            // NOT enabled: this recorder already opens on VOICE_RECOGNITION,
+            // which asks the platform for the processing chain ASR wants, and
+            // both of those are tuned for a human ear on a phone call. They are
+            // known to cost accuracy on top of a recognition source, and AGC
+            // would fight the quiet boost above besides.
+            try {
+                if (android.media.audiofx.AcousticEchoCanceler.isAvailable()) {
+                    android.media.audiofx.AcousticEchoCanceler
+                        .create(record.audioSessionId)?.enabled = true
+                    Log.i(TAG, "Echo canceller on")
+                }
+            } catch (e: Throwable) {
+                Log.w(TAG, "Echo canceller unavailable: ${e.message}")
+            }
             audioRecord = record
             record.startRecording()
             isCapturing = true
@@ -331,7 +407,7 @@ class WhisperLocalEngine(private val context: Context) {
             dispatchError(ERROR_INFERENCE)
             return
         }
-        val samples: FloatArray = synchronized(sampleBuffer) {
+        var samples: FloatArray = synchronized(sampleBuffer) {
             FloatArray(sampleBuffer.size).also { arr ->
                 for (i in arr.indices) arr[i] = sampleBuffer[i]
             }
@@ -347,6 +423,16 @@ class WhisperLocalEngine(private val context: Context) {
         // automatic boost stopped at the route boundary. Same threshold and
         // same gain as the cloud side, so a whispered take transcribes the same
         // whichever route it took.
+        // Trim before measuring and boosting: the level check and the boost
+        // should both describe the speech, not the room tone on either side of
+        // it, and whisper-tiny hallucinates into whatever silence it is handed.
+        val trimmed = trimSilence(samples)
+        if (trimmed.size != samples.size) {
+            val cutMs = (samples.size - trimmed.size) * 1000 / SAMPLE_RATE
+            Log.i(TAG, "Trimmed ${cutMs}ms of silence before decode")
+        }
+        samples = trimmed
+
         val dbfs = meanDbfs(samples)
         val manualQuiet = WimApp.prefs.getBoolean("quiet_mode", false)
         if (manualQuiet || shouldAutoBoost(dbfs)) {
