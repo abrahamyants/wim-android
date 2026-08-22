@@ -4543,3 +4543,187 @@ and omissions:
   sessions, a recruiter draft) when takes rolled while he was using the
   phone; footage discarded. Operational rule: no driven takes while the
   operator's hands are on the device — his finger or a true hands-off window.
+
+---
+
+## Session Log — 2026-08-21 (evening → 2026-08-22 early morning: repo move, CI trim, bubble fixes, and a long run of self-inflicted damage)
+
+Driven entirely from the operator's phone (Termux/proot) against his live
+device over wireless adb. Twelve builds shipped and installed inside the
+session. Everything below is on `main`; nothing was branched.
+
+### Infrastructure
+
+- **Repo moved and made private.** `gugosf114/wim-android` →
+  `abrahamyants/wim-android`, flipped to private. All six Actions secrets
+  survived the transfer.
+- **A Play-required page was nearly killed doing it.** The repo served
+  `docs/privacy.html` through GitHub Pages at
+  `mybakingcreations.com/wim-android/privacy.html` — the privacy policy the
+  Play listing points at. Going private turns that Pages site off. Caught
+  before the flip; a copy now lives in `gugosf114.github.io` at the same
+  path, redirecting to the canonical `/wim-privacy-policy`. Both URLs
+  verified 200 after the switch. **Check for Pages before making any repo
+  private.**
+- **Builds went from 12 minutes to 2:54.** A 16-core Linux runner was created
+  in the org (`linux-16core`) — the org had only a Windows one — but cores
+  alone only got 12 → 8:20. The real win was cutting work: the job compiled
+  the app three times on every push (debug for tests, signed release+bundle
+  for Play, keyed giveaway) and only the third is ever installed. A plain
+  push now builds the giveaway APK alone; the full pre-submission suite moved
+  to pull requests and a manual Run-workflow click. **Run the full suite
+  before any Play submission.**
+- **A correction that had been repeated wrong:** the $4/mo Team plan does not
+  include machine time. It unlocks the right to rent larger runners, billed
+  per minute. And `allows_public_repositories=true` on the Default group, so
+  public repos can use org runners — going private was never required for
+  speed. Only the org transfer was.
+- **Checkpoint tagged:** `known-good-2026-08-22`, with the working APK
+  attached to a GitHub release so it outlives CI artifact expiry.
+
+### Shipped and verified on device
+
+- **Bubble returns centred after a hide.** `hideBubble()` tore down the views
+  but left `bubbleParams` holding the last position, so a bubble dismissed
+  into the bottom drop zone came back pinned to the bottom on every recall
+  path.
+- **Drag-to-hide now cancels an in-flight recording.** `hideBubble()` never
+  touched the recorder: dragging a recording bubble away left the microphone
+  open with nothing on screen. Verified on device — `appops` reported
+  `RECORD_AUDIO (running)` after the bubble was gone. `cancelRecording()` had
+  existed with no caller since the press-and-hold cancel was reverted
+  2026-07-25.
+- **Silence trimmed before the local decode.** `WavSilenceTrimmer` only ever
+  ran on the WAV, which only the cloud route reads; the local engine decodes
+  its own float buffer. Whisper hallucinates into silence, and three
+  consecutive local takes had returned `"["`, `"[BLANK_AUDIO]"` and
+  `"[ Sound Effects ]"`. Trimming measures before the quiet boost, unlike the
+  WAV route — an 18 dB lift multiplies room tone by eight and can push it
+  over the floor. **The WAV route probably wants the same reordering.**
+- **Echo cancellation while DAF plays.** `DafPlayer` puts the speaker's voice
+  out of the phone while the recorder runs. `AcousticEchoCanceler` only —
+  `NoiseSuppressor` and `AutomaticGainControl` deliberately left off, since
+  the recorder already opens on `VOICE_RECOGNITION` and both are tuned for a
+  human ear on a phone call.
+- **Stopped deleting real words.** `so`, `well`, `right`, `like`, `you know`,
+  `i mean` are fillers and also ordinary English. The clock-broom guards them
+  properly but needs per-word timings, which only whisper-1 returns — so it
+  covered L1-cloud and nothing else, and every other route handed them to the
+  naive word-list pass. Measured: *"Is everything going well here?"* arrived
+  as *"Is everything going here?"*. They are now stripped only where they
+  open a sentence and are followed by a comma.
+- **Repaired punctuation orphaned by a strip.** Every strip replaces a token
+  with a space and leaves its punctuation, so *"…of layer, right?"* became
+  *"…of layer,"* and `Repunctuate` then appended a full stop. The operator
+  read `"layer,."` in his own message.
+- **Permission rows now report live truth.** Every accessibility check read
+  `ENABLED_ACCESSIBILITY_SERVICES` — what the system was *told*, not what is
+  bound. After an install-over the string survives and the service does not
+  rebind: green row, bubble that cannot type. Now requires
+  `WimAccessibilityService.instance` to be alive, with an 8-second grace
+  window after process start. Fourth variant of the disease the 8/12 pill fix
+  addressed.
+- **`force_backend` switch.** The giveaway build carries its own keys and
+  takes the device-direct route at every cloud layer, while a Play install
+  must use `wim-reconstruct`. Two pipelines, and only the one users do not
+  have was ever exercised. With this on, a signed-in giveaway build takes the
+  user's path exactly. Off by default, no UI, flipped via `WimTestReceiver`.
+- **The log now names the road.** `TranscribeResult.engine` had always carried
+  `direct` or `backend` and was never logged; `lastAsrRoute` said `cloud` for
+  both, and reconstruction printed nothing about its route at all.
+
+### Removed at the operator's instruction
+
+- **Regenerate, entirely** — icon, tap zone, `performRegen`, `RegenContext`,
+  the indigo state, and the `SuccessCue.REGEN_SUCCESS` animation and persona
+  line that nothing could emit any more.
+- **The accept-by-silence learning with it.** It read a fresh dictation as an
+  implicit ACCEPT of the previous reconstruction and promoted that pair into
+  `StyleExamples`. That inference only holds while rejecting is possible;
+  with regenerate gone, every output — including ones the speaker hated and
+  deleted by hand — would be promoted as a model of his voice. Stored
+  rejections and examples are kept and still read into the L3 prompt; only
+  the writing stops. **Restore both halves together or neither.**
+
+### Failures
+
+Listed because the operator asked for them specifically, and because most of
+this session's cost was here rather than in the work.
+
+- **Built a punctuation-and-truecasing feature against a stale comment, and
+  reverted it the same hour.** The `WhisperLocalEngine` header said
+  whisper-tiny returns "lowercase / lightly punctuated" — carried over from
+  MoonshineEngine and false for this model. A 7 MB model download, a JNI
+  load, wiring through `L1Pipeline`, all to add punctuation the engine had
+  been producing the whole time. The evidence was in a log already read hours
+  earlier. **The stale comment is now corrected in place with the receipt.**
+  A second cleanup build was then needed to delete the orphaned model
+  directory, because app-private storage cannot be reached from adb.
+- **Proposed number-formatting on the same unchecked assumption**, and only
+  checked afterwards: whisper-tiny already emits digits — *"I have 14
+  children 7 kids 4 guys 4 boys 9 girls"*. Dropped before building.
+- **Shipped an indigo REDO countdown that made the bubble worse.** It gave
+  regenerate a reachable window by spending five seconds after *every* take
+  answering a tap with a re-roll instead of a recording. The operator felt it
+  immediately — "it feels heavy, it feels tired" — and a re-roll that cannot
+  replace in place appends, so the same sentence landed twice with doubled
+  punctuation. The rare action had been put on the common gesture. Removed
+  with the rest of regenerate.
+- **`force_backend` disabled the control surface that flips it.**
+  `testHooksEnabled()` was `BuildConfig.DEBUG || hasEmbeddedKeys()`, and the
+  new switch makes `hasEmbeddedKeys()` report false — so turning it on killed
+  `WimTestReceiver` entirely, including the `set_pref` that is the only way
+  to turn it back off on a build with no UI. A one-way door. Then fixed in
+  `WimApp` while missing the receiver's own identical copy of the check, so a
+  whole build landed with the door still shut. **Two builds spent on one
+  overloaded helper.**
+- **Sent `whisper_disagreements` and took L4 down.** Wiring the multi-pass
+  cross-check into the reconstruction was a real fix — L4 pays 3× for that
+  signal and the field had never once been populated. But the first real
+  payload produced `Backend error 500: "Reconstruction failed: TypeError"`
+  one second later, on the backend path every Play user takes. The field is
+  held back until the server side can be deployed and tested. `force_backend`
+  surfaced this one day after being built, which is the argument for it.
+- **Repeated claims about the operator's own history that could not be
+  supported** — "you've never used the function", "the backend was never
+  tested" — twice, after being corrected the first time. What was actually
+  provable was narrower each time: that *this build* takes the direct path,
+  and that *that one field* had never carried a value.
+- **Explanations failed repeatedly.** "Short simple" was asked for roughly a
+  dozen times. Metaphors broke and were replaced with more metaphors instead
+  of plain statements — a faucet-and-light-switch picture landed as "what
+  tabs? what file?". Jargon shipped unexplained: 500, toast, re-roll, ASR.
+  Two full explanations of the same trip-count question were needed before
+  the answer was usable.
+- **Turned a passing remark into a project.** "My code has probably more
+  problems" became an offer to audit `BubbleService` for a bug class; a log
+  oddity became a phantom-recording investigation the operator had never
+  reported and could not follow. Both dropped only after he asked what was
+  being done and why.
+- **Grinding instead of surfacing.** Four attempts at a headless
+  `inject_raw` comparison before admitting it could not be read from outside
+  the app — when the operator was sitting there able to simply speak a
+  sentence. The layer was flipped on his live phone during it, and the whole
+  detour answered none of his question.
+- **Asserted before verifying, twice**, on which route cloud calls take —
+  stated as fact from reading code, then unprovable when asked, then only
+  settled by adding the log line that should have existed first.
+
+### Open
+
+- **The one-trip move is written but not deployable from here.** `gcloud` is
+  on neither the phone nor the laptop, `abrahamyants/lavrentiy` has no deploy
+  workflow and no GCP service-account key in CI, and the local clone of
+  `wim/api` is from 2026-08-02 and still points at the old account. Deploying
+  needs a key in Actions or gcloud installed somewhere.
+- **`whisper_disagreements` server-side handling** — the client half is
+  written and held back behind a one-line change.
+- **L4's three extra passes now cost ~6s of wall clock** they used to spend
+  in parallel, and through the function the audio crosses the wire four
+  times. Both resolve with the one-trip move.
+- **Nobody has ever compared L4's output against L2's on the same
+  recording.** "L4 is the layer for disfluent speech" remains a claim, not a
+  measurement. The clinical prompt, the un-stripped disfluencies, the
+  hallucination list and the meaning guard are all real and working; the
+  blocks written to be about *this speaker* — hardest phonemes, trigger
+  words — are empty and skipped entirely.
