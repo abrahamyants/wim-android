@@ -8,7 +8,18 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Org-hosted 16-core Ubuntu runner (abrahamyants/linux-16core, created
+    # 2026-08-22). The free shared runner took ~12 min per push because this
+    # job compiles the app three times — debug for the unit tests, signed
+    # release for Play, and the keyed giveaway APK — and two of those pass
+    # --no-build-cache. Gradle parallelises across cores, so the cores are the
+    # lever. Larger sizes exist up to 96-core; an Android build runs out of
+    # parallel work well before that, so they would bill more for very little.
+    #
+    # Billed per minute, unlike the free shared runner. If this ever needs to
+    # go back, `ubuntu-latest` is a drop-in replacement — nothing else in the
+    # job depends on the runner being org-hosted.
+    runs-on: linux-16core
     env:
       ORG_GRADLE_PROJECT_WIM_STORE_PASSWORD: ${{ secrets.WIM_STORE_PASSWORD }}
       ORG_GRADLE_PROJECT_WIM_KEY_PASSWORD: ${{ secrets.WIM_KEY_PASSWORD }}
