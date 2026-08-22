@@ -2,6 +2,7 @@ package com.wim.app
 
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
+import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.util.Log
@@ -45,6 +46,30 @@ object AudioCompressor {
     /** Below this there is nothing to win and the muxer overhead can exceed the saving. */
     private const val MIN_WORTHWHILE_BYTES = 32 * 1024
 
+    /** A fresh path per call. L4 runs several transcriptions in parallel. */
+    internal fun newOutputFile(wav: File): File {
+        val parent = wav.parentFile ?: throw IllegalArgumentException("WAV has no parent directory")
+        val prefix = (wav.nameWithoutExtension.take(40) + "-").padEnd(3, '-')
+        return File.createTempFile(prefix, ".m4a", parent).apply { delete() }
+    }
+
+    /** Ask Android's own demuxer whether the finalized file has an audio track. */
+    internal fun isPlayableM4a(file: File): Boolean {
+        if (!file.isFile || file.length() <= 16L) return false
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(file.absolutePath)
+            (0 until extractor.trackCount).any { index ->
+                extractor.getTrackFormat(index).getString(MediaFormat.KEY_MIME)
+                    ?.startsWith("audio/") == true
+            }
+        } catch (_: Exception) {
+            false
+        } finally {
+            runCatching { extractor.release() }
+        }
+    }
+
     /**
      * @return an .m4a sibling of [wav], or null to mean "send the WAV".
      */
@@ -55,8 +80,7 @@ object AudioCompressor {
     ): File? {
         if (!wav.isFile || wav.length() <= WAV_HEADER_BYTES + MIN_WORTHWHILE_BYTES) return null
 
-        val out = File(wav.parentFile, wav.nameWithoutExtension + ".m4a")
-        if (out.exists()) out.delete()
+        val out = newOutputFile(wav)
 
         var codec: MediaCodec? = null
         var muxer: MediaMuxer? = null
@@ -150,6 +174,20 @@ object AudioCompressor {
             }
 
             if (!muxerStarted) throw IllegalStateException("encoder produced no track")
+
+            // MediaMuxer writes the MP4 index during stop(). The old code checked
+            // and returned the file first, then stopped in a swallowed finally.
+            // An unfinished file still begins with `ftyp`, so the backend accepted
+            // it and OpenAI rejected it as undecodable. Finalization is part of
+            // success now: any stop failure falls into the WAV fallback below.
+            muxer?.stop() ?: throw IllegalStateException("muxer disappeared before finalization")
+            muxerStarted = false
+            muxer?.release()
+            muxer = null
+
+            if (!isPlayableM4a(out)) {
+                throw IllegalStateException("finalized M4A has no playable audio track")
+            }
 
             val before = wav.length()
             val after = out.length()

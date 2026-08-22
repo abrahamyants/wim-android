@@ -235,7 +235,12 @@ class WimApp : Application() {
         }
 
         private const val BIND_GRACE_MS = 8_000L
-        private val processStartMs = android.os.SystemClock.elapsedRealtime()
+        private val processStartMs = try {
+            android.os.SystemClock.elapsedRealtime()
+        } catch (_: Throwable) {
+            // Plain JVM tests have Android stubs, not a running SystemClock.
+            System.nanoTime() / 1_000_000L
+        }
 
         /**
          * Clarifier sensitivity per spec §6 Phase 4 step 28. Maps

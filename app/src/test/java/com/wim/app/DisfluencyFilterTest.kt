@@ -421,12 +421,12 @@ class DisfluencyFilterTest {
         return spec.map { (w, t) -> WhisperClient.TimedWord(t, t + 0.2, w) }
     }
 
-    @Test fun timed_pauseBoundedYouKnowIsStripped() {
+    @Test fun timed_pauseBoundedMarkersAreStripped() {
         val tw = words(
             "so" to 0.0, "you" to 1.0, "know" to 1.25, "I" to 2.2, "was" to 2.45, "thinking" to 2.7
         )
         assertEquals(
-            "so, I was thinking",
+            "I was thinking",
             DisfluencyFilter.stripTimedFillers("so, you know, I was thinking", tw)
         )
     }

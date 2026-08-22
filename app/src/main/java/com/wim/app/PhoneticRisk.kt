@@ -60,7 +60,7 @@ object PhoneticRisk {
     // before WimApp.prefs is initialized (unit tests, or any early-boot call).
     // Default to the English build's language when prefs aren't available.
     private fun activeLanguage(): String =
-        try { WimApp.appLanguage() } catch (e: Exception) { "en" }
+        try { WimApp.appLanguage() } catch (_: Throwable) { "en" }
 
     /**
      * Extract the initial onset (1-3 chars of consonants) from a word, using the
