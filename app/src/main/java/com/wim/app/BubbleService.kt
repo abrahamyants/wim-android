@@ -3155,6 +3155,43 @@ class BubbleService : Service() {
                     }
                 }
 
+                // Wait for the cross-check BEFORE reconstructing, at L4 only.
+                //
+                // The three passes exist to find the words the ear was unsure
+                // about, and that is exactly what the reconstruction needs to
+                // know — the backend has carried a `whisper_disagreements`
+                // field for it all along. It was never filled: this call passed
+                // an empty list, so the signal reached only the post-paste
+                // clarifier, and Sonnet reconstructed the operator's hardest
+                // speech with no idea which words were shaky. Three extra
+                // whisper-1 calls, paid for, and the model that matters most
+                // never saw the answer.
+                //
+                // The cost is real and only paid at L4. Running the passes
+                // alongside the reconstruction made them free in wall-clock;
+                // waiting for them adds their ~6s to a call that already runs
+                // 60-70s. On the clinical layer, for the speech this product
+                // exists for, six seconds to stop the model guessing at a
+                // blocked word is worth paying. L2/L3 never launch the passes,
+                // so nothing changes for them, and a failure still yields null
+                // and reconstructs exactly as before.
+                var multiPass: MultiPassDecoder.MultiPassResult? = null
+                if (multiPassDeferred != null) {
+                    showPipelineStage("⟳ Cross-checking", "Listening again for unsure words")
+                    multiPass = try {
+                        multiPassDeferred.await()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "MultiPassDecoder failed: ${e.message} — reconstructing without it")
+                        null
+                    }
+                    multiPass?.let {
+                        Log.i(TAG, "MultiPass: ${it.disagreementSummary.size} disagreement positions into the prompt")
+                        if (it.disagreementSummary.isNotEmpty()) {
+                            ConsoleLog.log("Cross-check: ${it.disagreementSummary.size} unsure words flagged to the model", "info")
+                        }
+                    }
+                }
+
                 val reconResult = ReconstructClient.reconstruct(
                     rawText = correctedText,
                     tone = tone,
@@ -3167,7 +3204,7 @@ class BubbleService : Service() {
                     onsetWeights = profile.getOnsetWeights(),
                     covertProfile = profile.getCovertProfile(),
                     whisperLowConf = lastWhisperLowConf,
-                    whisperDisagreements = emptyList(),
+                    whisperDisagreements = multiPass?.disagreementSummary ?: emptyList(),
                     speechSeverityMod = if (rateGap.gapDetected) 0.3 else 0.0,
                     precedingContext = precedingContext,
                     languageCode = primaryLanguage,
@@ -3396,29 +3433,21 @@ class BubbleService : Service() {
                 // point. L1 has no reconstruction step, so this branch never
                 // fires for L1 anyway.
                 val clarifierPkg = WimAccessibilityService.currentForegroundPackage
-                if (!WimApp.isClarifierAllowed(clarifierPkg)) {
-                    // Clarifier disabled for this app — discard the parallel-launched
-                    // multipass to stop the in-flight Whisper calls and free the API
-                    // budget. await() in the branch below would have consumed it.
-                    multiPassDeferred?.cancel()
-                }
+                // The cancel that used to sit here is gone. It discarded the
+                // passes whenever the clarifier was switched off for the
+                // foreground app — after the three whisper-1 calls were already
+                // in flight, so it freed nothing and lost the result. They feed
+                // the reconstruction now and are awaited above, so there is
+                // nothing left to cancel and no reason to want to.
                 if (WimApp.isClarifierAllowed(clarifierPkg)) {
                     var wordConfidences: List<Clarifier.WordConfidence> = emptyList()
-                    if (multiPassDeferred != null) {
-                        try {
-                            showPipelineStage("⟳ Reviewing", "Cross-checking unsure words")
-                            val multi = multiPassDeferred.await()
-                            if (multi != null) {
-                                // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
-                                // but Clarifier.evaluate is called with finalText = outputText
-                                // (GPT-reconstructed). Without realignment, approve-swap
-                                // corrupts the injected text. See ClarifierAlignment.kt.
-                                wordConfidences = alignWordConfidencesToText(multi.wordConfidences, outputText)
-                                Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words, ${wordConfidences.size} aligned to outputText")
-                            }
-                        } catch (e: Exception) {
-                            Log.w(TAG, "MultiPassDecoder failed: ${e.message} — clarifier proceeds with empty confidences")
-                        }
+                    multiPass?.let { multi ->
+                        // P0 fix — MultiPassDecoder ranges index into Whisper raw text,
+                        // but Clarifier.evaluate is called with finalText = outputText
+                        // (GPT-reconstructed). Without realignment, approve-swap
+                        // corrupts the injected text. See ClarifierAlignment.kt.
+                        wordConfidences = alignWordConfidencesToText(multi.wordConfidences, outputText)
+                        Log.i(TAG, "MultiPass (L$layer): ${multi.disagreementSummary.size} disagreement positions, ${multi.wordConfidences.count { it.multiPassDisagreements > 0 }} flagged words, ${wordConfidences.size} aligned to outputText")
                     }
                     val flags = Clarifier.evaluate(
                         finalText = outputText,
