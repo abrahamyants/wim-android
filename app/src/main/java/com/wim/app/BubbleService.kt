@@ -1420,6 +1420,14 @@ class BubbleService : Service() {
             try { windowManager?.removeView(it) } catch (e: Exception) { Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}") }
             bubbleView = null
         }
+        // Forget the last on-screen position. Without this, showBubble()'s
+        // `bubbleParams ?: ...` reuses the saved spot — and the spot the user
+        // just hid from is the bottom drop zone, so the bubble kept coming
+        // back pinned to the bottom edge. Nulling it makes the next show fall
+        // through to the default spawn (centred, upper-middle). The dock
+        // pickup path is unaffected: it overwrites x/y with the finger point
+        // right after the params are built.
+        bubbleParams = null
         // Re-post notification so it stays visible as the recall button
         if (notifyRecall) {
             val nm = getSystemService(NotificationManager::class.java)
