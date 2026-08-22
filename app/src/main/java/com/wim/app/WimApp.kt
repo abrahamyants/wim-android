@@ -114,7 +114,15 @@ class WimApp : Application() {
          * device testable without anyone talking into a microphone. `release`
          * stays closed: the receiver is exported.
          */
-        fun testHooksEnabled(): Boolean = BuildConfig.DEBUG || hasEmbeddedKeys()
+        // Reads BuildConfig directly, NOT hasEmbeddedKeys(). That helper answers
+        // a routing question and now returns false while force_backend is on —
+        // which took every test hook down with it the first time the switch was
+        // flipped, including set_pref, the only thing that can flip it back. A
+        // one-way door, on a build with no UI for the pref. What enables the
+        // control surface is whether this is a sideload build, and that does not
+        // change at runtime.
+        fun testHooksEnabled(): Boolean =
+            BuildConfig.DEBUG || BuildConfig.EMBEDDED_OPENAI_KEY.isNotBlank()
 
         fun tone(): String = prefStr("tone", "casual")
         /**
