@@ -25,8 +25,21 @@ import java.io.File
  *
  * Like Moonshine, Whisper is offline (non-streaming) — accumulate the full
  * utterance into a [FloatArray] and decode in one pass on stop. No live
- * partials. Output is lowercase / lightly punctuated; [Repunctuate] adds
- * deterministic capitalization + terminal punctuation downstream.
+ * partials.
+ *
+ * "Output is lowercase / lightly punctuated" used to be written here, carried
+ * over from MoonshineEngine. It is FALSE for this model. Measured on device
+ * 2026-08-22 — whisper-tiny.en through sherpa-onnx returns properly cased,
+ * comma-punctuated, terminated prose:
+ *
+ *   "Then I wish Claude would stand being such an idiot, I hate him, he
+ *    cannot explain shit, so fuck him in the ass."
+ *
+ * A whole punctuation-and-truecasing feature was built against that stale
+ * line — 7 MB model, JNI load, wiring through L1Pipeline — before anyone read
+ * an actual decode. [Repunctuate] downstream is nearly always a no-op here,
+ * because it skips text that already has a capital and a terminal mark; it
+ * still earns its place as the fallback for the rare bare take.
  *
  * Originally built to mirror MoonshineEngine 1:1; Moonshine was retired
  * Apr 30 and this is now the sole local L1 engine. The cloud option
