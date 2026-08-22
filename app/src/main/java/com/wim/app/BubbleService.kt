@@ -1153,6 +1153,22 @@ class BubbleService : Service() {
                             return@setOnTouchListener true
                         }
                         if (bezelBottom > hideZone) {
+                            // Drag-to-hide is also the cancel gesture. hideBubble()
+                            // only tears down the windows — it never touched the
+                            // recorder, so dragging a RECORDING bubble into the hide
+                            // zone left the microphone open with nothing on screen,
+                            // and the post-stop ASR timer could still paste the
+                            // abandoned utterance a beat later. Verified on device
+                            // 2026-08-21: appops reported RECORD_AUDIO (running)
+                            // after the bubble was gone.
+                            //
+                            // cancelRecording() has existed since the press-and-hold
+                            // cancel was reverted (2026-07-25) with no caller. This
+                            // is the gesture it was waiting for: drag-down already
+                            // means "make this go away", and while recording that
+                            // reads as "throw this take away" without overloading a
+                            // tap or a hold.
+                            if (isRecording) cancelRecording()
                             hideBubble()
                             updateNotification("Bubble hidden — tap to show")
                         } else if (commandMode?.checkPickup() == true) {
