@@ -51,7 +51,13 @@ class WimTestReceiver : BroadcastReceiver() {
         // by carrying their own provider keys. `release` is still blocked:
         // this receiver is exported, and the Play build must not hand every
         // app on the phone a remote control for the pipeline.
-        if (!BuildConfig.DEBUG && !WimApp.hasEmbeddedKeys()) {
+        // WimApp.testHooksEnabled(), NOT hasEmbeddedKeys(). The second copy of
+        // the same check that force_backend shut: hasEmbeddedKeys() answers a
+        // routing question and goes false while that switch is on, which closed
+        // this receiver — the only way to flip the switch back on a build with
+        // no UI for it. Fixed in WimApp first and missed here, so the door was
+        // still shut after a build.
+        if (!WimApp.testHooksEnabled()) {
             Log.w(TAG, "Test receiver blocked in release build")
             return
         }
