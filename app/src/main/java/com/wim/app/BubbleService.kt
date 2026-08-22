@@ -1214,6 +1214,18 @@ class BubbleService : Service() {
                         return@setOnTouchListener true
                     }
 
+                    // REDO: the SEND window lapsed and the text is still sitting
+                    // unsent in the field. A tap anywhere on the bubble re-rolls.
+                    // Whole-bubble target on purpose — at the smallest bubble size
+                    // a half is under the minimum a finger can reliably hit, which
+                    // is what made the lower-bezel regen icon below unusable.
+                    if (isRedoReady && !isRecording && dist < outerR && tapDuration < 300) {
+                        try { vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
+                        clearRedoReady()
+                        performRegen(fromRedoWindow = true)
+                        return@setOnTouchListener true
+                    }
+
                     // REGEN: tap on the lower-bezel regen icon re-rolls the
                     // last reconstruction with a "different phrasing" hint.
                     // Takes precedence over the work/life toggle so the bottom
@@ -1425,6 +1437,7 @@ class BubbleService : Service() {
         // survive the bubble's lifetime.
         isSendReady = false
         timerHandler.removeCallbacks(revertSendReadyRunnable)
+        clearRedoReady()
         dismissSendDisclaimer()
         hideWordHighlight()
         bubbleTouchView?.let {
@@ -1477,8 +1490,50 @@ class BubbleService : Service() {
         if (isSendReady) {
             isSendReady = false
             snapBackFromFacehugger()
+            // The SEND window lapsing means the user did NOT send — the text is
+            // still sitting unsent in their field. That is the only moment a
+            // re-roll is worth offering, and it is the moment they are actually
+            // reading the output. So hand off to the REDO window instead of
+            // dropping straight to idle when there is something to re-roll.
+            if (lastRegenCtx != null && !isRegenInFlight) setBubbleRedoReady()
+            else setBubbleIdle()
+        }
+    }
+
+    // REDO window — armed only when the SEND window lapsed with a re-rollable
+    // reconstruction still held. Same 5s shape as SEND so there is nothing new
+    // to learn: the countdown plays twice, in two colours, and a tap in the
+    // second one re-rolls instead of sending.
+    //
+    // A hold was the first design and it is wrong here: press-and-hold is how a
+    // short message is recorded (see the 2026-07-25 cancel revert), so binding
+    // anything else to it makes one finger motion mean two things depending on
+    // invisible state.
+    private var isRedoReady = false
+    private val REDO_READY_TIMEOUT_MS = 5000L
+    private var redoReadyExpiresAt = 0L
+    private val redoReadyTickRunnable = object : Runnable {
+        override fun run() {
+            if (!isRedoReady) return
+            val remaining = ((redoReadyExpiresAt - System.currentTimeMillis() + 999) / 1000)
+                .coerceAtLeast(0).coerceAtMost(99)
+            bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.text = "${remaining}s"
+            if (remaining > 0) timerHandler.postDelayed(this, 250)
+        }
+    }
+    private val revertRedoReadyRunnable = Runnable {
+        if (isRedoReady) {
+            isRedoReady = false
             setBubbleIdle()
         }
+    }
+
+    /** Drop the REDO window without a state advance. Called from every path that
+     *  leaves the window some other way — a tap, a new recording, a teardown. */
+    private fun clearRedoReady() {
+        isRedoReady = false
+        timerHandler.removeCallbacks(redoReadyTickRunnable)
+        timerHandler.removeCallbacks(revertRedoReadyRunnable)
     }
     // Send disclaimer overlay extracted to BubbleSendDisclaimer 2026-05-25
     // — fifth BubbleWindow slice. Show path is dormant (tap-to-send confirm
@@ -1539,7 +1594,14 @@ class BubbleService : Service() {
     private fun showRegenIcon() { regenIcon?.show() }
     private fun hideRegenIcon() { regenIcon?.hide() }
 
-    private fun performRegen() {
+    /**
+     * @param fromRedoWindow true when triggered by a tap in the REDO window, in
+     *   which case a successful re-roll lands back on SEND so the user can read
+     *   the new phrasing and send it — green, indigo, green, for as long as they
+     *   keep re-rolling. The legacy lower-bezel entry point leaves the FSM alone;
+     *   it fires from Idle, where a SendReady advance would be forbidden.
+     */
+    private fun performRegen(fromRedoWindow: Boolean = false) {
         if (isRegenInFlight) return
         val ctx = lastRegenCtx ?: return
         val accessibility = injectionPort ?: run {
@@ -1584,6 +1646,9 @@ class BubbleService : Service() {
                     ConsoleLog.log("Regen returned same/blank — keeping original", "warn")
                     Toast.makeText(this@BubbleService, "No fresh phrasing this time", Toast.LENGTH_SHORT).show()
                     showRegenIcon()
+                    // Nothing changed, so there is nothing new to send. Rest,
+                    // rather than leaving a dead REDO ring on screen.
+                    if (fromRedoWindow) setBubbleIdle()
                     return@launch
                 }
                 // L1 contribution: when the user triggers regen, the previous
@@ -1630,6 +1695,7 @@ class BubbleService : Service() {
                 previousOutputs.add(newText)
                 ConsoleLog.log("Regen: ${result.reconMs}ms -> \"${newText.take(80)}\"", "out")
                 showRegenIcon()
+                if (fromRedoWindow) setBubbleSendReady()
             } catch (e: Exception) {
                 Log.e(TAG, "Regen error: ${e.message}", e)
                 ConsoleLog.log("Regen failed: ${e.message?.take(60)}", "error")
@@ -1640,10 +1706,38 @@ class BubbleService : Service() {
                     Toast.makeText(this@BubbleService, "Couldn't regenerate — tap to try again", Toast.LENGTH_SHORT).show()
                 } catch (_: Exception) {}
                 showRegenIcon()
+                // Same reason as the blank branch: don't strand a dead REDO ring.
+                if (fromRedoWindow) setBubbleIdle()
             } finally {
                 isRegenInFlight = false
             }
         }
+    }
+
+    /**
+     * Arm the REDO window. Mirror of [setBubbleSendReady] minus the facehugger —
+     * the bubble must not jump to the Send button here, since a tap in this
+     * window is explicitly NOT a send.
+     */
+    private fun setBubbleRedoReady() {
+        val view = bubbleTouchView ?: return
+        if (!BubbleStateBus.advance(BubbleState.RedoReady)) return
+        isRedoReady = true
+        pulseRings?.stop()
+        hideLiveTranscript()
+        view.findViewById<FrameLayout>(R.id.bubbleInner)?.clearAnimation()
+        BubbleLiveStateVisuals.apply(view, BubbleLiveStateVisuals.State.REDO_READY)
+        view.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            visibility = View.VISIBLE
+            text = "${REDO_READY_TIMEOUT_MS / 1000}s"
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.indigo_bright))
+        }
+        redoReadyExpiresAt = System.currentTimeMillis() + REDO_READY_TIMEOUT_MS
+        timerHandler.removeCallbacks(redoReadyTickRunnable)
+        timerHandler.post(redoReadyTickRunnable)
+        timerHandler.removeCallbacks(revertRedoReadyRunnable)
+        timerHandler.postDelayed(revertRedoReadyRunnable, REDO_READY_TIMEOUT_MS)
+        ConsoleLog.log("Not sent — tap to re-roll, or wait", "info")
     }
 
     private fun setBubbleSendReady() {
@@ -1842,6 +1936,8 @@ class BubbleService : Service() {
             ConsoleLog.log("Recording blocked — wait for current reconstruction to finish", "warn")
             return
         }
+        // A new take supersedes anything the REDO window was still holding.
+        clearRedoReady()
         isRecording = true
         lastRawText = ""
         finalizedSegments = ""

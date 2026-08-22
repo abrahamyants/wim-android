@@ -22,6 +22,13 @@
     <color name="green_bright">#FF5AD15F</color>
     <color name="green_active">#FF16a34a</color>
     <color name="green_deep">#FF0E7A36</color>
+    <!-- REDO-ready state. Indigo is the only cold hue in the state set:
+         RECORDING red, PROCESSING amber and SEND green are all warm, so
+         this cannot be misread as any of them at a glance, and it reads
+         as "undo" by convention everywhere else. -->
+    <color name="indigo_bright">#FF5B6EE1</color>
+    <color name="indigo_active">#FF4453B8</color>
+    <color name="indigo_deep">#FF2E3A85</color>
 
     <!-- Text hierarchy — warm charcoal to taupe -->
     <color name="text_primary">#FF2A2420</color>
