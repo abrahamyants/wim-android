@@ -91,6 +91,30 @@ class WimApp : Application() {
             prefs.edit().remove(key).apply(); def
         }
 
+        /**
+         * The speaker's own normal level in dBFS, measured once during
+         * onboarding, or null when never calibrated.
+         *
+         * Stored as a String because SharedPreferences has no nullable Float
+         * and 0f is a legitimate reading. Throwable, not Exception: reading
+         * prefs before WimApp is initialised (any unit test) fails as an
+         * initializer Error, which a catch on Exception does not stop — the
+         * same trap that took PhoneticRisk down on 2026-08-22.
+         */
+        fun micBaselineDbfs(): Double? = try {
+            prefStr("mic_baseline_dbfs", "").toDoubleOrNull()
+        } catch (_: Throwable) {
+            null
+        }
+
+        fun setMicBaselineDbfs(dbfs: Double) {
+            try {
+                prefs.edit().putString("mic_baseline_dbfs", dbfs.toString()).apply()
+            } catch (t: Throwable) {
+                android.util.Log.w("WiM", "could not store mic baseline: ${t.message}")
+            }
+        }
+
         private fun prefStr(key: String, def: String): String = try {
             prefs.getString(key, def) ?: def
         } catch (_: ClassCastException) {

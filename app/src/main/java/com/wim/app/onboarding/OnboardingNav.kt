@@ -42,6 +42,7 @@ object OnboardingRoutes {
     const val OVERLAY            = "overlay"
     const val ACCESSIBILITY      = "accessibility"
     const val MIC                = "mic"
+    const val MIC_LEVEL          = "mic-level"
     const val BATTERY            = "battery"
     const val SAMSUNG_SLEEP      = "samsung-sleep"
     const val FINAL              = "final"
@@ -95,8 +96,18 @@ fun OnboardingNavHost(
                 onSkip = { navController.navigate(OnboardingRoutes.MIC) }
             )
         }
+        // Microphone is the one permission with no skip. Overlay and
+        // accessibility change how WiM reaches you; without the microphone
+        // there is nothing to reach you with, and the level measurement on the
+        // next screen cannot run at all.
         composable(OnboardingRoutes.MIC) {
             MicPermissionScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = { navController.navigate(OnboardingRoutes.MIC_LEVEL) }
+            )
+        }
+        composable(OnboardingRoutes.MIC_LEVEL) {
+            MicLevelScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.BATTERY) },
                 onSkip = { navController.navigate(OnboardingRoutes.BATTERY) }

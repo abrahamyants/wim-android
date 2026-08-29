@@ -80,6 +80,29 @@ class WhisperLocalEngine(private val context: Context) {
         private const val QUIET_AUTO_MAX_DBFS = -22.0
         private const val QUIET_AUTO_MIN_DBFS = -110.0
 
+        /**
+         * How far below a speaker's OWN normal level counts as whispering.
+         *
+         * QUIET_AUTO_MAX_DBFS above is absolute, and dBFS is not a property of
+         * a voice — it is the voice plus the microphone plus whatever the OS
+         * did before we saw the samples. The same -22 means "whispering" on a
+         * hot mic and "shouting" on a quiet one, so the constant ends up
+         * measuring the handset rather than the speaking, and handsets vary
+         * more than laptops do.
+         *
+         * Measured on the operator's laptop 2026-08-29: normal speech into a
+         * Logi C930s arrived at -46 dBFS, i.e. every take reads as a whisper by
+         * the absolute number. Same constant, same bug, both apps.
+         *
+         * 12 dB is roughly conversational-to-whisper. With no baseline stored
+         * the absolute constant is used exactly as before.
+         */
+        private const val QUIET_RELATIVE_DROP_DB = 12.0
+
+        /** The dBFS below which a take counts as soft, for THIS speaker. */
+        internal fun quietCutoffDbfs(): Double =
+            WimApp.micBaselineDbfs()?.let { it - QUIET_RELATIVE_DROP_DB } ?: QUIET_AUTO_MAX_DBFS
+
         // Silence trimming, float mirror of WavSilenceTrimmer's constants:
         // 20 ms windows, 100 ms of padding kept on each side, and the same RMS
         // floor expressed for normalised floats (250 / 32768).
@@ -144,9 +167,15 @@ class WhisperLocalEngine(private val context: Context) {
             return 20.0 * Math.log10(rms.coerceAtLeast(1e-9))
         }
 
-        /** True when a take is quiet enough to boost but not pure silence. */
-        internal fun shouldAutoBoost(dbfs: Double): Boolean =
-            dbfs in QUIET_AUTO_MIN_DBFS..QUIET_AUTO_MAX_DBFS
+        /**
+         * True when a take is quiet enough to boost but not pure silence.
+         *
+         * [maxDbfs] defaults to the absolute constant so the existing unit
+         * tests keep exercising the pure comparison with no prefs behind them;
+         * the live caller passes [quietCutoffDbfs], which is calibrated.
+         */
+        internal fun shouldAutoBoost(dbfs: Double, maxDbfs: Double = QUIET_AUTO_MAX_DBFS): Boolean =
+            dbfs in QUIET_AUTO_MIN_DBFS..maxDbfs
 
         /**
          * High-pass then +18dB, in place. Same filter and same gain as
@@ -435,7 +464,7 @@ class WhisperLocalEngine(private val context: Context) {
 
         val dbfs = meanDbfs(samples)
         val manualQuiet = WimApp.prefs.getBoolean("quiet_mode", false)
-        if (manualQuiet || shouldAutoBoost(dbfs)) {
+        if (manualQuiet || shouldAutoBoost(dbfs, quietCutoffDbfs())) {
             Log.i(TAG, "Quiet boost on local take: ${"%.1f".format(dbfs)} dBFS (manual=$manualQuiet)")
             applyQuietBoost(samples)
         } else {
