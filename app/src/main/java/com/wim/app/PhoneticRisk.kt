@@ -59,8 +59,17 @@ object PhoneticRisk {
     // PhoneticRisk is a pure-logic scorer; it must not hard-crash if it runs
     // before WimApp.prefs is initialized (unit tests, or any early-boot call).
     // Default to the English build's language when prefs aren't available.
+    //
+    // Throwable, not Exception. 8182f15 added
+    // `private val processStartMs = SystemClock.elapsedRealtime()` to WimApp's
+    // companion, so touching WimApp on a plain JVM test runs a static
+    // initializer against a stubbed framework class. That surfaces as
+    // ExceptionInInitializerError — an Error, which `catch (e: Exception)`
+    // does not catch. The guard above was written for exactly this case and
+    // silently stopped covering it; five tests in PipelineAdversarialTest and
+    // PipelinePerfTest died on PhoneticRisk's own class init as a result.
     private fun activeLanguage(): String =
-        try { WimApp.appLanguage() } catch (e: Exception) { "en" }
+        try { WimApp.appLanguage() } catch (e: Throwable) { "en" }
 
     /**
      * Extract the initial onset (1-3 chars of consonants) from a word, using the
