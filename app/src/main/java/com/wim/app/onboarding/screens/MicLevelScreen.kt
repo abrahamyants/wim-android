@@ -103,23 +103,39 @@ fun MicLevelScreen(
         onBack = onBack,
         heading = "YOUR LEVEL",
         body = body,
-        granted = measured && !listening,
+        // granted stays FALSE even once measured. PermissionCard sets
+        // `enabled = !granted` on BOTH buttons, which is right for the
+        // permission cards - they auto-advance the instant the grant lands, so
+        // freezing the card is the correct end state. This screen has no
+        // auto-advance and still needs a decision, so passing granted=true
+        // showed "GRANTED ✓" and left the operator with two dead buttons and
+        // no way off the screen. Reported on device 2026-08-29.
+        granted = false,
+        showBadge = false,
         primaryCta = when {
             listening -> "LISTENING…"
-            measured -> "MEASURE AGAIN"
+            measured -> "CONTINUE"
             else -> "START — THEN READ IT"
         },
-        secondaryCta = if (measured) "CONTINUE" else "NOT NOW",
-        onPrimary = { measure() },
+        secondaryCta = if (measured) "MEASURE AGAIN" else "NOT NOW",
+        onPrimary = {
+            when {
+                listening -> Unit
+                measured -> onContinue()
+                else -> measure()
+            }
+        },
         onSecondary = {
-            if (measured) {
-                onContinue()
-            } else {
-                android.util.Log.w(
-                    "WiM.Onboarding",
-                    "mic level skipped — auto-quiet falls back to the absolute threshold"
-                )
-                onSkip()
+            when {
+                listening -> Unit
+                measured -> measure()
+                else -> {
+                    android.util.Log.w(
+                        "WiM.Onboarding",
+                        "mic level skipped — auto-quiet falls back to the absolute threshold"
+                    )
+                    onSkip()
+                }
             }
         }
     )
