@@ -2,12 +2,12 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
-### ▶ [Download WiM — 2026-08-15](https://github.com/gugosf114/wim-android/releases/download/v1.0.0-2026-08-15-full/WiM-2026-08-15-full.apk)
+### ▶ [Download WiM — 2026-08-29](https://github.com/abrahamyants/wim-android/releases/download/v1.0.0-2026-08-29-full/WiM-vc29-2026-08-29-full.apk)
 
 Install it and talk. Nothing to sign into, nothing to configure, no server in
 the path — it calls the APIs directly.
 
-**[Download WiM — WiM-vc29.apk](https://github.com/gugosf114/wim-android/releases/latest/download/WiM-vc29.apk)**
+**[Always-latest link](https://github.com/abrahamyants/wim-android/releases/latest)**
 
 One file per release, named for the `versionCode` the phone reports under
 Settings → Apps → What I Meant. If the phone shows a lower number, the install
