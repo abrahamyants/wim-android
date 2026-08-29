@@ -12,6 +12,7 @@ import com.wim.app.onboarding.screens.AutoSendScreen
 import com.wim.app.onboarding.screens.DriveItScreen
 import com.wim.app.onboarding.screens.BatteryPermissionScreen
 import com.wim.app.onboarding.screens.FinalScreen
+import com.wim.app.onboarding.screens.MicLevelScreen
 import com.wim.app.onboarding.screens.MicPermissionScreen
 import com.wim.app.onboarding.screens.OverlayPermissionScreen
 import com.wim.app.onboarding.screens.PermissionsIntroScreen
