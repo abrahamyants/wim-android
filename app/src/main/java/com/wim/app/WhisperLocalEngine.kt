@@ -464,11 +464,22 @@ class WhisperLocalEngine(private val context: Context) {
 
         val dbfs = meanDbfs(samples)
         val manualQuiet = WimApp.prefs.getBoolean("quiet_mode", false)
-        if (manualQuiet || shouldAutoBoost(dbfs, quietCutoffDbfs())) {
-            Log.i(TAG, "Quiet boost on local take: ${"%.1f".format(dbfs)} dBFS (manual=$manualQuiet)")
+        // Log the CUTOFF and where it came from, not just the level. Without
+        // it a boost decision cannot be read back: "-30.6 dBFS, boosted" is
+        // equally consistent with a stored baseline making -30.6 genuinely
+        // soft, and with no baseline at all falling back to the absolute -22.
+        // Cost a session on 2026-08-29 that could not tell the two apart from
+        // the device log.
+        val baseline = WimApp.micBaselineDbfs()
+        val cutoff = quietCutoffDbfs()
+        val source = baseline?.let { "calibrated from ${"%.1f".format(it)}" } ?: "UNCALIBRATED"
+        if (manualQuiet || shouldAutoBoost(dbfs, cutoff)) {
+            Log.i(TAG, "Quiet boost on local take: ${"%.1f".format(dbfs)} dBFS " +
+                "(manual=$manualQuiet, cutoff=${"%.1f".format(cutoff)}, $source)")
             applyQuietBoost(samples)
         } else {
-            Log.i(TAG, "Take level: ${"%.1f".format(dbfs)} dBFS — no boost")
+            Log.i(TAG, "Take level: ${"%.1f".format(dbfs)} dBFS — no boost " +
+                "(cutoff=${"%.1f".format(cutoff)}, $source)")
         }
 
         try {
