@@ -425,8 +425,13 @@ class DisfluencyFilterTest {
         val tw = words(
             "so" to 0.0, "you" to 1.0, "know" to 1.25, "I" to 2.2, "was" to 2.45, "thinking" to 2.7
         )
+        // "so" joined RISKY_FILLERS in 90cfac9, and here it is pause-bounded
+        // too — utterance edge on the left, 0.8s before "you" on the right —
+        // so the clock strips both. This assertion still expected the old
+        // three-word list. Nothing caught it because a push to main skips the
+        // unit tests by design; it took a manual dispatch to surface.
         assertEquals(
-            "so, I was thinking",
+            "I was thinking",
             DisfluencyFilter.stripTimedFillers("so, you know, I was thinking", tw)
         )
     }
