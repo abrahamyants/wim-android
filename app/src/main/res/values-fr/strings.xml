@@ -307,4 +307,15 @@
     <string name="cloud_unlock_restore">RESTAURER</string>
     <string name="cloud_unlock_dialog">WiM Cloud inclut 300 dictées dans le cloud et jusqu’à 20 dictées de couche IV par mois. L’abonnement se renouvelle chaque mois jusqu’à son annulation dans Google Play.</string>
     <string name="lang_voice_only_suffix">\u0020\u00B7 voix seulement</string>
+    <string name="settings_read_back">Relis-le-moi</string>
+    <string name="settings_read_back_sub">Écoutez votre message avant le début du compte à rebours</string>
+    <string name="settings_read_back_voice">Voix de relecture</string>
+    <string name="settings_read_back_voice_default">Par défaut</string>
+    <string name="settings_read_back_voice_none">Aucune voix installée</string>
+    <string name="settings_read_back_speed">Vitesse de relecture</string>
+    <string name="settings_read_back_speed_1x">Normale</string>
+    <string name="settings_read_back_speed_125x">1,25x</string>
+    <string name="settings_read_back_speed_15x">1,5x</string>
+    <string name="settings_read_back_voice_pro">Voix professionnelle</string>
+    <string name="settings_read_back_voice_casual">Voix décontractée</string>
 </resources>

@@ -16,7 +16,12 @@ name: Build & Test
 # Run the full suite before any Play submission — that is what it is for.
 on:
   push:
-    branches: [main]
+    # feat/voice-read-back is here so the branch produces an INSTALLABLE APK.
+    # Every APK upload step below is gated on `github.event_name == 'push'`,
+    # so a pull_request run builds and verifies the APK but uploads only the
+    # AAB — which Play accepts and a phone cannot install. Remove this branch
+    # from the list once read-back merges.
+    branches: [main, feat/voice-read-back]
   pull_request:
     branches: [main]
   workflow_dispatch:

@@ -307,4 +307,15 @@
     <string name="cloud_unlock_restore">RESTAURAR</string>
     <string name="cloud_unlock_dialog">O WiM Cloud inclui 300 ditados na nuvem e até 20 ditados da camada IV por mês. A assinatura é renovada mensalmente até ser cancelada no Google Play.</string>
     <string name="lang_voice_only_suffix">\u0020\u00B7 apenas voz</string>
+    <string name="settings_read_back">Leia para mim</string>
+    <string name="settings_read_back_sub">Ouça sua mensagem antes de a contagem começar</string>
+    <string name="settings_read_back_voice">Voz da leitura</string>
+    <string name="settings_read_back_voice_default">Padrão</string>
+    <string name="settings_read_back_voice_none">Nenhuma voz instalada</string>
+    <string name="settings_read_back_speed">Velocidade da leitura</string>
+    <string name="settings_read_back_speed_1x">Normal</string>
+    <string name="settings_read_back_speed_125x">1,25x</string>
+    <string name="settings_read_back_speed_15x">1,5x</string>
+    <string name="settings_read_back_voice_pro">Voz profissional</string>
+    <string name="settings_read_back_voice_casual">Voz casual</string>
 </resources>

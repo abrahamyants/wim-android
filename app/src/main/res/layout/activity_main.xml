@@ -1820,6 +1820,141 @@
                     android:theme="@style/WimSwitchTheme" />
                 </LinearLayout>
 
+                <!-- Read-back (2026-08-13): speak the reconstruction during
+                     SEND_READY so the countdown is a real review window. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_read_back"
+                            android:textColor="@color/text_dim"
+                            android:textSize="13sp"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_read_back_sub"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="9sp"
+                            android:alpha="0.65"
+                            android:fontFamily="@font/plus_jakarta_sans" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/readBackToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:theme="@style/WimSwitchTheme" />
+                </LinearLayout>
+
+                <!-- One voice per register. ToneRouting already knows which
+                     register you are in, so the voice that starts talking tells
+                     you what went out before you hear a word of it. -->
+                <LinearLayout
+                    android:id="@+id/readBackVoiceProRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_voice_pro"
+                        android:textColor="@color/text_dim"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <TextView
+                        android:id="@+id/readBackVoiceProValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_voice_default"
+                        android:textColor="@color/section_header"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:paddingEnd="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/readBackVoiceCasualRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_voice_casual"
+                        android:textColor="@color/text_dim"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <TextView
+                        android:id="@+id/readBackVoiceCasualValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_voice_default"
+                        android:textColor="@color/section_header"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:paddingEnd="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/readBackSpeedRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/card_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="2dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_speed"
+                        android:textColor="@color/text_dim"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/plus_jakarta_sans" />
+                    <TextView
+                        android:id="@+id/readBackSpeedValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_read_back_speed_1x"
+                        android:textColor="@color/section_header"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/plus_jakarta_sans"
+                        android:paddingEnd="8dp" />
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- ─────────── BEHAVIOR section ─────────── -->

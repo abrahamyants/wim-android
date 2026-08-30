@@ -81,6 +81,17 @@
     <string name="settings_cloud_backup">Cloud backup sessions</string>
     <string name="settings_auto_send">Tap-to-send assist</string>
     <string name="settings_facehugger_send">Move bubble to Send button</string>
+    <string name="settings_read_back">Read it back to me</string>
+    <string name="settings_read_back_sub">Hear your message before the countdown starts</string>
+    <string name="settings_read_back_voice">Read-back voice</string>
+    <string name="settings_read_back_voice_pro">Professional voice</string>
+    <string name="settings_read_back_voice_casual">Casual voice</string>
+    <string name="settings_read_back_voice_default">Default</string>
+    <string name="settings_read_back_voice_none">No voice installed on this phone</string>
+    <string name="settings_read_back_speed">Read-back speed</string>
+    <string name="settings_read_back_speed_1x">Normal</string>
+    <string name="settings_read_back_speed_125x">1.25x</string>
+    <string name="settings_read_back_speed_15x">1.5x</string>
     <string name="settings_auto_send_apps">After pasting, tap the green bubble within 5 seconds to send. Doing nothing cancels.</string>
     <string name="settings_accent">Accent</string>
     <string name="settings_accent_subtitle">don\'t auto-correct</string>
