@@ -13,6 +13,8 @@ import com.wim.app.onboarding.PermissionStatus
 /**
  * Permission card #3: Microphone (RECORD_AUDIO runtime permission).
  *
+ * The only card with no skip — see secondaryCta below.
+ *
  * The system dialog grants in place — ON_RESUME + the poll in
  * permissionGrantState pick the flip up either way. After two dialog
  * attempts Android stops showing the dialog ("don't ask again"), so the
@@ -21,8 +23,7 @@ import com.wim.app.onboarding.PermissionStatus
 @Composable
 fun MicPermissionScreen(
     onBack: () -> Unit,
-    onContinue: () -> Unit,
-    onSkip: () -> Unit
+    onContinue: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = com.wim.app.onboarding.LocalOnboardingActivity.current
@@ -44,7 +45,11 @@ fun MicPermissionScreen(
         else null,
         granted = granted,
         primaryCta = if (exhausted) "OPEN SETTINGS" else "ALLOW MICROPHONE",
-        secondaryCta = "NOT YET",
+        // No skip. Overlay and accessibility change how WiM reaches you and can
+        // wait; the microphone is the input itself, and the level measurement on
+        // the next screen cannot run without it. "Not yet" here produced an app
+        // that opens, looks fine, and does nothing.
+        secondaryCta = "WHY IT IS NEEDED",
         onPrimary = {
             activity?.let {
                 if (exhausted) {
@@ -56,16 +61,13 @@ fun MicPermissionScreen(
             }
         },
         onSecondary = {
-            android.util.Log.w(
-                "WiM.Onboarding",
-                "Microphone skipped — no voice input without it"
-            )
             android.widget.Toast.makeText(
                 context,
-                "Heads up: no microphone, no voice. You can grant it later from Settings → WiM.",
+                "WiM turns your voice into text. Without the microphone there is " +
+                    "nothing for it to work from, so this is the one permission it " +
+                    "cannot start without.",
                 android.widget.Toast.LENGTH_LONG
             ).show()
-            onSkip()
         }
     )
 }

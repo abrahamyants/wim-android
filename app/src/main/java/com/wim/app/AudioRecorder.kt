@@ -76,6 +76,14 @@ class AudioRecorder(private val context: Context) {
     private var takeRmsSum = 0.0
     private var takeRmsCount = 0
 
+    // Per-chunk RMS, kept for calibration only. lastTakeDbfs() averages the
+    // WHOLE take, silence between words included, which reads a couple of dB
+    // below the actual speaking level — fine for a relative decision, wrong for
+    // a baseline that every later decision is measured against. Capped so a
+    // long take cannot grow this without bound; 4s of calibration is ~250
+    // chunks, and the cap is well past any sane recording.
+    private val takeRmsValues = java.util.ArrayList<Double>(512)
+
     // Circular pre-roll buffer
     private val circularBuffer = ByteArray(PREROLL_BYTES)
     private var bufferPos = 0
@@ -165,6 +173,7 @@ class AudioRecorder(private val context: Context) {
             silentBlockFiredThisRecording = false
             takeRmsSum = 0.0
             takeRmsCount = 0
+            takeRmsValues.clear()
 
             outputStream = fos
             isRecording = true
@@ -277,6 +286,7 @@ class AudioRecorder(private val context: Context) {
                 val chunkRms = computeRms(buf, read)
                 takeRmsSum += chunkRms
                 takeRmsCount++
+                if (takeRmsValues.size < 4096) takeRmsValues.add(chunkRms)
 
                 // Silent-block detector. Only runs while actually recording.
                 // No-op (just state update) when no callback is registered —
@@ -357,6 +367,29 @@ class AudioRecorder(private val context: Context) {
     fun lastTakeDbfs(): Double {
         if (takeRmsCount <= 0) return -120.0
         val mean = takeRmsSum / takeRmsCount
+        return 20.0 * Math.log10((mean / 32768.0).coerceAtLeast(1e-9))
+    }
+
+    /**
+     * Loudness of the SPOKEN part of the last take, in dBFS — the number to
+     * calibrate a speaker's normal level against.
+     *
+     * [lastTakeDbfs] averages every chunk, so the pauses between words drag it
+     * down and it lands a couple of dB under the real speaking level. That is
+     * harmless for a relative boost decision and wrong for a stored baseline,
+     * because every later decision is measured from it.
+     *
+     * Takes the mean of the loudest third of chunks instead: that is the
+     * speech, not the gaps. Mirrors handle_POST_api_calibrate_mic in
+     * lavrentiy.py exactly, so a speaker calibrated on one app gets the same
+     * number on the other.
+     */
+    fun calibrationDbfs(): Double {
+        if (takeRmsValues.isEmpty()) return lastTakeDbfs()
+        val sorted = takeRmsValues.sorted()
+        val from = (sorted.size * 0.67).toInt().coerceAtMost(sorted.size - 1)
+        val loud = sorted.subList(from, sorted.size)
+        val mean = loud.sum() / loud.size
         return 20.0 * Math.log10((mean / 32768.0).coerceAtLeast(1e-9))
     }
 
