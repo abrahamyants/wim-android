@@ -21,6 +21,51 @@ class PhoneticMatcherTest {
         "d" to 0.65, "w" to 0.30, "k" to 0.85, "p" to 0.85, "s" to 0.50, "sm" to 0.70
     )
 
+    // ── The blocklist is what lets L1 have this at all ────────────────
+    //
+    // The matcher was L2/L3-only on both apps because a wrong swap at L1 has
+    // no model behind it. The guard it needed was never a model - it is
+    // knowing the heard word is ordinary English. These two tests are a pair
+    // on purpose: the first proves the swap really does fire without the
+    // blocklist, so the second is not passing for some unrelated reason. A
+    // guard whose absence changes nothing is not a guard.
+
+    @Test
+    fun withoutBlocklist_ordinaryWordGetsEaten() {
+        val out = PhoneticMatcher.correct(
+            "I like it a lot",
+            listOf("Luke"),
+            mapOf("l" to 0.80)
+        )
+        assertTrue(
+            "expected the unguarded call to swap 'like'; got '$out'",
+            out != "I like it a lot"
+        )
+    }
+
+    @Test
+    fun withBlocklist_ordinaryWordSurvives() {
+        val out = PhoneticMatcher.correct(
+            "I like it a lot",
+            listOf("Luke"),
+            mapOf("l" to 0.80),
+            blocklist = ProfileTermRecovery.APPROXIMATE_BLOCKLIST
+        )
+        assertEquals("I like it a lot", out)
+    }
+
+    @Test
+    fun blocklistDoesNotBlockRealVocabularyMatches() {
+        // "smyth" is not ordinary English, so the guard must not touch it.
+        val out = PhoneticMatcher.correct(
+            "please ask smyth about it",
+            listOf("Smith"),
+            highRiskOnsets,
+            blocklist = ProfileTermRecovery.APPROXIMATE_BLOCKLIST
+        )
+        assertEquals("please ask smith about it", out)
+    }
+
     @Test
     fun emptyVocabulary_returnsInputUnchanged() {
         val out = PhoneticMatcher.correct("hello there", emptyList(), highRiskOnsets)

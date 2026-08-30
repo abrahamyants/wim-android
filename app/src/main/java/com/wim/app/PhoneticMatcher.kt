@@ -84,7 +84,8 @@ object PhoneticMatcher {
     fun correct(
         text: String,
         vocabulary: List<String>,
-        onsetWeights: Map<String, Double> = emptyMap()
+        onsetWeights: Map<String, Double> = emptyMap(),
+        blocklist: Set<String> = emptySet()
     ): String {
         if (text.isBlank() || vocabulary.isEmpty()) return text
 
@@ -113,6 +114,15 @@ object PhoneticMatcher {
             val word = match.groupValues[1]
             val filler = match.groupValues[2]
             if (word.isNotEmpty()) {
+                // Ordinary English is never swapped, however neatly it rhymes
+                // with something in the vocabulary. Without this, at L1:
+                //     "I like it a lot"  ->  "I luke it a lot"
+                // and there is no model downstream to catch it. This guard is
+                // what lets L1 have the matcher at all.
+                if (word.lowercase() in blocklist) {
+                    sb.append(word)
+                    return@forEach
+                }
                 val swap = maybeSwap(word, vocabCodes, highRiskOnsets)
                 if (swap != null) {
                     sb.append(preserveCasing(word, swap))
