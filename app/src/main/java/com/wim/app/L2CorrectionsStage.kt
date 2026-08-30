@@ -70,15 +70,19 @@ object L2CorrectionsStage {
                 applied++
             }
         }
-        // Phonetic-neighbor correction before GPT — gated to L2/L3 only
-        // (Lav parity — lavrentiy.py phonetic_match gate `2 <= layer <= 3`).
-        // At L4 Sonnet ext-think reasons through phonetic context via the
-        // rich onset_weights prompt block instead.
+        // Phonetic-neighbor correction before GPT. L1 is handled in
+        // L1Pipeline, which has its own early-return path and never reaches
+        // this stage; L4 is excluded because Sonnet ext-think reasons through
+        // phonetic context via the rich onset_weights prompt block instead.
+        // Lav parity — lavrentiy.py phonetic_match gate is now `1 <= layer <= 3`.
+        // The blocklist is passed here too: a wrong swap is cheaper at L2 than
+        // at L1, but it is not free, and one list beats two behaviours.
         if (layer in 2..3) {
             corrected = PhoneticMatcher.correct(
                 corrected,
                 profile.getVocabulary(),
-                profile.getOnsetWeights()
+                profile.getOnsetWeights(),
+                blocklist = ProfileTermRecovery.APPROXIMATE_BLOCKLIST
             )
         }
         return Result(corrected, applied)

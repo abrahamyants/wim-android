@@ -56,7 +56,8 @@ object L1Pipeline {
         profile: ProfileManager,
         sessionNum: Int,
         log: (String) -> Unit = {},
-        applyCorrections: Boolean = true
+        applyCorrections: Boolean = true,
+        applyPhonetic: Boolean = true
     ): Result {
         val corrections = if (applyCorrections) profile.getCorrections() else emptyMap()
         var l1Text = preCleaned
@@ -81,6 +82,34 @@ object L1Pipeline {
         // user's current vocabulary.
         if (sessionNum > 0 && sessionNum % 30 == 0) {
             profile.decayStaleCorrections(sessionNum)
+        }
+        // Phonetic-neighbour matching, L1 included since 2026-08-29.
+        //
+        // It used to start at L2 on both apps because a wrong swap at L1 has no
+        // model behind it - the swapped word goes straight into the user's
+        // text. That is the same shape as the poisoned-list incident that took
+        // corrections off this path on 2026-08-04, and it was the right call
+        // while the guard was missing.
+        //
+        // The guard was never a model. It is knowing the heard word is ordinary
+        // English and leaving it alone however well it rhymes with something in
+        // the vocabulary. ProfileTermRecovery.APPROXIMATE_BLOCKLIST is exactly
+        // that list, 298 words, built after "could" became "Claude". Passing it
+        // is what makes this safe without a model.
+        //
+        // Corrections stay OFF at L1 and this does NOT reopen them: an exact
+        // learned pair rewrites whatever it matches, while a phonetic swap only
+        // fires on a word that is already close to a vocabulary term AND is not
+        // ordinary English. Different mechanism, different blast radius.
+        //
+        // Mirrors lavrentiy.py, where the gate is now `1 <= layer <= 3`.
+        if (applyPhonetic) {
+            l1Text = PhoneticMatcher.correct(
+                l1Text,
+                profile.getVocabulary(),
+                profile.getOnsetWeights(),
+                blocklist = ProfileTermRecovery.APPROXIMATE_BLOCKLIST
+            )
         }
         // Deterministic capitalization + terminal punctuation. Idempotent
         // on already-punctuated text. Mirrors lavrentiy.py repunctuate().
