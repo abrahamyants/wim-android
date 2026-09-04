@@ -98,6 +98,7 @@ class BubbleMenu(
         // Section labels — sit on the menu fill
         colorAs(R.id.menuLiveLabel, onFillText)
         colorAs(R.id.menuLayerLabel, onFillText)
+        colorAs(R.id.menuLayerName, onFillText)
         colorAs(R.id.menuColorLabel, onFillText)
         // Slider mini-labels (OP / SZ) + bottom value readouts
         colorAs(R.id.menuOpacityLabel, onFillText)
@@ -147,7 +148,7 @@ class BubbleMenu(
         val opacitySeek = v.findViewById<SeekBar>(R.id.menuOpacitySeek)
         val opacityValue = v.findViewById<TextView>(R.id.menuOpacityValue)
         opacitySeek.progress = opacity
-        opacityValue.text = "$opacity"
+        opacityValue.text = "$opacity%"
         opacitySeek.thumbTintList = accentTint
         opacitySeek.progressTintList = accentTint
         opacitySeek.progressBackgroundTintList = trackTint
@@ -155,7 +156,7 @@ class BubbleMenu(
         opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val pct = progress.coerceIn(0, 100)
-                opacityValue.text = "$pct"
+                opacityValue.text = "$pct%"
                 WimApp.prefs.edit().putInt("bubble_opacity", pct).apply()
                 // Repaint the panel itself as the slider moves, not just the
                 // bubble — otherwise the control appears to do nothing to the
@@ -170,7 +171,7 @@ class BubbleMenu(
         val sizeSeek = v.findViewById<SeekBar>(R.id.menuSizeSeek)
         val sizeValue = v.findViewById<TextView>(R.id.menuSizeValue)
         sizeSeek.progress = size
-        sizeValue.text = "$size"
+        sizeValue.text = "$size%"
         sizeSeek.thumbTintList = accentTint
         sizeSeek.progressTintList = accentTint
         sizeSeek.progressBackgroundTintList = trackTint
@@ -178,7 +179,7 @@ class BubbleMenu(
         sizeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val pct = progress.coerceIn(70, 150)
-                sizeValue.text = "$pct"
+                sizeValue.text = "$pct%"
                 WimApp.prefs.edit().putInt("bubble_size", pct).apply()
                 onAppearanceChanged()
                 // Bubble grew/shrank — re-anchor menu tail to new bubble top.
@@ -210,6 +211,25 @@ class BubbleMenu(
             R.id.menuLayer4 to 4
         ).map { (id, layerVal) -> v.findViewById<TextView>(id) to layerVal }
         val currentLayer = WimApp.layer()
+        // Segmented control (2026-09-04): clip the four cells to the frame's
+        // rounded outline, and name the active layer on the line beneath.
+        // LOCAL / CLOUD only makes sense for layer I, so the row follows it.
+        v.findViewById<View>(R.id.menuLayerSeg)?.clipToOutline = true
+        val layerName = v.findViewById<TextView>(R.id.menuLayerName)
+        val l1Row = v.findViewById<View>(R.id.menuL1Row)
+        fun paintLayerName(layerVal: Int) {
+            layerName?.text = when (layerVal) {
+                2 -> context.getString(R.string.bubble_menu_layer_2_name)
+                3 -> context.getString(R.string.bubble_menu_layer_3_name)
+                4 -> context.getString(R.string.bubble_menu_layer_4_name)
+                else -> context.getString(
+                    if (WimApp.l1CloudAsr()) R.string.bubble_menu_layer_1_name_cloud
+                    else R.string.bubble_menu_layer_1_name
+                )
+            }
+            l1Row?.visibility = if (layerVal == 1) View.VISIBLE else View.GONE
+        }
+        paintLayerName(currentLayer)
         // Engraved nameplate chips use the state_selected layer of
         // nameplate_bg for the active visual (maroon fill + cream highlight
         // border). Text brightens to brandCreamBright when active.
@@ -229,6 +249,7 @@ class BubbleMenu(
                 }
                 btn.isSelected = true
                 btn.setTextColor(brandCreamBright)
+                paintLayerName(layerVal)
                 onLayerChanged()
             }
         }
@@ -250,6 +271,7 @@ class BubbleMenu(
         l1LocalBtn.setOnClickListener {
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", false).apply()
             paintL1Source()
+            paintLayerName(WimApp.layer())
         }
         l1CloudBtn.setOnClickListener {
             if (!WimApp.cloudUnlocked()) {
@@ -258,6 +280,7 @@ class BubbleMenu(
             }
             WimApp.prefs.edit().putBoolean("l1_cloud_asr", true).apply()
             paintL1Source()
+            paintLayerName(WimApp.layer())
         }
 
         // Bubble color picker — three tiny replicas of the bubble bezel

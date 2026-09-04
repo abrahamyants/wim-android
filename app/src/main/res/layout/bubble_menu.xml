@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Vintage hi-fi control plate.
-     Concept: the menu is the inside of the bubble's chassis pulled open.
-     - Layer / Reset / Settings = engraved nameplates
-     - Color picker = three tiny replicas of the bubble bezel itself
-     - Sliders = real fader knobs (vertical, on the side)
-     - Section labels = engraved panel titles
-     - Reset Timer + Settings flank the speech-bubble tail at the bottom -->
+<!-- Vintage hi-fi control plate — the inside of the bubble's chassis pulled open.
+     2026-09-04 rework (George, "the settings menu"): one instrument, not a kit.
+     - LAYER is a pick-one, so it is drawn as one segmented control I II III IV
+       (the same numerals the Settings sheet uses) with the active layer named
+       on the line beneath. LOCAL / CLOUD only appears for layer I.
+     - Opacity and Size are horizontal faders with full words and a percent
+       value on the same line.
+     - LIVE and the three color replicas share one row.
+     - SETTINGS is a real nameplate button, full width.
+     - Kept: the speech-bubble tail, the per-finish plate tint, the honeycomb,
+       maroon as the one accent, the three replica dots. The bubble itself is
+       untouched. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/menuRoot"
     android:layout_width="220dp"
@@ -13,13 +18,12 @@
     android:orientation="vertical"
     android:elevation="14dp"
     android:paddingStart="14dp"
-    android:paddingEnd="12dp"
+    android:paddingEnd="14dp"
     android:paddingTop="12dp"
     android:paddingBottom="22dp">
 
-    <!-- Anticipatory prediction chip — shown when PredictionEngine has a
-         high-confidence guess for the current foreground app + time of
-         day. Hidden when no prediction or predictions are disabled. -->
+    <!-- Anticipatory prediction chip — the plate's eyebrow. Hidden when the
+         PredictionEngine has no confident guess or predictions are off. -->
     <TextView
         android:id="@+id/menuPredictionChip"
         android:layout_width="wrap_content"
@@ -31,321 +35,322 @@
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
         android:text=""
-        android:textSize="9sp"
+        android:textSize="10sp"
         android:fontFamily="@font/josefin_sans"
         android:textStyle="bold"
-        android:letterSpacing="0.16"
+        android:letterSpacing="0.12"
         android:visibility="gone" />
 
-    <!-- TOP ROW: chips/colors on the left, vertical sliders on the right -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <!-- LEFT COLUMN: nameplates + color picker -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- Live transcript toggle -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="0dp">
-
-                <TextView
-                    android:id="@+id/menuLiveLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/bubble_menu_live"
-                    android:textSize="12sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.20"
-                    android:labelFor="@id/menuLiveToggle" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/menuLiveToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" 
-                    android:theme="@style/WimSwitchTheme"/>
-            </LinearLayout>
-
-            <!-- L1 CLOUD toggle moved to a sub-menu opened by tapping the
-                 TRANSCRIPTION layer nameplate. Frees a whole row from this menu. -->
-
-            <!-- LAYER section label -->
-            <TextView
-                android:id="@+id/menuLayerLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/tile_layer"
-                android:textSize="11sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:letterSpacing="0.30"
-                android:layout_marginBottom="2dp" />
-
-            <!-- Layer engraved nameplates -->
-            <TextView
-                android:id="@+id/menuLayer1"
-                android:layout_width="match_parent"
-                android:layout_height="26dp"
-                android:text="@string/bubble_menu_transcription"
-                android:textSize="10sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:letterSpacing="0.18"
-                android:background="@drawable/nameplate_bg"
-                android:layout_marginBottom="3dp" />
-
-            <!-- L1 source sub-row: Local / Cloud, indented under TRANSCRIPTION.
-                 Visible whenever the menu is open; the active source is
-                 highlighted via the nameplate_bg state_selected layer. -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="3dp">
-
-                <TextView
-                    android:id="@+id/menuL1Local"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="22dp"
-                    android:text="@string/layer_local"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:letterSpacing="0.20"
-                    android:background="@drawable/nameplate_bg"
-                    android:layout_marginEnd="3dp" />
-
-                <TextView
-                    android:id="@+id/menuL1Cloud"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="22dp"
-                    android:text="@string/bubble_menu_cloud"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:letterSpacing="0.20"
-                    android:background="@drawable/nameplate_bg"
-                    android:layout_marginStart="3dp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/menuLayer2"
-                android:layout_width="match_parent"
-                android:layout_height="26dp"
-                android:text="@string/bubble_menu_reconstruction"
-                android:textSize="10sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:letterSpacing="0.16"
-                android:background="@drawable/nameplate_bg"
-                android:layout_marginBottom="3dp" />
-
-            <!-- Layer III. Was missing entirely: the menu offered I, II and IV,
-                 so the profile layer was unreachable from the bubble. -->
-            <TextView
-                android:id="@+id/menuLayer3"
-                android:layout_width="match_parent"
-                android:layout_height="26dp"
-                android:text="@string/bubble_menu_profile"
-                android:textSize="10sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:letterSpacing="0.18"
-                android:background="@drawable/nameplate_bg"
-                android:layout_marginBottom="3dp" />
-
-            <TextView
-                android:id="@+id/menuLayer4"
-                android:layout_width="match_parent"
-                android:layout_height="26dp"
-                android:text="@string/bubble_menu_disfluency"
-                android:textSize="10sp"
-                android:fontFamily="@font/josefin_sans"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:letterSpacing="0.20"
-                android:background="@drawable/nameplate_bg"
-                android:layout_marginBottom="6dp" />
-
-            <!-- COLOR row — label + 3 swatches inline (saves vertical space) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/menuColorLabel"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/bubble_menu_color"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.30" />
-
-                <View
-                    android:id="@+id/menuThemeBronze"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:minWidth="48dp"
-                    android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_bronze"
-                    android:layout_marginStart="6dp"
-                    android:contentDescription="@string/bubble_color_bronze" />
-                <View
-                    android:id="@+id/menuThemeAluminum"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:minWidth="48dp"
-                    android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_silver"
-                    android:layout_marginStart="6dp"
-                    android:contentDescription="@string/bubble_color_silver" />
-                <View
-                    android:id="@+id/menuThemeGunmetal"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:minWidth="48dp"
-                    android:minHeight="48dp"
-                    android:background="@drawable/color_indicator_gunmetal"
-                    android:layout_marginStart="6dp"
-                    android:contentDescription="@string/bubble_color_gunmetal" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- RIGHT COLUMN: vertical fader sliders -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:layout_marginStart="10dp"
-            android:gravity="top">
-
-            <!-- Opacity fader -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/menuOpacityLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/bubble_menu_op"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.20"
-                    android:layout_marginBottom="2dp" />
-
-                <com.wim.app.VerticalSeekBar
-                    android:id="@+id/menuOpacitySeek"
-                    android:layout_width="26dp"
-                    android:layout_height="170dp"
-                    android:min="20"
-                    android:max="100"
-                    android:progress="70"
-                    android:thumb="@drawable/fader_thumb"
-                    android:splitTrack="false"
-                    android:paddingTop="0dp"
-                    android:paddingBottom="0dp" />
-
-                <TextView
-                    android:id="@+id/menuOpacityValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="70"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:layout_marginTop="0dp" />
-            </LinearLayout>
-
-            <!-- Size fader -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginStart="2dp">
-
-                <TextView
-                    android:id="@+id/menuSizeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/bubble_menu_sz"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.20"
-                    android:layout_marginBottom="2dp" />
-
-                <com.wim.app.VerticalSeekBar
-                    android:id="@+id/menuSizeSeek"
-                    android:layout_width="26dp"
-                    android:layout_height="170dp"
-                    android:min="70"
-                    android:max="150"
-                    android:progress="110"
-                    android:thumb="@drawable/fader_thumb"
-                    android:splitTrack="false"
-                    android:paddingTop="0dp"
-                    android:paddingBottom="0dp" />
-
-                <TextView
-                    android:id="@+id/menuSizeValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="110"
-                    android:textSize="10sp"
-                    android:fontFamily="@font/josefin_sans"
-                    android:textStyle="bold"
-                    android:layout_marginTop="0dp" />
-            </LinearLayout>
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- BOTTOM ROW: Settings (right-aligned). Reset Timer removed
-         (timer relocated to Sessions console next to "Today" header). -->
+    <!-- LAYER: label + segmented control -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/menuLayerLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tile_layer"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold"
+            android:letterSpacing="0.12"
+            android:layout_marginEnd="8dp" />
+
+        <LinearLayout
+            android:id="@+id/menuLayerSeg"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="26dp"
+            android:orientation="horizontal"
+            android:background="@drawable/menu_segment_frame"
+            android:divider="@drawable/menu_segment_divider"
+            android:showDividers="middle"
+            android:padding="1dp">
+
+            <TextView
+                android:id="@+id/menuLayer1"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/bubble_menu_layer_1"
+                android:textSize="12sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.06"
+                android:background="@drawable/menu_segment_cell" />
+            <TextView
+                android:id="@+id/menuLayer2"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/bubble_menu_layer_2"
+                android:textSize="12sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.06"
+                android:background="@drawable/menu_segment_cell" />
+            <TextView
+                android:id="@+id/menuLayer3"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/bubble_menu_layer_3"
+                android:textSize="12sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.06"
+                android:background="@drawable/menu_segment_cell" />
+            <TextView
+                android:id="@+id/menuLayer4"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/bubble_menu_layer_4"
+                android:textSize="12sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.06"
+                android:background="@drawable/menu_segment_cell" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Active layer named on one line; LOCAL / CLOUD only for layer I -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:id="@+id/menuLayerName"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/bubble_menu_layer_1_name"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:letterSpacing="0.06"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:id="@+id/menuL1Row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="6dp">
+
+            <TextView
+                android:id="@+id/menuL1Local"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:minWidth="44dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/layer_local"
+                android:textSize="9sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.10"
+                android:background="@drawable/nameplate_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/menuL1Cloud"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:minWidth="44dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/bubble_menu_cloud"
+                android:textSize="9sp"
+                android:fontFamily="@font/josefin_sans"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.10"
+                android:background="@drawable/nameplate_bg" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- OPACITY fader: word, track, percent — one line -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginTop="10dp">
 
         <TextView
-            android:id="@+id/menuOpenSettings"
-            android:layout_width="wrap_content"
+            android:id="@+id/menuOpacityLabel"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:text="@string/tile_settings"
-            android:textSize="11sp"
+            android:text="@string/bubble_menu_opacity"
+            android:textSize="10sp"
             android:fontFamily="@font/josefin_sans"
             android:textStyle="bold"
-            android:letterSpacing="0.22"
-            android:padding="4dp" />
+            android:letterSpacing="0.12" />
+
+        <SeekBar
+            android:id="@+id/menuOpacitySeek"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:min="20"
+            android:max="100"
+            android:progress="70"
+            android:thumb="@drawable/fader_thumb"
+            android:splitTrack="false"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp" />
+
+        <TextView
+            android:id="@+id/menuOpacityValue"
+            android:layout_width="34dp"
+            android:layout_height="wrap_content"
+            android:text="70%"
+            android:gravity="end"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold" />
     </LinearLayout>
+
+    <!-- SIZE fader -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/menuSizeLabel"
+            android:layout_width="52dp"
+            android:layout_height="wrap_content"
+            android:text="@string/bubble_menu_size"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold"
+            android:letterSpacing="0.12" />
+
+        <SeekBar
+            android:id="@+id/menuSizeSeek"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:min="70"
+            android:max="150"
+            android:progress="110"
+            android:thumb="@drawable/fader_thumb"
+            android:splitTrack="false"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp" />
+
+        <TextView
+            android:id="@+id/menuSizeValue"
+            android:layout_width="34dp"
+            android:layout_height="wrap_content"
+            android:text="110%"
+            android:gravity="end"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- LIVE toggle + the three finish replicas, one row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp">
+
+        <TextView
+            android:id="@+id/menuLiveLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/bubble_menu_live"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold"
+            android:letterSpacing="0.12"
+            android:labelFor="@id/menuLiveToggle" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/menuLiveToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:layout_marginStart="-2dp"
+            android:theme="@style/WimSwitchTheme" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="1dp" />
+
+        <!-- The word COLOR is carried by the replicas' content descriptions;
+             the row has no room for it beside LIVE and the switch. -->
+        <TextView
+            android:id="@+id/menuColorLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/bubble_menu_color"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold"
+            android:letterSpacing="0.12"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/menuThemeBronze"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/color_indicator_bronze"
+            android:layout_marginStart="5dp"
+            android:contentDescription="@string/bubble_color_bronze" />
+        <View
+            android:id="@+id/menuThemeAluminum"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/color_indicator_silver"
+            android:layout_marginStart="5dp"
+            android:contentDescription="@string/bubble_color_silver" />
+        <View
+            android:id="@+id/menuThemeGunmetal"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/color_indicator_gunmetal"
+            android:layout_marginStart="5dp"
+            android:contentDescription="@string/bubble_color_gunmetal" />
+    </LinearLayout>
+
+    <!-- SETTINGS: a real nameplate, full width -->
+    <TextView
+        android:id="@+id/menuOpenSettings"
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/bubble_menu_settings_arrow"
+        android:textSize="10sp"
+        android:fontFamily="@font/josefin_sans"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:letterSpacing="0.14"
+        android:background="@drawable/nameplate_bg" />
 </LinearLayout>
