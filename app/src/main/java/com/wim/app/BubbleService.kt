@@ -608,14 +608,18 @@ class BubbleService : Service() {
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                 .setOngoing(true)
                 .build()
-            val hasMic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            val fgsType = if (hasMic) {
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            } else {
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            }
-            startForegroundCompat(initialNotif, fgsType)
+            // SPECIAL_USE only at create (2026-09-04). This used to ask for
+            // MICROPHONE too whenever the mic permission was granted. On
+            // Android 14+ a microphone-typed foreground start is refused
+            // with a SecurityException unless the app is in an eligible
+            // state — and a service created from BOOT_COMPLETED,
+            // MY_PACKAGE_REPLACED or a sticky restart on a locked phone is
+            // not. The exception fired inside onCreate, the process died,
+            // the sticky restart died the same way, and the bubble was
+            // gone until the user opened the app. The mic type is added
+            // when recording actually starts (setForegroundMicActive(true)),
+            // from a tap on the bubble, which is an eligible state.
+            startForegroundCompat(initialNotif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         }
 
         // Restore session start from prefs if present, else start fresh now.
@@ -897,10 +901,20 @@ class BubbleService : Service() {
     }
 
     private fun startForegroundCompat(notification: Notification, serviceType: Int) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, serviceType)
-        } else {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification)
+            return
+        }
+        try {
+            startForeground(NOTIFICATION_ID, notification, serviceType)
+        } catch (e: SecurityException) {
+            // A while-in-use type (microphone) was refused because the app is
+            // not in an eligible state. Never let that kill the service: fall
+            // back to SPECIAL_USE, which carries no such restriction, and say so.
+            val fallback = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            if (serviceType == fallback) throw e
+            Log.w(TAG, "foreground type 0x${Integer.toHexString(serviceType)} refused (${e.message?.take(80)}) — falling back to SPECIAL_USE")
+            startForeground(NOTIFICATION_ID, notification, fallback)
         }
     }
 
