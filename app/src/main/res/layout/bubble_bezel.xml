@@ -147,8 +147,8 @@
                     android:text="IDLE"
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.05"
+                    android:fontFamily="@font/josefin_sans"
+                    android:letterSpacing="0.12"
                     android:textStyle="bold"
                     android:gravity="center"
                     android:maxLines="1"
@@ -161,8 +161,9 @@
                     android:text="0:00"
                     android:textColor="@color/chip_value"
                     android:textSize="8sp"
-                    android:fontFamily="@font/plus_jakarta_sans"
-                    android:letterSpacing="0.1"
+                    android:fontFamily="@font/josefin_sans"
+                    android:letterSpacing="0.12"
+                    android:textStyle="bold"
                     android:visibility="gone" />
 
             </LinearLayout>
