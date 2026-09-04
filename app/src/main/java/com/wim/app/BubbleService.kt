@@ -6,6 +6,9 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.res.Configuration
+import android.hardware.display.DisplayManager
+import android.os.Build
+import android.view.Display
 import android.graphics.PixelFormat
 import android.os.IBinder
 import android.os.VibrationEffect
@@ -92,6 +95,7 @@ class BubbleService : Service() {
     private var wordHighlight: BubbleWordHighlight? = null
 
     private var windowManager: WindowManager? = null
+    private var displayListener: DisplayManager.DisplayListener? = null
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var bubbleTouchView: View? = null
@@ -594,6 +598,23 @@ class BubbleService : Service() {
             WimApp.prefs.edit().putLong("session_start_time", sessionStartTime).apply()
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        // Belt and braces for the off-screen bubble (2026-09-04): rotation,
+        // fold and DeX also arrive as display changes, and those fire even
+        // when the process-level configuration callback is skipped.
+        try {
+            val dm = getSystemService(DisplayManager::class.java)
+            val listener = object : DisplayManager.DisplayListener {
+                override fun onDisplayAdded(displayId: Int) {}
+                override fun onDisplayRemoved(displayId: Int) {}
+                override fun onDisplayChanged(displayId: Int) {
+                    if (displayId == Display.DEFAULT_DISPLAY) reclampBubbleToScreen("display changed")
+                }
+            }
+            dm.registerDisplayListener(listener, timerHandler)
+            displayListener = listener
+        } catch (e: Exception) {
+            Log.w(TAG, "display listener not registered: ${e.javaClass.simpleName}")
+        }
         wordHighlight = BubbleWordHighlight(this, windowManager!!)
         liveTranscript = BubbleLiveTranscript(
             context = this,
@@ -2564,8 +2585,7 @@ class BubbleService : Service() {
         val effectiveBezelDp = 72f * sizeScale * taffyScaleMax
         val insetPx = ((180f - effectiveBezelDp).coerceAtLeast(0f) / 2f * density).toInt()
         val windowPx = (180 * density).toInt()
-        val screenW = resources.displayMetrics.widthPixels
-        val screenH = resources.displayMetrics.heightPixels
+        val (screenW, screenH) = screenSizePx()
         val nx = params.x.coerceIn(-insetPx, screenW - windowPx + insetPx)
         val ny = params.y.coerceIn(-insetPx, screenH - windowPx + insetPx)
         val moved = nx != params.x || ny != params.y
@@ -2580,8 +2600,26 @@ class BubbleService : Service() {
      * left parked outside the visible area. Runs once now and once again a
      * beat later — display metrics can lag the first callback by a frame.
      */
+    /**
+     * The screen the overlay lives on, in px. A Service is not a UI context,
+     * so its Resources can lag or ignore display-size changes; the
+     * WindowManager's own bounds are the truth on API 30+.
+     */
+    private fun screenSizePx(): Pair<Int, Int> {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val b = windowManager?.currentWindowMetrics?.bounds
+                if (b != null && b.width() > 0 && b.height() > 0) return b.width() to b.height()
+            } catch (_: Exception) {}
+        }
+        return resources.displayMetrics.widthPixels to resources.displayMetrics.heightPixels
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        val (w, h) = screenSizePx()
+        Log.i(TAG, "onConfigurationChanged: ${newConfig.screenWidthDp}x${newConfig.screenHeightDp}dp " +
+            "res=${resources.displayMetrics.widthPixels}x${resources.displayMetrics.heightPixels} wm=${w}x${h}")
         reclampBubbleToScreen("config change")
         timerHandler.postDelayed({ reclampBubbleToScreen("config change +300ms") }, 300)
     }
@@ -2591,8 +2629,8 @@ class BubbleService : Service() {
         val params = bubbleParams ?: return
         val before = "${params.x},${params.y}"
         if (clampBubbleParamsToScreen(params)) {
-            Log.i(TAG, "bubble re-clamped on $reason: $before -> ${params.x},${params.y} " +
-                "(screen ${resources.displayMetrics.widthPixels}x${resources.displayMetrics.heightPixels})")
+            val (w, h) = screenSizePx()
+            Log.i(TAG, "bubble re-clamped on $reason: $before -> ${params.x},${params.y} (screen ${w}x${h})")
             updateBubbleWindowLayout(view, params)
             bubbleMenu?.updatePositionFromBubble()
             liveTranscript?.repositionToBubble()
@@ -3624,6 +3662,10 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         instance = null
+        displayListener?.let { l ->
+            try { getSystemService(DisplayManager::class.java).unregisterDisplayListener(l) } catch (_: Exception) {}
+        }
+        displayListener = null
         // Cancel the demo script + clear refs FIRST — it has its own
         // private Handler scheduling ~50 deferred steps that each hold a
         // strong reference to this destroyed Service. Without cancel, the
