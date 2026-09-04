@@ -140,13 +140,20 @@
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp">
 
+                <!-- Auto-size: the face fits REC at 13sp, but QUIET is five
+                     letter-spaced caps and lost its last T (George, 9/4).
+                     The word shrinks only when it must; short words stay 13sp. -->
                 <TextView
                     android:id="@+id/bubbleLabel"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="18dp"
                     android:text="IDLE"
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp"
+                    android:autoSizeTextType="uniform"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeMaxTextSize="13sp"
+                    android:autoSizeStepGranularity="1sp"
                     android:fontFamily="@font/josefin_sans"
                     android:letterSpacing="0.12"
                     android:textStyle="bold"
