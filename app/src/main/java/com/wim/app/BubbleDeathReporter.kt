@@ -39,7 +39,7 @@ object BubbleDeathReporter {
             for (e in fresh) {
                 val reason = reasonName(e.reason)
                 val desc = (e.description ?: "").take(120)
-                Log.w(TAG, "process exit: reason=$reason sub=${e.subReason} importance=${e.importance} " +
+                Log.w(TAG, "process exit: reason=$reason importance=${e.importance} " +
                     "pss=${e.pss}KB desc=\"$desc\" at=${e.timestamp}")
                 val key = "exit_count_$reason"
                 prefs.edit().putInt(key, prefs.getInt(key, 0) + 1).apply()
@@ -52,7 +52,6 @@ object BubbleDeathReporter {
                         .apply()
                     event(context, "bubble_process_exit", Bundle().apply {
                         putString("reason", reason)
-                        putInt("sub_reason", e.subReason)
                         putInt("importance", e.importance)
                         putString("description", desc.take(100))
                         putLong("pss_kb", e.pss)
