@@ -11,8 +11,19 @@
      - Kept: the speech-bubble tail, the per-finish plate tint, the honeycomb,
        maroon as the one accent, the three replica dots. The bubble itself is
        untouched. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Root is wrap_content on purpose: the WindowManager replaces the root's
+     own LayoutParams with the window's (WRAP_CONTENT), so a width set on the
+     root is discarded. The width lives on the inner plate, whose LayoutParams
+     the root honors. Without this, one single-line TextView reporting
+     "too small" made ViewRootImpl hand the plate the whole screen (379dp
+     measured on 2026-09-04). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/menuRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+<LinearLayout
+    android:id="@+id/menuPlate"
     android:layout_width="220dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -137,9 +148,8 @@
             android:text="@string/bubble_menu_layer_1_name"
             android:textSize="10sp"
             android:fontFamily="@font/josefin_sans"
-            android:letterSpacing="0.06"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:textStyle="bold"
+            android:letterSpacing="0.06" />
 
         <LinearLayout
             android:id="@+id/menuL1Row"
@@ -340,17 +350,21 @@
             android:contentDescription="@string/bubble_color_gunmetal" />
     </LinearLayout>
 
-    <!-- SETTINGS: a real nameplate, full width -->
+    <!-- SETTINGS: quiet text link, bottom right, on the plate itself -->
     <TextView
         android:id="@+id/menuOpenSettings"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:layout_marginTop="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="6dp"
+        android:minHeight="28dp"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="2dp"
         android:text="@string/bubble_menu_settings_arrow"
         android:textSize="10sp"
         android:fontFamily="@font/josefin_sans"
         android:textStyle="bold"
-        android:gravity="center"
-        android:letterSpacing="0.14"
-        android:background="@drawable/nameplate_bg" />
+        android:letterSpacing="0.14" />
 </LinearLayout>
+</FrameLayout>

@@ -60,7 +60,8 @@ class BubbleMenu(
 
         // Speech-bubble background with downward tail centered at bottom —
         // tail tip lands on the floating bubble's top edge.
-        v.background = CommentBubbleDrawable(
+        val plate = v.findViewById<View>(R.id.menuPlate) ?: v
+        plate.background = CommentBubbleDrawable(
             fillColor = palette.fill,
             strokeColor = palette.stroke,
             displayMetrics = context.resources.displayMetrics,
@@ -72,7 +73,7 @@ class BubbleMenu(
         // still read the app underneath through the menu and had no control that
         // did anything about it. Drive the drawable from the same pref: 100 is
         // genuinely solid, lower values are as see-through as asked for.
-        applyMenuOpacity(v)
+        applyMenuOpacity(plate)
 
         // On-FILL text color (section labels, slider labels/values, Reset,
         // Settings) adapts per theme so it stays readable against the menu
@@ -161,7 +162,7 @@ class BubbleMenu(
                 // Repaint the panel itself as the slider moves, not just the
                 // bubble — otherwise the control appears to do nothing to the
                 // very surface the user is looking at while dragging it.
-                applyMenuOpacity(v)
+                applyMenuOpacity(plate)
                 onAppearanceChanged()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
