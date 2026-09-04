@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.IBinder
 import android.os.VibrationEffect
@@ -919,6 +920,9 @@ class BubbleService : Service() {
             y = (resources.displayMetrics.heightPixels * 0.4f).toInt()
         }
         bubbleParams = params
+        // Reused params may carry a spot from a wider screen (landscape,
+        // unfolded, DeX). Pull it back inside the screen we have now.
+        clampBubbleParamsToScreen(params)
 
         var initialX = 0
         var initialY = 0
@@ -1056,23 +1060,7 @@ class BubbleService : Service() {
                         // puts the bezel edge flush with the screen edge.
                         // Taffy headroom (1.15x) is baked in so a fast drag
                         // doesn't briefly punch the bezel past the edge.
-                        val clampDensity = resources.displayMetrics.density
-                        val sizeScaleClamp = WimApp.bubbleSize().coerceIn(70, 150) / 100f
-                        val taffyScaleMax = 1.15f
-                        val effectiveBezelDp = 72f * sizeScaleClamp * taffyScaleMax
-                        val insetClampPx =
-                            ((180f - effectiveBezelDp).coerceAtLeast(0f) / 2f * clampDensity).toInt()
-                        val windowClampPx = (180 * clampDensity).toInt()
-                        val screenWClamp = resources.displayMetrics.widthPixels
-                        val screenHClamp = resources.displayMetrics.heightPixels
-                        params.x = params.x.coerceIn(
-                            -insetClampPx,
-                            screenWClamp - windowClampPx + insetClampPx
-                        )
-                        params.y = params.y.coerceIn(
-                            -insetClampPx,
-                            screenHClamp - windowClampPx + insetClampPx
-                        )
+                        clampBubbleParamsToScreen(params)
 
                         bubbleView?.let { updateBubbleWindowLayout(it, params) }
                         bubbleMenu?.updatePositionFromBubble()
@@ -2555,6 +2543,63 @@ class BubbleService : Service() {
             } catch (e: Exception) {
                 Log.v(TAG, "wm touch update failed: ${e.javaClass.simpleName}")
             }
+        }
+    }
+
+    /**
+     * Keep the bubble window inside the current screen. Same math the drag
+     * handler always used: the window may hang off-screen by exactly the
+     * invisible inset so the visible bezel sits flush with the edge (taffy
+     * headroom baked in). Returns true when x or y actually moved.
+     *
+     * 2026-09-04: the bubble "vanished" for good on George's phone — it was
+     * alive at x=1854 on a 1080-wide screen. The clamp only ran inside the
+     * drag handler, so a position picked on a wider screen (rotate, fold,
+     * DeX) survived every show and every screen change, off the right edge.
+     */
+    private fun clampBubbleParamsToScreen(params: WindowManager.LayoutParams): Boolean {
+        val density = resources.displayMetrics.density
+        val sizeScale = WimApp.bubbleSize().coerceIn(70, 150) / 100f
+        val taffyScaleMax = 1.15f
+        val effectiveBezelDp = 72f * sizeScale * taffyScaleMax
+        val insetPx = ((180f - effectiveBezelDp).coerceAtLeast(0f) / 2f * density).toInt()
+        val windowPx = (180 * density).toInt()
+        val screenW = resources.displayMetrics.widthPixels
+        val screenH = resources.displayMetrics.heightPixels
+        val nx = params.x.coerceIn(-insetPx, screenW - windowPx + insetPx)
+        val ny = params.y.coerceIn(-insetPx, screenH - windowPx + insetPx)
+        val moved = nx != params.x || ny != params.y
+        params.x = nx
+        params.y = ny
+        return moved
+    }
+
+    /**
+     * Rotation, fold/unfold, DeX, font/density change: the screen we clamp
+     * against just changed shape. Re-clamp the live bubble so it can never be
+     * left parked outside the visible area. Runs once now and once again a
+     * beat later — display metrics can lag the first callback by a frame.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        reclampBubbleToScreen("config change")
+        timerHandler.postDelayed({ reclampBubbleToScreen("config change +300ms") }, 300)
+    }
+
+    private fun reclampBubbleToScreen(reason: String) {
+        val view = bubbleView ?: return
+        val params = bubbleParams ?: return
+        val before = "${params.x},${params.y}"
+        if (clampBubbleParamsToScreen(params)) {
+            Log.i(TAG, "bubble re-clamped on $reason: $before -> ${params.x},${params.y} " +
+                "(screen ${resources.displayMetrics.widthPixels}x${resources.displayMetrics.heightPixels})")
+            updateBubbleWindowLayout(view, params)
+            bubbleMenu?.updatePositionFromBubble()
+            liveTranscript?.repositionToBubble()
+        } else {
+            // Position is fine; the touch layer still needs to track any
+            // density change so taps keep landing on the bezel.
+            syncBubbleTouchWindow()
         }
     }
 
