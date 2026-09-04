@@ -35,7 +35,8 @@ fun BatteryPermissionScreen(
         heading = "KEEP WiM AWAKE",
         body = "Android tries to put bubbles to sleep after a few minutes. WiM needs " +
             "to be exempt — otherwise it disappears mid-conversation.\n\n" +
-            "Tap below, find What I Meant in the list, and choose \"Don't optimize\".",
+            "Tap below, find What I Meant in the list, and choose \"Don't optimize\"." +
+            (com.wim.app.OemKillers.hint()?.let { "\n\nOn this phone, also: $it" } ?: ""),
         granted = granted,
         primaryCta = "OPEN BATTERY SETTINGS",
         secondaryCta = "NOT YET",

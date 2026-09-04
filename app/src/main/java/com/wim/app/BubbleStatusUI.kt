@@ -141,6 +141,33 @@ class BubbleStatusUI(
             .notify(alertNotificationId, notif)
     }
 
+    /**
+     * "Display over other apps" was turned off: the bubble's windows are gone
+     * and no Service may open Settings from the background. The notification
+     * tap opens OverlayFixActivity, which may — and which restarts the bubble
+     * the moment the grant is back. 2026-09-04.
+     */
+    fun showOverlayAlert(alertChannelId: String, alertNotificationId: Int) {
+        val fix = Intent(service, OverlayFixActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val pi = PendingIntent.getActivity(
+            service, 101, fix,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notif = Notification.Builder(service, alertChannelId)
+            .setContentTitle("WiM bubble is gone")
+            .setContentText("\"Display over other apps\" was turned off — tap to fix")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .setBadgeIconType(Notification.BADGE_ICON_SMALL)
+            .setNumber(1)
+            .build()
+        service.getSystemService(NotificationManager::class.java)
+            .notify(alertNotificationId, notif)
+    }
+
     fun clearPermissionAlert(alertNotificationId: Int) {
         service.getSystemService(NotificationManager::class.java).cancel(alertNotificationId)
     }

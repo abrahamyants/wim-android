@@ -4,10 +4,14 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.os.Build
+import android.os.SystemClock
 import android.view.Display
 import android.graphics.PixelFormat
 import android.os.IBinder
@@ -96,6 +100,11 @@ class BubbleService : Service() {
 
     private var windowManager: WindowManager? = null
     private var displayListener: DisplayManager.DisplayListener? = null
+    // Bubble health (2026-09-04): see ensureBubbleHealthy().
+    private var screenReceiver: BroadcastReceiver? = null
+    private var lastHealthCheckMs = 0L
+    private var lastShowMs = 0L
+    private var bubbleLostToOverlayRevoke = false
     var bubbleView: View? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var bubbleTouchView: View? = null
@@ -292,6 +301,7 @@ class BubbleService : Service() {
         private const val ALERT_CHANNEL_ID = "wim_bubble_alert" // permission-missing alerts, badge ON
         private const val NOTIFICATION_ID = 1
         private const val ALERT_NOTIFICATION_ID = 2
+        private const val OVERLAY_ALERT_NOTIFICATION_ID = 3 // "Display over other apps" turned off
         var instance: BubbleService? = null
             private set
 
@@ -533,6 +543,26 @@ class BubbleService : Service() {
         super.onCreate()
         Log.i(TAG, "BubbleService created")
         instance = this
+        // Why did we die last time? Logged, counted, one analytics event.
+        BubbleDeathReporter.reportIfNew(this)
+        // Screen-on is a free heartbeat: if the bubble's windows died while
+        // the screen was off, rebuild them before the user looks for it.
+        try {
+            val r = object : BroadcastReceiver() {
+                override fun onReceive(c: Context?, i: Intent?) {
+                    ensureBubbleHealthy("screen on")
+                    reclampBubbleToScreen("screen on")
+                }
+            }
+            val f = IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            }
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(r, f, Context.RECEIVER_NOT_EXPORTED) else registerReceiver(r, f)
+            screenReceiver = r
+        } catch (e: Exception) {
+            Log.w(TAG, "screen receiver not registered: ${e.javaClass.simpleName}")
+        }
 
         // One-shot cleanup of an orphaned model directory.
         //
@@ -607,7 +637,10 @@ class BubbleService : Service() {
                 override fun onDisplayAdded(displayId: Int) {}
                 override fun onDisplayRemoved(displayId: Int) {}
                 override fun onDisplayChanged(displayId: Int) {
-                    if (displayId == Display.DEFAULT_DISPLAY) reclampBubbleToScreen("display changed")
+                    if (displayId == Display.DEFAULT_DISPLAY) {
+                        ensureBubbleHealthy("display changed")
+                        reclampBubbleToScreen("display changed")
+                    }
                 }
             }
             dm.registerDisplayListener(listener, timerHandler)
@@ -788,8 +821,30 @@ class BubbleService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "BubbleService onStartCommand: ${intent?.action}")
-        when (intent?.action) {
+        if (intent == null) {
+            // START_STICKY brought us back after the OS killed the process.
+            // Before 2026-09-04 nothing re-showed the bubble on this path:
+            // the service lived, the bubble stayed dead — on every phone.
+            val userStopped = WimApp.prefs.getBoolean("bubble_user_stopped", false)
+            val overlayOk = android.provider.Settings.canDrawOverlays(this)
+            Log.w(TAG, "sticky restart (null intent): userStopped=$userStopped overlay=$overlayOk")
+            if (!userStopped && overlayOk) {
+                showBubble()
+                BubbleDeathReporter.recovered(this, "sticky restart")
+            }
+            return START_STICKY
+        }
+        if (intent.action != "STOP") {
+            WimApp.prefs.edit().putBoolean("bubble_user_stopped", false).apply()
+            // A SHOW on a bubble whose windows died would return early
+            // (bubbleView != null). Clear the corpse first.
+            ensureBubbleHealthy("start: ${intent.action}")
+        }
+        when (intent.action) {
             "STOP" -> {
+                // Remember the user's choice: reboot, update and sticky restart
+                // all leave the bubble off until the next explicit SHOW.
+                WimApp.prefs.edit().putBoolean("bubble_user_stopped", true).apply()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
                 stopSelf()
@@ -879,6 +934,7 @@ class BubbleService : Service() {
         if (!android.provider.Settings.canDrawOverlays(this)) {
             Log.w(TAG, "Cannot show bubble — overlay permission not granted")
             android.widget.Toast.makeText(this, "Grant overlay permission first", android.widget.Toast.LENGTH_SHORT).show()
+            markOverlayLost("show without overlay grant")
             return
         }
 
@@ -1369,11 +1425,9 @@ class BubbleService : Service() {
             // and the bubble vanishes mid-use.
             Log.e("BubbleService", "addView failed (overlay permission revoked?): ${e.message}")
             Toast.makeText(this, "Overlay permission lost — re-enable in Settings", Toast.LENGTH_LONG).show()
-            val intent = Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                data = android.net.Uri.parse("package:$packageName")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            try { startActivity(intent) } catch (_: Exception) {}
+            // Android 10+ blocks a Service from opening Settings; the
+            // notification tap can. (2026-09-04)
+            markOverlayLost("addView failed: ${e.javaClass.simpleName}")
             return
         }
 
@@ -1421,6 +1475,7 @@ class BubbleService : Service() {
             audioRecorder?.primeBuffer()
         }
 
+        lastShowMs = SystemClock.elapsedRealtime()
         // Coat-rack signal: MainActivity's dock listens to this and ghosts
         // the matching slot to show the bubble is "in use."
         onBubbleVisibilityChanged?.invoke()
@@ -2568,6 +2623,81 @@ class BubbleService : Service() {
     }
 
     /**
+     * Event-driven health check (no timer, by George's call 2026-09-04). Runs
+     * on screen-on, app switches (accessibility window events), config and
+     * display changes, and every service start. Three outcomes:
+     *  - overlay grant gone → drop the dead windows, post the one-tap fix;
+     *  - overlay grant back after a loss → re-show, clear the alert;
+     *  - a window detached while the service lived → rebuild it.
+     * Rate-limited to one check per 1.5 s; skipped for 2 s after a show so a
+     * window that has not had its first frame yet is not mistaken for dead.
+     */
+    fun ensureBubbleHealthy(reason: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastHealthCheckMs < 1500) return
+        lastHealthCheckMs = now
+        val overlayOk = android.provider.Settings.canDrawOverlays(this)
+        if (!overlayOk) {
+            if (bubbleView != null || bubbleTouchView != null) {
+                Log.w(TAG, "overlay grant gone ($reason) — bubble windows are dead")
+                dropDeadBubbleWindows()
+                markOverlayLost(reason)
+            }
+            return
+        }
+        if (bubbleLostToOverlayRevoke) {
+            bubbleLostToOverlayRevoke = false
+            statusUI?.clearPermissionAlert(OVERLAY_ALERT_NOTIFICATION_ID)
+            Log.i(TAG, "overlay grant is back ($reason) — re-showing bubble")
+            if (bubbleView == null) showBubble()
+            updateNotification("Voice dictation active")
+            BubbleDeathReporter.recovered(this, "overlay restored: $reason")
+            return
+        }
+        val view = bubbleView ?: return
+        if (now - lastShowMs < 2000) return
+        val visualDead = !view.isAttachedToWindow || view.windowToken == null
+        val touchDead = bubbleTouchView?.let { !it.isAttachedToWindow } ?: false
+        if (visualDead || touchDead) {
+            Log.w(TAG, "bubble window dead ($reason): visualDead=$visualDead touchDead=$touchDead — rebuilding")
+            dropDeadBubbleWindows()
+            showBubble()
+            BubbleDeathReporter.recovered(this, "window rebuilt: $reason")
+        }
+    }
+
+    /** Windows are gone (permission revoked or torn down): forget them so showBubble() rebuilds. */
+    private fun dropDeadBubbleWindows() {
+        bubbleTouchView?.let { tv -> try { windowManager?.removeView(tv) } catch (_: Exception) {} }
+        bubbleTouchView = null
+        bubbleTouchParams = null
+        bubbleView?.let { v -> try { windowManager?.removeView(v) } catch (_: Exception) {} }
+        bubbleView = null
+        bubbleParams = null
+    }
+
+    /** After a window loss: rebuild if we may, else raise the one-tap fix. */
+    private fun handleWindowLoss(reason: String) {
+        if (android.provider.Settings.canDrawOverlays(this)) {
+            if (bubbleView == null && !WimApp.prefs.getBoolean("bubble_user_stopped", false)) {
+                showBubble()
+                BubbleDeathReporter.recovered(this, "window rebuilt: $reason")
+            }
+        } else {
+            markOverlayLost(reason)
+        }
+    }
+
+    /** "Display over other apps" is off: notification with a one-tap fix, once. */
+    private fun markOverlayLost(reason: String) {
+        if (bubbleLostToOverlayRevoke) return
+        bubbleLostToOverlayRevoke = true
+        statusUI?.showOverlayAlert(ALERT_CHANNEL_ID, OVERLAY_ALERT_NOTIFICATION_ID)
+        updateNotification("Bubble is off — \"Display over other apps\" was turned off")
+        BubbleDeathReporter.lost(this, "overlay revoked: $reason")
+    }
+
+    /**
      * Keep the bubble window inside the current screen. Same math the drag
      * handler always used: the window may hang off-screen by exactly the
      * invisible inset so the visible bezel sits flush with the edge (taffy
@@ -2620,6 +2750,7 @@ class BubbleService : Service() {
         val (w, h) = screenSizePx()
         Log.i(TAG, "onConfigurationChanged: ${newConfig.screenWidthDp}x${newConfig.screenHeightDp}dp " +
             "res=${resources.displayMetrics.widthPixels}x${resources.displayMetrics.heightPixels} wm=${w}x${h}")
+        ensureBubbleHealthy("config change")
         reclampBubbleToScreen("config change")
         timerHandler.postDelayed({ reclampBubbleToScreen("config change +300ms") }, 300)
     }
@@ -2675,6 +2806,8 @@ class BubbleService : Service() {
                     ).show()
                 } catch (_: Exception) {}
             }
+            // Bring it back ourselves instead of waiting for the next SHOW.
+            timerHandler.postDelayed({ handleWindowLoss("wm update failed") }, 300)
             return
         } catch (e: Exception) {
             Log.v(TAG, "wm op failed: ${e.javaClass.simpleName}")
@@ -3662,6 +3795,8 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         instance = null
+        screenReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
+        screenReceiver = null
         displayListener?.let { l ->
             try { getSystemService(DisplayManager::class.java).unregisterDisplayListener(l) } catch (_: Exception) {}
         }

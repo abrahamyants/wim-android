@@ -96,6 +96,15 @@
             </intent-filter>
         </activity>
 
+        <!-- One-tap fix for a revoked overlay grant: invisible trampoline
+             opened from the alert notification, closes itself once granted. -->
+        <activity
+            android:name=".OverlayFixActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Floating bubble service -->
         <service
             android:name=".BubbleService"
@@ -139,6 +148,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

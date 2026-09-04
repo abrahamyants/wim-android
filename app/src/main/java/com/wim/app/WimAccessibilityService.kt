@@ -127,6 +127,13 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
             ?.getEventBridge()
             ?.onAccessibilityEvent(event)
 
+        // Every app switch is a free heartbeat: if the bubble's windows died
+        // while the service lived (overlay revoked, window torn down), rebuild
+        // or raise the one-tap fix. Rate-limited inside. 2026-09-04.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            BubbleService.instance?.ensureBubbleHealthy("window state")
+        }
+
         if (event.packageName == packageName) return
 
         when (event.eventType) {

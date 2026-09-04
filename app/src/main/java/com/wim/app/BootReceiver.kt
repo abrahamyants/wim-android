@@ -36,7 +36,19 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        // MY_PACKAGE_REPLACED (2026-09-04): an app update kills the process and
+        // nothing restarted the bubble — every Play update looked like a death.
+        // Both broadcasts are on Android's own exemption list for starting a
+        // foreground service from the background.
+        val how = when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED -> "boot"
+            Intent.ACTION_MY_PACKAGE_REPLACED -> "update"
+            else -> return
+        }
+        if (context.getSharedPreferences("wim", Context.MODE_PRIVATE).getBoolean("bubble_user_stopped", false)) {
+            Log.i("WiM", "After $how: user had stopped the bubble — leaving it off")
+            return
+        }
 
         val overlayOk = Settings.canDrawOverlays(context)
         val accessibilityOk = isAccessibilityEnabled(context)
@@ -52,9 +64,10 @@ class BootReceiver : BroadcastReceiver() {
                     action = "SHOW"
                 }
                 context.startForegroundService(serviceIntent)
-                Log.i("WiM", "Bubble restarted after boot (mic=$micOk)")
+                Log.i("WiM", "Bubble restarted after $how (mic=$micOk)")
+                BubbleDeathReporter.recovered(context, "restart after $how")
             } catch (e: Exception) {
-                Log.e("WiM", "Failed to restart bubble after boot: ${e.message}")
+                Log.e("WiM", "Failed to restart bubble after $how: ${e.message}")
                 // Tier 2: JobScheduler retry at +30 s.
                 try {
                     val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
@@ -70,14 +83,14 @@ class BootReceiver : BroadcastReceiver() {
                 }
                 // Tier 3: user-visible escape hatch in case both tiers above
                 // get throttled/rejected. Tap → MainActivity → bubble starts.
-                postRecoveryNotification(context)
+                postRecoveryNotification(context, how)
             }
         } else {
-            Log.i("WiM", "Boot: skipping bubble start — permissions not granted (overlay=$overlayOk, accessibility=$accessibilityOk, mic=$micOk)")
+            Log.i("WiM", "After $how: skipping bubble start — permissions not granted (overlay=$overlayOk, accessibility=$accessibilityOk, mic=$micOk)")
         }
     }
 
-    private fun postRecoveryNotification(context: Context) {
+    private fun postRecoveryNotification(context: Context, how: String = "reboot") {
         try {
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             // Idempotent — Android no-ops if channel already exists.
@@ -97,9 +110,14 @@ class BootReceiver : BroadcastReceiver() {
                 context, 0, tapIntent,
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
+            val hint = OemKillers.hint()
             val notif = Notification.Builder(context, RECOVERY_CHANNEL_ID)
-                .setContentTitle("WiM is sleeping after reboot")
+                .setContentTitle("WiM is sleeping after $how")
                 .setContentText("Tap to wake the bubble back up.")
+                .apply {
+                    if (hint != null) setStyle(Notification.BigTextStyle()
+                        .bigText("Tap to wake the bubble back up.\n\nTo stop this from happening: $hint"))
+                }
                 .setSmallIcon(R.mipmap.ic_launcher_foreground)
                 .setContentIntent(pi)
                 .setAutoCancel(true)
