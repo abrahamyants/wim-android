@@ -1625,7 +1625,7 @@ class BubbleService : Service() {
         view.findViewById<TextView>(R.id.bubbleTime)?.apply {
             visibility = View.VISIBLE
             text = "${SEND_READY_TIMEOUT_MS / 1000}s"
-            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.green_bright))
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.espresso))
         }
         sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
         timerHandler.removeCallbacks(sendReadyTickRunnable)
@@ -1835,7 +1835,7 @@ class BubbleService : Service() {
             // The idle prediction chip ("→ CAS") otherwise persists into recording —
             // setBubbleIdle writes it and nothing cleared it here.
             text = ""
-            setTextColor(0xFFFFD580.toInt())
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.espresso))
         }
         recordingStartTime = System.currentTimeMillis()
 

@@ -31,17 +31,17 @@ object BubbleLiveStateVisuals {
         State.RECORDING -> Spec(
             label = "REC",
             innerDrawable = R.drawable.bubble_inner_active,
-            labelColor = R.color.red_hot,
+            labelColor = R.color.espresso,
         )
         State.PROCESSING -> Spec(
             label = "PROC",
             innerDrawable = R.drawable.bubble_inner_processing,
-            labelColor = R.color.orange_amber,
+            labelColor = R.color.espresso,
         )
         State.SEND_READY -> Spec(
             label = "SEND",
             innerDrawable = R.drawable.bubble_inner_send,
-            labelColor = R.color.green_bright,
+            labelColor = R.color.espresso,
         )
     }
 

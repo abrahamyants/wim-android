@@ -9,6 +9,8 @@
 
     <!-- Accent split: burnt umber headers, copper sub-labels, orange data -->
     <color name="copper_gold">#FF8A5A2F</color>
+    <!-- Espresso ink for every live-state word on the bubble (REC, PROC, SEND, timer). 2026-09-04 -->
+    <color name="espresso">#FF1F1208</color>
     <color name="orange_label">#FF963611</color>
     <color name="section_header">#FF5C3A1F</color>
 
