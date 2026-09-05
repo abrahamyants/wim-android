@@ -4726,3 +4726,142 @@ this session's cost was here rather than in the work.
   hallucination list and the meaning guard are all real and working; the
   blocks written to be about *this speaker* — hardest phonemes, trigger
   words — are empty and skipped entirely.
+
+## Session Log — 2026-09-04 (the bubble day: off-screen fix, resilience package, menu rebuild, ink and font — 13 commits, 10 builds, all on device)
+
+Scope: everything the floating bubble does when it is not being spoken to.
+Started with "where's my goddamn bubble" at 8:50am PT and ended at 8pm with the
+menu rebuilt, every live-state word readable, and a download link on this page.
+Every push went through `gh run watch` and every APK was installed on the
+operator's phone and checked with `dumpsys window` and logcat before it was
+called done. Cost: 10 CI builds at ~3 min each on `linux-16core`.
+
+**The through-line: the bubble kept "dying" while it was alive.** Three of the
+day's four bugs were the bubble being fine and invisible — parked off the right
+edge of the screen, drawn in a night-mode variant nobody knew existed, or
+painted in the same hue as its own face. The fourth was a real death that was
+older than today and only showed because today's work made the bubble come
+back on its own.
+
+### Shipped and verified on device
+
+- **`9e3b9e3` / `c2292d1` — the bubble stays on screen.** `dumpsys window`
+  showed the bubble window at x=1854 on a 1080-wide screen: alive, off the
+  right edge. The keep-inside-screen clamp lived only in the drag handler and
+  `bubbleParams` is reused on every show, so a spot picked on a wider screen
+  (rotate, fold, DeX) survived forever. One clamp helper now runs on drag, on
+  show, on `onConfigurationChanged` and on a `DisplayManager` listener; screen
+  size comes from `WindowManager.currentWindowMetrics` because a Service's
+  Resources can lag. Proven with `wm size 500x2520`: log line
+  `bubble re-clamped on config change: 287,1008 -> 165,1008`. (700 wide was
+  too gentle a test — the bezel inset kept x=287 legal — which is why the
+  first build looked like it did nothing.)
+- **`67f0b36` / `d29ba47` — the resilience package** ("every fucking phone").
+  Sticky restart now re-shows the bubble (`onStartCommand(null)` used to do
+  nothing: service alive, bubble dead). `BootReceiver` also handles
+  `MY_PACKAGE_REPLACED`, so `adb install -r` is the whole install loop — no
+  force-stop, accessibility survives. Event-driven `ensureBubbleHealthy()`
+  (screen-on, app switches via accessibility, config/display change, every
+  start) rebuilds a detached window or, if "Display over other apps" was
+  revoked, drops the dead windows and posts a one-tap fix through
+  `OverlayFixActivity`, then re-shows the moment the grant is back.
+  `BubbleDeathReporter` reads `ApplicationExitInfo` once per process and
+  sends `bubble_process_exit` / `bubble_recovered` / `bubble_lost` to
+  Firebase with brand, model and SDK. `OemKillers` gives Samsung, Xiaomi,
+  Huawei, OnePlus/Oppo, Vivo, Asus and Motorola their one "stop killing WiM"
+  line in the battery screen and the recovery notification. Tests: `am crash`
+  → new pid, bubble back in under a second; `appops … deny` + app switch →
+  alert posted, windows gone; `… allow` + app switch → bubble back, alert
+  cleared. **No watchdog, by the operator's decision.** `subReason` is not
+  public API — one fix build.
+- **`3fc53a6` — no microphone-type foreground start at create.** See Failures.
+- **`651d6c9` / `9ed600a` — the three color markers are true replicas.** The
+  `drawable-night/` overrides painted every marker's face dark, so on a phone
+  in dark mode bronze and aluminum looked like gunmetal. Deleted the night
+  overrides; then gave the gold-face marker the dark well the real bubble has.
+- **`f7fb4f5` / `12b5492` — the bubble menu as one instrument.** Layer is one
+  segmented control I II III IV with the active layer named beneath it and
+  LOCAL/CLOUD only under I; Opacity and Size are horizontal faders with full
+  words and a percent; LIVE and the replicas share a row; SETTINGS is a quiet
+  link. Every view id kept, so `BubbleMenu` needed only the layer-name code.
+  The first build shipped at 379dp instead of 220dp — see Failures.
+- **`79d26c0` — espresso ink.** REC, PROC, SEND, the recording timer and the
+  5-second countdown all use `#1F1208`, the ink IDLE already used on bronze.
+  Pixel-sampled before the change: the REC and PROC label bands were the same
+  colors as their faces. Chosen by the operator from a canvas mock with a live
+  ink swatch.
+- **`aa5fa7d` / `2f395ae` — Josefin Sans on the face.** Every word on the
+  bubble in the menu's font, letter-spaced. QUIET lost its last T at 13sp, so
+  the label auto-sizes (13sp down to 8sp) only when the word needs it.
+- **Release `v1.0.0-2026-09-04-full`** — `WiM-vc29-2026-09-04-full.apk`, keys
+  inside, the exact build on the operator's phone; README's first link points
+  at it.
+
+### Kept by choice
+
+- **The dark well ("black moat") around the face stays.** Traced to the
+  night-mode bronze bezel; a before/after mock was made; the operator preferred
+  the before.
+- **No watchdog timer.** Restarts, health checks and telemetry only.
+
+### Failures
+
+- **The update-restart path crashed the service on its first real use**
+  (1:34pm). `onCreate` asked for `SPECIAL_USE|MICROPHONE` whenever the mic
+  permission was granted; Android 14 refused a microphone-typed foreground
+  start from a background create ("must be in the eligible state") — no
+  overlay window exists yet at create, so the app is not eligible. The process
+  died in `onCreate`, the sticky restart died the same way, and the bubble was
+  gone until the app was opened by hand. This bug predates today: boot on a
+  locked phone would hit it. It only surfaced because `MY_PACKAGE_REPLACED`
+  now starts the service. Fixed the same hour (`3fc53a6`): SPECIAL_USE only at
+  create, mic type added at recording start, and `startForegroundCompat`
+  falls back to SPECIAL_USE if a type is ever refused. Proven with the
+  process dead and a plain `install -r`.
+- **The new menu shipped full-screen wide with SETTINGS unreadable.** The
+  WindowManager replaces the root view's LayoutParams with the window's
+  WRAP_CONTENT, so the root's `220dp` was discarded, and one ellipsized
+  single-line TextView reporting "too small" made `ViewRootImpl` hand the
+  plate the whole screen (379dp measured). SETTINGS was black text on the dark
+  nameplate. Fixed in `12b5492`: width on an inner plate, no ellipsize, quiet
+  link. One extra build.
+- **Two adb taps recorded an empty take on the operator's phone** while
+  trying to open the menu for a screenshot. The menu opens by dragging the
+  bubble to the top zone, not by double-tap. The "your text is on the
+  clipboard" toast was the assistant, not a bug.
+- **A before/after image was sent to the wrong device** (the claude.ai side
+  of the session, not the phone in hand). Re-sent by pushing the PNG to
+  `/sdcard/Download` and opening it, then embedded in the chart page.
+- **First label mock was sloppy** — wrong cover color, off-center SEND.
+  Redone with auto-centering, then redone again properly on the design canvas
+  when the operator asked for real tools.
+- **Explained the knob-turn idea four times before it landed.** Each
+  explanation added a mechanism (timers, thresholds, radial vs tangential)
+  when the operator wanted the physical picture: thumb on the dish, wait a
+  beat, turn, four clicks. The plain version took five lines.
+- **A font-weight change was described in terms the operator could not
+  follow** ("today's fake bold") and was dropped at his instruction together
+  with the larger countdown that rode in the same commit.
+
+### Open
+
+- **The knob turns (parked).** Face keeps tap/hold/drag. The dish gets a new
+  job: rest a beat, it engages with a click, then turning steps through four
+  detents I–IV using the bezel arcs already drawn; the tick orbits, the word
+  stays upright. Green state variant: turn = tone (casual ↔ professional) with
+  a re-render. At small sizes the engage swells the bubble to full size for
+  the turn (twist mode already does this). Canvas mock exists. Operator
+  understood it and did not say build.
+- **5-second countdown at 12sp** — requested, built, then dropped with the
+  weight commit. Ready to return on its own.
+- **Face-word weight.** `josefin_sans.ttf` is the variable font at its default
+  weight, Thin (100); `textStyle=bold` fakes thickness. A real `'wght' 600`
+  was written and dropped. Bring back only if the words read too thin.
+- **Death telemetry needs a week of phones** before it says which brands kill
+  the bubble and how. Events: `bubble_process_exit`, `bubble_recovered`,
+  `bubble_lost`.
+- **Menu: the word COLOR is gone from its row** (no room beside LIVE and the
+  switch at 220dp); the three replicas stand alone.
+- **Menu tone eyebrow** (`→ CASUAL · personal contact`) was not on screen in
+  today's shots; check it still appears when the PredictionEngine has a guess.
+- **Play submission** is still paperwork (see 8/13 entry).
