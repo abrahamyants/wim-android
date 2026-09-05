@@ -2,8 +2,7 @@
 
 **Voice-to-intent reconstruction for Android.** Speak messy, get clean text.
 
-### ▶ [Download WiM — 2026-08-29](https://github.com/abrahamyants/wim-android/releases/download/v1.0.0-2026-08-29-full/WiM-vc29-2026-08-29-full.apk)
-
+### ▶ [Download WiM — 2026-09-04](https://github.com/abrahamyants/wim-android/releases/download/v1.0.0-2026-09-04-full/WiM-vc29-2026-09-04-full.apk)
 Install it and talk. Nothing to sign into, nothing to configure, no server in
 the path — it calls the APIs directly.
 
