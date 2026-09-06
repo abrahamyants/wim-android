@@ -1,6 +1,5 @@
 package com.wim.app
 
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -199,24 +198,28 @@ object WhisperClient {
             } else {
                 val idToken = overrideToken
                     ?: throw IllegalStateException("Sign in to use cloud transcription")
-                val body = JSONObject().apply {
-                    put("action", "transcribe_audio")
-                    put("audio_base64", Base64.encodeToString(uploadFile.readBytes(), Base64.NO_WRAP))
-                    // The Cloud Function sniffs the container; older revisions
-                    // accept WAV only, so it must be told what it is getting.
-                    put("audio_format", if (uploadFile === audioFile) "wav" else "m4a")
-                    put("language", language)
-                    put("model", model)
-                    put("temperature", temperature)
-                    put("verbose_segments", verboseSegments)
-                    if (wordTimestamps) put("word_timestamps", true)
-                    if (prompt.isNotBlank()) put("prompt", prompt.take(4000))
-                }
+                // Raw envelope (2026-09-06): the recording goes up as a
+                // multipart file part, the same shape the direct route sends
+                // to OpenAI. The old JSON body carried it as base64 text — a
+                // third more bytes over the uplink plus a decode on the server.
+                // The function still accepts the old shape for older builds.
+                val bodyBuilder = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("action", "transcribe_audio")
+                    .addFormDataPart("language", language)
+                    .addFormDataPart("model", model)
+                    .addFormDataPart("temperature", temperature.toString())
+                    .addFormDataPart("verbose_segments", verboseSegments.toString())
+                if (wordTimestamps) bodyBuilder.addFormDataPart("word_timestamps", "true")
+                if (prompt.isNotBlank()) bodyBuilder.addFormDataPart("prompt", prompt.take(4000))
+                bodyBuilder.addFormDataPart(
+                    "file", uploadFile.name,
+                    uploadFile.asRequestBody(uploadMime.toMediaType())
+                )
                 val request = Request.Builder()
                     .url(BackendConfig.URL)
                     .addHeader("Authorization", "Bearer $idToken")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .post(bodyBuilder.build())
                     .build()
                 executeJson(request, "WiM transcription backend") to "backend"
             }

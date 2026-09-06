@@ -1963,7 +1963,7 @@ class MainActivity : AppCompatActivity() {
             GuideSection(
                 "What happens when you tap",
                 "The pipeline, top to bottom",
-                """<b>1. You tap the bubble and speak.</b><br>The mic captures your voice locally. No audio leaves the phone for Layer I.<br><br>
+                """<b>1. You tap the bubble and speak.</b><br>The mic captures your voice locally. No audio leaves the phone for Layer I local.<br><br>
 <b>2. Speech-to-text.</b><br>
 &#8226; <b>Layer I</b> &#8212; whisper-tiny runs on your phone (free, no internet, no chirp).<br>
 &#8226; <b>Layer II / III</b> &#8212; gpt-4o-transcribe in the cloud (your audio goes up so the model can hear inflection and disfluency before reconstruction).<br>
