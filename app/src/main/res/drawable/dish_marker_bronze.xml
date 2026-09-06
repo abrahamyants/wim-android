@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tiny replica of the gold-face ("bronze") bubble: copper ring, the dark
-     well, gold face. 2026-09-04: the well was missing, so the marker read
-     as a flat gold coin while the bubble it picks has a black ring around
-     its face. state_selected = cream glow ring outside. -->
+<!-- bronze dish — copper ring around the dark well. Tiny replica for the bubble menu (2026-09-06).
+     state_selected = cream glow ring outside. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <layer-list>
@@ -24,26 +22,15 @@
                     <stroke android:width="1dp" android:color="#FFB55050" />
                 </shape>
             </item>
-            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+            <item android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp">
                 <shape android:shape="oval">
                     <gradient
                         android:type="radial"
-                        android:gradientRadius="14dp"
+                        android:gradientRadius="8dp"
                         android:centerX="0.45"
                         android:centerY="0.40"
                         android:startColor="#FF333338"
                         android:endColor="#FF1A1A1E" />
-                </shape>
-            </item>
-            <item android:left="9dp" android:top="9dp" android:right="9dp" android:bottom="9dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:type="radial"
-                        android:gradientRadius="10dp"
-                        android:centerX="0.45"
-                        android:centerY="0.40"
-                        android:startColor="#FFCCAD83"
-                        android:endColor="#FF7A5C3C" />
                 </shape>
             </item>
         </layer-list>
@@ -63,26 +50,15 @@
                     <size android:width="34dp" android:height="34dp" />
                 </shape>
             </item>
-            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+            <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
                 <shape android:shape="oval">
                     <gradient
                         android:type="radial"
-                        android:gradientRadius="14dp"
+                        android:gradientRadius="8dp"
                         android:centerX="0.45"
                         android:centerY="0.40"
                         android:startColor="#FF333338"
                         android:endColor="#FF1A1A1E" />
-                </shape>
-            </item>
-            <item android:left="7dp" android:top="7dp" android:right="7dp" android:bottom="7dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:type="radial"
-                        android:gradientRadius="10dp"
-                        android:centerX="0.45"
-                        android:centerY="0.40"
-                        android:startColor="#FFCCAD83"
-                        android:endColor="#FF7A5C3C" />
                 </shape>
             </item>
         </layer-list>

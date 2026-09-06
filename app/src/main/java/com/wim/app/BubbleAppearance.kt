@@ -17,25 +17,40 @@ import android.widget.TextView
 class BubbleAppearance(
     private val getBubbleView: () -> View?,
 ) {
-    private companion object {
+    companion object {
         private const val TAG = "WiM"
-    }
 
-    /** Apply the user's selected bubble color theme. Swaps bezel + knob
-     *  drawable, and refreshes the IDLE label color so a stale gunmetal-gold
-     *  doesn't sit invisible against the lighter metal after a theme flip. */
-    fun applyTheme() {
-        val theme = WimApp.bubbleTheme()
-        val bezelDrawable = when (theme) {
+        fun bezelDrawableFor(dish: String): Int = when (dish) {
             "aluminum" -> R.drawable.bubble_bezel_aluminum
             "gunmetal" -> R.drawable.bubble_bezel_gunmetal
             else -> R.drawable.bubble_bg_idle
         }
-        val knobDrawable = when (theme) {
+
+        fun knobDrawableFor(knob: String): Int = when (knob) {
             "aluminum" -> R.drawable.bubble_knob_aluminum
             "gunmetal" -> R.drawable.bubble_knob_gunmetal
             else -> R.drawable.bubble_inner_knob
         }
+
+        /** IDLE / QUIET sit on the knob, so their ink follows the knob metal:
+         *  cream-gold on dark steel, deep espresso on bronze, dark gray on
+         *  aluminum. */
+        fun idleLabelColorFor(knob: String): Int = when (knob) {
+            "gunmetal" -> 0xFFC8B48A.toInt()
+            "bronze" -> 0xFF1F1208.toInt()
+            else -> 0xFF555560.toInt()
+        }
+    }
+
+    /** Apply the user's bubble metals — the DISH (bezel ring) and the KNOB
+     *  (raised face) are picked separately since 2026-09-06. Swaps both
+     *  drawables and refreshes the IDLE label color so a stale gunmetal-gold
+     *  doesn't sit invisible against a lighter knob after a flip. */
+    fun applyTheme() {
+        val dish = WimApp.bubbleTheme()
+        val knob = WimApp.bubbleKnobTheme()
+        val bezelDrawable = bezelDrawableFor(dish)
+        val knobDrawable = knobDrawableFor(knob)
         val view = getBubbleView()
         view?.findViewById<FrameLayout>(R.id.bubbleBezel)?.setBackgroundResource(bezelDrawable)
         view?.findViewById<FrameLayout>(R.id.bubbleInner)?.setBackgroundResource(knobDrawable)
@@ -46,12 +61,7 @@ class BubbleAppearance(
         // managed by the recording state path.
         view?.findViewById<TextView>(R.id.bubbleLabel)?.let { label ->
             if (label.text == "IDLE") {
-                val idleColor = when (theme) {
-                    "gunmetal" -> 0xFFC8B48A.toInt()  // cream-gold on dark steel
-                    "bronze" -> 0xFF1F1208.toInt()    // deep espresso on warm copper — matches palette primaryText
-                    else -> 0xFF555560.toInt()         // dark gray on aluminum
-                }
-                label.setTextColor(idleColor)
+                label.setTextColor(idleLabelColorFor(knob))
             }
         }
     }

@@ -6,7 +6,7 @@
        on the line beneath. LOCAL / CLOUD only appears for layer I.
      - Opacity and Size are horizontal faders with full words and a percent
        value on the same line.
-     - LIVE and the three color replicas share one row.
+     - KNOB and DISH each get a row of three metal replicas (2026-09-06).
      - SETTINGS is a real nameplate button, full width.
      - Kept: the speech-bubble tail, the per-finish plate tint, the honeycomb,
        maroon as the one accent, the three replica dots. The bubble itself is
@@ -275,78 +275,97 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- LIVE toggle + the three finish replicas, one row -->
+    <!-- KNOB: three tiny knobs — the metal of the raised face (2026-09-06) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="6dp">
+        android:layout_marginTop="8dp">
 
         <TextView
-            android:id="@+id/menuLiveLabel"
-            android:layout_width="wrap_content"
+            android:id="@+id/menuKnobLabel"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:text="@string/bubble_menu_live"
+            android:text="@string/bubble_menu_knob"
             android:textSize="10sp"
             android:fontFamily="@font/josefin_sans"
             android:textStyle="bold"
-            android:letterSpacing="0.12"
-            android:labelFor="@id/menuLiveToggle" />
-
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/menuLiveToggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:layout_marginStart="-2dp"
-            android:theme="@style/WimSwitchTheme" />
+            android:letterSpacing="0.12" />
 
         <View
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="1dp" />
-
-        <!-- The word COLOR is carried by the replicas' content descriptions;
-             the row has no room for it beside LIVE and the switch. -->
-        <TextView
-            android:id="@+id/menuColorLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/bubble_menu_color"
-            android:textSize="10sp"
-            android:fontFamily="@font/josefin_sans"
-            android:textStyle="bold"
-            android:letterSpacing="0.12"
-            android:visibility="gone" />
-
-        <View
-            android:id="@+id/menuThemeBronze"
+            android:id="@+id/menuKnobBronze"
             android:layout_width="22dp"
             android:layout_height="22dp"
             android:minWidth="44dp"
             android:minHeight="44dp"
-            android:background="@drawable/color_indicator_bronze"
-            android:layout_marginStart="5dp"
+            android:background="@drawable/knob_marker_bronze"
+            android:layout_marginStart="0dp"
             android:contentDescription="@string/bubble_color_bronze" />
         <View
-            android:id="@+id/menuThemeAluminum"
+            android:id="@+id/menuKnobAluminum"
             android:layout_width="22dp"
             android:layout_height="22dp"
             android:minWidth="44dp"
             android:minHeight="44dp"
-            android:background="@drawable/color_indicator_silver"
-            android:layout_marginStart="5dp"
+            android:background="@drawable/knob_marker_silver"
+            android:layout_marginStart="12dp"
             android:contentDescription="@string/bubble_color_silver" />
         <View
-            android:id="@+id/menuThemeGunmetal"
+            android:id="@+id/menuKnobGunmetal"
             android:layout_width="22dp"
             android:layout_height="22dp"
             android:minWidth="44dp"
             android:minHeight="44dp"
-            android:background="@drawable/color_indicator_gunmetal"
-            android:layout_marginStart="5dp"
+            android:background="@drawable/knob_marker_gunmetal"
+            android:layout_marginStart="12dp"
+            android:contentDescription="@string/bubble_color_gunmetal" />
+    </LinearLayout>
+
+    <!-- DISH: three tiny dishes — the metal of the ring around the knob -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:id="@+id/menuDishLabel"
+            android:layout_width="52dp"
+            android:layout_height="wrap_content"
+            android:text="@string/bubble_menu_dish"
+            android:textSize="10sp"
+            android:fontFamily="@font/josefin_sans"
+            android:textStyle="bold"
+            android:letterSpacing="0.12" />
+
+        <View
+            android:id="@+id/menuDishBronze"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/dish_marker_bronze"
+            android:layout_marginStart="0dp"
+            android:contentDescription="@string/bubble_color_bronze" />
+        <View
+            android:id="@+id/menuDishAluminum"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/dish_marker_silver"
+            android:layout_marginStart="12dp"
+            android:contentDescription="@string/bubble_color_silver" />
+        <View
+            android:id="@+id/menuDishGunmetal"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:minWidth="44dp"
+            android:minHeight="44dp"
+            android:background="@drawable/dish_marker_gunmetal"
+            android:layout_marginStart="12dp"
             android:contentDescription="@string/bubble_color_gunmetal" />
     </LinearLayout>
 

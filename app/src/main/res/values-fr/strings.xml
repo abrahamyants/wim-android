@@ -79,7 +79,8 @@
     <string name="bubble_action_copy">COPIER</string>
     <string name="bubble_action_share">PARTAGER</string>
 
-    <string name="bubble_menu_live">EN DIRECT</string>
+    <string name="bubble_menu_knob">BOUTON</string>
+    <string name="bubble_menu_dish">ANNEAU</string>
     <string name="bubble_menu_layer">COUCHE</string>
     <string name="bubble_menu_transcription">TRANSCRIPTION</string>
     <string name="bubble_menu_local">LOCAL</string>
@@ -87,7 +88,6 @@
     <string name="bubble_menu_reconstruction">RECONSTRUCTION</string>
     <string name="bubble_menu_profile">PROFIL</string>
     <string name="bubble_menu_disfluency">DYSFLUENCE</string>
-    <string name="bubble_menu_color">COULEUR</string>
     <string name="bubble_menu_settings">RÉGLAGES</string>
     <string name="bubble_menu_op">OP</string>
     <string name="bubble_menu_sz">TL</string>

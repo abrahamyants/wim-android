@@ -690,7 +690,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val applyTheme: (String) -> Unit = { theme ->
-            WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+            WimApp.prefs.edit().putString("bubble_theme", theme).putString("bubble_knob_theme", theme).apply()
             BubbleService.instance?.refreshBubbleTheme()
             paintBubbleColorRow()
         }
@@ -1798,6 +1798,7 @@ class MainActivity : AppCompatActivity() {
         label: String,
         labelColor: Int? = null,
         scale: Float = 0.6f,
+        knobTheme: String = theme,
     ): android.view.View {
         val dp = resources.displayMetrics.density
         val sizePx = (120 * dp * scale).toInt()
@@ -1819,7 +1820,7 @@ class MainActivity : AppCompatActivity() {
                 "gunmetal" -> R.drawable.bubble_bezel_gunmetal
                 else -> R.drawable.bubble_bg_idle
             }
-            val knobDrawable = when (theme) {
+            val knobDrawable = when (knobTheme) {
                 "aluminum" -> R.drawable.bubble_knob_aluminum
                 "gunmetal" -> R.drawable.bubble_knob_gunmetal
                 else -> R.drawable.bubble_inner_knob
@@ -1832,7 +1833,7 @@ class MainActivity : AppCompatActivity() {
                     "REC" -> 0xFFFF6B6B.toInt()
                     "PROC" -> 0xFFFFB74D.toInt()
                     "SEND" -> 0xFF5AD15F.toInt()
-                    else -> if (theme == "gunmetal") 0xFFC8B48A.toInt() else 0xFF555560.toInt()
+                    else -> BubbleAppearance.idleLabelColorFor(knobTheme)
                 }
                 setTextColor(resolvedColor)
             }
@@ -1985,12 +1986,13 @@ class MainActivity : AppCompatActivity() {
                     // pipeline runs. Same theme as the user's selection so it
                     // matches the bubble they're looking at every day.
                     val theme = WimApp.bubbleTheme()
+                    val knob = WimApp.bubbleKnobTheme()
                     bubbleRow(
                         listOf(
-                            makeBubblePreview(theme, "IDLE", scale = 0.45f) to "1. tap",
-                            makeBubblePreview(theme, "REC", scale = 0.45f) to "2. speak",
-                            makeBubblePreview(theme, "PROC", scale = 0.45f) to "3. process",
-                            makeBubblePreview(theme, "SEND", scale = 0.45f) to "4. tap to send",
+                            makeBubblePreview(theme, knobTheme = knob, label = "IDLE", scale = 0.45f) to "1. tap",
+                            makeBubblePreview(theme, knobTheme = knob, label = "REC", scale = 0.45f) to "2. speak",
+                            makeBubblePreview(theme, knobTheme = knob, label = "PROC", scale = 0.45f) to "3. process",
+                            makeBubblePreview(theme, knobTheme = knob, label = "SEND", scale = 0.45f) to "4. tap to send",
                         ),
                         scaleHint = 0.45f,
                     )
@@ -2009,8 +2011,9 @@ class MainActivity : AppCompatActivity() {
 <b>States:</b> IDLE (resting) &#8226; REC (recording) &#8226; PROC (processing) &#8226; SEND (tap-to-send ready, green).""",
                 visual = {
                     val theme = WimApp.bubbleTheme()
+                    val knob = WimApp.bubbleKnobTheme()
                     bubbleRow(
-                        listOf(makeBubblePreview(theme, "IDLE", scale = 0.85f) to "your bubble"),
+                        listOf(makeBubblePreview(theme, knobTheme = knob, label = "IDLE", scale = 0.85f) to "your bubble"),
                         scaleHint = 0.85f,
                     )
                 },
@@ -2065,8 +2068,9 @@ Works in Google Messages, Samsung Messages, Gmail, WhatsApp, Telegram, Signal, a
 Turn off in <b>Settings &#8594; Tap-to-send assist</b>. WiM never sends without that separate tap.""",
                 visual = {
                     val theme = WimApp.bubbleTheme()
+                    val knob = WimApp.bubbleKnobTheme()
                     bubbleRow(
-                        listOf(makeBubblePreview(theme, "SEND", scale = 0.85f) to "tap to send"),
+                        listOf(makeBubblePreview(theme, knobTheme = knob, label = "SEND", scale = 0.85f) to "tap to send"),
                         scaleHint = 0.85f,
                     )
                 },
@@ -3406,7 +3410,7 @@ Make sure a text field is active (cursor blinking) before you speak. WiM needs a
      * Bubble appears centered on the finger so it reads as "picked up."
      */
     private fun pickUpBubble(theme: String, slotView: android.view.View, spawnCx: Int, spawnCy: Int) {
-        WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+        WimApp.prefs.edit().putString("bubble_theme", theme).putString("bubble_knob_theme", theme).apply()
         BubbleService.instance?.refreshBubbleTheme()
         val intent = Intent(this, BubbleService::class.java).apply {
             action = "SHOW"

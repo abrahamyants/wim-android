@@ -250,17 +250,10 @@ class BubbleLiveTranscript(
         }
     }
 
-    /** Show "● Recording…" placeholder; subsequent partials arrive via
-     *  TranscriptBarController.bind below. Returns silently if the
-     *  `live_transcript` pref is off. */
-    fun showLive() {
-        if (!WimApp.prefs.getBoolean("live_transcript", false)) return
-        ensureBar()
-        view?.minLines = 2
-        view?.maxLines = 6
-        stopStagePulse()
-        view?.text = "● Recording…"
-    }
+    /** The "● Recording…" balloon. Retired 2026-09-06 together with the LIVE
+     *  toggle in the bubble menu: the bubble's own color and bezel arc carry
+     *  the state. Kept as a no-op so the service's call site stays put. */
+    fun showLive() = Unit
 
     /** Direct write of live partial text. The TranscriptBarController bind
      *  hooked up in ensureBar() is the usual path; this stays for callers
@@ -275,7 +268,7 @@ class BubbleLiveTranscript(
      *  enough feedback on the fast path. */
     fun showStage(stage: String, detail: String, force: Boolean = false) {
         val allowed = shouldShowStage(
-            liveOn = WimApp.prefs.getBoolean("live_transcript", false),
+            liveOn = false, // LIVE toggle retired 2026-09-06 — stages show only on demo/force
             demoActive = isDemoActive(),
             l1Cloud = WimApp.layer() < 2 && WimApp.l1CloudAsr(),
             force = force,

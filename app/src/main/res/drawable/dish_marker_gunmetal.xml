@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- gunmetal dish — dark steel ring around its well. Tiny replica for the bubble menu (2026-09-06).
+     state_selected = cream glow ring outside. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="#FFF0E8D8" />
+                    <size android:width="34dp" android:height="34dp" />
+                </shape>
+            </item>
+            <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="18dp"
+                        android:centerX="0.42"
+                        android:centerY="0.38"
+                        android:startColor="#FF7A7C85"
+                        android:endColor="#FF2E2E36" />
+                    <stroke android:width="1dp" android:color="#FFB55050" />
+                </shape>
+            </item>
+            <item android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="8dp"
+                        android:centerX="0.45"
+                        android:centerY="0.40"
+                        android:startColor="#FF5A5A64"
+                        android:endColor="#FF1E1E24" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="18dp"
+                        android:centerX="0.42"
+                        android:centerY="0.38"
+                        android:startColor="#FF7A7C85"
+                        android:endColor="#FF2E2E36" />
+                    <stroke android:width="1dp" android:color="#FFB55050" />
+                    <size android:width="34dp" android:height="34dp" />
+                </shape>
+            </item>
+            <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:type="radial"
+                        android:gradientRadius="8dp"
+                        android:centerX="0.45"
+                        android:centerY="0.40"
+                        android:startColor="#FF5A5A64"
+                        android:endColor="#FF1E1E24" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

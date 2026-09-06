@@ -13,13 +13,12 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.TextView
-import com.google.android.material.materialswitch.MaterialSwitch
 
 /**
  * Comment-bubble menu overlay — opens above the floating bubble on long
  * tap or drag-to-top. Hosts the L1/L2/L4 layer selector, L1 source toggle
- * (LOCAL ↔ CLOUD), opacity + size sliders, live-transcript toggle, theme
- * picker, anticipatory prediction chip, and Settings shortcut.
+ * (LOCAL ↔ CLOUD), opacity + size sliders, the KNOB and DISH metal rows,
+ * anticipatory prediction chip, and Settings shortcut.
  *
  * Extracted from BubbleService 2026-05-25 as the third BubbleWindow slice
  * (after ShakeDetector, WordHighlight, LiveTranscript). Owns the inflation
@@ -97,10 +96,10 @@ class BubbleMenu(
             v.findViewById<TextView>(id)?.setTextColor(color)
         }
         // Section labels — sit on the menu fill
-        colorAs(R.id.menuLiveLabel, onFillText)
+        colorAs(R.id.menuKnobLabel, onFillText)
+        colorAs(R.id.menuDishLabel, onFillText)
         colorAs(R.id.menuLayerLabel, onFillText)
         colorAs(R.id.menuLayerName, onFillText)
-        colorAs(R.id.menuColorLabel, onFillText)
         // Slider mini-labels (OP / SZ) + bottom value readouts
         colorAs(R.id.menuOpacityLabel, onFillText)
         colorAs(R.id.menuOpacityValue, onFillTextBright)
@@ -141,7 +140,6 @@ class BubbleMenu(
         // Load current values
         val opacity = WimApp.bubbleOpacity().coerceIn(0, 100)
         val size = WimApp.bubbleSize().coerceIn(70, 150)
-        val liveEnabled = WimApp.prefs.getBoolean("live_transcript", false)
 
         val accentTint = ColorStateList.valueOf(palette.accent)
         val trackTint = ColorStateList.valueOf(palette.sliderTrack)
@@ -189,19 +187,6 @@ class BubbleMenu(
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-
-        val liveToggle = v.findViewById<MaterialSwitch>(R.id.menuLiveToggle)
-        liveToggle.isChecked = liveEnabled
-        liveToggle.thumbTintList = accentTint
-        liveToggle.trackTintList = ColorStateList(
-            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-            intArrayOf(palette.stroke, palette.sliderTrack)
-        )
-        liveToggle.scaleX = 0.75f
-        liveToggle.scaleY = 0.75f
-        liveToggle.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("live_transcript", checked).apply()
-        }
 
         // Layer selector — 3 buttons mapped to layers 1/2/4. Profile (L3)
         // is dropped from the menu by design; access via Settings.
@@ -284,26 +269,50 @@ class BubbleMenu(
             paintLayerName(WimApp.layer())
         }
 
-        // Bubble color picker — three tiny replicas of the bubble bezel
-        // itself. Selecting one literally swaps the floating bubble's
-        // metal. The selector drawables flip to a cream glow ring on
-        // state_selected.
-        val themeBtns = mapOf(
-            "bronze" to v.findViewById<View>(R.id.menuThemeBronze),
-            "aluminum" to v.findViewById<View>(R.id.menuThemeAluminum),
-            "gunmetal" to v.findViewById<View>(R.id.menuThemeGunmetal)
-        )
-        val currentTheme = WimApp.bubbleTheme()
-        themeBtns.forEach { (themeKey, btn) ->
-            btn.isSelected = (themeKey == currentTheme)
-            btn.setOnClickListener {
-                WimApp.prefs.edit().putString("bubble_theme", themeKey).apply()
-                onThemeChanged()
-                // Re-open so the menu picks up the new palette.
-                dismiss()
-                show()
+        // Metal pickers (2026-09-06): two rows of tiny replicas. KNOB swaps
+        // the raised face in the middle of the bubble; DISH swaps the ring
+        // around it. Any mix is allowed — nine combinations. The marker
+        // drawables flip to a cream glow ring on state_selected.
+        fun wireMetalRow(
+            buttons: Map<String, View>,
+            current: String,
+            prefKey: String,
+            reopen: Boolean,
+        ) {
+            buttons.forEach { (key, btn) -> btn.isSelected = (key == current) }
+            buttons.forEach { (key, btn) ->
+                btn.setOnClickListener {
+                    WimApp.prefs.edit().putString(prefKey, key).apply()
+                    buttons.forEach { (k, b) -> b.isSelected = (k == key) }
+                    onThemeChanged()
+                    if (reopen) {
+                        // The plate wears the dish metal — re-open to repaint it.
+                        dismiss()
+                        show()
+                    }
+                }
             }
         }
+        wireMetalRow(
+            buttons = mapOf(
+                "bronze" to v.findViewById<View>(R.id.menuKnobBronze),
+                "aluminum" to v.findViewById<View>(R.id.menuKnobAluminum),
+                "gunmetal" to v.findViewById<View>(R.id.menuKnobGunmetal),
+            ),
+            current = WimApp.bubbleKnobTheme(),
+            prefKey = "bubble_knob_theme",
+            reopen = false,
+        )
+        wireMetalRow(
+            buttons = mapOf(
+                "bronze" to v.findViewById<View>(R.id.menuDishBronze),
+                "aluminum" to v.findViewById<View>(R.id.menuDishAluminum),
+                "gunmetal" to v.findViewById<View>(R.id.menuDishGunmetal),
+            ),
+            current = WimApp.bubbleTheme(),
+            prefKey = "bubble_theme",
+            reopen = true,
+        )
 
         v.findViewById<TextView>(R.id.menuOpenSettings).setOnClickListener {
             dismiss()

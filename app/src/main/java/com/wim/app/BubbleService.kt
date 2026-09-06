@@ -1992,18 +1992,14 @@ class BubbleService : Service() {
         //   L1 cloud path (l1_cloud_asr=true): WAV captured, whisper-1 on stop.
         //   L1 local / L2 / L3: whisper-tiny.en via WhisperLocalEngine (sherpa-onnx).
         //   Fallback when whisper-tiny model isn't ready: Android SpeechRecognizer.
-        // LIVE preview override: whisper-tiny + whisper-1 don't stream partials.
-        // If the user has LIVE on at L1 local, route through Android's
-        // SpeechRecognizer instead — it streams partials but is less accurate
-        // and chirps. Trade-off accepted in exchange for actually-live text.
-        val liveOn = WimApp.prefs.getBoolean("live_transcript", false)
+        // (The LIVE toggle left the bubble menu 2026-09-06. whisper-tiny and
+        // whisper-1 never streamed partials anyway.)
         // L1 Local must be CHIRP-FREE. Android SpeechRecognizer emits
         // USAGE_ASSISTANCE_SONIFICATION sounds on start AND stop that bypass
         // every standard audio-suppression mechanism (see README session-9
         // saga). The only fix is to never start it. Per operator 2026-06-06:
         // L1 Local sacrifices live partials for silence. whisper-tiny.en
         // gives the final transcript on stop, no chirp ever.
-        @Suppress("UNUSED_VARIABLE") val liveOnIgnoredForL1Local = liveOn
         val l1LocalLiveOverride = false
 
         // Every branch below is gated on the route, so Decision.Refuse matches
@@ -2453,26 +2449,15 @@ class BubbleService : Service() {
         applyBubbleTheme()
         bubbleTouchView?.findViewById<TextView>(R.id.bubbleLabel)?.apply {
             text = "IDLE"
-            // Per-theme IDLE color so the label has real contrast on each
-            // bezel: cream-gold on gunmetal, deep espresso on bronze (the
-            // palette's primaryText), dark gray on aluminum.
-            val idleColor = when (WimApp.bubbleTheme()) {
-                "gunmetal" -> 0xFFC8B48A.toInt()
-                "bronze" -> 0xFF1F1208.toInt()
-                else -> 0xFF555560.toInt()
-            }
-            setTextColor(idleColor)
+            // IDLE sits on the knob, so its ink follows the knob metal.
+            setTextColor(BubbleAppearance.idleLabelColorFor(WimApp.bubbleKnobTheme()))
         }
         // Auto Quiet Mode amber confirmation — flash "QUIET" in the brand amber
         // on the bubble for 1.5s after a boosted whisper-soft take, then revert.
         if (pendingQuietAutoFlash) {
             pendingQuietAutoFlash = false
             val lbl = bubbleTouchView?.findViewById<TextView>(R.id.bubbleLabel)
-            val idleColor2 = when (WimApp.bubbleTheme()) {
-                "gunmetal" -> 0xFFC8B48A.toInt()
-                "bronze" -> 0xFF1F1208.toInt()
-                else -> 0xFF555560.toInt()
-            }
+            val idleColor2 = BubbleAppearance.idleLabelColorFor(WimApp.bubbleKnobTheme())
             lbl?.apply {
                 text = "QUIET"
                 setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.orange_label))

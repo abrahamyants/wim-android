@@ -79,7 +79,7 @@ class BubbleDock(
         slotCenter: Point,
         layoutParams: WindowManager.LayoutParams
     ) {
-        WimApp.prefs.edit().putString("bubble_theme", theme).apply()
+        WimApp.prefs.edit().putString("bubble_theme", theme).putString("bubble_knob_theme", theme).apply()
         onApplyTheme()
         val view = getBubbleView() ?: run { onHideBubble(); return }
         val bezel = getBezelHost()?.findViewById<FrameLayout>(R.id.bubbleBezel) ?: run { onHideBubble(); return }

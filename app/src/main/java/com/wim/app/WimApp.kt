@@ -185,6 +185,9 @@ class WimApp : Application() {
         fun bubbleOpacity(): Int = prefInt("bubble_opacity", 100)
         fun bubbleSize(): Int = prefInt("bubble_size", 95)
         fun bubbleTheme(): String = prefStr("bubble_theme", "bronze")
+        /** The knob (raised face) metal. Its own row in the bubble menu since
+         *  2026-09-06; falls back to the dish so older installs look unchanged. */
+        fun bubbleKnobTheme(): String = prefStr("bubble_knob_theme", bubbleTheme())
 
         /**
          * L1 ASR source toggle. FALSE = local whisper-tiny.en (default,

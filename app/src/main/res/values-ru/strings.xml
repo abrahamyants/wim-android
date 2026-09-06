@@ -79,7 +79,8 @@
     <string name="bubble_action_copy">КОПИЯ</string>
     <string name="bubble_action_share">ОТПРАВ</string>
 
-    <string name="bubble_menu_live">ЭФИР</string>
+    <string name="bubble_menu_knob">РУЧКА</string>
+    <string name="bubble_menu_dish">ОБОД</string>
     <string name="bubble_menu_layer">УРОВЕНЬ</string>
     <string name="bubble_menu_transcription">РАСШИФРОВКА</string>
     <string name="bubble_menu_local">ЛОК</string>
@@ -87,7 +88,6 @@
     <string name="bubble_menu_reconstruction">РЕКОНСТРУКЦИЯ</string>
     <string name="bubble_menu_profile">ПРОФИЛЬ</string>
     <string name="bubble_menu_disfluency">ЗАПИНКИ</string>
-    <string name="bubble_menu_color">ЦВЕТ</string>
     <string name="bubble_menu_settings">НАСТРОЙКИ</string>
     <string name="bubble_menu_op">ПР</string>
     <string name="bubble_menu_sz">РЗ</string>

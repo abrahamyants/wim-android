@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Inner well during processing — warm AMBER ember (post-recording, pre-result)
-     to match the amber "PROC" label. This is the bronze-knob-heated-up ember that
-     used to be the recording color (pre-2026-06-25); it now reads as the middle
-     beat: RED "REC" -> AMBER "PROC" -> GREEN "SEND".
-     All colors are approved brand tokens (was raw-hex green; tokenized to the
-     amber family on 2026-06-25). -->
+<!-- Inner well during processing — plain ORANGE, built exactly like the RED
+     well before it and the GREEN well after it: a deep solid disc under a
+     bright-to-deep radial gradient. The disc and the gradient's edge are the
+     same color, so no second ring shows around the face (2026-09-06; the old
+     burnt-orange disc under a yellow-amber gradient drew a visible rim).
+     RED "REC" -> ORANGE "PROC" -> GREEN "SEND". -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/orange_label" />
+            <solid android:color="@color/orange_deep" />
             <stroke android:width="1dp" android:color="@color/border_subtle" />
             <size android:width="44dp" android:height="44dp" />
         </shape>
@@ -18,9 +18,9 @@
             <gradient
                 android:type="radial"
                 android:gradientRadius="22dp"
-                android:startColor="@color/yellow_gold"
-                android:centerColor="@color/orange_amber"
-                android:endColor="@color/copper_gold" />
+                android:startColor="@color/orange_hot"
+                android:centerColor="@color/orange_bright"
+                android:endColor="@color/orange_deep" />
             <size android:width="40dp" android:height="40dp" />
         </shape>
     </item>
