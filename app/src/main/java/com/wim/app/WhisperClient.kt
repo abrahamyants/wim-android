@@ -1,5 +1,6 @@
 package com.wim.app
 
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -221,7 +222,36 @@ object WhisperClient {
                     .addHeader("Authorization", "Bearer $idToken")
                     .post(bodyBuilder.build())
                     .build()
-                executeJson(request, "WiM transcription backend") to "backend"
+                try {
+                    executeJson(request, "WiM transcription backend") to "backend"
+                } catch (e: RuntimeException) {
+                    // A function revision older than 00043 (2026-09-06) never
+                    // looks at a multipart body: it sees an empty JSON body and
+                    // answers 400 "Missing 'raw' field". That exact answer means
+                    // "old server", so send the same recording once more in the
+                    // wrapped shape it knows. Any revision then works with this
+                    // build, and rolling the function back can never break a take.
+                    if (e.message?.contains("Missing 'raw' field") != true) throw e
+                    android.util.Log.w("WiM", "backend is an older revision — retrying with the wrapped envelope")
+                    val wrapped = JSONObject().apply {
+                        put("action", "transcribe_audio")
+                        put("audio_base64", Base64.encodeToString(uploadFile.readBytes(), Base64.NO_WRAP))
+                        put("audio_format", if (uploadFile === audioFile) "wav" else "m4a")
+                        put("language", language)
+                        put("model", model)
+                        put("temperature", temperature)
+                        put("verbose_segments", verboseSegments)
+                        if (wordTimestamps) put("word_timestamps", true)
+                        if (prompt.isNotBlank()) put("prompt", prompt.take(4000))
+                    }
+                    val wrappedRequest = Request.Builder()
+                        .url(BackendConfig.URL)
+                        .addHeader("Authorization", "Bearer $idToken")
+                        .addHeader("Content-Type", "application/json")
+                        .post(wrapped.toString().toRequestBody("application/json".toMediaType()))
+                        .build()
+                    executeJson(wrappedRequest, "WiM transcription backend") to "backend-wrapped"
+                }
             }
 
             val json = JSONObject(responseBody)
