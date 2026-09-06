@@ -1626,6 +1626,9 @@ class BubbleService : Service() {
             visibility = View.VISIBLE
             text = "${SEND_READY_TIMEOUT_MS / 1000}s"
             setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.espresso))
+            // The countdown reads at 12sp in the green state only; the same
+            // view is the 8sp recording timer and idle chip, reset below.
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
         }
         sendReadyExpiresAt = System.currentTimeMillis() + SEND_READY_TIMEOUT_MS
         timerHandler.removeCallbacks(sendReadyTickRunnable)
@@ -1836,6 +1839,7 @@ class BubbleService : Service() {
             // setBubbleIdle writes it and nothing cleared it here.
             text = ""
             setTextColor(androidx.core.content.ContextCompat.getColor(this@BubbleService, R.color.espresso))
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
         }
         recordingStartTime = System.currentTimeMillis()
 
@@ -2468,6 +2472,7 @@ class BubbleService : Service() {
         // otherwise hide. This surfaces the PredictionEngine's context-awareness
         // on the bubble face before the user opens the menu.
         bubbleTouchView?.findViewById<TextView>(R.id.bubbleTime)?.apply {
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
             if (WimApp.predictionsEnabled()) {
                 val pkg = WimAccessibilityService.currentForegroundPackage
                 val pred = PredictionEngine.predictForContext(pkg)

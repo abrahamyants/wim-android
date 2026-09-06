@@ -219,8 +219,8 @@
             android:progress="70"
             android:thumb="@drawable/fader_thumb"
             android:splitTrack="false"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp" />
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp" />
 
         <TextView
             android:id="@+id/menuOpacityValue"
@@ -261,8 +261,8 @@
             android:progress="110"
             android:thumb="@drawable/fader_thumb"
             android:splitTrack="false"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp" />
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp" />
 
         <TextView
             android:id="@+id/menuSizeValue"
