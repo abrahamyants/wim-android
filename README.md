@@ -4865,3 +4865,65 @@ back on its own.
 - **Menu tone eyebrow** (`→ CASUAL · personal contact`) was not on screen in
   today's shots; check it still appears when the PredictionEngine has a guess.
 - **Play submission** is still paperwork (see 8/13 entry).
+
+## Session Log — 2026-09-06 (the metals menu, LIVE retired, amber, and the warm switch that was already on)
+
+Scope: the bubble menu's color row and the PROC face, all on the operator's
+phone the same hour; then one backend measurement. 4 commits, 3 builds.
+
+### Shipped and verified on device
+
+- **`daa6eb5` — KNOB and DISH pick their metals on their own rows.** The
+  single COLOR row became two rows of three replicas. New pref
+  `bubble_knob_theme` (falls back to `bubble_theme`, which now means the
+  dish). `BubbleAppearance` owns the drawable lookups and `idleLabelColorFor`
+  (IDLE / QUIET sit on the knob, so their ink follows the knob). "Pick your
+  bubble" on the settings page and the dock still pick a whole bubble.
+  Marker drawables `knob_marker_*` / `dish_marker_*`; `color_indicator_*`
+  deleted. **LIVE toggle removed** — `showLive()` is a no-op and the stage
+  balloon shows only on demo/force; the bubble's color and arc carry the state.
+- **`5684e7f` — gold dish stays gold in dark mode.** `drawable-night/
+  bubble_bg_idle.xml` painted the bronze dish's inner circle near-black, so
+  the gold DISH pick looked like gunmetal. Deleted; bronze is bronze day and
+  night. (This is the "black moat" kept on 9/4 — it went with the fix, on the
+  operator's word: "the dish gold color checker is black … change that to gold.")
+- **`daa6eb5` / `5684e7f` / `d3a…` — PROC face.** The old well was a
+  burnt-orange disc under a yellow-amber gradient, so a 2dp rim showed around
+  the face. Rebuilt like the red and green wells (deep disc = gradient edge).
+  First pass was too close to REC's red; second was yolk-yellow; landed on
+  yellow-ish orange `#FAA21C / #F08A0D / #C96A08`. Operator: "it all works
+  exactly as we want."
+
+### Measured: direct vs the Cloud Function, same phone, same minute
+
+| Route | Clip | Time |
+|---|---|---|
+| backend, 1st take | 364 KB | 6.8 s (6.39 s inside Google) |
+| backend, 2nd take | 376 KB | 3.3 s (2.94 s inside Google) |
+| direct to OpenAI | 307 KB | 1.0 s |
+
+`force_backend` via `WimTestReceiver` flips the route; the log line is
+`ASR route: cloud/direct|backend`. A Play user (no embedded key) pays about
+2 s more per take than the operator's build. **The slow first take was not a
+cold start:** both requests hit the same instance, and the function had
+`min-instances=1` the whole time.
+
+### The warm switch — found on, turned off
+
+`wim-reconstruct` had **min instances = 1 since 2026-08-10** (every revision
+00037→00041), billing roughly $7/month while idle for four weeks with no Play
+users. Set to **0** today (revision 00042) on the operator's word. The switch
+is `scripts/backend-warm.sh on|off|status`; the full pre-submission CI suite
+now prints a reminder in its job summary to flip it ON before the production
+release. Nothing on the phone is involved — the microphone conflict the
+operator remembered was the hotword listener, a different thing.
+
+### Open
+
+- **Why 6.4 s inside a warm function on the first request.** Not cold start.
+  Candidates: first HTTPS connection to OpenAI from that instance, or OpenAI's
+  own variance. One more paired test would say.
+- **Raw upload to the function** (multipart instead of base64 JSON) would cut
+  the upload a third and skip the unwrap; maybe half a second. Both sides
+  change. Not started.
+- **Amber on the phone in PROC** — operator confirmed by eye; no screenshot filed.

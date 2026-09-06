@@ -158,6 +158,19 @@ jobs:
             exit 1
           fi
 
+      # Launch switch reminder (2026-09-06). The Cloud Function sleeps when idle
+      # (min instances 0) to save money while there are no Play users. Before
+      # the production release, keep one copy awake so the first take of the
+      # day does not pay a wake-up: `scripts/backend-warm.sh on`.
+      - name: Pre-launch reminder — backend warm switch
+        if: github.event_name != 'push'
+        run: |
+          {
+            echo '## Before the Play production release'
+            echo
+            echo '- [ ] Turn the backend warm switch ON: `scripts/backend-warm.sh on` (Cloud Function `wim-reconstruct`, min instances 1, ~$7/month). It is OFF on purpose until launch.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         if: github.event_name != 'push'
