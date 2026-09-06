@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One cell of the layer segmented control. Selected = maroon, the plate's
-     one accent. Unselected = transparent over the frame's dark plate. -->
+<!-- One cell of the layer segmented control. Selected = the same deep red
+     as the active LOCAL/CLOUD nameplate (nameplate_bg), so the chosen layer
+     and the chosen source read as one accent (2026-09-06; it was the rose
+     #B55050 before, which read as pink next to the maroon chip).
+     Unselected = transparent over the frame's dark plate. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
-        <shape android:shape="rectangle"><solid android:color="#FFB55050" /></shape>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#FF7A1F1F"
+                android:centerColor="#FF5C1414"
+                android:endColor="#FF3A0A0A"
+                android:angle="270" />
+        </shape>
     </item>
     <item>
         <shape android:shape="rectangle"><solid android:color="#00000000" /></shape>
