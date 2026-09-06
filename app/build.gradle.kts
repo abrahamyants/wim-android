@@ -7,6 +7,20 @@ plugins {
     id("com.google.firebase.firebase-perf")
 }
 
+
+/** Commits reachable from HEAD — a monotonic build number for a linear main. */
+fun gitCommitCount(): Int = try {
+    val proc = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .directory(rootProject.projectDir)
+        .redirectErrorStream(true)
+        .start()
+    val out = proc.inputStream.bufferedReader().readText().trim()
+    proc.waitFor()
+    out.toIntOrNull()?.takeIf { it > 600 } ?: 604
+} catch (_: Exception) {
+    604
+}
+
 android {
     namespace = "com.wim.app"
     compileSdk = 35
@@ -15,7 +29,12 @@ android {
         applicationId = "com.wimlabs.wim"
         minSdk = 26
         targetSdk = 35
-        versionCode = 30
+        // The build numbers itself: one commit on main = one build number.
+        // 2026-09-06 — eight builds in a day all said 29 before this. The
+        // count was 604 at the switch, so numbers continue upward from there
+        // and Play always sees a bigger one. Falls back to 604 when git is
+        // not on the machine (Play Console needs a number, never a blank).
+        versionCode = gitCommitCount()
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

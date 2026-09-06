@@ -43,6 +43,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: versionCode is the commit count (app/build.gradle.kts).
+          fetch-depth: 0
 
       - name: Restore release signing key
         env:
