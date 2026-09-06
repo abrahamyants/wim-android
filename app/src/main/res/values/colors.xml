@@ -18,10 +18,10 @@
     <color name="red_primary">#FFB91C1C</color>
     <color name="red_bright">#FFDC2626</color>
     <color name="red_hot">#FFEF4444</color>
-    <!-- Plain orange family for the PROC face — the same three steps as red above (bright core, mid, deep rim). 2026-09-06 -->
-    <color name="orange_hot">#FFF97316</color>
-    <color name="orange_bright">#FFEA580C</color>
-    <color name="orange_deep">#FFC2410C</color>
+    <!-- Amber family for the PROC face — same shape as red above (bright core, mid, deep rim). Egg-yolk yellow, so it never reads as red. 2026-09-06 -->
+    <color name="orange_hot">#FFFBBF24</color>
+    <color name="orange_bright">#FFF59E0B</color>
+    <color name="orange_deep">#FFD97706</color>
     <color name="orange_amber">#FFD97706</color>
 
     <color name="yellow_gold">#FFCA8A04</color>
