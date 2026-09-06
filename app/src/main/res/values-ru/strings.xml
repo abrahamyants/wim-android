@@ -89,6 +89,14 @@
     <string name="bubble_menu_profile">ПРОФИЛЬ</string>
     <string name="bubble_menu_disfluency">ЗАПИНКИ</string>
     <string name="bubble_menu_settings">НАСТРОЙКИ</string>
+    <string name="bubble_menu_opacity">ПРОЗРАЧНОСТЬ</string>
+    <string name="bubble_menu_size">РАЗМЕР</string>
+    <string name="bubble_menu_settings_arrow">НАСТРОЙКИ  ›</string>
+    <string name="bubble_menu_layer_1_name">I · РАСШИФРОВКА · на телефоне</string>
+    <string name="bubble_menu_layer_1_name_cloud">I · РАСШИФРОВКА · облако</string>
+    <string name="bubble_menu_layer_2_name">II · РЕКОНСТРУКЦИЯ · LLM + тон</string>
+    <string name="bubble_menu_layer_3_name">III · ПРОФИЛЬ · словарь</string>
+    <string name="bubble_menu_layer_4_name">IV · ЗАПИНКИ РЕЧИ</string>
     <string name="bubble_menu_op">ПР</string>
     <string name="bubble_menu_sz">РЗ</string>
     <string name="bubble_color_bronze">Бронза</string>

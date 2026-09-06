@@ -120,10 +120,10 @@
     <string name="bubble_menu_opacity">OPACITY</string>
     <string name="bubble_menu_size">SIZE</string>
     <string name="bubble_menu_settings_arrow">SETTINGS  ›</string>
-    <string name="bubble_menu_layer_1">I</string>
-    <string name="bubble_menu_layer_2">II</string>
-    <string name="bubble_menu_layer_3">III</string>
-    <string name="bubble_menu_layer_4">IV</string>
+    <string name="bubble_menu_layer_1" translatable="false">I</string>
+    <string name="bubble_menu_layer_2" translatable="false">II</string>
+    <string name="bubble_menu_layer_3" translatable="false">III</string>
+    <string name="bubble_menu_layer_4" translatable="false">IV</string>
     <string name="bubble_menu_layer_1_name">I · TRANSCRIBE · on device</string>
     <string name="bubble_menu_layer_1_name_cloud">I · TRANSCRIBE · cloud</string>
     <string name="bubble_menu_layer_2_name">II · RECONSTRUCT · LLM + tone</string>

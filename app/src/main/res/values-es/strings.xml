@@ -89,6 +89,14 @@
     <string name="bubble_menu_profile">PERFIL</string>
     <string name="bubble_menu_disfluency">DISFLUENCIA</string>
     <string name="bubble_menu_settings">AJUSTES</string>
+    <string name="bubble_menu_opacity">OPACIDAD</string>
+    <string name="bubble_menu_size">TAMAÑO</string>
+    <string name="bubble_menu_settings_arrow">AJUSTES  ›</string>
+    <string name="bubble_menu_layer_1_name">I · TRANSCRIPCIÓN · en el dispositivo</string>
+    <string name="bubble_menu_layer_1_name_cloud">I · TRANSCRIPCIÓN · nube</string>
+    <string name="bubble_menu_layer_2_name">II · RECONSTRUCCIÓN · LLM + tono</string>
+    <string name="bubble_menu_layer_3_name">III · PERFIL · vocabulario</string>
+    <string name="bubble_menu_layer_4_name">IV · DISFLUENCIA DEL HABLA</string>
     <string name="bubble_menu_op">OP</string>
     <string name="bubble_menu_sz">TM</string>
     <string name="bubble_color_bronze">Bronce</string>
