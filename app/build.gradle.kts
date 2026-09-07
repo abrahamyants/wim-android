@@ -23,12 +23,12 @@ fun gitCommitCount(): Int = try {
 
 android {
     namespace = "com.wim.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.wimlabs.wim"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // The build numbers itself: one commit on main = one build number.
         // 2026-09-06 — eight builds in a day all said 29 before this. The
         // count was 604 at the switch, so numbers continue upward from there
