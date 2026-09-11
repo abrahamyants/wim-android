@@ -129,4 +129,23 @@ class AudioRecorderLifecycleTest {
         assertFalse(primed())
         assertNull(rec())
     }
+
+    /**
+     * `stop()` must not be mistaken for a release. It deliberately keeps the
+     * mic primed for the next take, which is why BubbleService dropping the
+     * reference after stop() leaked one AudioRecord per take — 35 of them in
+     * 11 hours on the phone. This pins the contract so the next reader sees it.
+     */
+    @Test fun stopKeepsTheMicPrimedAndReleaseIsStillRequired() {
+        recorder.primeBuffer()
+        recorder.start()
+        recorder.stop()
+
+        assertTrue("stop() must leave the mic primed for the next take", primed())
+        assertNotNull("stop() must not release the AudioRecord", rec())
+
+        recorder.release()
+        assertFalse(primed())
+        assertNull(rec())
+    }
 }
