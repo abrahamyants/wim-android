@@ -62,7 +62,6 @@
     <string name="settings_accent">Sotaque</string>
     <string name="settings_accent_subtitle">não corrigir automaticamente</string>
     <string name="settings_shake">Sacudir para abrir/ocultar</string>
-    <string name="settings_hotword">Palavra-chave “Hey WiM”</string>
     <string name="settings_dark_mode">Modo escuro</string>
 
     <string name="sessions_search_hint">Buscar sessões…</string>

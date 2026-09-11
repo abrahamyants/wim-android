@@ -62,7 +62,6 @@
     <string name="settings_accent">Acento</string>
     <string name="settings_accent_subtitle">no autocorregir</string>
     <string name="settings_shake">Agitar para mostrar/ocultar</string>
-    <string name="settings_hotword">Palabra clave “Hey WiM”</string>
     <string name="settings_dark_mode">Modo oscuro</string>
 
     <string name="sessions_search_hint">Buscar sesiones…</string>

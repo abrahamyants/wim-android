@@ -62,7 +62,6 @@
     <string name="settings_accent">Акцент</string>
     <string name="settings_accent_subtitle">не автокорректировать</string>
     <string name="settings_shake">Встряхнуть для вызова/скрытия</string>
-    <string name="settings_hotword">Кодовое слово «Hey WiM»</string>
     <string name="settings_dark_mode">Тёмная тема</string>
 
     <string name="sessions_search_hint">Поиск сессий…</string>
