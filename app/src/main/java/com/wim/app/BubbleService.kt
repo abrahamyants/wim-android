@@ -138,6 +138,26 @@ class BubbleService : Service() {
     private var sessionHistory: SessionHistory? = null
     private var dafPlayer: DafPlayer? = null
     private var audioRecorder: AudioRecorder? = null
+
+    /**
+     * Drop the WAV recorder AND hand its microphone back.
+     *
+     * 2026-09-11. Every take used to end with a bare `audioRecorder = null`.
+     * `AudioRecorder.stop()` deliberately stops only the file write and keeps
+     * the mic primed for the next take, so nulling the field dropped the last
+     * reference to a live AudioRecord whose native client and capture thread
+     * were still registered with the audio server. Nothing ever released them:
+     * the only release() call was in onDestroy, and BubbleService runs for
+     * days. Measured on George's phone after 11h: 35 record sessions open for
+     * com.wimlabs.wim in `dumpsys audio`, 131 threads, and a load average
+     * near 20. The mic pile is what eventually stops WiM hearing anything.
+     *
+     * Use this everywhere instead of assigning null.
+     */
+    private fun dropAudioRecorder() {
+        audioRecorder?.release()
+        audioRecorder = null
+    }
     private var lastWhisperLowConf: List<WhisperClient.LowConfidenceSegment> = emptyList()
     private var lastWhisperSegments: List<WhisperClient.TimedSegment> = emptyList()
     private var lastWhisperWords: List<WhisperClient.TimedWord> = emptyList()
@@ -1867,7 +1887,7 @@ class BubbleService : Service() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed: ${e.message}", e)
-                audioRecorder = null
+                dropAudioRecorder()
                 if (route.useCloudRecorder) {
                     // At L4 / L1-cloud the WAV recorder is the ONLY capture path —
                     // there is no local engine to fall back to. Surface the failure
@@ -2104,7 +2124,7 @@ class BubbleService : Service() {
         isRecording = false
         val wav = audioRecorder?.stop()
         setForegroundMicActive(false)
-        audioRecorder = null
+        dropAudioRecorder()
         onDeviceRecognizer?.stop()
         scope.launch(Dispatchers.IO) {
             whisperLocalEngine?.stop()
@@ -2134,7 +2154,7 @@ class BubbleService : Service() {
             isRecording = false
             val wavFile = audioRecorder?.stop()
             setForegroundMicActive(false)
-            audioRecorder = null
+            dropAudioRecorder()
             onDeviceRecognizer?.stop()
             scope.launch(Dispatchers.IO) { whisperLocalEngine?.stop() }
             dafPlayer?.stop(); dafPlayer = null
@@ -2176,7 +2196,7 @@ class BubbleService : Service() {
             Log.w(TAG, "Recording too short (${recordingDurationMs}ms) — discarding, no processing")
             processed = true
             isRecording = false
-            audioRecorder?.stop(); audioRecorder = null
+            audioRecorder?.stop(); dropAudioRecorder()
             setForegroundMicActive(false)
             onDeviceRecognizer?.stop()
             // WhisperLocalEngine.stop() does a captureThread?.join(500) +
@@ -2224,7 +2244,7 @@ class BubbleService : Service() {
                 pendingQuietAutoFlash = true
             }
         }
-        audioRecorder = null
+        dropAudioRecorder()
         // Track the WAV so the L4 multi-pass decoder can read it after
         // reconstruction completes. Previous file (if any) is cleaned up
         // in setBubbleIdle when the cycle ends.
@@ -3780,8 +3800,7 @@ class BubbleService : Service() {
         sendDisclaimer = null
         dafPlayer?.stop()
         dafPlayer = null
-        audioRecorder?.release()
-        audioRecorder = null
+        dropAudioRecorder()
         hideBubble(notifyRecall = false)
         onDeviceRecognizer?.destroy()
         onDeviceRecognizer = null
