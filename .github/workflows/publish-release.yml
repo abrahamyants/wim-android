@@ -1,0 +1,90 @@
+name: Publish dated APK release
+
+# Builds the giveaway APK on GitHub's own runner and attaches it to a dated
+# release, then rewrites the README download link to point at it.
+#
+# 2026-09-11: added after an upload from George's phone timed out twice and
+# `gh release create` rolled its own release back on failure. The APK is built
+# on this runner, so pushing 65 MB down to a phone and back up again was a
+# pointless round trip. Everything below stays on GitHub's network.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Release date, YYYY-MM-DD in San Francisco time"
+        required: true
+      notes:
+        description: "One-line summary for the release page"
+        required: false
+        default: "Routine build."
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: linux-16core
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > app/release.keystore
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build giveaway APK with the stable signer
+        run: gradle assembleGiveaway --no-build-cache
+
+      - name: Name the file after the versionCode the phone reports
+        id: name
+        run: |
+          APK=$(find app/build/outputs/apk/giveaway -name "*.apk" | head -1)
+          VC=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts | head -1)
+          OUT="WiM-vc${VC}-${{ inputs.date }}-full.apk"
+          cp "$APK" "$OUT"
+          echo "apk=$OUT"   >> "$GITHUB_OUTPUT"
+          echo "vc=$VC"     >> "$GITHUB_OUTPUT"
+          ls -lh "$OUT"
+
+      - name: Publish the release with the APK attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.0.0-${{ inputs.date }}-full"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" "${{ steps.name.outputs.apk }}" \
+            --title "WiM ${{ inputs.date }} (vc${{ steps.name.outputs.vc }})" \
+            --notes "${{ inputs.notes }}"
+
+      - name: Point the README download link at this build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/v1.0.0-${{ inputs.date }}-full/${{ steps.name.outputs.apk }}"
+          LINE="### ▶ [Download WiM — ${{ inputs.date }} (vc${{ steps.name.outputs.vc }})]($URL)"
+          python3 - "$LINE" <<'PY'
+          import re, sys
+          line = sys.argv[1]
+          s = open('README.md').read()
+          s = re.sub(r'^### ▶ \[Download WiM.*$', line.replace('\\', '\\\\'), s, count=1, flags=re.M)
+          open('README.md','w').write(s)
+          PY
+          head -6 README.md
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: README download link -> ${{ inputs.date }} (vc${{ steps.name.outputs.vc }}) [skip ci]" || exit 0
+          git push
