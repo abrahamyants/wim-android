@@ -53,10 +53,13 @@ class AudioRecorder(private val context: Context) {
         private const val SILENCE_RMS_THRESHOLD = 500.0
         private const val MIN_RECORDING_BEFORE_DETECT_MS = 3000L
         private const val MIN_SILENCE_DURATION_MS = 1500L
+
+        /** ~5s of 5ms empty ticks. Past this the mic is wedged, not idle. */
+        private const val MAX_EMPTY_READS = 1000
     }
 
-    private var recorder: AudioRecord? = null
-    private var captureThread: Thread? = null
+    @Volatile private var recorder: AudioRecord? = null
+    @Volatile private var captureThread: Thread? = null
     private var outputFile: File? = null
 
     @Volatile private var isPrimed = false
@@ -111,7 +114,23 @@ class AudioRecorder(private val context: Context) {
      */
     @Synchronized
     fun primeBuffer() {
-        if (isPrimed) return
+        // 2026-09-11 mic-leak fix. The old guard was `if (isPrimed) return`.
+        // Two ways that stranded the mic for the process's whole life:
+        //   1. captureLoop `break`s on a read error (ERROR_DEAD_OBJECT) but
+        //      leaves isPrimed true, so nothing ever re-primed — the bubble
+        //      looked alive and recorded silence until the service restarted.
+        //   2. release() raced this method and nulled `recorder` after we had
+        //      published a fresh one, leaving isPrimed=true with recorder=null.
+        // Evidence on George's phone, 10h uptime: 29 live AudioRecord native
+        // clients and 29 capture threads (4 of them spinning) where exactly 1
+        // of each is correct. Now the guard demands a live recorder AND a live
+        // capture thread, and tears down a half-dead prime before rebuilding.
+        if (isPrimed && recorder != null && captureThread?.isAlive == true) return
+        if (isPrimed) {
+            Log.w("AudioRecorder", "stale prime detected (recorder=${recorder != null} " +
+                "thread=${captureThread?.isAlive}) — tearing down before re-prime")
+            teardownLocked()
+        }
         if (!hasPermission()) return
 
         val bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL, ENCODING)
@@ -230,8 +249,20 @@ class AudioRecorder(private val context: Context) {
     /**
      * Fully stop and release the AudioRecord. Use when BubbleService is destroyed.
      */
+    @Synchronized
     fun release() {
         isRecording = false
+        teardownLocked()
+    }
+
+    /**
+     * Tear down the mic. Caller MUST hold this object's monitor — that lock is
+     * the whole point of the 2026-09-11 fix: release() used to run unlocked
+     * against @Synchronized primeBuffer(), so a hotword handoff could null the
+     * recorder a fresh prime had just installed. Every such race permanently
+     * leaked one AudioRecord plus one capture thread and killed the mic.
+     */
+    private fun teardownLocked() {
         isPrimed = false
         // L10: null the field BEFORE stopping so the capture loop stops touching
         // the recorder, then join the thread so it isn't mid-read() when we
@@ -249,8 +280,19 @@ class AudioRecorder(private val context: Context) {
 
     private fun captureLoop(bufferSize: Int) {
         val buf = ByteArray(bufferSize)
+        var emptyReads = 0
         while (isPrimed) {
-            val read = recorder?.read(buf, 0, buf.size) ?: 0
+            // Read through a local: if teardown nulls the field we leave the
+            // loop instead of spinning on `?: 0` forever at 200 wakeups/sec,
+            // which is what pinned four threads in R state for ten hours.
+            val rec = recorder ?: break
+            val read = rec.read(buf, 0, buf.size)
+            if (read > 0) emptyReads = 0 else if (++emptyReads > MAX_EMPTY_READS) {
+                Log.e("AudioRecorder", "mic returned nothing for " +
+                    "${MAX_EMPTY_READS * 5}ms — ending capture loop so the next " +
+                    "prime rebuilds it")
+                break
+            }
             if (read <= 0) {
                 // M4: don't busy-spin at 100% CPU. A negative code is a real
                 // AudioRecord error (e.g. ERROR_DEAD_OBJECT) the loop can't
