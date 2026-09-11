@@ -1,6 +1,7 @@
 package com.wim.app
 
 import android.util.Base64
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -134,6 +135,28 @@ object WhisperClient {
      *   response shape exposes per-segment `avg_logprob` + `no_speech_prob`
      *   confidence signals that L4's clinical prompt depends on.
      */
+    /**
+     * The hint handed to the transcriber: what the speaker is about to read,
+     * followed by the domain pack's canonical spellings.
+     *
+     * Order matters. Script prep is about this specific utterance and must not
+     * be crowded out, so it goes first and the pack fills what is left.
+     */
+    private fun buildTranscriberHint(): String {
+        val script = ScriptPrepStore.activeContext()
+        val pack = try {
+            DomainPackHelper.asrHint(WimApp.instance)
+        } catch (e: Exception) {
+            Log.w("WhisperClient", "domain pack hint unavailable: ${e.message}")
+            ""
+        }
+        return when {
+            script.isBlank() -> pack
+            pack.isBlank() -> script
+            else -> "$script\n$pack"
+        }
+    }
+
     suspend fun transcribe(
         audioFile: File,
         language: String = "en",
@@ -150,7 +173,11 @@ object WhisperClient {
         // (DisfluencyFilter.stripTimedFillers). whisper-1 only, and only
         // meaningful with verbose_json — silently ignored otherwise.
         wordTimestamps: Boolean = false,
-        prompt: String = ScriptPrepStore.activeContext(),
+        // Script prep (what the speaker is about to read) plus the active
+        // domain pack's canonical terms. The pack half is spelling guidance:
+        // it costs nothing and stops the transcriber from inventing "kuber
+        // netties" that a later stage would have to guess its way out of.
+        prompt: String = buildTranscriberHint(),
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
             val apiKey = WimApp.apiKey()
