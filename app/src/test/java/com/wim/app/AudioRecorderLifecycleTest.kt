@@ -100,8 +100,17 @@ class AudioRecorderLifecycleTest {
             start.await()
             repeat(rounds) {
                 recorder.primeBuffer()
-                if (primed() && rec() == null) {
-                    synchronized(broken) { broken.append("primed with null recorder;") }
+                // Sample under the recorder's own monitor. @Synchronized in
+                // Kotlin locks on `this`, so holding it here makes the two
+                // field reads atomic with respect to prime and release.
+                // Reading them unlocked catches an ordinary torn read — the
+                // releaser can flip isPrimed false and null the recorder
+                // between our two reads — and reports a strand that never
+                // happened. That false positive failed CI run 34640821962.
+                synchronized(recorder) {
+                    if (primed() && rec() == null) {
+                        synchronized(broken) { broken.append("primed with null recorder;") }
+                    }
                 }
             }
             done.countDown()
