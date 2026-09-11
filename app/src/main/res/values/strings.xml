@@ -85,7 +85,6 @@
     <string name="settings_accent">Accent</string>
     <string name="settings_accent_subtitle">don\'t auto-correct</string>
     <string name="settings_shake">Shake to summon/hide</string>
-    <string name="settings_hotword">“Hey WiM” hotword</string>
     <string name="settings_dark_mode">Dark mode</string>
 
     <!-- ═══ Sessions section ═══ -->

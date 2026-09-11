@@ -56,14 +56,6 @@ class BubbleService : Service() {
     // wired at start().
     private var shakeDetector: BubbleShakeDetector? = null
 
-    // "Hey WiM" hotword — opt-in continuous mic listener that triggers
-    // a recording when it hears the wake phrase. Mutually exclusive with
-    // active recording (only one consumer can hold the mic).
-    // "Hey WiM" hotword wiring extracted to BubbleHotword 2026-05-25 —
-    // fifteenth slice. Owns the recognizer lifecycle + mic-handoff +
-    // pref auto-disable on unavailable device.
-    private var hotword: BubbleHotword? = null
-
     // Notification channels + foreground notification + permission alerts
     // extracted to BubbleStatusUI 2026-05-25 — sixteenth slice. Channel IDs
     // and notification IDs stay as service constants.
@@ -721,22 +713,6 @@ class BubbleService : Service() {
         )
         statusUI = BubbleStatusUI(service = this, getBubbleView = { bubbleTouchView })
         stageArc = BubbleStageArc(getBubbleView = { bubbleTouchView })
-        hotword = BubbleHotword(
-            context = this,
-            getVibrator = { vibrator },
-            isRecording = { isRecording },
-            releaseAudioRecorder = {
-                if (audioRecorder != null) {
-                    Log.i(TAG, "Releasing AudioRecorder pre-roll buffer to free mic for hotword")
-                    audioRecorder?.release()
-                    audioRecorder = null
-                }
-            },
-            onHotwordFired = {
-                pulseRings?.start()
-                startListening()
-            },
-        )
         // VIBRATOR_SERVICE was deprecated in API 31 (Android 12). On API 31+
         // use VibratorManager.defaultVibrator; older devices keep the old
         // constant. App minSdk=26 so both branches are reachable.
@@ -1766,10 +1742,6 @@ class BubbleService : Service() {
         currentReconJob?.cancel()
         currentReconJob = null
 
-        // Release the hotword listener — it owns the mic exclusively until
-        // we hand it back. Safe even if it isn't running.
-        stopHotwordListener()
-
         // Spec §1: Clarifying → Listening is a legal transition (user always
         // wins). Tear down the clarifier cleanly before the new recording
         // claims the bubble's UX surface.
@@ -2490,23 +2462,7 @@ class BubbleService : Service() {
         }
         // Pipeline arc resets — new cycle starts cleanly.
         setStageArc(-1)
-        // Resume the "Hey WiM" hotword listener now that the mic is free.
-        startHotwordIfEnabled()
     }
-
-    /**
-     * Start the "Hey WiM" hotword listener if the user has it enabled and
-     * we're not currently recording. Idempotent — repeated calls are safe.
-     *
-     * Critical: release any pre-primed AudioRecorder before starting. The
-     * pre-roll buffer (primed in showBubble for cloud-ASR layers) holds
-     * the mic exclusively via AudioRecord, which silently blocks
-     * SpeechRecognizer from acquiring the same source. Symptoms when
-     * skipped: hotword listener starts, never fires partials, never
-     * fires errors — a dead-quiet recognizer session.
-     */
-    private fun startHotwordIfEnabled() { hotword?.startIfEnabled() }
-    private fun stopHotwordListener() { hotword?.stop() }
 
     private fun relayToTermux(text: String) {
         // M3: relay each reconstruction to a listener on localhost, which is
@@ -2535,10 +2491,6 @@ class BubbleService : Service() {
             } catch (_: Exception) { /* relay not running — silent skip */ }
         }
     }
-
-    /** Public alias so MainActivity can flip the listener off when the user
-     *  toggles the hotword setting. */
-    fun stopHotwordListenerPublic() = stopHotwordListener()
 
     /**
      * Show the patent-clean word-highlight overlay over the host app's
@@ -3817,8 +3769,6 @@ class BubbleService : Service() {
 
         shakeDetector?.stop()
         shakeDetector = null
-        stopHotwordListener()
-        hotword = null
         bubbleMenu?.dismiss()
         bubbleMenu = null
         hideLiveTranscript()

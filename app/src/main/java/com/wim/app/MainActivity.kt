@@ -785,18 +785,6 @@ class MainActivity : AppCompatActivity() {
             WimApp.prefs.edit().putBoolean("shake_enabled", checked).apply()
         }
 
-        // ── "Hey WiM" hotword toggle ──
-        val hotwordToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.hotwordToggle)
-        hotwordToggle?.isChecked = WimApp.prefs.getBoolean("hotword_enabled", false)
-        hotwordToggle?.let { styleToggle(it) }
-        hotwordToggle?.setOnCheckedChangeListener { _, checked ->
-            WimApp.prefs.edit().putBoolean("hotword_enabled", checked).apply()
-            // Reflect in the live bubble service immediately — start the
-            // listener if the bubble is currently idle, stop it if running.
-            BubbleService.instance?.let { svc ->
-                if (checked) svc.updateIdleDisplay() else svc.stopHotwordListenerPublic()
-            }
-        }
 
         // ── Dark/light mode toggle (in Settings) ──
         val darkToggle = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.darkModeToggle)
