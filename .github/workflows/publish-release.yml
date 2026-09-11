@@ -1,12 +1,14 @@
 name: Publish dated APK release
 
-# Builds the giveaway APK on GitHub's own runner and attaches it to a dated
-# release, then rewrites the README download link to point at it.
+# Attaches an already-built giveaway APK to a dated release and rewrites the
+# README download link, entirely on GitHub's network.
 #
-# 2026-09-11: added after an upload from George's phone timed out twice and
-# `gh release create` rolled its own release back on failure. The APK is built
-# on this runner, so pushing 65 MB down to a phone and back up again was a
-# pointless round trip. Everything below stays on GitHub's network.
+# 2026-09-11: added after an upload of the 65 MB APK from George's phone timed
+# out twice, and `gh release create` rolled its own release back on failure.
+# The APK is built by ci.yml on a runner, so pulling it down to a phone and
+# pushing it back up was a pointless round trip. This never rebuilds — it takes
+# the artifact ci.yml already produced, which is also the binary that was
+# tested, so the release cannot drift from the build that passed.
 
 on:
   workflow_dispatch:
@@ -14,6 +16,10 @@ on:
       date:
         description: "Release date, YYYY-MM-DD in San Francisco time"
         required: true
+      run_id:
+        description: "ci.yml run whose wim-giveaway-apk artifact to publish. Blank = latest successful run on main."
+        required: false
+        default: ""
       notes:
         description: "One-line summary for the release page"
         required: false
@@ -21,42 +27,43 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   publish:
-    runs-on: linux-16core
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Restore release signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
-        run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > app/release.keystore
-          fi
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          ref: main
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Pick the build to publish
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN="${{ inputs.run_id }}"
+          if [ -z "$RUN" ]; then
+            RUN=$(gh run list --workflow ci.yml --branch main --status success \
+                    --limit 1 --json databaseId -q '.[0].databaseId')
+          fi
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          echo "publishing artifact from ci.yml run $RUN"
 
-      - name: Build giveaway APK with the stable signer
-        run: gradle assembleGiveaway --no-build-cache
+      - name: Download the APK that ci.yml already built
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${{ steps.pick.outputs.run }}" -n wim-giveaway-apk -D apk
 
       - name: Name the file after the versionCode the phone reports
         id: name
         run: |
-          APK=$(find app/build/outputs/apk/giveaway -name "*.apk" | head -1)
+          SRC=$(find apk -name '*.apk' | head -1)
           VC=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts | head -1)
           OUT="WiM-vc${VC}-${{ inputs.date }}-full.apk"
-          cp "$APK" "$OUT"
-          echo "apk=$OUT"   >> "$GITHUB_OUTPUT"
-          echo "vc=$VC"     >> "$GITHUB_OUTPUT"
+          cp "$SRC" "$OUT"
+          echo "apk=$OUT" >> "$GITHUB_OUTPUT"
+          echo "vc=$VC"   >> "$GITHUB_OUTPUT"
           ls -lh "$OUT"
 
       - name: Publish the release with the APK attached
@@ -72,19 +79,22 @@ jobs:
       - name: Point the README download link at this build
         env:
           GH_TOKEN: ${{ github.token }}
+          DATE: ${{ inputs.date }}
+          VC: ${{ steps.name.outputs.vc }}
+          APK: ${{ steps.name.outputs.apk }}
+          REPO: ${{ github.repository }}
         run: |
-          URL="https://github.com/${{ github.repository }}/releases/download/v1.0.0-${{ inputs.date }}-full/${{ steps.name.outputs.apk }}"
-          LINE="### ▶ [Download WiM — ${{ inputs.date }} (vc${{ steps.name.outputs.vc }})]($URL)"
-          python3 - "$LINE" <<'PY'
-          import re, sys
-          line = sys.argv[1]
+          python3 - <<'PY'
+          import os, re
+          url  = f"https://github.com/{os.environ['REPO']}/releases/download/v1.0.0-{os.environ['DATE']}-full/{os.environ['APK']}"
+          line = f"### ▶ [Download WiM — {os.environ['DATE']} (vc{os.environ['VC']})]({url})"
           s = open('README.md').read()
-          s = re.sub(r'^### ▶ \[Download WiM.*$', line.replace('\\', '\\\\'), s, count=1, flags=re.M)
+          s = re.sub(r'^### ▶ \[Download WiM.*$', lambda m: line, s, count=1, flags=re.M)
           open('README.md','w').write(s)
           PY
           head -6 README.md
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "docs: README download link -> ${{ inputs.date }} (vc${{ steps.name.outputs.vc }}) [skip ci]" || exit 0
+          git commit -m "docs: README download link -> ${DATE} (vc${VC}) [skip ci]" || exit 0
           git push
