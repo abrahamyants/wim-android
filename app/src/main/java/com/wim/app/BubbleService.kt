@@ -1879,12 +1879,38 @@ class BubbleService : Service() {
                 if (audioRecorder == null) audioRecorder = AudioRecorder(this)
                 audioRecorder?.start(quietMode = WimApp.prefs.getBoolean("quiet_mode", false))
                 Log.i(TAG, "L${WimApp.layer()}: AudioRecorder started for cloud-ASR fallback")
-                if (isL4) {
-                    // Silent-block bridging: when the speaker freezes mid-utterance
-                    // at L4, offer one tap-to-finish completion via the existing
-                    // clarifier. Handler self-gates on L4 + isRecording.
-                    audioRecorder?.onSilentBlockMidSpeech = { onSilentBlockBridge() }
-                }
+                // Silent-block bridging is UNWIRED (2026-09-17). The callback
+                // used to be attached here at L4, and onSilentBlockBridge then
+                // STOPPED the recording — mic closed, recorder dropped — after
+                // 1.5 s of quiet (AudioRecorder.MIN_SILENCE_DURATION_MS).
+                //
+                // So Layer IV, the one layer built for people whose speech
+                // blocks, was the only layer that ended the take on a silence.
+                // L1/L2/L3 keep the mic open until the user taps stop. A 1.5 s
+                // pause is an ordinary mid-sentence think pause, so the helper
+                // fired on fluent pauses too, and the speaker lost everything
+                // they had already got out.
+                //
+                // Three further faults on that same path, all still present in
+                // onSilentBlockBridge and deliberately left there for the
+                // rebuild rather than half-patched now:
+                //   1. the WAV goes up WITHOUT WavSilenceTrimmer.trim(), so its
+                //      tail is >=1.5 s of pure silence — the exact input the
+                //      2026-08-22 device notes measured Whisper hallucinating
+                //      into ("[", "[BLANK_AUDIO]", "[ Sound Effects ]");
+                //   2. it requests verboseSegments = false, which drops the
+                //      no_speech_prob guard that would have caught (1);
+                //   3. completePartial returns 3 candidates and the bridge shows
+                //      only .firstOrNull() — GPT-4o at temperature 0.5 is told to
+                //      make the three DISTINCT, so line one is not the safest
+                //      one, just the first. The tap row that was meant to show
+                //      all three was never built (see ReconstructClient
+                //      completePartial: "foundation only ... the bubble tap-row
+                //      overlay + L4 wiring is the remaining piece").
+                //
+                // Unwiring restores the app's own contract: the speaker ends the
+                // take. Re-enable only together with: mic stays open, trim the
+                // WAV, segments on, and a real tap row.
             } catch (e: Exception) {
                 Log.e(TAG, "AudioRecorder failed: ${e.message}", e)
                 dropAudioRecorder()
@@ -2142,6 +2168,8 @@ class BubbleService : Service() {
         setBubbleIdle()
     }
 
+    // Orphaned by the unwiring above — kept for the rebuild, not called.
+    @Suppress("unused")
     private fun onSilentBlockBridge() {
         // Callback fires from AudioRecorder's capture thread. scope is
         // Dispatchers.Main, so this marshals onto Main; the suspend
