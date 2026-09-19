@@ -1784,6 +1784,23 @@ class BubbleService : Service() {
             return
         }
 
+        // Accessibility can die UNDER a running bubble. A WiM reinstall, a
+        // force-stop, or any tool that registers a UiAutomation unbinds the
+        // service while the switch in Settings still reads ON. The permission
+        // alert used to run exactly once, 600 ms after the bubble was built, so
+        // a bubble that had been up for hours showed nothing and every take
+        // vanished into a field that was never written.
+        //
+        // 2026-09-19: a hidden-display reader held a UiAutomation for nine
+        // minutes; enabled_accessibility_services still listed WiM but
+        // "Bound services" in dumpsys accessibility was empty. The bubble
+        // looked perfectly healthy the whole time.
+        //
+        // So re-check on every take. This warns, it does not block: recording
+        // still works with accessibility off — only the injection at the end
+        // does not, and the user should hear that before speaking, not after.
+        alertOnMissingPermissions()
+
         // Gate the FSM transition FIRST. The "any → Listening" rule allows
         // recording from Idle / SendReady / Failed / Clarifying / Listening
         // but forbids it from Reconstructing — "in-flight ASR cannot be
