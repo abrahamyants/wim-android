@@ -189,6 +189,11 @@ class BubbleService : Service() {
     // already gave up (common with whisper-tiny.en sherpa-onnx local — decode
     // + thread-hop latency can exceed the timer window).
     @Volatile private var awaitingPostStopAsr = false
+    // True only when this take started a live on-device engine (local
+    // whisper-tiny or Android SpeechRecognizer). A cloud take has no engine,
+    // so if its WAV goes missing there is no Final ASR coming and the 30s wait
+    // in the no-wav branch is dead air. Set per take in startRecording.
+    @Volatile private var liveAsrThisTake = false
     private val postStopAsrFallback = Runnable {
         if (!awaitingPostStopAsr) return@Runnable
         val onDeviceText = lastRawText.trim()
@@ -2046,6 +2051,7 @@ class BubbleService : Service() {
         // the tail would let an L4 refusal take the isL4 branch and leave the
         // bubble "recording" with nothing capturing — the failure this whole
         // extraction exists to remove.
+        liveAsrThisTake = false
         if (route.useCloudRecorder && isL4) {
             Log.i(TAG, "L4 mode: WAV captured, no live ASR (whisper-1 runs post-stop)")
             updateLiveTranscript("Recording for deep reconstruction…")
@@ -2055,6 +2061,7 @@ class BubbleService : Service() {
         } else if (l1LocalLiveOverride) {
             Log.i(TAG, "LIVE on — routing L1 to Android SpeechRecognizer for real-time partials")
             lastAsrRoute = "local (Android SpeechRecognizer)"
+            liveAsrThisTake = true
             onDeviceRecognizer?.start(object : OnDeviceRecognizer.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
@@ -2064,6 +2071,7 @@ class BubbleService : Service() {
         } else if (route.useLocalEngine) {
             Log.i(TAG, "Using whisper-tiny.en engine (local, sherpa-onnx)")
             lastAsrRoute = "local (whisper-tiny.en on-device)"
+            liveAsrThisTake = true
             whisperLocalEngine?.start(object : WhisperLocalEngine.ResultListener {
                 override fun onPartialResult(text: String) = handlePartial(text)
                 override fun onFinalResult(text: String) = handleFinal(text)
@@ -2293,7 +2301,17 @@ class BubbleService : Service() {
         // Track the WAV so the L4 multi-pass decoder can read it after
         // reconstruction completes. Previous file (if any) is cleaned up
         // in setBubbleIdle when the cycle ends.
-        lastWavFile?.let { try { it.delete() } catch (_: Exception) {} }
+        //
+        // Lost-take bug (caught live 2026-09-24): AudioRecorder writes every
+        // take to the SAME path (cacheDir/wim_recording.wav), and lastWavFile is
+        // only cleared in setBubbleIdle. Start a new take before the last one
+        // reached IDLE and lastWavFile still names that path, so this delete
+        // wiped the take just recorded: no WAV, no upload, a 30 s wait for an
+        // on-device Final that a cloud take never produces, and nothing typed.
+        // It kept eating takes until the bubble next reached IDLE. Only delete
+        // a genuinely different file.
+        lastWavFile?.takeIf { it.absolutePath != wavFile?.absolutePath }
+            ?.let { try { it.delete() } catch (_: Exception) {} }
         if (wavFile != null) WavSilenceTrimmer.trim(wavFile)
         lastWavFile = wavFile
 
@@ -2405,6 +2423,18 @@ class BubbleService : Service() {
             // truncated partial (e.g. "this is" instead of "this is a test").
             lastWhisperLowConf = emptyList()
             lastWhisperWords = emptyList()
+            if (!liveAsrThisTake) {
+                // Cloud take with no audio file: nothing on-device is
+                // transcribing, so no Final ASR will ever arrive. Waiting kept
+                // the bubble on PROC for 30 s and then typed nothing.
+                Log.w(TAG, "No WAV and no live on-device engine this take — nothing to wait for")
+                ConsoleLog.log("Recording lost — no audio file", "warn")
+                BubbleStateBus.advance(BubbleState.Failed(FailReason.UNKNOWN))
+                showPipelineStage("Recording lost", "Please say it again")
+                Toast.makeText(this, "Recording lost — please say it again", Toast.LENGTH_SHORT).show()
+                timerHandler.postDelayed({ setBubbleIdle() }, 1500)
+                return
+            }
             // 1500ms upper bound (was 400ms — too short for whisper-tiny.en
             // sherpa-onnx; observed Stop→Final-callback latency was ~540ms
             // on Samsung Z Flip 7 and scales with audio length). handleFinal
