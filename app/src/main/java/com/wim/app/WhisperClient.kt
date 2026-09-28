@@ -189,6 +189,11 @@ object WhisperClient {
             // the WAV on any encoder trouble — see AudioCompressor.
             val uploadFile = AudioCompressor.compressForUpload(audioFile) ?: audioFile
             val uploadMime = if (uploadFile.extension.equals("m4a", true)) "audio/mp4" else "audio/wav"
+            // Keep a copy of exactly what Whisper heard, next to the 30-day
+            // log (WimLogFile). The recorder overwrites one path per take, so
+            // a garbled take was gone before anyone could listen to it
+            // (9/28: "R. R. R. R." on a 35 s take — normal level, no audio left).
+            WimLogFile.keepTakeAudio(WimApp.instance, uploadFile)
             // Route choice. Normally: a key in the build means go straight to
             // OpenAI. With force_backend on (see WimApp.forceBackend) the token
             // is fetched first and the backend wins, so the operator's build
