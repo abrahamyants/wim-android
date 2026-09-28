@@ -53,6 +53,47 @@ object WimLogFile {
         t.start()
     }
 
+    /**
+     * Copy the file Whisper is about to hear into logs/audio/take-<stamp>.<ext>
+     * and write its name to the log, so a bad take can be replayed later.
+     * Keeps [AUDIO_KEEP_DAYS] days, capped at [AUDIO_MAX_TOTAL_BYTES].
+     * Never throws; never blocks the upload for long (one small file copy).
+     */
+    fun keepTakeAudio(context: Context, src: File) {
+        try {
+            val d = File(logDir(context), "audio")
+            d.mkdirs()
+            val name = "take-" + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date()) +
+                "." + src.extension
+            val dst = File(d, name)
+            src.copyTo(dst, overwrite = true)
+            Log.i(TAG, "Take audio kept: ${dst.name} (${dst.length() / 1024} KB)")
+            pruneAudio(d)
+        } catch (t: Throwable) {
+            Log.w(TAG, "keepTakeAudio failed: ${t.message}")
+        }
+    }
+
+    const val AUDIO_KEEP_DAYS = 7
+    private const val AUDIO_MAX_TOTAL_BYTES = 80L * 1024 * 1024
+
+    private fun pruneAudio(d: File) {
+        val all = d.listFiles { f -> f.name.startsWith("take-") }
+            ?.sortedBy { it.name }?.toMutableList() ?: return
+        val cutoff = System.currentTimeMillis() - AUDIO_KEEP_DAYS * DAY_MS
+        val it = all.iterator()
+        while (it.hasNext()) {
+            val f = it.next()
+            if (f.lastModified() < cutoff) { f.delete(); it.remove() }
+        }
+        var total = all.sumOf { it.length() }
+        while (total > AUDIO_MAX_TOTAL_BYTES && all.size > 1) {
+            val oldest = all.removeAt(0)
+            total -= oldest.length()
+            oldest.delete()
+        }
+    }
+
     /** Newest-first list of the log files on disk (for a future Share button). */
     fun files(context: Context): List<File> =
         logDir(context).listFiles { f -> f.name.startsWith("wim-") && f.name.endsWith(".log") }
