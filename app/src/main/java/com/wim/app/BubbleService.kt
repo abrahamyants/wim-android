@@ -2373,13 +2373,44 @@ class BubbleService : Service() {
                     if (whisperResult.lowConfidenceSegments.isNotEmpty()) {
                         Log.i(TAG, "Whisper flagged ${whisperResult.lowConfidenceSegments.size} low-confidence segments (${whisperResult.lowConfidenceSegments.count { it.blockSuspect }} block suspects)")
                     }
-                    if (whisperResult.wasFullyHallucinated) {
+                    // Garbage gate (9/28): "R. R. R. R." on a 35 s take must
+                    // never reach the text field. Try the other transcriber
+                    // once on the same audio; if that is garbage too, say so.
+                    var gated = whisperResult
+                    if (WhisperClient.isGarbageTranscript(gated)) {
+                        val retryModel = if (whisperModel == "whisper-1") "gpt-4o-transcribe" else "whisper-1"
+                        Log.w(TAG, "Whisper garbage detected ('${gated.text.take(60)}', ${gated.lowConfidenceSegments.size}/${gated.timedSegments.size} low-conf) — retrying once with $retryModel")
+                        showPipelineStage("⏳ Listening again", "First pass was noise")
+                        gated = try {
+                            val second = WhisperClient.transcribe(
+                                wavFile,
+                                model = retryModel,
+                                verboseSegments = (retryModel == "whisper-1"),
+                                language = WimApp.appLanguage(),
+                            )
+                            Log.i(TAG, "Retry ($retryModel via ${second.engine}, ${second.asrMs}ms): ${second.text}")
+                            if (WhisperClient.isGarbageTranscript(second) || second.text.isBlank()) {
+                                Log.w(TAG, "Retry was garbage too — not typing it")
+                                second.copy(text = "", wasFullyHallucinated = true)
+                            } else second
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Retry failed (${e.message}) — not typing garbage")
+                            gated.copy(text = "", wasFullyHallucinated = true)
+                        }
+                    }
+                    if (gated.wasFullyHallucinated) {
                         Log.w(TAG, "Whisper fully hallucinated — pasting nothing")
                         BubbleStateBus.advance(BubbleState.Failed(FailReason.HALLUCINATED))
-                        showPipelineStage("∅ Silence", "Nothing to transcribe")
+                        showPipelineStage("Didn't catch that", "Please say it again")
+                        Toast.makeText(this@BubbleService, "Didn't catch that — please say it again", Toast.LENGTH_SHORT).show()
                         timerHandler.postDelayed({ setBubbleIdle() }, 1500)
                     } else {
-                        val finalText = whisperResult.text
+                        if (gated !== whisperResult) {
+                            lastWhisperLowConf = gated.lowConfidenceSegments
+                            lastWhisperSegments = gated.timedSegments
+                            lastWhisperWords = gated.timedWords
+                        }
+                        val finalText = gated.text
                         if (finalText.isNotBlank()) {
                             processText(finalText)
                         } else {

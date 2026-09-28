@@ -418,6 +418,32 @@ object WhisperClient {
 
     data class TimedWord(val startS: Double, val endS: Double, val text: String)
 
+    /**
+     * True when a transcript is Whisper's "I heard nothing" noise rather than
+     * words — the 9/28 15:06 take: 35 s at normal level came back as
+     * "R. R. R. R. R. R. R. R. R. R." with 8/8 segments low-confidence, and
+     * WiM typed it. Three shapes count as garbage:
+     *  (a) one short token stamped 4+ times ("R. R. R. R."),
+     *  (b) a one-character transcript ("R." from a near-silent take),
+     *  (c) 3+ segments and every one of them low-confidence.
+     * Real repeated speech ("no no no no") has a token longer than 2 chars
+     * and confident segments, so it passes.
+     */
+    fun isGarbageTranscript(result: TranscribeResult): Boolean {
+        val tokens = result.text.lowercase()
+            .replace(Regex("[^\\p{L}\\p{N}']+"), " ")
+            .trim()
+            .split(" ")
+            .filter { it.isNotBlank() }
+        if (tokens.isEmpty()) return false
+        val distinct = tokens.toSet()
+        if (tokens.size == 1 && tokens[0].length == 1) return true                       // (b)
+        if (tokens.size >= 4 && distinct.size == 1 && tokens[0].length <= 2) return true  // (a)
+        val segs = result.timedSegments.size
+        if (segs >= 3 && result.lowConfidenceSegments.size >= segs) return true          // (c)
+        return false
+    }
+
     data class TranscribeResult(
         val text: String,
         val asrMs: Long,
