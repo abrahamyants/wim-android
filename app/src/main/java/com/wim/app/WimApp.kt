@@ -432,6 +432,8 @@ class WimApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // Keep our own copy of Logcat for 30 days (phone's buffer holds ~10 min).
+        try { WimLogFile.start(this) } catch (t: Throwable) { Log.w("WiM", "WimLogFile start failed: ${t.message}") }
         // Catch uncaught exceptions on plain Threads (e.g. SDK helpers that
         // spawn a non-coroutine worker — Firebase listeners, Whisper model
         // downloader's IO calls, anything that doesn't run through appScope).
