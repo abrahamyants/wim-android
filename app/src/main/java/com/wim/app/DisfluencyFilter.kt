@@ -113,8 +113,10 @@ object DisfluencyFilter {
     // an already-mangled raw against the output and could never flag it. At L1
     // there is no model and no guard at all: the altered number went straight
     // into the message. Cyrillic range matches the FALSE_START convention above.
+    // "www." is not a stretched w — it turned "www.FEMA.gov" into
+    // "w.FEMA.gov" on 2026-09-29 11:41.
     private val PROLONGATION = Regex(
-        """([A-Za-z\u0400-\u04FF])\1{2,200}""",
+        """(?!www\.)([A-Za-z\u0400-\u04FF])\1{2,200}""",
         RegexOption.IGNORE_CASE
     )
 
@@ -228,7 +230,14 @@ object DisfluencyFilter {
             // phrases are exactly the ones that repeat, and this runs before
             // the filter and before every guard, so nothing downstream could
             // see the loss.
-            val pattern = Regex("\\b${Regex.escape(segText)}\\b", RegexOption.IGNORE_CASE)
+            // Letter/digit lookarounds, not \b: a suspect that ends in
+            // punctuation ("R.") has no word boundary after the period, so
+            // \b never matched and the flagged "R." was pasted (2026-09-30
+            // 11:33, and every silent take before it).
+            val pattern = Regex(
+                "(?<![\\p{L}\\p{N}])${Regex.escape(segText)}(?![\\p{L}\\p{N}])",
+                RegexOption.IGNORE_CASE
+            )
             val hits = pattern.findAll(result).take(2).count()
             when (hits) {
                 0 -> {}
@@ -360,6 +369,101 @@ object DisfluencyFilter {
 
         // Don't return empty — fall back to original
         return cleaned.ifBlank { text }
+    }
+
+    // ── Whisper junk gates (2026-09-30) ──────────────────────────────
+    // Five of 201 takes over 09-29/09-30 pasted garbage. Each gate below is
+    // one of them; the log file names the take.
+
+    /**
+     * Drop every segment whose gzip compression ratio passed 2.4 — Whisper's
+     * own "failed decode" mark for the repetition loop. 09-30 07:20: a 4 s
+     * take came back as "1, 1, 1, ..." x112 and was pasted (336 chars). The
+     * insane-run cap skips digits on purpose, so this is the gate that
+     * catches a numeric loop.
+     */
+    fun stripLoopSegments(
+        text: String,
+        segments: List<WhisperClient.LowConfidenceSegment>,
+        log: (String) -> Unit = {}
+    ): String {
+        if (text.isBlank()) return text
+        var result = text
+        for (seg in segments) {
+            if (!seg.loop) continue
+            val segText = seg.text.trim()
+            if (segText.isBlank()) continue
+            val before = result
+            result = result.replaceFirst(Regex(Regex.escape(segText), RegexOption.IGNORE_CASE), "")
+            if (result != before) {
+                log(
+                    "Whisper loop segment dropped (ratio ${"%.1f".format(seg.compressionRatio)}): " +
+                        "'${segText.take(60)}'"
+                )
+            }
+        }
+        return MULTI_SPACE.replace(result, " ").trim()
+    }
+
+    // A web address: "www.x", "http…", or "name.com/.org/.gov/…".
+    private const val DOMAIN =
+        """(?:https?://\S+|www\.\S+|[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|org|gov|net|edu|io|ai)\b\S*)"""
+
+    // "… good for you. Go to Beadaholique.com for all of your beading supply
+    // needs!" (09-29 10:23). A sentence that opens with an advert verb and
+    // carries a domain, glued after a finished sentence.
+    private val TRAILING_AD_SENTENCE = Regex(
+        """([.!?]["')\]]*)\s+(?:go to|visit|check out|for more|learn more|find out more|head over to|shop at|order at)\b[^.!?]*$DOMAIN[^.!?]*[.!?]*\s*$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    // "… You tell me. www.FEMA.gov" (09-29 11:41). A bare domain as the
+    // final token after a finished sentence.
+    private val TRAILING_BARE_URL = Regex(
+        """([.!?]["')\]]*)\s+$DOMAIN[.!?]*\s*$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Cut an advert or bare web address that Whisper glued onto the end of a
+     * finished take. Both patterns need a sentence end BEFORE the junk, so a
+     * take that IS a web address ("go to my baking creations dot com") stays.
+     */
+    fun stripJunkTail(text: String, log: (String) -> Unit = {}): String {
+        if (text.isBlank()) return text
+        var result = text.trim()
+        for (regex in listOf(TRAILING_AD_SENTENCE, TRAILING_BARE_URL)) {
+            val m = regex.find(result) ?: continue
+            val cut = result.substring(m.range.first + m.groupValues[1].length).trim()
+            result = result.substring(0, m.range.first + m.groupValues[1].length).trim()
+            log("Whisper junk tail stripped: '${cut.take(80)}'")
+        }
+        return result
+    }
+
+    // One letter, optionally punctuated, repeated any number of times and
+    // nothing else: "R.", "R. R. R. R. R. R. R."
+    private val LONE_LETTER_RUN = Regex(
+        """^\s*([\p{L}])[.,!?]*(?:\s+\1[.,!?]*)*\s*$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Whisper's answer to silence on this mic is the letter R (09-28 15:06,
+     * 09-29 14:29 and 14:33, 09-30 11:33). When the whole transcript is one
+     * letter repeated AND Whisper flagged a no-speech segment, there was no
+     * speech. The flag is required so a real one-letter answer survives.
+     */
+    fun stripLoneLetterNoise(
+        text: String,
+        segments: List<WhisperClient.LowConfidenceSegment>,
+        log: (String) -> Unit = {}
+    ): String {
+        if (text.isBlank()) return text
+        if (!segments.any { it.blockSuspect }) return text
+        if (!LONE_LETTER_RUN.matches(text)) return text
+        log("Whisper lone-letter noise dropped: '${text.take(40)}'")
+        return ""
     }
 
     // Sanity cap for Whisper's repetition-loop failure. Live 2026-08-05

@@ -40,6 +40,8 @@ object WhisperClient {
 
     // Thresholds from Лаврентий
     private const val LOGPROB_THRESHOLD = -0.7
+    // openai/whisper decode.py compression_ratio_threshold default.
+    private const val LOOP_COMPRESSION_RATIO = 2.4
     private const val NO_SPEECH_THRESHOLD_DEFAULT = 0.15
     private const val NO_SPEECH_THRESHOLD_PATIENCE = 0.6
 
@@ -299,21 +301,29 @@ object WhisperClient {
                     val seg = segmentsArray.getJSONObject(i)
                     val avgLogprob = seg.optDouble("avg_logprob", 0.0)
                     val noSpeechProb = seg.optDouble("no_speech_prob", 0.0)
+                    // gzip ratio of the segment text. Whisper's reference
+                    // decoder treats > 2.4 as a failed decode (the repetition
+                    // loop: "1, 1, 1, ..." x112 pasted live 2026-09-30 07:20).
+                    // The API still returns such segments; we drop them.
+                    val compressionRatio = seg.optDouble("compression_ratio", 0.0)
                     val segText = seg.optString("text", "").trim()
                     val segStart = seg.optDouble("start", 0.0)
                     val segEnd = seg.optDouble("end", segStart + 0.5)
                     val blockSuspect = noSpeechProb > noSpeechThreshold
                     val lowConf = avgLogprob < LOGPROB_THRESHOLD
+                    val loop = compressionRatio > LOOP_COMPRESSION_RATIO
 
                     timedSegments.add(TimedSegment(segStart, segEnd, segText))
 
-                    if (lowConf || blockSuspect) {
+                    if (lowConf || blockSuspect || loop) {
                         lowConfidenceSegments.add(
                             LowConfidenceSegment(
                                 text = segText,
                                 avgLogprob = avgLogprob,
                                 noSpeechProb = noSpeechProb,
-                                blockSuspect = blockSuspect
+                                blockSuspect = blockSuspect,
+                                compressionRatio = compressionRatio,
+                                loop = loop
                             )
                         )
                     }
@@ -336,7 +346,21 @@ object WhisperClient {
             }
 
             val rawText = json.optString("text", "").trim()
-            val cleanText = stripHallucinations(rawText)
+            // Four gates, in order. Each one is a failure Whisper produced on
+            // George's phone between 2026-09-28 and 09-30 and the app pasted:
+            //   phrase list  — YouTube credits ("thanks for watching")
+            //   loop segment — "1, 1, 1, ..." x112 (compression_ratio 2.4+)
+            //   junk tail    — "Go to Beadaholique.com for all of your beading
+            //                   supply needs!" / "www.FEMA.gov" glued on the end
+            //   lone letter  — "R." and "R. R. R. R. R. R. R." on silence
+            val log: (String) -> Unit = { msg -> android.util.Log.i("WiM", msg) }
+            val cleanText = DisfluencyFilter.stripLoneLetterNoise(
+                DisfluencyFilter.stripJunkTail(
+                    DisfluencyFilter.stripLoopSegments(
+                        stripHallucinations(rawText), lowConfidenceSegments, log
+                    ), log
+                ), lowConfidenceSegments, log
+            )
             val wasFullyHallucinated = rawText.isNotBlank() && cleanText.isBlank()
             if (rawText != cleanText) {
                 if (wasFullyHallucinated) {
@@ -411,7 +435,11 @@ object WhisperClient {
         val text: String,
         val avgLogprob: Double,
         val noSpeechProb: Double,
-        val blockSuspect: Boolean
+        val blockSuspect: Boolean,
+        /** gzip ratio of the segment text as reported by whisper-1 verbose_json. */
+        val compressionRatio: Double = 0.0,
+        /** compression ratio above 2.4 — the decoder's repetition loop. */
+        val loop: Boolean = false
     )
 
     data class TimedSegment(val startS: Double, val endS: Double, val text: String)

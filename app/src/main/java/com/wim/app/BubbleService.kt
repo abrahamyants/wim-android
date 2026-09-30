@@ -294,6 +294,8 @@ class BubbleService : Service() {
 
     companion object {
         private const val TAG = "WiM"
+        // Floor for the silence gate in stopListening (dBFS of the whole take).
+        private const val SILENCE_FLOOR_DBFS = -50.0
 
         /**
          * How long an explicit tone pick outranks [ToneFromContent].
@@ -2285,13 +2287,22 @@ class BubbleService : Service() {
         // whole take before Whisper ONLY if it was whisper-soft. Amber confirms
         // on the bubble (pendingQuietAutoFlash -> setBubbleIdle). -22 dBFS is
         // the validated threshold from lavrentiy.py:263 (QUIET_AUTO_DBFS = -22.0).
+        // Silence gate. A take this quiet is an empty room, not a whisper:
+        // whispered takes on this phone measure -28 to -35 dBFS; the takes
+        // that came back as "R." measured -42, -43 and -57. Below the floor
+        // nothing goes to Whisper — the boost below would only amplify hiss,
+        // and Whisper answers hiss with a made-up letter.
+        var takeTooQuiet = false
         if (wavFile != null) {
             val takeDbfs = audioRecorder?.lastTakeDbfs() ?: -120.0
             // Always log so the operator can see the level whether or not
             // auto-quiet triggers. Lets us tune the upper bound by sampling
             // whispered vs. normal-voice takes side by side.
             Log.i(TAG, "Take level: ${"%.1f".format(takeDbfs)} dBFS (auto-quiet range -110.0..-22.0)")
-            if (!WimApp.prefs.getBoolean("quiet_mode", false) && takeDbfs in -110.0..-22.0) {
+            if (takeDbfs < SILENCE_FLOOR_DBFS) {
+                takeTooQuiet = true
+                Log.w(TAG, "Take too quiet to send (${"%.1f".format(takeDbfs)} dBFS < $SILENCE_FLOOR_DBFS) — nothing heard, skipping Whisper")
+            } else if (!WimApp.prefs.getBoolean("quiet_mode", false) && takeDbfs in -110.0..-22.0) {
                 Log.i(TAG, "Auto Quiet Mode engaged (${"%.0f".format(takeDbfs)} dBFS) — whisper-soft take")
                 audioRecorder?.boostWavQuiet(wavFile)
                 pendingQuietAutoFlash = true
@@ -2327,7 +2338,12 @@ class BubbleService : Service() {
         // LIVE toggle is off. Subsequent stages overwrite this.
         showPipelineStage("⏳ Transcribing", "Sending audio to Whisper")
 
-        if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
+        if (takeTooQuiet) {
+            ConsoleLog.log("Take too quiet — nothing heard", "warn")
+            BubbleStateBus.advance(BubbleState.Failed(FailReason.HALLUCINATED))
+            showPipelineStage("∅ Silence", "Nothing heard")
+            timerHandler.postDelayed({ setBubbleIdle() }, 1500)
+        } else if (wavFile != null && wavFile.exists() && wavFile.length() > 44) {
             Log.i(TAG, "L${WimApp.layer()}: Sending ${wavFile.length()} bytes to Whisper API")
             scope.launch {
                 try {
