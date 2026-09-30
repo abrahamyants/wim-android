@@ -472,4 +472,96 @@ class DisfluencyFilterTest {
             DisfluencyFilter.stripTimedFillers("you know what I want", emptyList())
         )
     }
+
+    // ── Whisper junk gates (2026-09-30) — one test per pasted take ──
+
+    private fun loop(text: String) = WhisperClient.LowConfidenceSegment(
+        text = text, avgLogprob = -0.2, noSpeechProb = 0.0, blockSuspect = false,
+        compressionRatio = 9.7, loop = true
+    )
+
+    // 09-30 11:33: the flagged "R." survived because \b has no boundary
+    // after a period.
+    @Test fun blockStrip_removesASuspectThatEndsInAPeriod() {
+        assertEquals("", DisfluencyFilter.stripBlockHallucinations("R.", listOf(suspect("R."))))
+    }
+
+    // 09-29 14:29: 33 s take, "R. R. R. R. R. R. R.", 11 flagged segments.
+    @Test fun loneLetter_runOnSilenceIsDropped() {
+        assertEquals(
+            "",
+            DisfluencyFilter.stripLoneLetterNoise("R. R. R. R. R. R. R.", listOf(suspect("R.")))
+        )
+        assertEquals("", DisfluencyFilter.stripLoneLetterNoise("R.", listOf(suspect("R."))))
+    }
+
+    @Test fun loneLetter_needsTheNoSpeechFlag() {
+        assertEquals("R.", DisfluencyFilter.stripLoneLetterNoise("R.", emptyList()))
+    }
+
+    @Test fun loneLetter_realWordsStay() {
+        assertEquals(
+            "R. Right.",
+            DisfluencyFilter.stripLoneLetterNoise("R. Right.", listOf(suspect("R.")))
+        )
+    }
+
+    // 09-30 07:20: 4 s take, "1, 1, 1, ..." x112, compression ratio far past 2.4.
+    @Test fun loopSegment_numericAvalancheIsDropped() {
+        val run = List(112) { "1" }.joinToString(", ")
+        assertEquals("", DisfluencyFilter.stripLoopSegments(run, listOf(loop(run))))
+    }
+
+    @Test fun loopSegment_onlyTheLoopingSegmentGoes() {
+        val run = List(40) { "to" }.joinToString(" ")
+        assertEquals(
+            "send it now",
+            DisfluencyFilter.stripLoopSegments("send it $run now", listOf(loop(run)))
+        )
+    }
+
+    @Test fun loopSegment_unflaggedTextUntouched() {
+        val text = "one, one, one, one"
+        assertEquals(text, DisfluencyFilter.stripLoopSegments(text, listOf(suspect("one"))))
+    }
+
+    // 09-29 10:23: a YouTube advert glued onto a finished take.
+    @Test fun junkTail_advertSentenceIsCut() {
+        assertEquals(
+            "Open it on the phone, in a JPEG or a PDF, whatever is good for you.",
+            DisfluencyFilter.stripJunkTail(
+                "Open it on the phone, in a JPEG or a PDF, whatever is good for you. " +
+                    "Go to Beadaholique.com for all of your beading supply needs!"
+            )
+        )
+    }
+
+    // 09-29 11:41: a bare web address glued onto a finished take.
+    @Test fun junkTail_bareUrlIsCut() {
+        assertEquals(
+            "That should also be optional, like a drop-down menu. You tell me.",
+            DisfluencyFilter.stripJunkTail(
+                "That should also be optional, like a drop-down menu. You tell me. www.FEMA.gov"
+            )
+        )
+    }
+
+    @Test fun junkTail_aTakeThatIsAWebAddressStays() {
+        assertEquals("www.FEMA.gov", DisfluencyFilter.stripJunkTail("www.FEMA.gov"))
+        assertEquals(
+            "go to mybakingcreations.com",
+            DisfluencyFilter.stripJunkTail("go to mybakingcreations.com")
+        )
+    }
+
+    @Test fun junkTail_aWebAddressMidSentenceStays() {
+        val text = "I put it on mybakingcreations.com yesterday. Take a look."
+        assertEquals(text, DisfluencyFilter.stripJunkTail(text))
+    }
+
+    // The prolongation collapse ("mmmaybe" -> "maybe") ate "www".
+    @Test fun prolongation_keepsWww() {
+        assertEquals("www.FEMA.gov", filter("www.FEMA.gov"))
+        assertEquals("maybe", filter("mmmmaybe"))
+    }
 }
