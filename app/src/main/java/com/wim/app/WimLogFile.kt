@@ -31,7 +31,12 @@ import java.util.Locale
 object WimLogFile {
     private const val TAG = "WiM"
     const val KEEP_DAYS = 30
-    private const val MAX_TOTAL_BYTES = 60L * 1024 * 1024
+    // 9/30: the first two days measured 49 MB and 8 MB, so a 60 MB cap held
+    // about one day and had already thrown out 9/28. 85% of the lines are
+    // the system's screen-drawing chatter (VRI, BLASTBufferQueue) from the
+    // bubble overlay. George's rule is a month, so the cap is sized for a
+    // month of the heavy day: 30 x 50 MB. Phone had 41 GB free.
+    private const val MAX_TOTAL_BYTES = 1500L * 1024 * 1024
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
     @Volatile private var started = false
