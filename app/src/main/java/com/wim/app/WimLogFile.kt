@@ -132,6 +132,7 @@ object WimLogFile {
             writer.flush()
             while (true) {
                 val line = reader.readLine() ?: break
+                if (isSystemNoise(line)) continue
                 val today = todayKey()
                 if (today != day) {
                     writer?.close()
@@ -149,6 +150,26 @@ object WimLogFile {
             try { writer?.flush(); writer?.close() } catch (_: Throwable) {}
             try { proc.destroy() } catch (_: Throwable) {}
         }
+    }
+
+    // Android's own drawing chatter for the overlay window. Measured 9/29:
+    // 160,851 of 190,067 lines (85%, 49 MB) were these tags; WiM's own
+    // lines were 1 in 7. Nothing in them has ever explained a bug.
+    private val NOISE_TAGS = arrayOf(
+        "VRI[", "BLASTBufferQueue_Java:", "BLASTBufferQueue:", "InsetsController:",
+        "ReflectedParamUpdater:", "AidlBufferPool", "Codec2Client:", "CCodec",
+        "MediaCodecList:", "MediaCodec:", "Choreographer:", "HWUI",
+        "FenceTime:", "InputTransport:", "ViewRootImpl:"
+    )
+    private val THREADTIME_FIELDS = Regex("\\s+")
+
+    /** threadtime line: "MM-DD HH:MM:SS.mmm  PID  TID L TAG: msg" — the tag is field 6. */
+    internal fun isSystemNoise(line: String): Boolean {
+        val fields = line.trim().split(THREADTIME_FIELDS, limit = 6)
+        if (fields.size < 6) return false
+        val tagAndMsg = fields[5]
+        for (t in NOISE_TAGS) if (tagAndMsg.startsWith(t)) return true
+        return false
     }
 
     private fun openForToday(d: File): FileWriter =
