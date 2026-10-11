@@ -312,6 +312,15 @@
     <string name="cloud_unlock_monthly_price">%1$s al mes</string>
     <string name="cloud_unlock_action">SUSCRIBIRSE</string>
     <string name="cloud_unlock_restore">RESTAURAR</string>
-    <string name="cloud_unlock_dialog">WiM Cloud incluye 300 dictados en la nube y hasta 20 dictados de la capa IV al mes. Se renueva mensualmente hasta que lo canceles en Google Play.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud: marchas Reconstruir y Perfil, 300 dictados en la nube y 150 minutos de audio en la nube al mes. WiM Cloud Plus añade la marcha Disfluencia del habla, hasta 150 dictados profundos al mes. Cada plan se renueva mensualmente hasta que lo canceles en Google Play. Condiciones: mybakingcreations.com/wim-terms</string>
+    <string name="cloud_unlock_plus_title">WiM Cloud Plus</string>
+    <string name="cloud_unlock_plus_needed">La marcha Disfluencia del habla necesita WiM Cloud Plus.</string>
+    <string name="cloud_unlock_cloud_line">WiM Cloud — marchas Reconstruir + Perfil · 300 dictados · 150 minutos de audio al mes</string>
+    <string name="cloud_unlock_plus_line">WiM Cloud Plus — todo lo de Cloud + marcha Disfluencia del habla · 150 dictados profundos al mes</string>
+    <string name="cloud_unlock_plans_line">Elige un plan. Cancela cuando quieras en Google Play.</string>
+    <string name="cloud_unlock_active">%1$s está activo</string>
+    <string name="cloud_unlock_upgrade">MEJORAR</string>
+    <string name="cloud_unlock_manage">GESTIONAR</string>
+    <string name="cloud_unlock_included">INCLUIDO</string>
     <string name="lang_voice_only_suffix">\u0020\u00B7 solo voz</string>
 </resources>

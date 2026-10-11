@@ -52,8 +52,10 @@ Your recordings live on your phone only while a take is processed, then
 they're deleted. Free mode never touches the internet. No ads. No selling
 your data. Full policy: https://mybakingcreations.com/wim-android/privacy.html
 
-**WiM Cloud** unlocks the cloud gears: $9.99/month, 300 cloud takes,
-up to 20 deep-gear takes. The free gear is free forever.
+Two paid plans unlock the cloud gears. **WiM Cloud** ($4.99/month):
+Reconstruct and Profile, 300 cloud takes and 150 minutes of audio a month.
+**WiM Cloud Plus** ($7.99/month): adds the Speech Disfluency gear, up to
+150 deep-gear takes a month. The free gear is free forever.
 
 Speak like yourself. Send like you meant it.
 

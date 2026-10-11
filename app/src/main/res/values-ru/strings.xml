@@ -312,6 +312,15 @@
     <string name="cloud_unlock_monthly_price">%1$s в месяц</string>
     <string name="cloud_unlock_action">ПОДПИСАТЬСЯ</string>
     <string name="cloud_unlock_restore">ВОССТАНОВИТЬ</string>
-    <string name="cloud_unlock_dialog">WiM Cloud включает 300 облачных диктовок и до 20 диктовок уровня IV в месяц. Подписка продлевается ежемесячно, пока вы не отмените её в Google Play.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud: режимы Реконструкция и Профиль, 300 облачных диктовок и 150 минут облачного аудио в месяц. WiM Cloud Plus добавляет режим Речевая дисфлюэнция, до 150 глубоких диктовок в месяц. Каждый план продлевается ежемесячно, пока вы не отменит его в Google Play. Условия: mybakingcreations.com/wim-terms</string>
+    <string name="cloud_unlock_plus_title">WiM Cloud Plus</string>
+    <string name="cloud_unlock_plus_needed">Для режима Речевая дисфлюэнция нужен WiM Cloud Plus.</string>
+    <string name="cloud_unlock_cloud_line">WiM Cloud — режимы Реконструкция + Профиль · 300 диктовок · 150 минут аудио в месяц</string>
+    <string name="cloud_unlock_plus_line">WiM Cloud Plus — всё из Cloud + режим Речевая дисфлюэнция · 150 глубоких диктовок в месяц</string>
+    <string name="cloud_unlock_plans_line">Выберите план. Отменить можно в любой момент в Google Play.</string>
+    <string name="cloud_unlock_active">%1$s активен</string>
+    <string name="cloud_unlock_upgrade">ПОВЫСИТЬ</string>
+    <string name="cloud_unlock_manage">УПРАВЛЯТЬ</string>
+    <string name="cloud_unlock_included">ВКЛЮЧЕНО</string>
     <string name="lang_voice_only_suffix">\u0020\u00B7 только голос</string>
 </resources>

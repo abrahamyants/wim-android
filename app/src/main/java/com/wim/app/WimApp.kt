@@ -169,15 +169,45 @@ class WimApp : Application() {
                 prefs.getString("cloud_unlock_uid", null) == uid
         }
 
-        fun setCloudUnlocked(uid: String, unlocked: Boolean) {
+        /**
+         * Highest gear the server allows this account (cached UI hint, like
+         * cloudUnlocked()). Two paid plans since 2026-10-11: WiM Cloud stops
+         * at 3, WiM Cloud Plus reaches 4. The giveaway build has every gear.
+         */
+        fun cloudMaxLayer(): Int {
+            if (hasEmbeddedKeys()) return 4
+            if (!cloudUnlocked()) return 1
+            return prefInt("cloud_max_layer", 3)
+        }
+
+        /** Server tier name: invite, basic (WiM Cloud), plus (WiM Cloud Plus), pro. */
+        fun cloudTier(): String = if (cloudUnlocked()) prefStr("cloud_tier", "basic") else "invite"
+
+        /** The name a user sees for a tier. */
+        fun tierLabel(tier: String): String = when (tier) {
+            "plus" -> "WiM Cloud Plus"
+            "basic" -> "WiM Cloud"
+            "pro" -> "Pro"
+            else -> "Local / Free"
+        }
+
+        fun setCloudUnlocked(
+            uid: String,
+            unlocked: Boolean,
+            tier: String = if (unlocked) "basic" else "invite",
+            maxLayer: Int = if (unlocked) 3 else 1,
+        ) {
             prefs.edit()
                 .putBoolean("cloud_unlocked", unlocked)
                 .putString("cloud_unlock_uid", uid)
+                .putString("cloud_tier", tier)
+                .putInt("cloud_max_layer", maxLayer)
                 .apply()
         }
 
         fun clearCloudUnlock() {
-            prefs.edit().remove("cloud_unlocked").remove("cloud_unlock_uid").apply()
+            prefs.edit().remove("cloud_unlocked").remove("cloud_unlock_uid")
+                .remove("cloud_tier").remove("cloud_max_layer").apply()
         }
         fun situation(): String = prefStr("situation", "default")
         fun dafEnabled(): Boolean = prefBool("daf_enabled", false)

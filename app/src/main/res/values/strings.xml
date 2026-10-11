@@ -351,6 +351,15 @@
     <string name="cloud_unlock_monthly_price">%1$s / month</string>
     <string name="cloud_unlock_action">SUBSCRIBE</string>
     <string name="cloud_unlock_restore">RESTORE</string>
-    <string name="cloud_unlock_dialog">WiM Cloud includes 300 cloud dictations and up to 20 Layer IV dictations each month. It renews monthly until canceled in Google Play.</string>
+    <string name="cloud_unlock_dialog">WiM Cloud: Reconstruct and Profile gears, 300 cloud dictations and 150 minutes of cloud audio a month. WiM Cloud Plus adds the Speech Disfluency gear, up to 150 deep-gear dictations a month. Each plan renews monthly until canceled in Google Play. Terms: mybakingcreations.com/wim-terms</string>
+    <string name="cloud_unlock_plus_title">WiM Cloud Plus</string>
+    <string name="cloud_unlock_plus_needed">The Speech Disfluency gear needs WiM Cloud Plus.</string>
+    <string name="cloud_unlock_cloud_line">WiM Cloud — Reconstruct + Profile gears · 300 dictations · 150 audio minutes a month</string>
+    <string name="cloud_unlock_plus_line">WiM Cloud Plus — everything in Cloud + Speech Disfluency gear · 150 deep-gear dictations a month</string>
+    <string name="cloud_unlock_plans_line">Pick a plan. Cancel anytime in Google Play.</string>
+    <string name="cloud_unlock_active">%1$s is active</string>
+    <string name="cloud_unlock_upgrade">UPGRADE</string>
+    <string name="cloud_unlock_manage">MANAGE</string>
+    <string name="cloud_unlock_included">INCLUDED</string>
 
 </resources>
