@@ -19,7 +19,10 @@ import java.security.MessageDigest
 
 data class CloudUnlockState(
     val unlocked: Boolean = false,
-    val price: String? = null,
+    val tier: String = "invite",
+    val maxLayer: Int = 1,
+    /** productId -> "$4.99 / month", as Google Play formats it for this user. */
+    val prices: Map<String, String> = emptyMap(),
     val message: String = "Checking access…",
     val canBuy: Boolean = false,
 )
@@ -31,9 +34,16 @@ class PlayBillingManager(
     private val onState: (CloudUnlockState) -> Unit,
 ) : PurchasesUpdatedListener {
 
-    private var productDetails: ProductDetails? = null
-    private var offerToken: String? = null
-    private var state = CloudUnlockState(unlocked = WimApp.cloudUnlocked())
+    private val productDetails = mutableMapOf<String, ProductDetails>()
+    private val offerTokens = mutableMapOf<String, String>()
+    /** The Play purchase this account currently holds, if any — needed to upgrade or downgrade in place. */
+    private var ownedToken: String? = null
+    private var ownedProduct: String? = null
+    private var state = CloudUnlockState(
+        unlocked = WimApp.cloudUnlocked(),
+        tier = WimApp.cloudTier(),
+        maxLayer = WimApp.cloudMaxLayer(),
+    )
 
     private val billingClient = BillingClient.newBuilder(activity)
         .setListener(this)
@@ -47,14 +57,14 @@ class PlayBillingManager(
         refreshBackendStatus()
         drainPendingVerifications()
         if (billingClient.isReady) {
-            queryProduct()
+            queryProducts()
             restorePurchases()
             return
         }
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    queryProduct()
+                    queryProducts()
                     restorePurchases()
                 } else {
                     publish(message = "Google Play billing unavailable", canBuy = false)
@@ -73,38 +83,62 @@ class PlayBillingManager(
         if (billingClient.isReady) restorePurchases() else start()
     }
 
-    fun launchPurchase() {
-        if (state.unlocked) {
-            val url = "https://play.google.com/store/account/subscriptions" +
-                "?sku=${BillingBackendClient.PRODUCT_ID}&package=${activity.packageName}"
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    /** Open Google Play's subscription page for the plan this account holds. */
+    fun manageSubscription() {
+        val sku = ownedProduct ?: BillingBackendClient.PRODUCT_ID
+        val url = "https://play.google.com/store/account/subscriptions" +
+            "?sku=$sku&package=${activity.packageName}"
+        activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    /**
+     * Buy [productId], or switch to it when the account already holds the other
+     * plan. Google handles the switch inside one subscription: an upgrade is
+     * charged the prorated difference now, a downgrade waits for the renewal
+     * date. Tapping the plan already held opens the manage page instead.
+     */
+    fun launchPurchase(productId: String = BillingBackendClient.PRODUCT_ID) {
+        if (state.unlocked && (ownedProduct == productId || state.tier == "pro")) {
+            manageSubscription()
             return
         }
         val user = AuthManager.currentUser
         if (user == null) {
-            publish(message = "Sign in first, then subscribe", canBuy = productDetails != null)
+            publish(message = "Sign in first, then subscribe", canBuy = productDetails.isNotEmpty())
             return
         }
-        val details = productDetails
+        val details = productDetails[productId]
         if (details == null || !billingClient.isReady) {
             publish(message = "Connecting to Google Play…", canBuy = false)
             start()
             return
         }
-        val selectedOffer = offerToken
+        val selectedOffer = offerTokens[productId]
         if (selectedOffer == null) {
-            publish(message = "Cloud plan is not configured in Google Play", canBuy = false)
+            publish(message = "This plan is not configured in Google Play", canBuy = false)
             return
         }
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
             .setOfferToken(selectedOffer)
             .build()
-        val flowParams = BillingFlowParams.newBuilder()
+        val flow = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
             .setObfuscatedAccountId(accountHash(user.uid))
-            .build()
-        val result = billingClient.launchBillingFlow(activity, flowParams)
+        val oldToken = ownedToken
+        if (oldToken != null && ownedProduct != null && ownedProduct != productId) {
+            val upgrade = productId == BillingBackendClient.PLUS_PRODUCT_ID
+            flow.setSubscriptionUpdateParams(
+                BillingFlowParams.SubscriptionUpdateParams.newBuilder()
+                    .setOldPurchaseToken(oldToken)
+                    .setSubscriptionReplacementMode(
+                        if (upgrade) BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
+                        else BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+                    )
+                    .build()
+            )
+        }
+        val result = billingClient.launchBillingFlow(activity, flow.build())
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             publish(message = result.debugMessage.ifBlank { "Could not open subscription" })
         }
@@ -123,36 +157,44 @@ class PlayBillingManager(
         billingClient.endConnection()
     }
 
-    private fun queryProduct() {
-        val product = QueryProductDetailsParams.Product.newBuilder()
-            .setProductId(BillingBackendClient.PRODUCT_ID)
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
+    private fun queryProducts() {
+        val products = BillingBackendClient.PRODUCT_IDS.map { id ->
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(id)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        }
         val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(listOf(product))
+            .setProductList(products)
             .build()
         billingClient.queryProductDetailsAsync(params) { result, detailsResult ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
-                publish(message = "Could not load Play Store price", canBuy = false)
+                publish(message = "Could not load Play Store prices", canBuy = false)
                 return@queryProductDetailsAsync
             }
-            productDetails = detailsResult.productDetailsList.firstOrNull()
-            val selected = productDetails?.subscriptionOfferDetails
-                ?.firstOrNull {
+            val prices = mutableMapOf<String, String>()
+            productDetails.clear()
+            offerTokens.clear()
+            detailsResult.productDetailsList.forEach { details ->
+                productDetails[details.productId] = details
+                val offers = details.subscriptionOfferDetails.orEmpty()
+                val selected = offers.firstOrNull {
                     it.basePlanId == BillingBackendClient.BASE_PLAN_ID && it.offerId == null
+                } ?: offers.firstOrNull { it.basePlanId == BillingBackendClient.BASE_PLAN_ID }
+                val token = selected?.offerToken ?: return@forEach
+                offerTokens[details.productId] = token
+                selected.pricingPhases.pricingPhaseList.lastOrNull()?.formattedPrice?.let {
+                    prices[details.productId] = activity.getString(R.string.cloud_unlock_monthly_price, it)
                 }
-                ?: productDetails?.subscriptionOfferDetails
-                    ?.firstOrNull { it.basePlanId == BillingBackendClient.BASE_PLAN_ID }
-            offerToken = selected?.offerToken
-            val price = selected?.pricingPhases?.pricingPhaseList?.lastOrNull()
-                ?.formattedPrice?.let { activity.getString(R.string.cloud_unlock_monthly_price, it) }
+            }
             publish(
-                price = price,
-                message = if (state.unlocked) "WiM Cloud is active"
-                    else if (productDetails == null || offerToken == null)
-                        "WiM Cloud is not configured in Play Console"
-                    else "300 cloud dictations/month · up to 20 L4",
-                canBuy = productDetails != null && offerToken != null && !state.unlocked,
+                prices = prices,
+                message = when {
+                    state.unlocked -> activity.getString(R.string.cloud_unlock_active, WimApp.tierLabel(state.tier))
+                    offerTokens.isEmpty() -> "Plans are not configured in Play Console"
+                    else -> activity.getString(R.string.cloud_unlock_plans_line)
+                },
+                canBuy = offerTokens.isNotEmpty(),
             )
         }
     }
@@ -163,21 +205,26 @@ class PlayBillingManager(
             .build()
         billingClient.queryPurchasesAsync(params) { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                purchases.filter { BillingBackendClient.PRODUCT_ID in it.products }
+                purchases.filter { p -> p.products.any { it in BillingBackendClient.PRODUCT_IDS } }
                     .forEach(::processPurchase)
             }
         }
     }
 
     private fun processPurchase(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull { it in BillingBackendClient.PRODUCT_IDS } ?: return
         when (purchase.purchaseState) {
             Purchase.PurchaseState.PENDING -> publish(message = "Subscription pending — access starts after payment completes")
-            Purchase.PurchaseState.PURCHASED -> verifyOnServer(purchase.purchaseToken)
+            Purchase.PurchaseState.PURCHASED -> {
+                ownedToken = purchase.purchaseToken
+                ownedProduct = productId
+                verifyOnServer(purchase.purchaseToken, productId)
+            }
             else -> Unit
         }
     }
 
-    private fun verifyOnServer(token: String) {
+    private fun verifyOnServer(token: String, productId: String) {
         val uid = AuthManager.currentUser?.uid
         if (uid == null) {
             // Do NOT drop this on the floor. The server acknowledges the
@@ -192,25 +239,29 @@ class PlayBillingManager(
                 "WiM-Billing",
                 "verify deferred — purchase seen before sign-in restored; queued for retry",
             )
-            pendingTokens.add(token)
+            pendingTokens[token] = productId
             publish(message = "Sign in to activate your subscription", canBuy = false)
             return
         }
         pendingTokens.remove(token)
         publish(message = "Verifying subscription…", canBuy = false)
         scope.launch {
-            val entitlement = BillingBackendClient.verify(token)
+            val entitlement = BillingBackendClient.verify(token, productId)
             if (entitlement?.unlocked == true) {
-                WimApp.setCloudUnlocked(uid, true)
-                publish(unlocked = true, message = "WiM Cloud is active", canBuy = false)
+                WimApp.setCloudUnlocked(uid, true, entitlement.tier, entitlement.maxLayer)
+                publish(
+                    unlocked = true, tier = entitlement.tier, maxLayer = entitlement.maxLayer,
+                    message = activity.getString(R.string.cloud_unlock_active, WimApp.tierLabel(entitlement.tier)),
+                    canBuy = offerTokens.isNotEmpty(),
+                )
             } else {
                 // Network failure also means Google was never acknowledged, so
                 // keep the token and try again on the next start/refresh rather
                 // than relying on the user reading a toast and tapping Restore
                 // inside the acknowledgement window.
-                pendingTokens.add(token)
+                pendingTokens[token] = productId
                 android.util.Log.w("WiM-Billing", "verify failed — token requeued for retry")
-                publish(message = "Could not verify subscription — try Restore", canBuy = productDetails != null)
+                publish(message = "Could not verify subscription — try Restore", canBuy = offerTokens.isNotEmpty())
             }
         }
     }
@@ -222,19 +273,20 @@ class PlayBillingManager(
      * refunded by Google — so this must not depend on the user noticing a
      * message and pressing something.
      */
-    private val pendingTokens = mutableSetOf<String>()
+    private val pendingTokens = mutableMapOf<String, String>()
 
     private fun drainPendingVerifications() {
         if (pendingTokens.isEmpty() || AuthManager.currentUser == null) return
         android.util.Log.i("WiM-Billing", "retrying ${pendingTokens.size} deferred verification(s)")
-        pendingTokens.toList().forEach { verifyOnServer(it) }
+        pendingTokens.toMap().forEach { (token, productId) -> verifyOnServer(token, productId) }
     }
 
     private fun refreshBackendStatus() {
         val uid = AuthManager.currentUser?.uid
         if (uid == null) {
             WimApp.clearCloudUnlock()
-            publish(unlocked = false, message = "Sign in to use WiM Cloud", canBuy = productDetails != null)
+            publish(unlocked = false, tier = "invite", maxLayer = 1,
+                message = "Sign in to use WiM Cloud", canBuy = offerTokens.isNotEmpty())
             return
         }
         scope.launch {
@@ -242,12 +294,15 @@ class PlayBillingManager(
             drainPendingVerifications()
             val entitlement = BillingBackendClient.status()
             if (entitlement != null) {
-                WimApp.setCloudUnlocked(uid, entitlement.unlocked)
+                WimApp.setCloudUnlocked(uid, entitlement.unlocked, entitlement.tier, entitlement.maxLayer)
                 publish(
                     unlocked = entitlement.unlocked,
-                    message = if (entitlement.unlocked) "WiM Cloud is active"
-                        else "300 cloud dictations/month · up to 20 L4",
-                    canBuy = !entitlement.unlocked && productDetails != null,
+                    tier = entitlement.tier,
+                    maxLayer = entitlement.maxLayer,
+                    message = if (entitlement.unlocked)
+                        activity.getString(R.string.cloud_unlock_active, WimApp.tierLabel(entitlement.tier))
+                        else activity.getString(R.string.cloud_unlock_plans_line),
+                    canBuy = offerTokens.isNotEmpty(),
                 )
             }
         }
@@ -255,11 +310,13 @@ class PlayBillingManager(
 
     private fun publish(
         unlocked: Boolean = state.unlocked,
-        price: String? = state.price,
+        tier: String = state.tier,
+        maxLayer: Int = state.maxLayer,
+        prices: Map<String, String> = state.prices,
         message: String = state.message,
         canBuy: Boolean = state.canBuy,
     ) {
-        state = CloudUnlockState(unlocked, price, message, canBuy)
+        state = CloudUnlockState(unlocked, tier, maxLayer, prices, message, canBuy)
         activity.runOnUiThread { onState(state) }
     }
 

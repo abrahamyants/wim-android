@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity() {
                 signedOutSection.visibility = View.GONE
                 signedInSection.visibility = View.VISIBLE
                 userEmail.text = user.email ?: user.uid.take(12)
-                userTier.text = if (WimApp.cloudUnlocked()) "WiM Cloud" else "Local / Free"
+                userTier.text = WimApp.tierLabel(WimApp.cloudTier())
                 findViewById<TextView>(R.id.settingsUserEmail)?.text = user.email ?: user.uid.take(12)
                 findViewById<TextView>(R.id.settingsUserTier)?.text = userTier.text
                 // Hide API key section — consumer doesn't need it
@@ -886,7 +886,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (intent.getBooleanExtra("open_cloud_unlock", false)) {
-            window.decorView.post { requestCloudUnlock() }
+            val needPlus = intent.getBooleanExtra("open_cloud_unlock_plus", false)
+            window.decorView.post { requestCloudUnlock(needPlus) }
         }
     }
 
@@ -894,32 +895,57 @@ class MainActivity : AppCompatActivity() {
         val statusView = findViewById<TextView>(R.id.cloudUnlockStatus)
         val priceView = findViewById<TextView>(R.id.cloudUnlockPrice)
         val actionView = findViewById<TextView>(R.id.cloudUnlockAction)
+        val plusPriceView = findViewById<TextView>(R.id.cloudUnlockPlusPrice)
+        val plusActionView = findViewById<TextView>(R.id.cloudUnlockPlusAction)
+        fun TextView.enable(on: Boolean) { isEnabled = on; alpha = if (on) 1f else 0.55f }
         billingManager = PlayBillingManager(this, lifecycleScope) { state ->
             statusView?.text = state.message
-            priceView?.text = if (state.unlocked) "ACTIVE SUBSCRIPTION"
-                else state.price ?: "Price unavailable"
-            actionView?.text = if (state.unlocked) "MANAGE" else "SUBSCRIBE"
-            actionView?.isEnabled = state.unlocked || state.canBuy
-            actionView?.alpha = if (actionView?.isEnabled == true) 1f else 0.55f
-            findViewById<TextView>(R.id.userTier)?.text =
-                if (state.unlocked) "WiM Cloud" else "Local / Free"
-            findViewById<TextView>(R.id.settingsUserTier)?.text =
-                if (state.unlocked) "WiM Cloud" else "Local / Free"
+            val fallback = getString(R.string.cloud_unlock_price)
+            priceView?.text = state.prices[BillingBackendClient.PRODUCT_ID] ?: fallback
+            plusPriceView?.text = state.prices[BillingBackendClient.PLUS_PRODUCT_ID] ?: fallback
+            // Two rows, one plan held at most. The held plan says MANAGE; the
+            // other says SUBSCRIBE, or UPGRADE when moving from Cloud to Plus.
+            // Plus and Pro accounts already have everything Cloud offers.
+            val onCloud = state.tier == "basic"
+            val onPlus = state.tier == "plus" || state.tier == "pro"
+            actionView?.setText(when {
+                onCloud -> R.string.cloud_unlock_manage
+                onPlus -> R.string.cloud_unlock_included
+                else -> R.string.cloud_unlock_action
+            })
+            plusActionView?.setText(when {
+                onPlus -> R.string.cloud_unlock_manage
+                onCloud -> R.string.cloud_unlock_upgrade
+                else -> R.string.cloud_unlock_action
+            })
+            actionView?.enable(onCloud || (!onPlus && state.canBuy))
+            plusActionView?.enable(onPlus || state.canBuy)
+            findViewById<TextView>(R.id.userTier)?.text = WimApp.tierLabel(state.tier)
+            findViewById<TextView>(R.id.settingsUserTier)?.text = WimApp.tierLabel(state.tier)
         }
-        actionView?.setOnClickListener { billingManager?.launchPurchase() }
+        actionView?.setOnClickListener { billingManager?.launchPurchase(BillingBackendClient.PRODUCT_ID) }
+        plusActionView?.setOnClickListener { billingManager?.launchPurchase(BillingBackendClient.PLUS_PRODUCT_ID) }
         billingManager?.start()
     }
 
-    private fun requestCloudUnlock() {
+    /**
+     * Offer the plan that unlocks what the user just tapped. Gears 2 and 3 need
+     * WiM Cloud; gear 4 (Speech Disfluency) needs WiM Cloud Plus.
+     */
+    private fun requestCloudUnlock(needPlus: Boolean = false) {
         if (!AuthManager.isSignedIn) {
             Toast.makeText(this, "Sign in first, then subscribe to WiM Cloud", Toast.LENGTH_LONG).show()
             return
         }
+        val product = if (needPlus) BillingBackendClient.PLUS_PRODUCT_ID else BillingBackendClient.PRODUCT_ID
+        val message = if (needPlus)
+            getString(R.string.cloud_unlock_plus_needed) + "\n\n" + getString(R.string.cloud_unlock_dialog)
+            else getString(R.string.cloud_unlock_dialog)
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(R.string.cloud_unlock_title)
-            .setMessage(R.string.cloud_unlock_dialog)
+            .setTitle(if (needPlus) R.string.cloud_unlock_plus_title else R.string.cloud_unlock_title)
+            .setMessage(message)
             .setPositiveButton(R.string.cloud_unlock_action) { _, _ ->
-                billingManager?.launchPurchase()
+                billingManager?.launchPurchase(product)
             }
             .setNeutralButton(R.string.cloud_unlock_restore) { _, _ ->
                 billingManager?.refresh()
@@ -1477,8 +1503,8 @@ class MainActivity : AppCompatActivity() {
         }
         containers.forEachIndexed { i, container ->
             container.setOnClickListener {
-                if (prefKey == "layer" && values[i] > 1 && !WimApp.cloudUnlocked()) {
-                    requestCloudUnlock()
+                if (prefKey == "layer" && values[i] > WimApp.cloudMaxLayer()) {
+                    requestCloudUnlock(needPlus = values[i] >= 4)
                     return@setOnClickListener
                 }
                 triggerShimmerForPrefKey(prefKey)

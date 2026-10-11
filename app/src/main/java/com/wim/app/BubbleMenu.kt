@@ -224,8 +224,8 @@ class BubbleMenu(
             btn.isSelected = isActive
             btn.setTextColor(if (isActive) brandCreamBright else brandCream)
             btn.setOnClickListener {
-                if (layerVal > 1 && !WimApp.cloudUnlocked()) {
-                    openCloudUnlock()
+                if (layerVal > WimApp.cloudMaxLayer()) {
+                    openCloudUnlock(needPlus = layerVal >= 4)
                     return@setOnClickListener
                 }
                 WimApp.prefs.edit().putInt("layer", layerVal).apply()
@@ -409,11 +409,12 @@ class BubbleMenu(
         root.invalidate()
     }
 
-    private fun openCloudUnlock() {
+    private fun openCloudUnlock(needPlus: Boolean = false) {
         dismiss()
         val intent = Intent(context, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra("open_cloud_unlock", true)
+            putExtra("open_cloud_unlock_plus", needPlus)
         }
         context.startActivity(intent)
     }
