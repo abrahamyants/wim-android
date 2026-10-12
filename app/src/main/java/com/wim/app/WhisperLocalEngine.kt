@@ -66,6 +66,26 @@ class WhisperLocalEngine(private val context: Context) {
         /** Frame size for that hunt: 20ms, shorter than any spoken syllable. */
         private const val SEAM_FRAME_SAMPLES = SAMPLE_RATE / 50
 
+        // Decode while the speaker is still talking.
+        //
+        // The whole take used to be decoded only after the stop tap, so the
+        // wait grew with the take. Measured on the operator's phone 10/9–10/12
+        // (377 takes): about 1 s of waiting per 15 s spoken — 4 s after a 43 s
+        // take, 7.5 s after a 109 s one. Now, once this much un-decoded audio
+        // has piled up, the capture thread hunts for a real pause and hands
+        // everything before it to a background decode while the speaker
+        // carries on. The stop tap then only waits for the tail.
+        private const val EARLY_WINDOW_SAMPLES = SAMPLE_RATE * 12
+
+        /** Hunt for that pause in the newest 2 s of un-decoded audio. */
+        private const val EARLY_SEARCH_SAMPLES = SAMPLE_RATE * 2
+
+        /** A real pause: a 20 ms frame at or below this fraction of the chunk's mean level. */
+        private const val PAUSE_RATIO = 0.1f
+
+        /** An early chunk this soft is room tone; decoding it would only invite a hallucination. */
+        private const val EARLY_SILENT_DBFS = -50.0
+
         // Quiet Mode, matching AudioRecorder's values exactly. Those apply to
         // the WAV that feeds the CLOUD route; this engine keeps its own float
         // buffer and never touches that file, so neither the manual toggle nor
@@ -236,6 +256,41 @@ class WhisperLocalEngine(private val context: Context) {
             return quietestAt.coerceIn(start + 1, ceiling)
         }
 
+        /**
+         * Where to cut an early chunk out of `samples[start, end)`, or -1 when
+         * the newest audio holds no real pause.
+         *
+         * Unlike [chooseSplit], which must cut somewhere because the 30 s
+         * ceiling is hard, this one may answer "not yet": the capture thread
+         * asks again a moment later with more audio. A real pause is a 20 ms
+         * frame at or below [PAUSE_RATIO] of the chunk's mean level — the gap
+         * between phrases, not the dip between syllables. On a tie the latest
+         * frame wins, so the cut sits as close to the live edge as the pause
+         * allows. Nothing is cut before [EARLY_WINDOW_SAMPLES] have piled up.
+         */
+        internal fun choosePauseCut(samples: FloatArray, start: Int, end: Int): Int {
+            if (end - start < EARLY_WINDOW_SAMPLES) return -1
+            var total = 0f
+            for (i in start until end) total += kotlin.math.abs(samples[i])
+            val floor = total / (end - start) * SEAM_FRAME_SAMPLES * PAUSE_RATIO
+            val searchFrom = maxOf(start + 1, end - EARLY_SEARCH_SAMPLES)
+            var cutAt = -1
+            var quietest = Float.MAX_VALUE
+            var frameStart = searchFrom
+            while (frameStart + SEAM_FRAME_SAMPLES <= end) {
+                var energy = 0f
+                for (i in frameStart until frameStart + SEAM_FRAME_SAMPLES) {
+                    energy += kotlin.math.abs(samples[i])
+                }
+                if (energy <= floor && energy <= quietest) {
+                    quietest = energy
+                    cutAt = frameStart + SEAM_FRAME_SAMPLES / 2
+                }
+                frameStart += SEAM_FRAME_SAMPLES
+            }
+            return cutAt
+        }
+
         const val ERROR_NO_MODEL = 300
         const val ERROR_INIT = 301
         const val ERROR_INFERENCE = 302
@@ -258,6 +313,22 @@ class WhisperLocalEngine(private val context: Context) {
     @Volatile private var isCapturing = false
     private val sampleBuffer = ArrayList<Float>(SAMPLE_RATE * 30)
     private var listener: ResultListener? = null
+
+    // Decode-while-speaking state, all guarded by sampleBuffer's lock.
+    // consumedSamples = how much of sampleBuffer has already been handed to
+    // an early decode; earlyResults = those decodes, in order. One decode
+    // thread, so pieces never run concurrently on the recognizer and the
+    // tail queues behind whatever early piece is still in flight.
+    private var consumedSamples = 0
+    private val earlyResults = ArrayList<java.util.concurrent.Future<String>>()
+    private var earlyChunks = 0
+    private var decodeExecutor: java.util.concurrent.ExecutorService? = null
+    private var loopTicks = 0
+
+    private fun decodeExecutor(): java.util.concurrent.ExecutorService =
+        decodeExecutor ?: java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "WhisperLocalDecode").apply { isDaemon = true }
+        }.also { decodeExecutor = it }
 
     // Main-thread marshalling for the listener callbacks. stop() and the
     // capture-thread error path both fire from background threads (IO
@@ -350,7 +421,13 @@ class WhisperLocalEngine(private val context: Context) {
             return
         }
         try {
-            sampleBuffer.clear()
+            synchronized(sampleBuffer) {
+                sampleBuffer.clear()
+                consumedSamples = 0
+                earlyResults.clear()
+                earlyChunks = 0
+                loopTicks = 0
+            }
             val minBufBytes = AudioRecord.getMinBufferSize(
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -421,6 +498,34 @@ class WhisperLocalEngine(private val context: Context) {
                     sampleBuffer.add(shorts[i] / 32768f)
                 }
             }
+            // Every ~300 ms: is there a finished piece to decode already?
+            if (++loopTicks % 3 == 0) maybeDecodeEarly()
+        }
+    }
+
+    /**
+     * Capture thread. Once [EARLY_WINDOW_SAMPLES] of un-decoded audio has
+     * piled up, cut at a real pause — or at the 30 s ceiling when the speaker
+     * never pauses — and decode that piece in the background while the mic
+     * stays open. [stop] collects the pieces in order and only waits for the
+     * tail.
+     */
+    private fun maybeDecodeEarly() {
+        val rec = recognizer ?: return
+        synchronized(sampleBuffer) {
+            if (!isCapturing) return
+            val pending = sampleBuffer.size - consumedSamples
+            if (pending < EARLY_WINDOW_SAMPLES) return
+            val view = FloatArray(pending) { sampleBuffer[consumedSamples + it] }
+            val cut = if (pending >= WHISPER_WINDOW_SAMPLES) chooseSplit(view, 0)
+                      else choosePauseCut(view, 0, pending)
+            if (cut <= 0) return
+            val chunk = view.copyOfRange(0, cut)
+            consumedSamples += cut
+            val n = ++earlyChunks
+            earlyResults.add(decodeExecutor().submit(java.util.concurrent.Callable {
+                decodePiece(rec, chunk, "early chunk #$n")
+            }))
         }
     }
 
@@ -436,16 +541,64 @@ class WhisperLocalEngine(private val context: Context) {
             dispatchError(ERROR_INFERENCE)
             return
         }
-        var samples: FloatArray = synchronized(sampleBuffer) {
-            FloatArray(sampleBuffer.size).also { arr ->
+        val samples: FloatArray
+        val tailFrom: Int
+        val pieces: List<java.util.concurrent.Future<String>>
+        val early: Int
+        synchronized(sampleBuffer) {
+            samples = FloatArray(sampleBuffer.size).also { arr ->
                 for (i in arr.indices) arr[i] = sampleBuffer[i]
             }
+            tailFrom = consumedSamples
+            pieces = earlyResults.toList()
+            early = earlyChunks
         }
         if (samples.isEmpty()) {
             dispatchFinal("")
             return
         }
 
+        try {
+            val t0 = System.currentTimeMillis()
+            val tail = samples.copyOfRange(tailFrom, samples.size)
+            // Same single thread as the early pieces, so the tail queues behind
+            // any piece still decoding instead of racing it on the recognizer.
+            val tailResult = decodeExecutor().submit(java.util.concurrent.Callable {
+                decodePiece(rec, tail, if (early == 0) null else "tail")
+            })
+            val parts = ArrayList<String>(pieces.size + 1)
+            for (f in pieces) parts.add(f.get())
+            parts.add(tailResult.get())
+            val text = parts.filter { it.isNotEmpty() }.joinToString(" ").trim()
+            // "in Xms" is the time the speaker actually waited after the stop
+            // tap, early pieces included — the number that matters.
+            Log.i(
+                TAG,
+                "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
+                    "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
+            )
+            if (early > 0) {
+                Log.i(
+                    TAG,
+                    "Decode-while-speaking: $early piece(s) decoded before the stop tap, " +
+                        "only the ${tail.size / SAMPLE_RATE.toFloat()}s tail waited",
+                )
+            }
+            dispatchFinal(text)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Decode failed: ${e.message}", e)
+            dispatchError(ERROR_INFERENCE)
+        }
+    }
+
+    /**
+     * Trim, level-check, boost and decode one piece of a take — an early
+     * chunk, the tail, or (when nothing was decoded early) the whole take,
+     * in which case [label] is null and the log lines read exactly as before.
+     */
+    private fun decodePiece(rec: OfflineRecognizer, raw: FloatArray, label: String?): String {
+        if (raw.isEmpty()) return ""
+        val tag = if (label == null) "" else " [$label]"
         // Quiet Mode for the local route. BubbleService applies this to the WAV
         // that feeds the cloud route; this engine decodes its own float buffer
         // and never reads that file, so both the manual toggle and the
@@ -455,14 +608,20 @@ class WhisperLocalEngine(private val context: Context) {
         // Trim before measuring and boosting: the level check and the boost
         // should both describe the speech, not the room tone on either side of
         // it, and whisper-tiny hallucinates into whatever silence it is handed.
-        val trimmed = trimSilence(samples)
-        if (trimmed.size != samples.size) {
-            val cutMs = (samples.size - trimmed.size) * 1000 / SAMPLE_RATE
-            Log.i(TAG, "Trimmed ${cutMs}ms of silence before decode")
+        var samples = trimSilence(raw)
+        if (samples.size != raw.size) {
+            val cutMs = (raw.size - samples.size) * 1000 / SAMPLE_RATE
+            Log.i(TAG, "Trimmed ${cutMs}ms of silence before decode$tag")
         }
-        samples = trimmed
 
         val dbfs = meanDbfs(samples)
+        if (label != null && dbfs < EARLY_SILENT_DBFS) {
+            // A silent piece of a take that already has spoken pieces. Decoded
+            // on its own, Whisper would invent words for it; folded into the
+            // whole take it would at least have had speech around it. Skip it.
+            Log.i(TAG, "Silent piece: ${"%.1f".format(dbfs)} dBFS — skipped$tag")
+            return ""
+        }
         val manualQuiet = WimApp.prefs.getBoolean("quiet_mode", false)
         // Log the CUTOFF and where it came from, not just the level. Without
         // it a boost decision cannot be read back: "-30.6 dBFS, boosted" is
@@ -475,45 +634,39 @@ class WhisperLocalEngine(private val context: Context) {
         val source = baseline?.let { "calibrated from ${"%.1f".format(it)}" } ?: "UNCALIBRATED"
         if (manualQuiet || shouldAutoBoost(dbfs, cutoff)) {
             Log.i(TAG, "Quiet boost on local take: ${"%.1f".format(dbfs)} dBFS " +
-                "(manual=$manualQuiet, cutoff=${"%.1f".format(cutoff)}, $source)")
+                "(manual=$manualQuiet, cutoff=${"%.1f".format(cutoff)}, $source)$tag")
             applyQuietBoost(samples)
         } else {
             Log.i(TAG, "Take level: ${"%.1f".format(dbfs)} dBFS — no boost " +
-                "(cutoff=${"%.1f".format(cutoff)}, $source)")
+                "(cutoff=${"%.1f".format(cutoff)}, $source)$tag")
         }
 
-        try {
-            val t0 = System.currentTimeMillis()
-            // Whisper only hears a 30s window; sherpa-onnx drops everything past
-            // it. Split long utterances into <=30s chunks and stitch the text so
-            // a minute-long recording keeps its tail (was silently cut off after
-            // ~30s — George 2026-06-25).
-            val text = if (samples.size <= WHISPER_WINDOW_SAMPLES) {
-                decodeChunk(rec, samples)
-            } else {
-                val sb = StringBuilder()
-                var start = 0
-                while (start < samples.size) {
-                    val end = chooseSplit(samples, start)
-                    val part = decodeChunk(rec, samples.copyOfRange(start, end))
-                    if (part.isNotEmpty()) {
-                        if (sb.isNotEmpty()) sb.append(' ')
-                        sb.append(part)
-                    }
-                    start = end
+        val t0 = System.currentTimeMillis()
+        // Whisper only hears a 30s window; sherpa-onnx drops everything past
+        // it. Split long utterances into <=30s chunks and stitch the text so
+        // a minute-long recording keeps its tail (was silently cut off after
+        // ~30s — George 2026-06-25).
+        val text = if (samples.size <= WHISPER_WINDOW_SAMPLES) {
+            decodeChunk(rec, samples)
+        } else {
+            val sb = StringBuilder()
+            var start = 0
+            while (start < samples.size) {
+                val end = chooseSplit(samples, start)
+                val part = decodeChunk(rec, samples.copyOfRange(start, end))
+                if (part.isNotEmpty()) {
+                    if (sb.isNotEmpty()) sb.append(' ')
+                    sb.append(part)
                 }
-                sb.toString().trim()
+                start = end
             }
-            Log.i(
-                TAG,
-                "Decoded ${samples.size} samples (${samples.size / SAMPLE_RATE.toFloat()}s) " +
-                    "in ${System.currentTimeMillis() - t0}ms: \"$text\"",
-            )
-            dispatchFinal(text)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Decode failed: ${e.message}", e)
-            dispatchError(ERROR_INFERENCE)
+            sb.toString().trim()
         }
+        if (label != null) {
+            Log.i(TAG, "Piece$tag: ${samples.size / SAMPLE_RATE.toFloat()}s decoded " +
+                "in ${System.currentTimeMillis() - t0}ms: \"$text\"")
+        }
+        return text
     }
 
     /** Decode a single <=30s chunk through a fresh stream. Whisper is stateless
@@ -531,6 +684,8 @@ class WhisperLocalEngine(private val context: Context) {
 
     fun destroy() {
         cleanupAudio()
+        try { decodeExecutor?.shutdownNow() } catch (_: Throwable) {}
+        decodeExecutor = null
         try { recognizer?.release() } catch (_: Throwable) {}
         recognizer = null
         listener = null
