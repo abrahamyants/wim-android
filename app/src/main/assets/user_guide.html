@@ -647,7 +647,7 @@
   <header class="plate">
     <span>Manual · No. 01</span>
     <span><b>WIM</b> · What I Meant</span>
-    <span>Rev. 13.05</span>
+    <span>Rev. 10.12</span>
   </header>
 
   <!-- ===== HERO ===== -->
@@ -770,7 +770,8 @@
         <tr><td>Drag</td><td>Move the bubble anywhere on screen.</td></tr>
         <tr><td>Drag to top</td><td>Open the menu via the drag-up shortcut.</td></tr>
         <tr><td>Drag to dock</td><td>Drop on a theme slot in the dashboard — bubble snaps to that theme.</td></tr>
-        <tr><td>Shake × 2</td><td>Show the bubble if hidden. Hide it if showing.</td></tr>
+        <tr><td>Drag to bottom</td><td>Hide the bubble. Shake twice or tap the quick-settings tile to bring it back.</td></tr>
+        <tr><td>Shake × 2</td><td>Show the bubble if hidden. Hide it if showing. (Off by default — Settings.)</td></tr>
       </tbody>
     </table>
   </section>
@@ -794,7 +795,7 @@
       <li>
         <b>Shake the phone twice.</b> Quick wrist-flick × 2 (about half a
         second between flicks). The bubble appears at its last position.
-        Same gesture hides it again. Default on; turn off in Settings.
+        Same gesture hides it again. Off by default; turn on in Settings.
       </li>
       <li>
         <b>Pull down the quick-settings shade</b> and tap the WiM tile. The
@@ -887,7 +888,7 @@
     <table class="ref">
       <tbody>
         <tr><td><span class="chip">IDLE</span></td><td>Waiting. Tap to start.</td></tr>
-        <tr><td><span class="chip live">REC</span></td><td>Recording. Pulse rings expand outward; bezel halo glows. Tap to stop, or just stop talking — the bubble notices the silence.</td></tr>
+        <tr><td><span class="chip live">REC</span></td><td>Recording. Pulse rings expand outward; bezel halo glows. Tap again to stop.</td></tr>
         <tr><td><span class="chip">PROC</span></td><td>Cleaning, reconstructing, verifying. The stage arc walks around the bezel as each step completes.</td></tr>
         <tr><td><span class="chip go">SEND</span></td><td>Text is in the field. You have 5 seconds to tap the green bubble and authorize Send, or do nothing and edit by hand. (Tap-to-send assist only.)</td></tr>
         <tr><td><span class="chip">CHECK?</span></td><td>The clarifier — bubble found a word it isn't sure of. See § 08.</td></tr>
@@ -957,7 +958,7 @@
         <div class="pipe-mark">07</div>
         <div class="pipe-body">
           <h4>Learn <span class="pipe-tag">layer III only</span></h4>
-          <p>Layer III watches what you say and how you fix it. After WiM sees the same word-pair correction three times, it auto-adds the rule to your profile. Your Layer III and your Layer I (which reads from the same profile) get smarter on you specifically.</p>
+          <p>Your profile grows only from what you teach it — the corrections and vocabulary you add in Profile. WiM never guesses a correction from its own rewrites. Layer III and Layer I (which reads the same profile) both use what you added.</p>
         </div>
       </div>
     </div>
@@ -993,19 +994,19 @@
 
     <div class="card">
       <div class="card-title">Layer II — Reconstruct</div>
-      <div class="card-sub">cloud · 2–4s · openai cost</div>
+      <div class="card-sub">cloud · 2–4s · WiM Cloud plan</div>
       <p>Adds cloud GPT-4o on top of L1. Smooths grammar, applies your tone (Casual or Professional), fixes punctuation properly. Doesn't know your personal vocabulary. Generic but very capable.</p>
     </div>
 
     <div class="card">
       <div class="card-title">Layer III — Profile</div>
-      <div class="card-sub">cloud · 2–4s · learns over time</div>
-      <p>Layer II plus your personal vocabulary mixed into the prompt. The longer you use WiM, the better Layer III gets at words that are specific to you — names, jargon, brand spellings, your way of saying things. Auto-learns from repeat corrections.</p>
+      <div class="card-sub">cloud · 2–4s · WiM Cloud plan</div>
+      <p>Layer II plus your personal vocabulary mixed into the prompt. The longer you use WiM, the better Layer III gets at words that are specific to you — names, jargon, brand spellings, your way of saying things, as you add them in Profile.</p>
     </div>
 
     <div class="card">
       <div class="card-title">Layer IV — Speech Disfluency</div>
-      <div class="card-sub">cloud · 6–12s · for heavy speech disfluency</div>
+      <div class="card-sub">cloud · 6–12s · WiM Cloud Plus plan</div>
       <p>Cloud Whisper-1 with detailed timing and confidence signals, plus deeper reconstruction. It considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest, but designed for speech that the lighter layers garble.</p>
     </div>
 
@@ -1015,6 +1016,18 @@
       you find yourself editing the output every time. Layer IV is purpose-built
       for harder speech and gets disproportionately better there — try it on
       the recordings that other layers garble.
+    </div>
+
+    <div class="callout">
+      <div class="callout-tag">Plans</div>
+      <strong>Layer I is free.</strong> No account, no sign-in, nothing leaves the phone.
+      <strong>Layers II and III</strong> need <strong>WiM Cloud</strong> ($4.99/month): 300 cloud
+      takes and 150 minutes of audio a month.
+      <strong>Layer IV</strong> needs <strong>WiM Cloud Plus</strong> ($7.99/month): everything in
+      WiM Cloud plus up to 150 Layer IV takes a month.
+      Sign in with Google in Settings, then tap Subscribe — Google Play handles the payment.
+      Plans renew monthly until you cancel them in Google Play.
+      Terms: mybakingcreations.com/wim-terms
     </div>
   </section>
 
@@ -1086,8 +1099,8 @@
 
     <p>
       Supported send-targets right now: Google Messages, Samsung Messages,
-      Gmail, WhatsApp, Telegram, Signal, Facebook Messenger. More on the
-      way. The list lives in Settings if you want to check or expand it.
+      Gmail, WhatsApp (and WhatsApp Business), Telegram, Signal — plus any
+      app whose Send button is plainly labeled "Send". The list lives in Settings if you want to check or expand it.
     </p>
 
     <p>
@@ -1127,9 +1140,9 @@
         <tr><td>Tap left ✓</td><td>Accept WiM's guess. Move on.</td></tr>
         <tr><td>Tap right ✕</td><td>Reject. WiM swaps in its second-best guess (or removes the word if it's likely a filler).</td></tr>
         <tr><td>Press &amp; hold</td><td>Defer — leave it for now, you'll edit by hand later.</td></tr>
-        <tr><td>Voice: "Wim yes"</td><td>Approve hands-free.</td></tr>
-        <tr><td>Voice: "Wim no"</td><td>Reject hands-free.</td></tr>
-        <tr><td>Voice: "Wim next"</td><td>Defer hands-free.</td></tr>
+        <tr><td>Voice: "yes"</td><td>Approve hands-free.</td></tr>
+        <tr><td>Voice: "no"</td><td>Reject hands-free.</td></tr>
+        <tr><td>Voice: "next"</td><td>Defer hands-free.</td></tr>
       </tbody>
     </table>
 
@@ -1228,7 +1241,6 @@
           <circle cx="40" cy="40" r="24" fill="none" stroke="#C49A6C" stroke-width="0.5" stroke-dasharray="3 3"/>
           <text x="40" y="44" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="14" font-weight="400" fill="#C49A6C">?</text>
         </svg>
-        <div class="specimen-caption" style="opacity:0.7"><b>—</b> More TBD</div>
       </div>
     </div>
 
@@ -1394,9 +1406,9 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Heard a chirp before recording</div>
-      <div class="card-sub">on-device model not ready</div>
-      <p>The chirp is Android's built-in recognizer, which WiM falls back to while the on-device Whisper-tiny model is still downloading or unpacking. First launch takes ~30 seconds on Wi-Fi to install the model. Once it's ready, recordings start silently.</p>
+      <div class="card-title">"Speech model not ready — try again in a moment"</div>
+      <div class="card-sub">on-device model still downloading</div>
+      <p>Layer I runs a small speech model on your phone. It downloads once, about 40 MB, on first launch — around 30 seconds on Wi-Fi. Until it lands, the free layer waits rather than guess. Layers II–IV don't need it; they transcribe in the cloud.</p>
     </div>
 
     <div class="card">
@@ -1430,7 +1442,7 @@
     </p>
     <div class="signoff">— end of manual —</div>
     <p style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; color: var(--text-dim); margin: 0;">
-      WIM · WHAT I MEANT · MANUAL NO. 01 · 13.05.2026
+      WIM · WHAT I MEANT · MANUAL NO. 01 · 10.12.2026
     </p>
   </footer>
 
