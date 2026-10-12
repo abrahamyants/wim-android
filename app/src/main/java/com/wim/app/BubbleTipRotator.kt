@@ -18,10 +18,9 @@ class BubbleTipRotator(
     private val onHideLiveTranscript: () -> Unit,
 ) {
     private val tips = listOf(
-        "Did you know?" to "Tap the ? in the app for a quick guide to all features.",
-        "Light or dark?" to "Tap the bulb icon in the app to switch between light and dark mode.",
-        "Hide me!" to "Drag the bubble to the bottom edge to hide. Shake to bring me back.",
-        "Double-tap me" to "Double-tap the bubble for quick settings — size, opacity, live text.",
+        "Did you know?" to "Tap Guide at the bottom right of the app for the full manual.",
+        "Hide me!" to "Drag the bubble to the bottom edge to hide. Swipe down from the top of your phone and tap WiM to bring me back.",
+        "Drag me up" to "Drag the bubble to the top of the screen for quick settings — size, opacity, live text.",
     )
 
     fun maybeShow() {
