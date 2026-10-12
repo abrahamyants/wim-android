@@ -13,6 +13,25 @@ import android.view.accessibility.AccessibilityNodeInfo
 class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
 
     companion object {
+        /**
+         * The rule for where the words go. The remembered field wins only
+         * while the cursor is still in it. Otherwise the field that holds the
+         * cursor right now wins, wherever it is. A remembered field that has
+         * lost the cursor is used only when no field anywhere claims it —
+         * hosts that never report input focus. With no field at all, the
+         * words go to the clipboard.
+         */
+        internal fun pickInjectTarget(
+            rememberedAlive: Boolean,
+            rememberedFocused: Boolean,
+            refoundExists: Boolean,
+        ): InjectTarget = when {
+            rememberedAlive && rememberedFocused -> InjectTarget.REMEMBERED
+            refoundExists -> InjectTarget.REFOUND
+            rememberedAlive -> InjectTarget.REMEMBERED_UNFOCUSED
+            else -> InjectTarget.NONE
+        }
+
         var instance: WimAccessibilityService? = null
             private set
         var activeTextField: AccessibilityNodeInfo? = null
@@ -362,6 +381,9 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
      *  didn't happen — finding H3. */
     enum class InjectResult { FIELD, CLIPBOARD, LOST }
 
+    /** Which field a paste goes into; see [pickInjectTarget]. */
+    enum class InjectTarget { REMEMBERED, REFOUND, REMEMBERED_UNFOCUSED, NONE }
+
     /**
      * Paste text into the currently focused text field.
      */
@@ -375,14 +397,40 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
             Log.i("WiM", "Stored text field stale, searching all windows for focused editable")
             node = null
         }
-        if (node == null) {
+        // refresh() only says the node still EXISTS in its app's tree. It says
+        // nothing about whether the cursor is still in it. A field the user
+        // typed in earlier stays alive behind the one they tapped next — and
+        // some hosts (Compose screens above all) never fire TYPE_VIEW_FOCUSED
+        // for that next tap, so activeTextField kept pointing at the old
+        // field. ACTION_SET_TEXT on it returns true, the log said "ok", and
+        // the words landed somewhere the user was not looking. George 10/12:
+        // "it records, it processes, but it doesn't inject — misses once in a
+        // while." So: a remembered field that has lost input focus is treated
+        // as stale, and the cursor is looked for across every window first.
+        val rememberedFocused = node?.isFocused == true
+        if (node != null && !rememberedFocused) {
+            Log.i("WiM", "Stored text field no longer has the cursor (${describeNode(node)}) — searching all windows")
+        }
+        if (node == null || !rememberedFocused) {
             val refound = findFocusedEditableAcrossWindows()
-            if (refound != null) {
-                activeTextField = refound
-                isPasswordField = detectPasswordField(refound)
-                node = refound
-                Log.i("WiM", "Re-found focused editable in window stack — proceeding with paste")
-            } else {
+            when (pickInjectTarget(node != null, rememberedFocused, refound != null)) {
+                InjectTarget.REFOUND -> {
+                    activeTextField = refound
+                    isPasswordField = detectPasswordField(refound!!)
+                    node = refound
+                    Log.i("WiM", "Re-found focused editable in window stack — proceeding with paste")
+                }
+                InjectTarget.REMEMBERED_UNFOCUSED -> {
+                    // Nothing on screen claims the cursor. Some hosts never
+                    // report input focus at all, and for them the remembered
+                    // field was always the right one — keep the old behaviour
+                    // rather than bounce the words to the clipboard.
+                    Log.i("WiM", "No focused field in any window — using the remembered one")
+                }
+                InjectTarget.REMEMBERED -> Unit
+                InjectTarget.NONE -> node = null
+            }
+            if (node == null) {
                 activeTextField = null
                 // Focus dropped — no field to paste into. Save the reconstruction
                 // to the clipboard so the user can long-press paste once they
@@ -480,7 +528,9 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
         }
         val setOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
         if (setOk) {
-            Log.i("WiM", "injectText: ACTION_SET_TEXT ok (${finalText.length} chars)")
+            // Name the target. "ok" alone could not tell a paste into the
+            // field on screen from one into a field the user left behind.
+            Log.i("WiM", "injectText: ACTION_SET_TEXT ok (${finalText.length} chars) into ${describeNode(node)}")
             lastInjectStart = insertPos
             lastInjectEnd = insertPos + finalText.length
             lastInjectedExact = finalText
@@ -659,6 +709,14 @@ class WimAccessibilityService : AccessibilityService(), BubbleInjectionPort {
      * from `findFocus(FOCUS_INPUT)` to a recursive descent for editable+focused
      * nodes for apps whose WebViews or custom views report focus oddly.
      */
+    /** One line that says which field this is: app, class, focus, how much text it holds. */
+    private fun describeNode(node: AccessibilityNodeInfo): String {
+        val pkg = node.packageName?.toString() ?: "?"
+        val cls = node.className?.toString()?.substringAfterLast('.') ?: "?"
+        val len = node.text?.length ?: 0
+        return "$pkg/$cls focused=${node.isFocused} visible=${node.isVisibleToUser} text=${len}ch"
+    }
+
     private fun findFocusedEditableAcrossWindows(): AccessibilityNodeInfo? {
         // CRITICAL: must recycle every root + non-returned focus result.
         // The accessibility node pool is shared with the OS — a deep tree
