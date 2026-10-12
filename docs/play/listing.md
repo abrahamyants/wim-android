@@ -8,11 +8,11 @@ call alone. Disfluency-first stays in the short description and body copy,
 not the title, unless George says otherwise.)
 
 ## Short description (80 chars max)
-Voice typing built for disfluent speech. Speak messy, send what you MEANT.
+Voice typing for how people really talk. Speak messy, send what you MEANT.
 
 ## Full description (4000 chars max)
 
-**WiM — What I Meant. The first app you won't use.**
+**WiM — What I Meant. The app you set up once and never open again.**
 
 Set WiM up once, then close it. A small floating bubble stays on top of
 whatever you're doing. That bubble IS the app.
@@ -28,11 +28,11 @@ restarts, the sentence you changed halfway — and it hands back the message
 you meant to write. Like handing a rough draft to an editor. Your words,
 your meaning, tidied up. Casual or Professional — your pick.
 
-**Built for people the other apps gave up on.**
-WiM was built by a speaker with a hard speech block, for everyone whose
-speech doesn't come out in a straight line: speech disfluency, blocks,
-repetitions, non-native speakers, fast talkers, tired brains. Repetitions
-are bridged. False starts are cleaned. What you meant survives.
+**For anyone who doesn't talk in clean sentences.**
+Fast talkers. Tired brains. People who think while they speak. Non-native
+speakers. People with a speech block or repetitions. WiM takes speech the
+way it really comes out, in whatever shape. Repetitions are bridged. False
+starts are cleaned. What you meant survives.
 
 **Four gears.**
 - Transcribe (free, on your phone): your words as spoken, tidied — no
