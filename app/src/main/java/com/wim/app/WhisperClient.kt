@@ -195,7 +195,11 @@ object WhisperClient {
             // log (WimLogFile). The recorder overwrites one path per take, so
             // a garbled take was gone before anyone could listen to it
             // (9/28: "R. R. R. R." on a 35 s take — normal level, no audio left).
-            WimLogFile.keepTakeAudio(WimApp.instance, uploadFile)
+            // Sideload (giveaway/debug) builds only. The store build promises
+            // "recordings live on your phone only while a take is processed",
+            // and the manual and privacy policy say the same; a 7-day audio
+            // shelf would make all three untrue for Play users (10/12).
+            if (WimApp.testHooksEnabled()) WimLogFile.keepTakeAudio(WimApp.instance, uploadFile)
             // Route choice. Normally: a key in the build means go straight to
             // OpenAI. With force_backend on (see WimApp.forceBackend) the token
             // is fetched first and the backend wins, so the operator's build

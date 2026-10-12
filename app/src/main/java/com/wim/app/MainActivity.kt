@@ -1988,7 +1988,7 @@ class MainActivity : AppCompatActivity() {
 &#8226; um / uh / like / you know stripped<br>
 &#8226; Whisper hallucinations like "thanks for watching" stripped<br><br>
 <b>4. Reconstruction (Layer II+).</b><br>
-&#8226; <b>L2/L3</b> &#8212; GPT-4o rewrites in your tone. Claude Haiku 4.5 then verifies the meaning didn't change.<br>
+&#8226; <b>L2/L3</b> &#8212; GPT-4o rewrites in your tone. A meaning guard then checks the rewrite kept what you said.<br>
 &#8226; <b>L4</b> &#8212; Claude Sonnet 4.6 with extended thinking. Reasons through speech-disfluency patterns; no separate verifier needed (the reasoning trace self-validates).<br><br>
 <b>5. Output filters.</b><br>
 &#8226; LLM leak guard: catches "I'm sorry, I can't help" responses.<br>
@@ -2055,10 +2055,10 @@ class MainActivity : AppCompatActivity() {
             GuideSection(
                 "Layers",
                 "What each layer does",
-                """<b>I. Transcribe</b> &#8212; whisper-tiny on-device + rule-based cleanup. Free, instant, no internet after the model lands.<br><br>
-<b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. Claude Haiku 4.5 verifies meaning. ~2-4 seconds.<br><br>
-<b>III. Profile</b> &#8212; Same as II + your personal vocabulary and learned corrections feed the prompt. Learns over time.<br><br>
-<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Deeper reconstruction considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest layer, built for speech the lighter layers garble.<br><br><b>WiM is an assistive dictation tool, not a medical device.</b> It does not diagnose, treat, cure, or prevent any condition."""
+                """<b>I. Transcribe</b> &#8212; whisper-tiny on-device + rule-based cleanup. Free, instant, no internet after the model lands. No account needed.<br><br>
+<b>II. Reconstruct</b> &#8212; GPT-4o cleans grammar and applies your tone. A meaning guard checks the rewrite. ~2-4 seconds. Needs WiM Cloud ($4.99/mo).<br><br>
+<b>III. Profile</b> &#8212; Same as II + the vocabulary and corrections you add in Profile feed the prompt. Needs WiM Cloud.<br><br>
+<b>IV. Speech Disfluency</b> &#8212; Whisper-1 captures the audio with confidence signals. Deeper reconstruction considers phoneme difficulty, avoidance patterns, and anticipatory blocks. Slowest layer, built for speech the lighter layers garble. Needs WiM Cloud Plus ($7.99/mo).<br><br><b>WiM is an assistive dictation tool, not a medical device.</b> It does not diagnose, treat, cure, or prevent any condition."""
             ),
 
             GuideSection(
