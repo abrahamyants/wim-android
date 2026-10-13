@@ -197,7 +197,7 @@ fun WatchItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
 
 private val CHAT_W = 330.dp
 private val CHAT_H = 470.dp
-private val BUBBLE_SCALE = 1.5f             // 72dp bezel → 108dp on the slide
+private val BUBBLE_SCALE = 0.9f             // 72dp bezel → 65dp: the whole bubble is the size the old knob was (George 10/12)
 private val BUBBLE_BOX = 72.dp
 private val SEND_BTN = 40.dp
 
@@ -213,10 +213,12 @@ private fun FakeChat(t: Long, phase: Phase) {
     }
     val sentVisible = phase == Phase.SENT || phase == Phase.HOME
 
-    // Bubble rest spot: right side, just above the text box.
+    // Bubble rest spot: upper right, level with the incoming message —
+    // not down by the Send arrow (George 10/12). The slide to Send is the
+    // visible move at the end.
     // Send spot: centered on the Send arrow (bottom-right corner of the box).
-    val restX = CHAT_W - BUBBLE_BOX - 26.dp
-    val restY = CHAT_H - 56.dp - BUBBLE_BOX - 22.dp
+    val restX = CHAT_W - BUBBLE_BOX - 14.dp
+    val restY = 34.dp
     val sendX = CHAT_W - 12.dp - SEND_BTN / 2 - BUBBLE_BOX / 2
     val sendY = CHAT_H - 12.dp - SEND_BTN / 2 - BUBBLE_BOX / 2
     val slide = when (phase) {
