@@ -82,6 +82,17 @@ class OnboardingActivity : ComponentActivity() {
         startService(Intent(this, BubbleService::class.java).apply { action = "HIDE" })
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Preview / re-entry: onResume hid the bubble. If this phone already
+        // finished onboarding, the user backing out must get the bubble back —
+        // otherwise it stays hidden until the app is opened again.
+        if (!isFinishing) return
+        if (WimApp.prefs.getBoolean("onboarding_complete", false)) {
+            startService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
+        }
+    }
+
     private fun handleComplete() {
         WimApp.prefs.edit().putBoolean("onboarding_complete", true).apply()
         startService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
