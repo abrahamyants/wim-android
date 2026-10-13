@@ -144,20 +144,18 @@ object WhisperClient {
      * Order matters. Script prep is about this specific utterance and must not
      * be crowded out, so it goes first and the pack fills what is left.
      */
-    private fun buildTranscriberHint(): String {
-        val script = ScriptPrepStore.activeContext()
-        val pack = try {
-            DomainPackHelper.asrHint(WimApp.instance)
-        } catch (e: Exception) {
-            Log.w("WhisperClient", "domain pack hint unavailable: ${e.message}")
-            ""
-        }
-        return when {
-            script.isBlank() -> pack
-            pack.isBlank() -> script
-            else -> "$script\n$pack"
-        }
-    }
+    // Script prep only. The domain pack's term list used to ride along here
+    // as spelling guidance, and it is what made whisper-1 answer "R. R. R."
+    // Caught 2026-10-12 20:46 on George's phone: a 66 s take at normal
+    // level came back as "R.      R. R. R. R.   R.   R. R. R. R." and the
+    // gate threw the whole take away. Replayed off the kept audio: the same
+    // file with no hint transcribed perfectly three times in a row; with
+    // the legal pack's list ("... Fed. R. Civ. P. ...") it returned the
+    // exact "R. R. R." string from the log; with the medical list it
+    // returned "myocardial infarction" over and over. A comma list of
+    // jargon is not a transcript, and Whisper copies its shape. Six takes
+    // were lost this way on 10/12 alone, all on the cloud route.
+    private fun buildTranscriberHint(): String = ScriptPrepStore.activeContext()
 
     suspend fun transcribe(
         audioFile: File,
@@ -175,10 +173,8 @@ object WhisperClient {
         // (DisfluencyFilter.stripTimedFillers). whisper-1 only, and only
         // meaningful with verbose_json — silently ignored otherwise.
         wordTimestamps: Boolean = false,
-        // Script prep (what the speaker is about to read) plus the active
-        // domain pack's canonical terms. The pack half is spelling guidance:
-        // it costs nothing and stops the transcriber from inventing "kuber
-        // netties" that a later stage would have to guess its way out of.
+        // Script prep (what the speaker is about to read), if any. The domain
+        // pack's term list no longer rides along — see buildTranscriberHint.
         prompt: String = buildTranscriberHint(),
     ): TranscribeResult =
         withContext(Dispatchers.IO) {
@@ -374,7 +370,7 @@ object WhisperClient {
                 }
             }
 
-            TranscribeResult(
+            val result = TranscribeResult(
                 text = cleanText,
                 asrMs = asrMs,
                 lowConfidenceSegments = lowConfidenceSegments,
@@ -383,6 +379,25 @@ object WhisperClient {
                 wasFullyHallucinated = wasFullyHallucinated,
                 engine = engine
             )
+            // A hint can still poison the ear (script prep is free text the
+            // user typed). When the whole answer was noise and a hint was
+            // sent, the take is not lost yet: the audio is still on disk.
+            // Send it once more with no hint before giving up — on 10/12 the
+            // bare resend of the "R. R. R." take came back word-perfect.
+            if (result.wasFullyHallucinated && prompt.isNotBlank()) {
+                android.util.Log.w("WiM", "Whisper hallucinated with a hint (${prompt.length} chars) — resending the same take with no hint")
+                return@withContext transcribe(
+                    audioFile,
+                    language = language,
+                    patienceMode = patienceMode,
+                    model = model,
+                    temperature = temperature,
+                    verboseSegments = verboseSegments,
+                    wordTimestamps = wordTimestamps,
+                    prompt = "",
+                )
+            }
+            result
         }
 
     /**
