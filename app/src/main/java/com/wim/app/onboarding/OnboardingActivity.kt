@@ -62,7 +62,11 @@ class OnboardingActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalOnboardingActivity provides this@OnboardingActivity) {
                     com.wim.app.onboarding.screens.CalmDark {
                         OnboardingNavHost(
-                            onComplete = { handleComplete() }
+                            onComplete = { handleComplete() },
+                            // Preview hook: `am start ... --es start_route watch-it`
+                            // opens the flow on one slide. Absent = WELCOME.
+                            startRoute = intent?.getStringExtra("start_route")
+                                ?: OnboardingRoutes.WELCOME
                         )
                     }
                 }

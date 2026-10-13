@@ -20,6 +20,7 @@ import com.wim.app.onboarding.screens.ProfileScreen
 import com.wim.app.onboarding.screens.ReconstructionScreen
 import com.wim.app.onboarding.screens.SamsungSleepScreen
 import com.wim.app.onboarding.screens.SettingsMenuScreen
+import com.wim.app.onboarding.screens.WatchItScreen
 import com.wim.app.onboarding.screens.WelcomeScreen
 
 /**
@@ -28,7 +29,7 @@ import com.wim.app.onboarding.screens.WelcomeScreen
  *
  *   welcome → reconstruction → permissions-intro
  *     → overlay → accessibility → mic → battery → samsung (if Samsung)
- *     → profile → about-you → autosend → settings-menu → final
+ *     → profile → about-you → drive-it → watch-it → autosend → settings-menu → final
  *
  * Deleted 2026-07-24: the four parked explainer tiles (any-app → layers →
  * tones → learns) and interactive-demo. All five were orphaned — unreachable
@@ -52,6 +53,7 @@ object OnboardingRoutes {
     const val ABOUT_YOU          = "about-you"
     const val AUTOSEND           = "autosend"
     const val DRIVE_IT           = "drive-it"
+    const val WATCH_IT           = "watch-it"
     const val SETTINGS_MENU      = "settings-menu"
 }
 
@@ -59,11 +61,12 @@ object OnboardingRoutes {
 fun OnboardingNavHost(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    startRoute: String = OnboardingRoutes.WELCOME
 ) {
     NavHost(
         navController = navController,
-        startDestination = OnboardingRoutes.WELCOME,
+        startDestination = startRoute,
         modifier = modifier
     ) {
         composable(OnboardingRoutes.WELCOME) {
@@ -141,6 +144,12 @@ fun OnboardingNavHost(
         }
         composable(OnboardingRoutes.DRIVE_IT) {
             DriveItScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = { navController.navigate(OnboardingRoutes.WATCH_IT) }
+            )
+        }
+        composable(OnboardingRoutes.WATCH_IT) {
+            WatchItScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.AUTOSEND) }
             )
