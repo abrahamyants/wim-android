@@ -226,7 +226,7 @@ private fun TalkDemo() {
             typed = typed,
             typedDim = step == DemoStep.TALK,
             sent = if (step == DemoStep.SENT) listOf(current.clean) else emptyList(),
-            height = 250.dp
+            height = 270.dp
         )
 
         Spacer(Modifier.height(10.dp))
@@ -241,7 +241,7 @@ private fun TalkDemo() {
             text = chip,
             fontFamily = PlusJakartaFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = 11.sp,
+            fontSize = 14.sp,
             letterSpacing = 1.5.sp,
             color = when (step) {
                 DemoStep.TALK -> colorResource(R.color.red_bright)
@@ -252,11 +252,11 @@ private fun TalkDemo() {
         Text(
             text = line,
             fontFamily = PlusJakartaFamily,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
+            fontSize = 17.sp,
+            lineHeight = 22.sp,
             color = colorResource(R.color.text_dim),
             textAlign = TextAlign.Center,
-            modifier = Modifier.height(22.dp)
+            modifier = Modifier.height(26.dp)
         )
     }
 }

@@ -8,7 +8,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wim.app.onboarding.screens.AboutYouScreen
 import com.wim.app.onboarding.screens.AccessibilityPermissionScreen
-import com.wim.app.onboarding.screens.AutoSendScreen
 import com.wim.app.onboarding.screens.DriveItScreen
 import com.wim.app.onboarding.screens.BatteryPermissionScreen
 import com.wim.app.onboarding.screens.FinalScreen
@@ -30,7 +29,7 @@ import com.wim.app.onboarding.screens.WelcomeScreen
  *
  *   welcome → reconstruction → permissions-intro
  *     → overlay → accessibility → mic → mic-level → battery → notifications → samsung (if Samsung)
- *     → profile → about-you → drive-it → watch-it → autosend → settings-menu → final
+ *     → profile → about-you → drive-it → watch-it → settings-menu → final
  *
  * Deleted 2026-07-24: the four parked explainer tiles (any-app → layers →
  * tones → learns) and interactive-demo. All five were orphaned — unreachable
@@ -53,7 +52,6 @@ object OnboardingRoutes {
     const val RECONSTRUCTION     = "reconstruction"
     const val PROFILE            = "profile"
     const val ABOUT_YOU          = "about-you"
-    const val AUTOSEND           = "autosend"
     const val DRIVE_IT           = "drive-it"
     const val WATCH_IT           = "watch-it"
     const val SETTINGS_MENU      = "settings-menu"
@@ -156,12 +154,6 @@ fun OnboardingNavHost(
         }
         composable(OnboardingRoutes.WATCH_IT) {
             WatchItScreen(
-                onBack = { navController.popBackStack() },
-                onContinue = { navController.navigate(OnboardingRoutes.AUTOSEND) }
-            )
-        }
-        composable(OnboardingRoutes.AUTOSEND) {
-            AutoSendScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.SETTINGS_MENU) }
             )

@@ -2,7 +2,10 @@ package com.wim.app.onboarding.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -94,9 +97,9 @@ private fun phaseAt(t: Long): Phase = when {
 private fun captionFor(p: Phase): String = when (p) {
     Phase.IDLE -> "Tap the bubble."
     Phase.REC -> "Red. Talk, any way it comes out."
-    Phase.PROC -> "Tap again. Orange. It works on your words."
-    Phase.TYPING -> "The clean text lands in the box."
-    Phase.SEND -> "Green. Tap it, and that tap sends."
+    Phase.PROC -> "Orange. It works on your words."
+    Phase.TYPING -> "Your clean text lands in the box."
+    Phase.SEND -> "Green means you may send. One tap."
     Phase.SENT, Phase.HOME -> "Sent. Nothing goes without your tap."
 }
 
@@ -151,11 +154,11 @@ fun WatchItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
             Text(
                 text = captionFor(phase),
                 fontFamily = PlusJakartaFamily,
-                fontSize = 14.sp,
-                lineHeight = 19.sp,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
                 color = colorResource(R.color.text_dim),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.height(40.dp)
+                modifier = Modifier.height(56.dp)
             )
 
             Spacer(Modifier.weight(0.5f))
@@ -270,5 +273,59 @@ private fun FakeChat(t: Long, phase: Phase) {
                 .clip(CircleShape)
                 .background(Color.White)
         )
+
+        // The numbered step, pinned to the thing it is about (George 10/12:
+        // "step one, press the button… then the text appears").
+        when (phase) {
+            Phase.IDLE -> StepTag("1", "TAP", "→", Modifier.offset(x = restX - 96.dp, y = restY + 20.dp))
+            Phase.REC -> Row(
+                modifier = Modifier.offset(x = restX - 176.dp, y = restY + 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StepTag("2", "TALK", "")
+                Spacer(Modifier.width(6.dp))
+                Text("🗣", fontSize = 16.sp)
+                Spacer(Modifier.width(4.dp))
+                Wave(t)
+            }
+            Phase.PROC -> StepTag("3", "TAP AGAIN", "→", Modifier.offset(x = restX - 140.dp, y = restY + 20.dp))
+            Phase.TYPING -> StepTag("4", "YOUR TEXT", "↓", Modifier.offset(x = 16.dp, y = CHAT_H - 118.dp))
+            Phase.SEND -> StepTag("5", "TAP TO SEND", "→", Modifier.offset(x = bx - 150.dp, y = by + 20.dp))
+            Phase.SENT, Phase.HOME -> StepTag("✓", "SENT", "", Modifier.offset(x = 16.dp, y = CHAT_H - 118.dp))
+        }
+    }
+}
+
+/** A small gold pill: "1  TAP  →". */
+@Composable
+private fun StepTag(n: String, word: String, arrow: String, modifier: Modifier = Modifier) {
+    Text(
+        text = listOf(n, word, arrow).filter { it.isNotEmpty() }.joinToString("  "),
+        fontFamily = PlusJakartaFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        letterSpacing = 1.sp,
+        color = colorResource(R.color.bg_sunken),
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(colorResource(R.color.copper_gold))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    )
+}
+
+/** Five red bars that dance while "you talk". */
+@Composable
+private fun Wave(t: Long) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (i in 0 until 5) {
+            val h = 5f + 11f * kotlin.math.abs(kotlin.math.sin(t / 110f + i * 1.3f))
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(h.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(colorResource(R.color.red_bright))
+            )
+        }
     }
 }

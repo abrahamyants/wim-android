@@ -73,7 +73,7 @@ fun FakeChatBox(
                     text = from,
                     fontFamily = PlusJakartaFamily,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
+                    fontSize = 15.sp,
                     letterSpacing = 1.sp,
                     color = colorResource(R.color.copper_gold)
                 )
@@ -100,8 +100,8 @@ fun FakeChatBox(
                     Text(
                         text = if (typed.isEmpty()) "Message" else typed,
                         fontFamily = PlusJakartaFamily,
-                        fontSize = 11.sp,
-                        lineHeight = 13.sp,
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp,
                         maxLines = 4,
                         fontStyle = if (typedDim && typed.isNotEmpty()) FontStyle.Italic else FontStyle.Normal,
                         color = when {
@@ -136,11 +136,11 @@ private fun ChatLine(text: String, mine: Boolean) {
         Text(
             text = text,
             fontFamily = PlusJakartaFamily,
-            fontSize = 11.sp,
-            lineHeight = 14.sp,
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
             color = if (mine) colorResource(R.color.bg_sunken) else colorResource(R.color.section_header),
             modifier = Modifier
-                .widthIn(max = 200.dp)
+                .widthIn(max = 240.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(
                     if (mine) colorResource(R.color.copper_gold)
