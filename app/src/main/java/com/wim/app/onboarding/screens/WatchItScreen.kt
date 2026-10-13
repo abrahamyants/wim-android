@@ -139,7 +139,7 @@ fun WatchItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
                 .padding(horizontal = 32.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.weight(0.2f))
+            Spacer(Modifier.weight(0.15f))
 
             Text(
                 text = "WATCH IT WORK",
@@ -165,7 +165,7 @@ fun WatchItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
                 modifier = Modifier.height(40.dp)
             )
 
-            Spacer(Modifier.weight(0.8f))
+            Spacer(Modifier.weight(0.5f))
 
             Button(
                 onClick = onContinue,
@@ -195,9 +195,9 @@ fun WatchItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
 
 /* ---------- the fake chat screen ---------- */
 
-private val CHAT_W = 300.dp
-private val CHAT_H = 340.dp
-private val BUBBLE_SCALE = 1.35f            // 72dp bezel → ~97dp on the slide
+private val CHAT_W = 330.dp
+private val CHAT_H = 470.dp
+private val BUBBLE_SCALE = 1.5f             // 72dp bezel → 108dp on the slide
 private val BUBBLE_BOX = 72.dp
 private val SEND_BTN = 40.dp
 
@@ -215,7 +215,7 @@ private fun FakeChat(t: Long, phase: Phase) {
 
     // Bubble rest spot: right side, just above the text box.
     // Send spot: centered on the Send arrow (bottom-right corner of the box).
-    val restX = CHAT_W - BUBBLE_BOX - 8.dp
+    val restX = CHAT_W - BUBBLE_BOX - 26.dp
     val restY = CHAT_H - 56.dp - BUBBLE_BOX - 22.dp
     val sendX = CHAT_W - 12.dp - SEND_BTN / 2 - BUBBLE_BOX / 2
     val sendY = CHAT_H - 12.dp - SEND_BTN / 2 - BUBBLE_BOX / 2
@@ -238,13 +238,14 @@ private fun FakeChat(t: Long, phase: Phase) {
         }
     }.coerceIn(0f, 1f)
 
-    Box(
+    Box(modifier = Modifier.size(CHAT_W, CHAT_H)) {
+      Box(
         modifier = Modifier
-            .size(CHAT_W, CHAT_H)
+            .fillMaxSize()
             .clip(RoundedCornerShape(22.dp))
             .background(colorResource(R.color.bg_surface))
             .border(1.dp, colorResource(R.color.copper_gold).copy(alpha = 0.35f), RoundedCornerShape(22.dp))
-    ) {
+      ) {
         // Thread.
         Column(
             modifier = Modifier
@@ -303,7 +304,9 @@ private fun FakeChat(t: Long, phase: Phase) {
             }
         }
 
-        // The real bubble.
+      }
+
+        // The real bubble — outside the clipped card so it can hang over the edge.
         LiveBubble(
             phase = phase,
             t = t,
