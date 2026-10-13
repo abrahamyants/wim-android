@@ -252,10 +252,7 @@ internal fun PermissionCard(
         ) {
             Spacer(Modifier.weight(0.5f))
 
-            RealBubble(
-                size = 118.dp,
-                label = if (granted) "✓" else "WiM"
-            )
+            RealBubble()
 
             Spacer(Modifier.height(30.dp))
 

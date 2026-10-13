@@ -108,7 +108,7 @@ fun FinalScreen(onBack: () -> Unit, onDone: () -> Unit) {
             ) {
                 Spacer(Modifier.weight(0.7f))
 
-                RealBubble(size = 118.dp, label = "✓")
+                RealBubble()
 
                 Spacer(Modifier.height(30.dp))
 

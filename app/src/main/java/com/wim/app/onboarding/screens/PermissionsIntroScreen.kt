@@ -87,12 +87,12 @@ fun PermissionsIntroScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDar
         ) {
             Spacer(Modifier.weight(0.4f))
 
-            RealBubble(size = 118.dp, label = "WiM")
+            RealBubble()
 
             Spacer(Modifier.height(26.dp))
 
             Text(
-                text = if (samsung) "FIVE QUICK THINGS" else "FOUR QUICK THINGS",
+                text = if (samsung) "SIX QUICK THINGS" else "FIVE QUICK THINGS",
                 fontFamily = TitleFamily,
                 fontSize = 30.sp,
                 color = colorResource(R.color.section_header),
@@ -128,8 +128,12 @@ fun PermissionsIntroScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDar
                 ManifestRow("ACCESSIBILITY", "so it can place your words in the right field", PermissionStatus.accessibility(context))
                 ManifestRow("MICROPHONE", "so it can hear you", PermissionStatus.microphone(context))
                 ManifestRow("BATTERY", "so it survives the background", PermissionStatus.batteryOptimization(context))
+                ManifestRow("NOTIFICATIONS", "so you can find the bubble again", PermissionStatus.notifications(context))
                 if (samsung) {
-                    ManifestRow("SAMSUNG SLEEP", "so One UI doesn't kill it", false)
+                    // No API reads Samsung's sleep lists. The light goes green once
+                    // the user has opened Samsung's battery page from the Samsung
+                    // card (George 10/12: every row has a light, this one too).
+                    ManifestRow("SAMSUNG SLEEP", "so One UI doesn't kill it", PermissionStatus.samsungSleepVisited())
                 }
             }
 

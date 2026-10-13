@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
+import com.wim.app.onboarding.RealBubbleState
 import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
@@ -63,7 +64,7 @@ fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
         ) {
             Spacer(Modifier.weight(0.4f))
 
-            RealBubble(size = 118.dp, label = "WiM")
+            RealBubble()
 
             Spacer(Modifier.height(26.dp))
 
@@ -94,9 +95,9 @@ fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
                 modifier = Modifier.fillMaxWidth().widthIn(max = 330.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                StepRow(R.color.red_hot, "Tap the bubble — and talk.")
-                StepRow(R.color.orange_amber, "Tap again — it cleans up what you meant.")
-                StepRow(R.color.green_active, "It turns green: SEND. Tap it — the bubble sends, for you.")
+                StepRow(RealBubbleState.RECORDING, "Tap the bubble — and talk.")
+                StepRow(RealBubbleState.PROCESSING, "Tap again — it cleans up what you meant.")
+                StepRow(RealBubbleState.SEND_READY, "It turns green: SEND. Tap it — the bubble sends, for you.")
             }
 
             Spacer(Modifier.height(18.dp))
@@ -140,13 +141,9 @@ fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
 }
 
 @Composable
-private fun StepRow(colorRes: Int, text: String) {
+private fun StepRow(state: RealBubbleState, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        RealBubble(
-            size = 46.dp,
-            label = "",
-            ringColor = colorResource(colorRes)
-        )
+        RealBubble(state = state, scale = 0.7f)
         Spacer(Modifier.size(16.dp))
         Text(
             text = text,

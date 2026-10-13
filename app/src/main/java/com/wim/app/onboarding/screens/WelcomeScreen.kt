@@ -1,13 +1,9 @@
 package com.wim.app.onboarding.screens
 
 import android.content.res.Configuration
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -40,73 +34,57 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
+import com.wim.app.onboarding.FakeChatBox
 import com.wim.app.onboarding.RealBubble
 import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 import kotlinx.coroutines.delay
 
 /**
- * Welcome / intro — Calm-dark (rev 2026-06-20, George's intro-page notes, premium pass):
- *  - Slogan ("the first app you won't use") popped above the bubble.
- *  - Bubble (bobbing, WiM logo) hero kept. Redundant "WiM" wordmark removed; "WHAT I MEANT"
- *    promoted (larger, shadowed).
- *  - Demo is a real MESSAGE (a sent-text bubble, Google-Messages style) so it's unmistakably a
- *    text, not raw output. The blurt TYPES IN (live dictation feel): the stream of consciousness
- *    in GREEN with the junk / meta-noise words in RED (what gets cut). It then resolves into the
- *    clean reconstruction in a THIRD color (cream) + a "✓ what you meant". No strikethrough —
- *    reconstruction rewrites everything, so a per-word cross-out would misrepresent it.
+ * Welcome / intro — Calm-dark.
+ *
+ * rev 2026-10-12 (George's walk-through): the before/after card is gone. The
+ * demo is the same fake messaging screen the Watch It Work page uses
+ * ([FakeChatBox]), with no bubble on it yet, and it says one thing:
+ * voice to text. You talk, the words come out any way they come out. Layer 1
+ * puts the same words in, cleaned up. Layer 2 and up turns the ramble into a
+ * tidy, professional message. That is all it has to convey.
+ *
+ * The slogan stays ("The first app you won't use." — George 10/12: keep it).
+ * The bubble is the real one ([RealBubble]).
  */
 
 private data class DemoExample(
-    val to: String,
-    val messy: String,
-    val junk: List<String>,
-    val clean: String
+    val messy: String,   // what comes out of the mouth
+    val tidy: String,    // layer 1: the same words, cleaned up
+    val clean: String    // layer 2 and up: what you meant, said well
 )
 
 private val examples = listOf(
     DemoExample(
-        to = "your boss",
         messy = "hey real quick I gotta tell my boss wait what was I gonna say oh right I'm running late traffic is insane ok send that",
-        junk = listOf("hey", "real quick", "wait what was I gonna say", "oh right", "ok send that"),
+        tidy = "Hey, real quick, I gotta tell my boss... wait, what was I gonna say? Oh right, I'm running late, traffic is insane. OK, send that.",
         clean = "Hi — I'm running late, traffic's heavy. I'll be there as soon as I can."
     ),
     DemoExample(
-        to = "a friend",
         messy = "text sarah real quick tell her happy birthday and umm that I miss her hope it's a good one",
-        junk = listOf("text sarah", "real quick", "tell her", "umm"),
+        tidy = "Text Sarah real quick. Tell her happy birthday, and that I miss her. Hope it's a good one.",
         clean = "Happy birthday, Sarah! Hope it's a great one — miss you."
     ),
     DemoExample(
-        to = "the team",
         messy = "ok email the team that the meeting uh what time was it whatever just move it to thursday something came up",
-        junk = listOf("ok", "email the team", "uh what time was it", "whatever"),
+        tidy = "OK, email the team that the meeting, what time was it? Whatever, just move it to Thursday. Something came up.",
         clean = "Hi team — let's move our meeting to Thursday. Something came up."
     )
 )
 
-private fun buildMessy(messy: String, junk: List<String>, green: Color, red: Color): AnnotatedString =
-    buildAnnotatedString {
-        pushStyle(SpanStyle(color = green))
-        append(messy)
-        pop()
-        junk.forEach { phrase ->
-            var i = messy.indexOf(phrase, ignoreCase = true)
-            while (i >= 0) {
-                addStyle(SpanStyle(color = red), i, i + phrase.length)
-                i = messy.indexOf(phrase, i + phrase.length, ignoreCase = true)
-            }
-        }
-    }
+private enum class DemoStep { TALK, TIDY, CLEAN, SENT }
 
 @Composable
 fun WelcomeScreen(onContinue: () -> Unit) {
@@ -145,7 +123,7 @@ private fun WelcomeContent(onContinue: () -> Unit) {
                 .padding(horizontal = 32.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.weight(0.5f))
+            Spacer(Modifier.weight(0.3f))
 
             Text(
                 text = "The first app you won't use.",
@@ -158,11 +136,11 @@ private fun WelcomeContent(onContinue: () -> Unit) {
                 style = TextStyle(shadow = Shadow(Color.Black.copy(alpha = 0.55f), Offset(0f, 2f), 8f))
             )
 
-            Spacer(Modifier.height(28.dp))
-
-            RealBubble(size = 118.dp, label = "WiM")
-
             Spacer(Modifier.height(18.dp))
+
+            RealBubble()
+
+            Spacer(Modifier.height(10.dp))
 
             Text(
                 text = "WHAT I MEANT",
@@ -173,11 +151,11 @@ private fun WelcomeContent(onContinue: () -> Unit) {
                 style = TextStyle(shadow = Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 3f), 10f))
             )
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(20.dp))
 
-            ReconstructDemo()
+            TalkDemo()
 
-            Spacer(Modifier.weight(0.85f))
+            Spacer(Modifier.weight(0.6f))
 
             Button(
                 onClick = onContinue,
@@ -205,104 +183,80 @@ private fun WelcomeContent(onContinue: () -> Unit) {
     }
 }
 
+/**
+ * Voice to text, in the message box. Loops the three examples:
+ *   TALK  — the messy words type in, faint and italic, as they are said
+ *   TIDY  — layer 1: the same words, cleaned up
+ *   CLEAN — layer 2 and up: what you meant, said well
+ *   SENT  — it lands in the thread, the box empties
+ */
 @Composable
-private fun ReconstructDemo() {
-    val green = colorResource(R.color.green_active)
-    val red = colorResource(R.color.red_bright)
-    val out = colorResource(R.color.section_header)
-
+private fun TalkDemo() {
     var index by remember { mutableIntStateOf(0) }
-    val current = examples[index % examples.size]
+    var step by remember { mutableStateOf(DemoStep.TALK) }
     var shown by remember { mutableIntStateOf(0) }
-    var reconstructed by remember { mutableStateOf(false) }
-
-    val cleanAlpha by animateFloatAsState(
-        targetValue = if (reconstructed) 1f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "cleanAlpha"
-    )
-
-    val messyAnno = remember(index, green, red) { buildMessy(current.messy, current.junk, green, red) }
+    val current = examples[index % examples.size]
 
     LaunchedEffect(index) {
+        step = DemoStep.TALK
         shown = 0
-        reconstructed = false
         while (shown < current.messy.length) {
             shown++
-            delay(24)
+            delay(26)
         }
-        delay(4000)
-        reconstructed = true
-        delay(4300)
+        delay(700)
+        step = DemoStep.TIDY
+        delay(3000)
+        step = DemoStep.CLEAN
+        delay(3000)
+        step = DemoStep.SENT
+        delay(1800)
         index++
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 344.dp),
-        horizontalAlignment = Alignment.End
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(end = 8.dp, bottom = 6.dp)
-        ) {
-            Text(
-                text = if (reconstructed) "AFTER" else "BEFORE",
-                fontFamily = PlusJakartaFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                letterSpacing = 1.5.sp,
-                color = if (reconstructed) colorResource(R.color.green_active) else colorResource(R.color.red_bright)
-            )
-            Text(
-                text = "  ·  to ${current.to}",
-                fontFamily = PlusJakartaFamily,
-                fontSize = 11.sp,
-                letterSpacing = 0.5.sp,
-                color = colorResource(R.color.text_dim)
-            )
-        }
+    val typed = when (step) {
+        DemoStep.TALK -> current.messy.take(shown)
+        DemoStep.TIDY -> current.tidy
+        DemoStep.CLEAN -> current.clean
+        DemoStep.SENT -> ""
+    }
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = 300.dp)
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 5.dp, bottomStart = 18.dp))
-                .background(colorResource(R.color.bg_surface))
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            if (!reconstructed) {
-                Text(
-                    text = buildAnnotatedString {
-                        append(messyAnno.subSequence(0, shown.coerceIn(0, current.messy.length)))
-                        append("▏")
-                    },
-                    fontFamily = PlusJakartaFamily,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp
-                )
-            } else {
-                Text(
-                    text = current.clean,
-                    fontFamily = PlusJakartaFamily,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
-                    color = out,
-                    modifier = Modifier.alpha(cleanAlpha)
-                )
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        FakeChatBox(
+            typed = typed,
+            typedDim = step == DemoStep.TALK,
+            sent = if (step == DemoStep.SENT) listOf(current.clean) else emptyList(),
+            height = 250.dp
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        val (chip, line) = when (step) {
+            DemoStep.TALK -> "YOU TALK" to "Any way it comes out."
+            DemoStep.TIDY -> "LAYER 1" to "The same words, cleaned up."
+            DemoStep.CLEAN -> "LAYER 2 AND UP" to "What you meant, said well."
+            DemoStep.SENT -> "SENT" to "Into the box, like any text."
+        }
+        Text(
+            text = chip,
+            fontFamily = PlusJakartaFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            letterSpacing = 1.5.sp,
+            color = when (step) {
+                DemoStep.TALK -> colorResource(R.color.red_bright)
+                DemoStep.TIDY -> colorResource(R.color.copper_gold)
+                else -> colorResource(R.color.green_active)
             }
-        }
-
-        if (reconstructed) {
-            Spacer(Modifier.height(7.dp))
-            Text(
-                text = "✓ what you meant",
-                fontFamily = PlusJakartaFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-                letterSpacing = 0.5.sp,
-                color = colorResource(R.color.green_active),
-                modifier = Modifier.padding(end = 8.dp)
-            )
-        }
+        )
+        Text(
+            text = line,
+            fontFamily = PlusJakartaFamily,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            color = colorResource(R.color.text_dim),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.height(22.dp)
+        )
     }
 }

@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.wim.app.onboarding.PermissionLauncher
+import com.wim.app.onboarding.PermissionStatus
 
 /**
  * Permission card #5: Samsung deep sleep — shown only when
@@ -28,11 +29,14 @@ fun SamsungSleepScreen(
         body = "Samsung overrides Android's battery exemption with a \"Deep sleeping apps\" " +
             "list. If WiM lands on that list, it dies anyway. Tap below and make sure WiM " +
             "isn't on it — Battery → Background usage limits → Deep sleeping apps.",
-        granted = false,
+        granted = PermissionStatus.samsungSleepVisited(),
         showBadge = false,
         primaryCta = "OPEN SAMSUNG BATTERY SETTINGS",
         secondaryCta = "DONE",
-        onPrimary = { activity?.let { PermissionLauncher.openSamsungDeepSleepSettings(it) } },
+        onPrimary = {
+            PermissionStatus.markSamsungSleepVisited()
+            activity?.let { PermissionLauncher.openSamsungDeepSleepSettings(it) }
+        },
         onSecondary = { onContinue() }
     )
 }

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wim.app.R
 import com.wim.app.onboarding.RealBubble
+import com.wim.app.onboarding.RealBubbleState
 import com.wim.app.onboarding.theme.TitleFamily
 import com.wim.app.onboarding.theme.PlusJakartaFamily
 
@@ -94,10 +95,10 @@ fun DriveItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StateBubble("WiM", null, "rest")
-                StateBubble("REC", R.color.red_hot, "talking")
-                StateBubble("PROC", R.color.orange_amber, "washing")
-                StateBubble("SEND", R.color.green_bright, "go")
+                StateBubble(RealBubbleState.IDLE, "rest")
+                StateBubble(RealBubbleState.RECORDING, "talking")
+                StateBubble(RealBubbleState.PROCESSING, "washing")
+                StateBubble(RealBubbleState.SEND_READY, "go")
             }
 
             Spacer(Modifier.height(22.dp))
@@ -147,13 +148,9 @@ fun DriveItScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
 }
 
 @Composable
-private fun StateBubble(label: String, ringColorRes: Int?, caption: String) {
+private fun StateBubble(state: RealBubbleState, caption: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        RealBubble(
-            size = 64.dp,
-            label = label,
-            ringColor = ringColorRes?.let { colorResource(it) }
-        )
+        RealBubble(state = state)
         Spacer(Modifier.height(6.dp))
         Text(
             text = caption,
