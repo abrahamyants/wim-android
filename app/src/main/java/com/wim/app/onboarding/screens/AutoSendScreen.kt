@@ -102,7 +102,7 @@ fun AutoSendScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark {
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "Sending always requires that separate green-bubble tap. The feature is off by default; turn it on in settings.",
+                text = "Sending always requires that separate green-bubble tap. It is on by default; turn it off in settings.",
                 fontFamily = PlusJakartaFamily,
                 fontSize = 12.sp,
                 lineHeight = 18.sp,
