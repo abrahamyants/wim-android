@@ -83,7 +83,7 @@ fun ReconstructionScreen(onBack: () -> Unit, onContinue: () -> Unit) = CalmDark 
         ) {
             Spacer(Modifier.weight(0.35f))
 
-            RealBubble(size = 118.dp, label = "WiM")
+            RealBubble()
 
             Spacer(Modifier.height(20.dp))
 

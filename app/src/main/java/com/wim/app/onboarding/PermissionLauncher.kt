@@ -58,6 +58,16 @@ object PermissionStatus {
 
     fun isSamsung(): Boolean =
         Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+
+    /** Samsung's sleep lists cannot be read. The onboarding remembers that the
+     *  user opened Samsung's battery page from the Samsung card and lights that
+     *  row from this flag (George 10/12). */
+    fun samsungSleepVisited(): Boolean =
+        com.wim.app.WimApp.prefs.getBoolean("samsung_sleep_visited", false)
+
+    fun markSamsungSleepVisited() {
+        com.wim.app.WimApp.prefs.edit().putBoolean("samsung_sleep_visited", true).apply()
+    }
 }
 
 object PermissionLauncher {

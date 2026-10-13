@@ -1,144 +1,104 @@
 package com.wim.app.onboarding
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
-import androidx.annotation.DrawableRes
-import androidx.core.content.ContextCompat
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.wim.app.BezelStageArcView
+import com.wim.app.BubbleAppearance
+import com.wim.app.BubbleLiveStateVisuals
 import com.wim.app.R
-import com.wim.app.onboarding.theme.PlusJakartaFamily
 
 /**
- * The REAL bubble (gunmetal theme) rendered in Compose — replaces the flat MrDnaBubble
- * stand-in so the onboarding shows the actual asset the user gets. Layers the live app's own
- * drawables (no hex, no vectors, no Activity context needed; confirmed safe outside an Activity):
- *   bubble_bezel_gunmetal (coral-ringed metal bezel) + bubble_knob_gunmetal (raised knob) +
- *   knob_tick (gold tick at 12 o'clock) + label.
- * Keeps the bob George liked (spring breathe — brand-guard requires spring-only, no tween).
- * Ratios mirror bubble.xml (root 120 : bezel 72 : knob 44 : tick 3×8 @ ~16 from top).
+ * THE bubble, in the onboarding. Not a drawing of it (George 10/12: "the
+ * bubble design through all the rest of the onboarding slides are incorrect"):
+ * this is the live bubble's own layout, bubble_bezel.xml, inflated inside
+ * Compose and painted by the same [BubbleLiveStateVisuals.apply] the service
+ * calls, with the same [BezelStageArcView] lighting the same four arcs. The
+ * default bronze dish + knob, IDLE in espresso. Colors cannot drift from
+ * production because they are production.
  *
- * @param ringColor optional state ring drawn over the bezel (red/amber/green); null = stock coral.
+ * One size everywhere: the 72 dp bezel at [REAL_BUBBLE_SCALE], the size the
+ * Watch It Work page settled on.
  */
+enum class RealBubbleState { IDLE, RECORDING, PROCESSING, SEND_READY }
+
+val REAL_BUBBLE_BOX = 72.dp
+const val REAL_BUBBLE_SCALE = 0.9f
+
 @Composable
 fun RealBubble(
-    size: Dp = 96.dp,
-    label: String = "WiM",
-    ringColor: Color? = null,
-    modifier: Modifier = Modifier
+    state: RealBubbleState = RealBubbleState.IDLE,
+    modifier: Modifier = Modifier,
+    scale: Float = REAL_BUBBLE_SCALE,
+    /** Extra multiplier on top of [scale] — the recording breathe. */
+    breathe: Float = 1f,
+    /** Lit stage arcs 0..3 while processing; -1 = none. */
+    stage: Int = -1,
+    /** Seconds left on the green bubble; 0 = no timer shown. */
+    sendLeft: Long = 0L,
 ) {
-    val breath = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        val s = spring<Float>(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
-        while (true) {
-            breath.animateTo(1f, s)
-            breath.animateTo(0f, s)
-        }
-    }
-
-    val knobFraction = 44f / 72f
-
-    Box(
+    AndroidView(
         modifier = modifier
-            .size(size)
-            .graphicsLayer { translationY = -(breath.value * 4f * density) },
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = rememberLayerDrawablePainter(R.drawable.bubble_bezel_gunmetal),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        if (ringColor != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .border(width = size * (2.5f / 72f), color = ringColor, shape = CircleShape)
-            )
+            .size(REAL_BUBBLE_BOX)
+            .graphicsLayer {
+                scaleX = scale * breathe
+                scaleY = scale * breathe
+            },
+        factory = { ctx ->
+            LayoutInflater.from(ctx).inflate(R.layout.bubble_bezel, null, false).also { paintIdle(it) }
+        },
+        update = { root ->
+            when (state) {
+                RealBubbleState.IDLE -> paintIdle(root)
+                RealBubbleState.RECORDING -> {
+                    BubbleLiveStateVisuals.apply(root, BubbleLiveStateVisuals.State.RECORDING)
+                    root.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
+                }
+                RealBubbleState.PROCESSING -> {
+                    BubbleLiveStateVisuals.apply(root, BubbleLiveStateVisuals.State.PROCESSING)
+                    root.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
+                }
+                RealBubbleState.SEND_READY -> {
+                    BubbleLiveStateVisuals.apply(root, BubbleLiveStateVisuals.State.SEND_READY)
+                    root.findViewById<TextView>(R.id.bubbleTime)?.apply {
+                        if (sendLeft > 0L) {
+                            visibility = View.VISIBLE
+                            text = "${sendLeft}s"
+                            setTextColor(ContextCompat.getColor(context, R.color.espresso))
+                            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+                        } else {
+                            visibility = View.GONE
+                        }
+                    }
+                }
+            }
+            root.findViewById<BezelStageArcView>(R.id.bubbleStageArc)?.let { arc ->
+                arc.setArcColor(0xFF7A1F1F.toInt())   // bronze bezel's arc ink (BubbleStageArc)
+                if (stage < 0) arc.reset() else arc.setActiveStage(stage)
+            }
         }
-
-        Image(
-            painter = rememberLayerDrawablePainter(R.drawable.bubble_knob_gunmetal),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(knobFraction)
-        )
-
-        Image(
-            painter = rememberLayerDrawablePainter(R.drawable.knob_tick),
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = size * (15f / 72f))
-                .size(width = size * (3.5f / 72f), height = size * (9f / 72f))
-        )
-
-        if (label.isNotEmpty()) {
-            Text(
-                text = label,
-                color = colorResource(R.color.section_header),
-                fontFamily = PlusJakartaFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.135f).sp,
-                letterSpacing = 0.5.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
+    )
 }
 
-/**
- * Render any drawable — including the layer-list/shape XML the bubble uses — as a
- * Compose Painter. painterResource ONLY accepts VectorDrawables and raster assets,
- * so it throws "Only VectorDrawables and rasterized asset types are supported" on
- * the bubble_*_gunmetal layer-lists. We bake the drawable into a bitmap (at 3x
- * intrinsic so it stays crisp when upscaled to the onboarding's larger bubble
- * sizes) and wrap it in a BitmapPainter. The live BubbleService dodges this by
- * drawing these via View.setBackgroundResource, which Compose has no equivalent of.
- */
-@Composable
-private fun rememberLayerDrawablePainter(@DrawableRes id: Int): Painter {
-    val context = LocalContext.current
-    return remember(id) {
-        val drawable = ContextCompat.getDrawable(context, id)
-            ?: return@remember BitmapPainter(
-                Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888).asImageBitmap()
-            )
-        val scale = 3
-        val w = drawable.intrinsicWidth.coerceAtLeast(1) * scale
-        val h = drawable.intrinsicHeight.coerceAtLeast(1) * scale
-        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        drawable.setBounds(0, 0, w, h)
-        drawable.draw(Canvas(bitmap))
-        BitmapPainter(bitmap.asImageBitmap())
+/** Gold at rest: the default bronze dish + knob, IDLE in espresso, no timer. */
+private fun paintIdle(root: View) {
+    root.findViewById<FrameLayout>(R.id.bubbleBezel)
+        ?.setBackgroundResource(BubbleAppearance.bezelDrawableFor("bronze"))
+    root.findViewById<FrameLayout>(R.id.bubbleInner)?.apply {
+        backgroundTintList = null
+        setBackgroundResource(BubbleAppearance.knobDrawableFor("bronze"))
     }
+    root.findViewById<TextView>(R.id.bubbleLabel)?.apply {
+        text = "IDLE"
+        setTextColor(BubbleAppearance.idleLabelColorFor("bronze"))
+    }
+    root.findViewById<TextView>(R.id.bubbleTime)?.visibility = View.GONE
 }

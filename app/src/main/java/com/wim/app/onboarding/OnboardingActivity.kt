@@ -62,7 +62,11 @@ class OnboardingActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalOnboardingActivity provides this@OnboardingActivity) {
                     com.wim.app.onboarding.screens.CalmDark {
                         OnboardingNavHost(
-                            onComplete = { handleComplete() }
+                            onComplete = { handleComplete() },
+                            // Preview hook: `am start ... --es start_route watch-it`
+                            // opens the flow on one slide. Absent = WELCOME.
+                            startRoute = intent?.getStringExtra("start_route")
+                                ?: OnboardingRoutes.WELCOME
                         )
                     }
                 }
@@ -76,6 +80,17 @@ class OnboardingActivity : ComponentActivity() {
         // over the flow. Starting our own (non-exported) service from in-app is allowed;
         // only external uids are blocked. Restored on completion (below).
         startService(Intent(this, BubbleService::class.java).apply { action = "HIDE" })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Preview / re-entry: onResume hid the bubble. If this phone already
+        // finished onboarding, the user backing out must get the bubble back —
+        // otherwise it stays hidden until the app is opened again.
+        if (!isFinishing) return
+        if (WimApp.prefs.getBoolean("onboarding_complete", false)) {
+            startService(Intent(this, BubbleService::class.java).apply { action = "SHOW" })
+        }
     }
 
     private fun handleComplete() {

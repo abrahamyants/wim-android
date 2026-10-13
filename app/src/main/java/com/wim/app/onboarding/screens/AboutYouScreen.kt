@@ -110,7 +110,7 @@ fun AboutYouScreen(onBack: () -> Unit, onContinue: () -> Unit) {
             ) {
                 Spacer(Modifier.height(18.dp))
 
-                RealBubble(size = 96.dp, label = "WiM")
+                RealBubble()
 
                 Spacer(Modifier.height(20.dp))
 

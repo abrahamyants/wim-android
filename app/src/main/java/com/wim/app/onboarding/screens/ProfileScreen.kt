@@ -108,7 +108,7 @@ fun ProfileScreen(onBack: () -> Unit, onContinue: () -> Unit) {
             ) {
                 Spacer(Modifier.weight(0.4f))
 
-                RealBubble(size = 118.dp, label = "WiM")
+                RealBubble()
 
                 Spacer(Modifier.height(24.dp))
 

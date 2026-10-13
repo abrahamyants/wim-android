@@ -8,18 +8,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wim.app.onboarding.screens.AboutYouScreen
 import com.wim.app.onboarding.screens.AccessibilityPermissionScreen
-import com.wim.app.onboarding.screens.AutoSendScreen
 import com.wim.app.onboarding.screens.DriveItScreen
 import com.wim.app.onboarding.screens.BatteryPermissionScreen
 import com.wim.app.onboarding.screens.FinalScreen
 import com.wim.app.onboarding.screens.MicLevelScreen
 import com.wim.app.onboarding.screens.MicPermissionScreen
+import com.wim.app.onboarding.screens.NotificationsPermissionScreen
 import com.wim.app.onboarding.screens.OverlayPermissionScreen
 import com.wim.app.onboarding.screens.PermissionsIntroScreen
 import com.wim.app.onboarding.screens.ProfileScreen
 import com.wim.app.onboarding.screens.ReconstructionScreen
 import com.wim.app.onboarding.screens.SamsungSleepScreen
 import com.wim.app.onboarding.screens.SettingsMenuScreen
+import com.wim.app.onboarding.screens.WatchItScreen
 import com.wim.app.onboarding.screens.WelcomeScreen
 
 /**
@@ -27,8 +28,8 @@ import com.wim.app.onboarding.screens.WelcomeScreen
  * the graph is the flow, with no parked or placeholder branches:
  *
  *   welcome → reconstruction → permissions-intro
- *     → overlay → accessibility → mic → battery → samsung (if Samsung)
- *     → profile → about-you → autosend → settings-menu → final
+ *     → overlay → accessibility → mic → mic-level → battery → notifications → samsung (if Samsung)
+ *     → profile → about-you → drive-it → watch-it → settings-menu → final
  *
  * Deleted 2026-07-24: the four parked explainer tiles (any-app → layers →
  * tones → learns) and interactive-demo. All five were orphaned — unreachable
@@ -45,13 +46,14 @@ object OnboardingRoutes {
     const val MIC                = "mic"
     const val MIC_LEVEL          = "mic-level"
     const val BATTERY            = "battery"
+    const val NOTIFICATIONS      = "notifications"
     const val SAMSUNG_SLEEP      = "samsung-sleep"
     const val FINAL              = "final"
     const val RECONSTRUCTION     = "reconstruction"
     const val PROFILE            = "profile"
     const val ABOUT_YOU          = "about-you"
-    const val AUTOSEND           = "autosend"
     const val DRIVE_IT           = "drive-it"
+    const val WATCH_IT           = "watch-it"
     const val SETTINGS_MENU      = "settings-menu"
 }
 
@@ -59,11 +61,12 @@ object OnboardingRoutes {
 fun OnboardingNavHost(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    startRoute: String = OnboardingRoutes.WELCOME
 ) {
     NavHost(
         navController = navController,
-        startDestination = OnboardingRoutes.WELCOME,
+        startDestination = startRoute,
         modifier = modifier
     ) {
         composable(OnboardingRoutes.WELCOME) {
@@ -115,11 +118,15 @@ fun OnboardingNavHost(
             )
         }
         composable(OnboardingRoutes.BATTERY) {
+            val next = { navController.navigate(OnboardingRoutes.NOTIFICATIONS) }
+            BatteryPermissionScreen(onBack = { navController.popBackStack() }, onContinue = next, onSkip = next)
+        }
+        composable(OnboardingRoutes.NOTIFICATIONS) {
             val next = {
                 if (PermissionStatus.isSamsung()) navController.navigate(OnboardingRoutes.SAMSUNG_SLEEP)
                 else navController.navigate(OnboardingRoutes.PROFILE)
             }
-            BatteryPermissionScreen(onBack = { navController.popBackStack() }, onContinue = next, onSkip = next)
+            NotificationsPermissionScreen(onBack = { navController.popBackStack() }, onContinue = next, onSkip = next)
         }
         composable(OnboardingRoutes.SAMSUNG_SLEEP) {
             SamsungSleepScreen(
@@ -142,11 +149,11 @@ fun OnboardingNavHost(
         composable(OnboardingRoutes.DRIVE_IT) {
             DriveItScreen(
                 onBack = { navController.popBackStack() },
-                onContinue = { navController.navigate(OnboardingRoutes.AUTOSEND) }
+                onContinue = { navController.navigate(OnboardingRoutes.WATCH_IT) }
             )
         }
-        composable(OnboardingRoutes.AUTOSEND) {
-            AutoSendScreen(
+        composable(OnboardingRoutes.WATCH_IT) {
+            WatchItScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = { navController.navigate(OnboardingRoutes.SETTINGS_MENU) }
             )

@@ -102,6 +102,16 @@ class MainActivity : AppCompatActivity() {
             finish()
             return
         }
+        // Preview door (2026-10-12): the onboarding activity is not exported, so
+        // `adb shell am start -n com.wimlabs.wim/.MainActivity --es onboarding_route watch-it`
+        // opens the flow on one slide without resetting first-run. Shows the
+        // slide only; onboarding_complete is untouched.
+        intent?.getStringExtra("onboarding_route")?.takeIf { it.isNotBlank() }?.let { route ->
+            startActivity(
+                Intent(this, com.wim.app.onboarding.OnboardingActivity::class.java)
+                    .putExtra("start_route", route)
+            )
+        }
 
         setContentView(R.layout.activity_main)
 
